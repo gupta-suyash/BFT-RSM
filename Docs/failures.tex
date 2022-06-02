@@ -1,0 +1,50 @@
+\section{Failures}
+Our \Shadow{} protocol permits up to $\f{\Replicas{}}$ in each cluster to act maliciously.
+These replicas may decide to delay or avoid sending a message. 
+As our \Shadow{} protocol is {\em asynchronous} in nature and guarantees liveness only when the network is reliable, 
+we cannot employ timers to resolve byzantine attacks.
+However, the robust design of our \Shadow{} protocol requires minimal changes to handle these byzantine attacks, 
+which we illustrate next.
+
+\begin{itemize}[wide]
+\item {\bf \em Decide.}
+We know that each sending side replica removes a message $m$ with sequence number $k$ from its $\Sbuf{}$ or $\Hbuf{}$ 
+after it has been majority acknowledged ($\f{\Replicas{}}+1$ $\Ack{l}$ messages from distinct replicas at receiving cluster, such that $k \le l$).
+Post this, each replica updates the \highest{} variable to reflect that $m$ is the highest sequence number messages acknowledged till now.
+
+Assume that the replica $\Replica{\Cluster{X}}{i}$ sends a message $m'$ with sequence number $l$ ($l = k+1$) to replica $\Replica{\Cluster{Y}}{j}$.
+All the replicas of cluster $\Cluster{X}$ have majority acknowledged $m$ and $\highest$ is set to $m$ (sequence $k$).
+If either $\Replica{\Cluster{X}}{i}$ or $\Replica{\Cluster{Y}}{j}$ are byzantine, following two cases are possible:
+(i) all the honest replicas in $\Cluster{Y}$ may not receive $m'$, and 
+(ii) all the honest replicas in $\Cluster{X}$ may not receive $\f{\Replicas{}}+1$ $\Ack{l}$ messages.
+
+The latter case is of specific interest because it implies that 
+each replica in $\Cluster{X}$ will receive more than $\f{\Replicas{}}+1$ $\Ack{k}$ messages corresponding to $m$.
+This is possible because each replica of $\Cluster{Y}$ is required to send an acknowledgment message along with any message it wants to send. 
+As this acknowledgment message represents the longest contiguous stream of messages received, and 
+less than $\f{\Replicas{}}+1$ replicas of $\Cluster{Y}$ have received $m'$, so they continue sending acknowledgments for $m$.
+Eventually, at least $2\f{\Replicas{}}+1$ replicas in $\Cluster{Y}$ would end up sending 
+{\em two} $\Ack{k}$ messages each to all the replicas in $\Cluster{X}$.
+At this point, the replicas in $\Cluster{X}$ decide that message $m'$ needs to communicated between another {\em distinct pair} of replicas.
+
+
+\item {\bf \em Switch.}
+We require replicas to deterministically select a new pair of replicas to communicate message $m'$. 
+Our deterministic scheme is simply switching to the next pair of replicas; 
+previously, if replica $\Replica{\Cluster{X}}{i}$ sent $m'$ to replica $\Replica{\Cluster{Y}}{j}$, now 
+replica $\Replica{\Cluster{X}}{(i+1)}$ sent $m'$ to replica $\Replica{\Cluster{Y}}{(j+1)}$.
+As every replica in cluster $\Cluster{X}$ can independently determine the next pair of replicas, 
+so $\Replica{\Cluster{X}}{(i+1)}$ is expected to automatically send $m'$ when it is its turn. 
+Hence, no communication among the replicas is needed for this switch.
+
+What if even $\Replica{\Cluster{X}}{(i+1)}$ is byzantine, then like earlier case, eventually, 
+each replica in $\Cluster{X}$ would receive third $\Ack{k}$ message from at least $2\f{\Replicas{}}+1$ in $\Cluster{Y}$. 
+This will trigger another switch and a new pair of replicas will be expected to communicate $m'$.
+Note: this pair switching can take place at most $2\f{\Replicas{}}$ times as after that there is 
+a guarantee that the next pair will be honest.
+Moreover, this switching does not prevent communication of other messages.
+
+
+
+\end{itemize}
+

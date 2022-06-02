@@ -1,0 +1,30 @@
+\section{Introduction}
+A large number of existing applications require communication between multiple clusters of replicas. 
+Examples of such applications include: 
+(i) Sharded systems where cross-shard transactions need to access data from two or more independent shards.
+(ii) Geo-replicated systems where the data is replicated across clusters, which are spread across the globe;
+these clusters need to periodically exchange data to ensure consistency.
+(iii) Two or more \Name{SMR}s running distinct consensus protocols; recent cross-chain blockchain applications
+target connecting two different blockchains and permit exchange of different crypto-tokens.
+
+Each of these applications can be viewed as a collection of independent clusters where each cluster manages its 
+own data and needs data from other clusters.
+Assume that each cluster has $\n{}$ machines.
+A naive way to exchange a message (say $m$) between two clusters is to require every machine in the sending cluster to send the
+message $m$ to every machine in the receiving cluster. 
+But, such a communication policy will result in transmitting $\n{}^2$ copies of the message $m$.
+To optimize this, a recent work shows that it is sufficient to transmit only $\n{}$ copies of the message $m$ 
+to guarantee that every machine of the receiving cluster {\em eventually} receives the message.
+Although this solution is linear in the number of machines in a cluster, 
+its use in streaming applications is still prohibitive as these applications have to continuously transmit 
+messages and this solution requires sending $\n{}$ copies per message, which will easily bottleneck the network.
+
+To resolve these challenges, in this work, we present the design of a communication protocol that 
+in the best case requires only sending {\em one} copy per message. 
+We call our protocol as {\em Shadow} as we target it for applications where clusters participate in 
+bi-directional communication (each cluster will act as a sender for some message and a receiver for another) and 
+irrespective of their nature (sender or receiver), the protocol remains the same.
+
+
+
+

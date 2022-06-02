@@ -1,0 +1,106 @@
+\section{\Shadow{} Protocol}
+To explain our protocol that facilitates reliable communication between two clusters, 
+we assume that both the clusters have a large number of messages to send to each other; 
+each cluster can continuously send messages to the other without stalling.
+Further, we assume that any message an honest replica in a cluster plans to send to the other cluster 
+has been ordered with the support of $2\f{}+1$ replicas.
+The protocol used to order this message is orthogonal to our \Shadow{} protocol;
+the clusters can employ any consensus protocol to order messages.
+However, we do expect each ordered message to be assigned a monotonically increasing sequence number (say $k$)
+and expect no gaps in these sequence numbers (e.g. $1,2,3,...$).
+
+Our \Shadow{} protocol expects that each replica in a cluster has a {\em sending buffer} (\Sbuf{}) and 
+a {\em receiving buffer} (\Rbuf{}) of finite sizes. 
+\Sbuf{} stores all the messages that a replica plans to send to the other cluster, while $\Rbuf{}$ 
+includes the messages from the other cluster. 
+We visualize $\Sbuf{}$ as a {\em queue} where new messages are added at the {\em rear} and 
+messages are removed from the {\em front}.
+Additionally, each message stored in $\Sbuf{}$ has an associated {\em counter}. 
+As the aim of our protocol is to reduce the number of messages communicated across the clusters, 
+so in the normal-case (failure-free) we require each replica to send a distinct message.
+We do this by dividing the messages to be sent between the replicas based on their sequence numbers ($k \mod \ID{} = 0$).
+Each replica can use this simple function to find out the messages it is expected to send and it stores them 
+in $\Sbuf{}$.
+The remaining messages (to be sent by other replicas) are stored in a {\em holding buffer} (\Hbuf{}) and 
+we also require a counter to be associated with each message in $\Hbuf{}$. 
+
+\begin{example}\label{ex:rep-send}
+Assume cluster $\Cluster{X}$ has $4$ replicas ($\Replica{\Cluster{X}}{1}$, $\Replica{\Cluster{X}}{2}$, $\Replica{\Cluster{X}}{3}$, and $\Replica{\Cluster{X}}{4}$), 
+and 
+cluster $\Cluster{Y}$ has $4$ replicas ($\Replica{\Cluster{Y}}{1}$, $\Replica{\Cluster{Y}}{2}$, $\Replica{\Cluster{Y}}{3}$, and $\Replica{\Cluster{Y}}{4}$).
+Say the replicas of $\Cluster{X}$ plan to send a series of ordered messages, starting with sequence number $1$. 
+For $\Replica{\Cluster{X}}{1}$: $\Sbuf{1,5,9,...}$ and $\Hbuf{2,3,4,6,7,8,...}$. 
+For $\Replica{\Cluster{X}}{2}$: $\Sbuf{2,6,10,...}$ and $\Hbuf{1,3,4,5,7,8,...}$.
+For $\Replica{\Cluster{X}}{3}$: $\Sbuf{3,7,11,...}$ and $\Hbuf{1,2,4,5,6,8,...}$.
+\end{example}
+
+We visualize $\Rbuf{}$ as an array, which stores a copy of received message from the other cluster, 
+indexed by the sequence number.
+We also require replicas to acknowledge (\Name{Ack}) messages they have received from the other cluster. 
+But, sending $\n{}$ \Name{Ack} messages for each received messaged is expensive, so we make replicas send 
+cumulative acknowledgment messages, which help to acknowledge receipt of multiple messages in a shot. 
+In this draft, when a replica sends $\Ack{k}$, it implies that this replica has received all the messages 
+with sequence number less than or equal to $k$.
+Next, we discuss the protocol steps.
+
+\begin{itemize}[wide]
+\item {\bf \em Transmit.}
+When the $i$-th replica $\Replica{\Cluster{X}}{i}$ in cluster $\Cluster{X}$ has messages in its $\Sbuf{}$, it 
+removes the message at the front of the queue (say message $m$).
+Next, $\Replica{\Cluster{X}}{i}$ creates a message $\SignMessage{\Message{i}{m}{l}}{\Replica{\Cluster{X}}{i}}$ 
+and forwards this message to the $j$-th replica $\Replica{\Cluster{Y}}{j}$ in cluster $\Cluster{Y}$.
+As $\Replica{\Cluster{X}}{i}$ is also receiving messages from the other cluster, it uses its outgoing message 
+to acknowledge the receipt of some of those messages (cumulative acknowledgments). 
+As cumulative acknowledgments represent a contiguous sequence of messages, every $\Ack{l}$ message 
+that a replica sends in our protocol implies the following: 
+all messages till sequence number $l$ have been received.
+We require each replica to send a cumulative acknowledgment with every outgoing message 
+even if it implies resending the same acknowledgment (in the case no new messages have been received).
+
+
+Note: $i$ and $j$ may have different values.
+We do this because $\Replica{\Cluster{X}}{i}$ loops over the set of replicas in cluster $\Cluster{Y}$ and sends 
+distinct messages to each of them.
+In the case of Example~\ref{ex:rep-send}, 
+$\Replica{\Cluster{X}}{1}$ sends the message with sequence $1$ to $\Replica{\Cluster{Y}}{1}$, $5$ to $\Replica{\Cluster{Y}}{2}$, 
+$9$ to $\Replica{\Cluster{Y}}{3}$, $13$ to $\Replica{\Cluster{Y}}{4}$, $17$ to $\Replica{\Cluster{Y}}{1}$, and so on. 
+
+
+\item {\bf \em Receipt.}
+When the $i$-th replica $\Replica{\Cluster{X}}{i}$ in cluster $\Cluster{X}$ receives a message 
+$m' = \SignMessage{\Message{i}{m}{k}}{\Replica{\Cluster{Y}}{j}}$ from the $j$-th replica in cluster $\Cluster{Y}$, 
+it broadcasts $m'$ in its cluster.
+Say the sequence number for $m$ be $l$.
+If $\Replica{\Cluster{X}}{i}$ has received all the messages with sequence number less than $l$ from cluster $\Cluster{Y}$, 
+it goes ahead and processes $m$. 
+If this is not the case, then $\Replica{\Cluster{X}}{i}$ stores $m$ at the index $l$ in $\Rbuf{}$.
+This $\Rbuf{}$ helps $\Replica{\Cluster{X}}{i}$ to determine the contiguous sequence of messages it has received to send a cumulative 
+acknowledgment in future.
+
+Each message $m'$ received by $\Replica{\Cluster{X}}{i}$ also includes a cumulative acknowledgment ($\Ack{k}$). 
+This is the acknowledgment from the replica $\Replica{\Cluster{Y}}{j}$ (sender of $m'$).
+Through this $\Ack{k}$, $\Replica{\Cluster{Y}}{j}$ wants to inform that it has received all the messages till sequence number $k$ 
+from cluster $\Cluster{X}$.
+This allows $\Replica{\Cluster{X}}{i}$ to increment the {\em counter} for each message with sequence number $\le k$ 
+in its $\Sbuf{}$ and $\Hbuf{}$.
+When the counter for any message reaches $\f{\Replicas{}}+1$, the corresponding message is removed from $\Sbuf{}$ or $\Hbuf{}$.
+We call this message to be {\em majority acknowledged}.
+Further, we keep track of the last majority acknowledged message (one with highest sequence number till now) in variable $\highest{}$.
+
+\end{itemize}
+
+
+{\bf Complexity.}
+In the normal-case, when there are no failures, every replica in either cluster will send and receive each message.
+Each receiver will get a message either from a replica in the other cluster or through broadcast from a replica in its cluster. 
+So, {\em one} message delay to send a message across clusters, and {\em two} message delays to send a message to all the replicas in a cluster.
+However, the sender cannot remove a message from its $\Sbuf{}$ or $\Hbuf{}$ unless it receives $\f{\Replicas{}}+1$ cumulative $\Ack{}$ messages (majority acknowledged) 
+from distinct replicas.
+As cumulative acknowledgments imply  receipt of a sequence of messages, so at steady state {\em two} communications across clusters 
+per message.
+
+
+
+
+
+

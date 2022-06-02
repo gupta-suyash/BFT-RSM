@@ -1,0 +1,37 @@
+\section{Preliminaries}
+In this draft, we consider communication across two clusters $\Cluster{X}$ and $\Cluster{Y}$.
+We expect each cluster to be capable of independently ordering and 
+executing their client transactions.
+For this purpose, we assume that each cluster is replicated, and we designate the 
+number of replicas in these clusters as $\Replicas{X}$ and $\Replicas{Y}$.
+Depending on the fault model, to order the transactions, 
+these clusters can employ a crash fault-tolerant protocol like Paxos or 
+a byzantine fault-tolerant (\BFT{}) protocol like \pbft{}.
+For the rest of this draft, we assume existence of byzantine faults, 
+though nothing prevents our protocol \Shadow{} to be applied to crash fault-tolerant environment.
+
+We require standard \BFT{} assumptions. 
+Cluster $\Cluster{X}$ has $\n{\Cluster{X}} = \abs{\Replicas{X}}$ replicas, 
+of which $\f{\Cluster{X}}$ are byzantine, such that $\n{\Cluster{X}} = 3\f{\Cluster{X}}+1$. 
+The remaining replicas are honest and follow the protocol.
+Similarly, Cluster $\Cluster{Y}$ has $\n{\Cluster{Y}} = \abs{\Replicas{Y}}$ replicas, 
+of which $\f{\Cluster{Y}}$ are byzantine, such that $\n{\Cluster{Y}} = 3\f{\Cluster{Y}}+1$.
+We assume each cluster also has access to its own set of clients and we make no assumptions on 
+the behavior of the clients.
+We assume that each cluster runs a \BFT{} protocol to order its client transactions; 
+a transaction is termed as ordered if it receives support of at least two-third replicas.
+In \pbft{} terminology, a transaction is considered committed if at least one honest replica receives 
+$\Name{Commit}$ messages from $2\f{}+1$ distinct replicas.
+
+We assume authenticated communication. 
+Each replica uses digital signatures (\DS{}) to sign any message that they will be transferring across clusters.
+To represent a message $m$ signed by a replica $\Replica{}{}$ using \DS{}, we use the notation 
+{\bf $\SignMessage{m}{\Replica{}{}}$}.
+We assume that byzantine replicas can neither impersonate honest
+replicas, nor subvert cryptographic constructs.
+Each message communicated across the clusters has the following structure: 
+$\SignMessage{\Message{recv-id}{data}{}}{\Replica{}{}}$, where $recv-id$ identifies the receiver of this message, 
+$data$ denotes the content to be communicated, and $\Name{Ack}$ is an acknowledgment of a previously received message.  
+For simplicity, in rest of this draft, we assume that each replica of a cluster is assigned an identifier, starting from $0$, 
+which can be obtained by calling the function $\ID{}$.
+

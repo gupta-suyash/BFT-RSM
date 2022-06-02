@@ -1,0 +1,43 @@
+\usepackage{amsmath,balance}
+\usepackage[inline]{enumitem}
+\usepackage[binary-units]{siunitx}
+\DeclareSIUnit{\nothing}{\relax}
+\hyphenation{block-chain}
+
+%% 
+%\let\proof\relax
+%\let\endproof\relax
+
+
+%% SI units and transaction notation.
+\DeclareSIUnit{\txn}{txn}
+\DeclareSIUnit{\batch}{batch}
+\sisetup{per-mode=symbol}
+
+%% BFT Protocol names (and Fabric Name).
+\newcommand{\Name}[1]{\textsc{#1}}
+\newcommand{\BFT}{\textsc{Bft}}
+\newcommand{\pbft}{\textsc{Pbft}}
+\newcommand{\Shadow}{\textsc{Shadow}}
+\newcommand{\Cluster}[1]{\mathcal{#1}}
+\newcommand{\Replicas}[1]{\mathcal{R}_{\mathcal{#1}}}
+\newcommand{\DS}{\textsc{DS}}
+
+\newcommand{\Replica}[2]{\textsc{R}_{{#1}{#2}}}
+
+
+
+\newcommand{\n}[1]{\textbf{n}_{#1}}
+\newcommand{\f}[1]{\textbf{f}_{#1}}
+\newcommand{\Ack}[1]{\Name{Ack}(#1)}
+\newcommand{\Message}[3]{{#1},{#2},\Ack{#3}}
+\newcommand{\SignMessage}[2]{\langle#1\rangle_{#2}}
+
+\newcommand{\abs}[1]{\lvert #1 \rvert}
+\newcommand{\ID}[1]{\texttt{ID}({#1})}
+\newcommand{\Sbuf}[1]{\texttt{SBuf}[{#1}]}
+\newcommand{\Hbuf}[1]{\texttt{HBuf}[{#1}]}
+\newcommand{\Rbuf}[1]{\texttt{RBuf}[{#1}]}
+\newcommand{\highest}{\texttt{highest}}
+
+\newtheorem{example}{Example}
