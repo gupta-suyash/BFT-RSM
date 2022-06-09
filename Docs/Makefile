@@ -1,13 +1,15 @@
 FILE = bftcomm
-$(FILE).pdf: $(FILE).tex intro.tex prelim.tex algo.tex failures.tex
+$(FILE).pdf: $(FILE).tex intro.tex prelim.tex algo.tex failures.tex motivate.tex
 	pdflatex $(FILE)
 
-newcite:  $(FILE).pdf 
+newcite: refined.bib $(FILE).pdf 
+	bibtex $(FILE)
 	pdflatex $(FILE)
 	pdflatex $(FILE)
 	
 force:
 	pdflatex $(FILE)
+	bibtex $(FILE)
 	pdflatex $(FILE)
 	pdflatex $(FILE)
 	

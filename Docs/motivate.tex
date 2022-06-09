@@ -1,0 +1,19 @@
+\section{Motivation}
+As stated in Introduction, there are several real-world settings where applications 
+require communication between two or more RSMs. 
+One such setting is the cross-chain communication in the decentralized cryptocurrency ecosystem.
+Cross-chain communication faciltates transfer of tokens (a form of digital currency) from 
+one RSM to another. 
+For instance, Cosmos aims to allow its users exchange their Bitcoins for equivalent amount of Ethers.
+To do so, Cosmos employs the {\em Interblockchain communication protocol} (\IBC{})~\cite{ibc}.
+\IBC{} makes no assumption on the architecture of communicating RSMs and the data communicated.
+However, \IBC{} requires each RSM to order transactions through a \BFT{} consensus and 
+expects commitment proofs for each data.
+
+\IBC{} aims to act as an interface between modules (such as smart contracts or other ledger components), 
+consensus protocols, blockchains, and so on.
+To communicate messages between two modules, \IBC{} requires a set of {\em relayer} processe.
+These relayer processes continuously monitor the modules and exchange committed data on one ledger to another.
+As relayer processes may fail, \IBC{} expects at least one correct relayer process to be always live.
+To prevent data loss from byzantine relayer processes, \IBC{} adds a sequence number to each transmitted packet. 
+
