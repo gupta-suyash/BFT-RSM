@@ -1,19 +1,65 @@
 \section{Motivation}
-As stated in Introduction, there are several real-world settings where applications 
-require communication between two or more RSMs. 
-One such setting is the cross-chain communication in the decentralized cryptocurrency ecosystem.
-Cross-chain communication faciltates transfer of tokens (a form of digital currency) from 
-one RSM to another. 
-For instance, Cosmos aims to allow its users exchange their Bitcoins for equivalent amount of Ethers.
-To do so, Cosmos employs the {\em Interblockchain communication protocol} (\IBC{})~\cite{ibc}.
-\IBC{} makes no assumption on the architecture of communicating RSMs and the data communicated.
-However, \IBC{} requires each RSM to order transactions through a \BFT{} consensus and 
-expects commitment proofs for each data.
+Distributed applications may need to share data and collaborate with each other to
+complete a task.
+When these distributed applications decide to collaborate, they enter into a service-level 
+agreement (SLA). 
+Each SLA is a contract between collaborating applications and 
+defines the precise functionality expected from all the applications. 
+A popular example of one such SLA is a {\em smart-contract}, which is a binding agreement 
+between two or more parties.
+Cryptocurrencies like Ethereum~\cite{ether} and Algorand~\cite{algorand} permit their 
+clients to create and deploy smart-contracts on their blockchain. 
+These smart-contracts help to enforce programmed logic.
+Often, the execution of these smart contracts is restricted to the cryptocurrency 
+they are deployed.
+However, as described earlier, real-world applications require SLAs that span multiple distributed
+parties (for example, SLAs between clients of different cryptocurrencies).
 
-\IBC{} aims to act as an interface between modules (such as smart contracts or other ledger components), 
-consensus protocols, blockchains, and so on.
-To communicate messages between two modules, \IBC{} requires a set of {\em relayer} processe.
-These relayer processes continuously monitor the modules and exchange committed data on one ledger to another.
-As relayer processes may fail, \IBC{} expects at least one correct relayer process to be always live.
-To prevent data loss from byzantine relayer processes, \IBC{} adds a sequence number to each transmitted packet. 
+Blockchain-based cryptocurrencies advocate a permissionless infrastructure where anyone can 
+(i) freely join or leave the network, and 
+(ii) hide its identity.
+However, not every organization prefers such a setting. 
+A large number of organizations prefer a permissioned infrastructure where they are aware of the 
+identities of the participants, but they cannot blindly trust the participants.
+A simple example of such a permissioned application arises from Supply Chain~\cite{caper,business-process-blockchain} 
+where five different participants--Supplier, Manufacturer, Bulk Buyer, Carrier, and Middleman--need 
+to interact with each other to complete a consignment.
+Following is a simple workflow in this setting: 
+The Bulk Buyer places an order with the Manufacturer for an advertised item. 
+To fulfill this order, the Manufacturer contacts the Middleman for acquiring necessary raw material. 
+As a result, the Middleman requests the Supplier for raw materials. 
+Once the Supplier has the raw material, it arranges a shipment via the Carrier. 
+The carrier delivers the raw materials to the Supplier, which forwards them to the Manufacturer.
+When the goods are ready, the Manufacturer delivers them to the Bulk Buyer
 
+A noteworthy detail in this example is that each of these participants by itself could 
+be an organization. 
+For example, the Manufacturer may have several internal departments that 
+perform key tasks such as Production, Finance, Marketing, and Purchasing.
+These departments cater to different tasks, such as goods assembly, generation, painting, drying, testing, and packaging.
+As a result, each of the five participants can be viewed as a distinct physical applications 
+with several members in each application. 
+Any communication between these applications has to be a SLA which can be later validated.
+As these applications cannot blindly trust each other, we need SLAs that can handle malicious attacks. 
+Further, communication of these SLAs need to take place across reliable channels and in an efficient manner.
+
+
+%
+%As stated in Introduction, there are several real-world settings where applications 
+%require communication between two or more RSMs. 
+%One such setting is the cross-chain communication in the decentralized cryptocurrency ecosystem.
+%Cross-chain communication faciltates transfer of tokens (a form of digital currency) from 
+%one RSM to another. 
+%For instance, Cosmos aims to allow its users exchange their Bitcoins for equivalent amount of Ethers.
+%To do so, Cosmos employs the {\em Interblockchain communication protocol} (\IBC{})~\cite{ibc}.
+%\IBC{} makes no assumption on the architecture of communicating RSMs and the data communicated.
+%However, \IBC{} requires each RSM to order transactions through a \BFT{} consensus and 
+%expects commitment proofs for each data.
+%
+%\IBC{} aims to act as an interface between modules (such as smart contracts or other ledger components), 
+%consensus protocols, blockchains, and so on.
+%To communicate messages between two modules, \IBC{} requires a set of {\em relayer} processe.
+%These relayer processes continuously monitor the modules and exchange committed data on one ledger to another.
+%As relayer processes may fail, \IBC{} expects at least one correct relayer process to be always live.
+%To prevent data loss from byzantine relayer processes, \IBC{} adds a sequence number to each transmitted packet. 
+%
