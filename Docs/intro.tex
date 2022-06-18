@@ -1,30 +1,95 @@
 \section{Introduction}
-A large number of existing applications require communication between multiple clusters of replicas. 
-Examples of such applications include: 
-(i) Sharded systems where cross-shard transactions need to access data from two or more independent shards.
-(ii) Geo-replicated systems where the data is replicated across clusters, which are spread across the globe;
-these clusters need to periodically exchange data to ensure consistency.
-(iii) Two or more \Name{SMR}s running distinct consensus protocols; recent cross-chain blockchain applications
-target connecting two different blockchains and permit exchange of different crypto-tokens.
+\begin{itemize}
+\item Federated applications require communication among multiple independent organizations, 
+each of which manages its own data. 
+These organizations communicate with each other to share data pertaining to the application.
 
-Each of these applications can be viewed as a collection of independent clusters where each cluster manages its 
-own data and needs data from other clusters.
-Assume that each cluster has $\n{}$ machines.
-A naive way to exchange a message (say $m$) between two clusters is to require every machine in the sending cluster to send the
-message $m$ to every machine in the receiving cluster. 
-But, such a communication policy will result in transmitting $\n{}^2$ copies of the message $m$.
-To optimize this, a recent work shows that it is sufficient to transmit only $\n{}$ copies of the message $m$ 
-to guarantee that every machine of the receiving cluster {\em eventually} receives the message.
-Although this solution is linear in the number of machines in a cluster, 
-its use in streaming applications is still prohibitive as these applications have to continuously transmit 
-messages and this solution requires sending $\n{}$ copies per message, which will easily bottleneck the network.
+\item Generally, each organization has several departments or sub-organizations, which although 
+work together fulfilling towards the same goal, may not trust each other.
 
-To resolve these challenges, in this work, we present the design of a communication protocol that 
-in the best case requires only sending {\em one} copy per message. 
-We call our protocol as {\em Shadow} as we target it for applications where clusters participate in 
-bi-directional communication (each cluster will act as a sender for some message and a receiver for another) and 
-irrespective of their nature (sender or receiver), the protocol remains the same.
+\item A simple example of lack of trust across departments arises in case of incidents or accidents when 
+no party is ready to share the blame. 
+Hence, each organization can be observed as a collection of known untrusted parties; 
+any decision within the organization requires agreement among multiple such parties.
 
+\item These untrusted parties within an organization may individually store a copy of all the shared data, 
+and any transaction that modifies the state of the shared data requires a consensus. 
+Hence, we observe each organization as a replicated state machine (RSM).
+
+\item Following this, any federated application can be viewed as a communication between 
+multiple RSMs. 
+Prior works often refer to this communication as cross-chain communication as 
+each RSM logs (or chains) its own data.
+
+\item Prior works on cross-chain communication mainly focus on two aspects:
+(i) the merits of performing cross-chain communication, and 
+(ii) the safe application of data communicated across chains. 
+However, they lack sufficient details on {\em how} this communication should take place.
+The common assumption is that some {\em reliable and efficient channel} will guarantee seamless 
+cross-chain communication.
+
+\item We argue that designing a reliable and efficient channel is challenging as it raises 
+several questions. 
+(1) How many senders and receivers are needed to reliably communicate one message? 
+(2) How many copies of a message should each sender send?
+(3) How frequently do the senders have to send the copies of the message?
+(4) How does the sender know that the message has been received?
+(5) Can the communication channel be full-duplex?
+
+\item To resolve these questions, we present the design of first cross-chain message communication 
+protocol, \Shadow{}, which learns from the TCP-protocol and guarantees reliable and efficient 
+communication even in the presence of byzantine attacks.
+
+\item Like TCP, \Shadow{} supports full-duplex communication, 
+buffers messages at the sender until they are received, 
+requires receivers to send cumulative acknowledgments, and 
+resends undelivered messages.
+However, TCP is not designed to handle byzantine attacks. 
+
+\item To ensure reliable communication under byzantine attacks, \Shadow{} introduces the following:
+(1) Quorum acknowledgment (\quack{}), which provide the guarantee that the message has been received by 
+at least one honest party at the receiving RSM.
+(2) implicit \duck{}, which informs the sending RSM about a missing message. 
+Further, these \quack{s} and \duck{s} are received asynchronously by RSMs, and 
+do not bottleneck the ongoing stream of messages.
+ 
+\item In the good case, \Shadow{} guarantees that each message is only communicated once by the 
+sending RSM and a single cumulative acknowledgment from the receiver guarantees receipt of 
+multiple messages.
+Moreover, as \Shadow{} supports duplex communication, these cumulative acknowledgments can be piggybacked  
+with the outgoing messages.
+
+\item We argue that \Shadow{} provides optimal asynchronous duplex communication without the 
+need for any advanced cryptographic primitives or network coding.
+\Shadow{} is designed for permitting high throughput communication between the RSMs.
+
+\end{itemize}
+%A large number of existing applications require communication between multiple clusters of replicas. 
+%Examples of such applications include: 
+%(i) Sharded systems where cross-shard transactions need to access data from two or more independent shards.
+%(ii) Geo-replicated systems where the data is replicated across clusters, which are spread across the globe;
+%these clusters need to periodically exchange data to ensure consistency.
+%(iii) Two or more \Name{SMR}s running distinct consensus protocols; recent cross-chain blockchain applications
+%target connecting two different blockchains and permit exchange of different crypto-tokens.
+%
+%Each of these applications can be viewed as a collection of independent clusters where each cluster manages its 
+%own data and needs data from other clusters.
+%Assume that each cluster has $\n{}$ machines.
+%A naive way to exchange a message (say $m$) between two clusters is to require every machine in the sending cluster to send the
+%message $m$ to every machine in the receiving cluster. 
+%But, such a communication policy will result in transmitting $\n{}^2$ copies of the message $m$.
+%To optimize this, a recent work shows that it is sufficient to transmit only $\n{}$ copies of the message $m$ 
+%to guarantee that every machine of the receiving cluster {\em eventually} receives the message.
+%Although this solution is linear in the number of machines in a cluster, 
+%its use in streaming applications is still prohibitive as these applications have to continuously transmit 
+%messages and this solution requires sending $\n{}$ copies per message, which will easily bottleneck the network.
+%
+%To resolve these challenges, in this work, we present the design of a communication protocol that 
+%in the best case requires only sending {\em one} copy per message. 
+%We call our protocol as {\em Shadow} as we target it for applications where clusters participate in 
+%bi-directional communication (each cluster will act as a sender for some message and a receiver for another) and 
+%irrespective of their nature (sender or receiver), the protocol remains the same.
+%
 
 
 
