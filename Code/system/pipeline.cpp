@@ -32,12 +32,10 @@ int node0(const char *url)
 	return 0;
 }
 
-int node1(const char *url, char *msg)
+int node1(const char *url)
 {
-        int sz_msg = strlen(msg) + 1; // '\0' too
         nng_socket sock;
-        int rv;
-        int bytes;
+        int rv, bytes, sz_msg;
 
         if ((rv = nng_push0_open(&sock)) != 0) {
                 fatal("nng_push0_open", rv);
@@ -45,10 +43,19 @@ int node1(const char *url, char *msg)
         if ((rv = nng_dial(sock, url, NULL, 0)) != 0) {
                 fatal("nng_dial", rv);
         }
-        printf("NODE1: SENDING \"%s\"\n", msg);
-        if ((rv = nng_send(sock, msg, strlen(msg)+1, 0)) != 0) {
-                fatal("nng_send", rv);
-        }
+
+	string str = "Hello ";
+	char *msg;
+	for(int i=0; i<10; i++) {
+		str += to_string(i);
+		msg = &str[0];
+		sz_msg = strlen(msg) + 1; // '\0' too
+
+        	printf("NODE1: SENDING \"%s\"\n", msg);
+        	if ((rv = nng_send(sock, msg, sz_msg, 0)) != 0) {
+        	        fatal("nng_send", rv);
+        	}}
+
         sleep(1); // wait for messages to flush before shutting down
         nng_close(sock);
         return (0);
