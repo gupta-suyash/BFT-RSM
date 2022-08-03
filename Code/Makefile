@@ -25,7 +25,7 @@ all: rundb
 
 rundb : $(SOURCES_OBJ)
 	$(CC) -static -o $@ $^ $(LDFLAGS) $(LIBS)
-%.o : ${SOURCES}
+%.o : %.cpp
 	$(CC) -c ${CFLAGS} -o $@ $<
 
 
@@ -37,4 +37,4 @@ rundb : $(SOURCES_OBJ)
 
 .PHONY: clean
 clean:
-	rm -f system/*.o rundb 
+	rm -f system/*.o rundb
