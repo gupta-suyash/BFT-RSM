@@ -1,5 +1,41 @@
 #include "pipeline.h"
 
+/* Generates the path to ifconfig.txt.
+ * 
+ * @return the path to ifconfig.txt.
+ */
+string Pipeline::GetPath() 
+{
+	filesystem::path p = current_path(); // Path of rundb location.
+	string if_path = p.string() + "/configuration/ifconfig.txt";
+	cout << "Path in string: " << if_path << endl;
+	return if_path;
+}	
+
+/* Collects all the ip addresses in the vector ip_addr.
+ * 
+ * @param if_path is the vector of ip addresses.
+ */
+void Pipeline::ReadIfconfig(string if_path)
+{
+	std::ifstream fin{if_path};
+	if (!fin) {
+		cout << "Error opening file for reading" << endl;
+		exit(1);
+	}
+
+	string ips;
+	while(getline(fin, ips)) {
+		ip_addr.push_back(ips);
+		cout << "IP: " << ips << endl;
+	}
+
+	//for(int i=0; i<ip_addr.size(); i++) {
+	//	cout << "Stored IP: " << ip_addr[0] << endl;
+	//}	
+}	
+
+
 void fatal(const char *func, int rv)
 {
         fprintf(stderr, "%s: %s\n", func, nng_strerror(rv));
