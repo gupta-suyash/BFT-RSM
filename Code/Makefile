@@ -14,6 +14,7 @@ LIBS = -lnng -lanl -ldl
 
 
 SOURCES = $(wildcard ./system/*.cpp)
+SOURCES += $(wildcard ./configuration/*.cpp)
 SOURCES_OBJ = $(SOURCES:.cpp=.o)
 
 #abc:
@@ -37,4 +38,4 @@ rundb : $(SOURCES_OBJ)
 
 .PHONY: clean
 clean:
-	rm -f system/*.o rundb
+	rm -f system/*.o configuration/*.o rundb
