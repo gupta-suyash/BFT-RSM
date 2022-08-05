@@ -42,87 +42,117 @@ void fatal(const char *func, int rv)
         exit(1);
 }
 
-int node0(const char *url_snd, const char *url_rcv)
+int Pipeline::node0(const char *url)
 {
-        nng_socket sock_send, sock_recv;
-        int rv;
+	nng_socket sock;
+	int rv;
+	if ((rv = nng_pull0_open(&sock)) != 0) {
+		fatal("nng_pull0_open", rv);
+	}
+        if ((rv = nng_listen(sock, url, NULL, 0)) != 0) {
+		fatal("nng_listen", rv);
+	}
+	for (;;) {
+		char *buf = NULL;
+		size_t sz;
+		if ((rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC)) != 0) {
+			fatal("nng_recv", rv);
+		}
+		
+		printf("NODE0: RECEIVED \"%s\"\n", buf); 
+		nng_free(buf, sz);
+	}
 
-	// Receiver Sockets
-        if ((rv = nng_pull0_open(&sock_recv)) != 0) {
-                fatal("nng_pull0_open", rv);
-        }
-	cout << "node0: 1 \n" << flush;
 
-        if ((rv = nng_listen(sock_recv, url_rcv, NULL, 0)) != 0) {
-                fatal("nng_listen", rv);
-        }
-	cout << "node0: 2 \n" << flush;
+        //nng_socket sock;
+        //int rv;
 
-	// Sender Sockets
-	if ((rv = nng_push0_open(&sock_send)) != 0) {
-                fatal("nng_push0_open", rv);
-        }
-	cout << "node0: 3 \n" << flush;
+	//// Receiver Sockets
+        //if ((rv = nng_pull0_open(&sock)) != 0) {
+        //        fatal("nng_pull0_open", rv);
+        //}
+	//cout << "node0: 1 \n" << flush;
 
-        if ((rv = nng_dial(sock_send, url_snd, NULL, 0)) != 0) {
-                fatal("nng_dial", rv);
-        }
-	cout << "node0: 4 \n" << flush;
+        //if ((rv = nng_listen(sock, url, NULL, 0)) != 0) {
+        //        fatal("nng_listen", rv);
+        //}
+	//cout << "node0: 2 \n" << flush;
 
-        for (;;) {
-                char *buf = NULL;
-                size_t sz;
-                if ((rv = nng_recv(sock_recv, &buf, &sz, NNG_FLAG_ALLOC)) != 0) {
-                        fatal("nng_recv", rv);
-                }
-                printf("NODE0: RECEIVED \"%s\"\n", buf); 
-                nng_free(buf, sz);
-        }
-	return 0;
+	////// Sender Sockets
+	////if ((rv = nng_push0_open(&sock_send)) != 0) {
+        ////        fatal("nng_push0_open", rv);
+        ////}
+	////cout << "node0: 3 \n" << flush;
+
+        ////if ((rv = nng_dial(sock_send, url_snd, NULL, 0)) != 0) {
+        ////        fatal("nng_dial", rv);
+        ////}
+	////cout << "node0: 4 \n" << flush;
+
+        //for (;;) {
+        //        char *buf = NULL;
+        //        size_t sz;
+        //        if ((rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC)) != 0) {
+        //                fatal("nng_recv", rv);
+        //        }
+        //        printf("NODE0: RECEIVED \"%s\"\n", buf); 
+        //        nng_free(buf, sz);
+        //}
+	//return 0;
 }
 
-int node1(const char *url_snd, const char *url_rcv)
+int Pipeline::node1(const char *url, char *msg)
 {
-        nng_socket sock_send, sock_recv;
-        int rv, bytes, sz_msg;
+	int sz_msg = strlen(msg) + 1;
+	nng_socket sock;
+	int rv;
+	int bytes;
+	
+	if ((rv = nng_push0_open(&sock)) != 0) {
+        	fatal("nng_push0_open", rv);
+	}
 
-	// Sender Sockets
-        if ((rv = nng_push0_open(&sock_send)) != 0) {
-                fatal("nng_push0_open", rv);
-        }
-	cout << "node1: 1 \n" << flush;
-
-        if ((rv = nng_dial(sock_send, url_snd, NULL, 0)) != 0) {
-                fatal("nng_dial", rv);
-        }
-	cout << "node1: 2 \n" << flush;
-
-	// Receiver Sockets
-        if ((rv = nng_pull0_open(&sock_recv)) != 0) {
-                fatal("nng_pull0_open", rv);
-        }
-	cout << "node1: 3 \n" << flush;
-
-        if ((rv = nng_listen(sock_recv, url_rcv, NULL, 0)) != 0) {
-                fatal("nng_listen", rv);
-        }
-	cout << "node1: 4 \n" << flush;	
-
-	string str = "Hello ";
-	char *msg;
-	for(int i=0; i<10; i++) {
-		str += to_string(i);
-		msg = &str[0];
-		sz_msg = strlen(msg) + 1; // '\0' too
-
-        	printf("NODE1: SENDING \"%s\"\n", msg);
-        	if ((rv = nng_send(sock_send, msg, sz_msg, 0)) != 0) {
-        	        fatal("nng_send", rv);
-        	}}
-
-        sleep(1); // wait for messages to flush before shutting down
-        nng_close(sock_send);
+	if ((rv = nng_dial(sock, url, NULL, 0)) != 0) {
+		fatal("nng_dial", rv);
+	}
+        printf("NODE1: SENDING \"%s\"\n", msg);
+	if ((rv = nng_send(sock, msg, strlen(msg)+1, 0)) != 0) {
+		fatal("nng_send", rv);
+	}
+	sleep(1); // wait for messages to flush before shutting down
+	nng_close(sock);
         return (0);
+
+
+        //nng_socket sock;
+        //int rv, bytes, sz_msg;
+
+	//// Sender Sockets
+        //if ((rv = nng_push0_open(&sock)) != 0) {
+        //        fatal("nng_push0_open", rv);
+        //}
+	//cout << "node1: 1 \n" << flush;
+
+        //if ((rv = nng_dial(sock, url, NULL, 0)) != 0) {
+        //        fatal("nng_dial", rv);
+        //}
+	//cout << "node1: 2 \n" << flush;
+
+	//string str = "Hello ";
+	//char *msg;
+	//for(int i=0; i<10; i++) {
+	//	str += to_string(i);
+	//	msg = &str[0];
+	//	sz_msg = strlen(msg) + 1; // '\0' too
+
+        //	printf("NODE1: SENDING \"%s\"\n", msg);
+        //	if ((rv = nng_send(sock, msg, sz_msg, 0)) != 0) {
+        //	        fatal("nng_send", rv);
+        //	}}
+
+        //sleep(1); // wait for messages to flush before shutting down
+        //nng_close(sock);
+        //return (0);
 }
 
 

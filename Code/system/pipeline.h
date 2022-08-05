@@ -22,9 +22,6 @@ using std::filesystem::current_path;
 #define NODE0 "node0"
 #define NODE1 "node1"
 
-int node0(const char *url_snd, const char *url_rcv);
-int node1(const char *url_snd, const char *url_rcv);
-
 
 class Pipeline {
 	string path_cwd_; // Path to current working directory.
@@ -33,7 +30,8 @@ public:
 	string GetPath();
 	void ReadIfconfig(string if_path);
 
-	
+	int node0(const char *url);
+	int node1(const char *url, char *msg);
 	 
 };	
 
