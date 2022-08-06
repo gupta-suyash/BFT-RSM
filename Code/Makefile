@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-Wall -g -std=c++14
+CFLAGS=-Wall -g -std=c++17
 NNMSG=${PWD}/deps/nng
 
 .SUFFIXES: .o .cpp .h
