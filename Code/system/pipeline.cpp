@@ -36,6 +36,16 @@ void Pipeline::ReadIfconfig(string if_path)
 }	
 
 
+/* Returns the required IP address from the vector ip_addr.
+ *
+ * @param id is the required IP.
+ * @return the IP address.
+ */ 
+string Pipeline::getIP(UInt16 id)
+{
+	return ip_addr[id];
+}	
+
 void fatal(const char *func, int rv)
 {
         fprintf(stderr, "%s: %s\n", func, nng_strerror(rv));

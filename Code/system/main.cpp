@@ -28,11 +28,14 @@ int main(int argc, char **argv)
 	//	cout << "Incorrect arguments \n" << flush;
 	//	exit(1);
 	//}
+	
+	string myurl = "tcp://" + pp.getIP(0) + ":3000";
+	const char *url = myurl.c_str();
         if (strcmp(NODE0, argv[1]) == 0)
-                return (pp.node0(argv[2]));
+                return (pp.node0(url));
 
         if (strcmp(NODE1, argv[1]) == 0)
-                return (pp.node1(argv[2], argv[3]));
+                return (pp.node1(url, argv[2]));
 
         fprintf(stderr, "Usage: pipeline %s|%s <URL> <ARG> ...'\n",
                 NODE0, NODE1);

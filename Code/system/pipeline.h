@@ -16,6 +16,8 @@
 #include <nng/protocol/pipeline0/pull.h>
 #include <nng/protocol/pipeline0/push.h>
 
+#include "types.h"
+
 using namespace std;
 using std::filesystem::current_path;
 
@@ -29,6 +31,7 @@ class Pipeline {
 public:			    
 	string GetPath();
 	void ReadIfconfig(string if_path);
+	string getIP(UInt16 id); 
 
 	int node0(const char *url);
 	int node1(const char *url, char *msg);
