@@ -16,9 +16,8 @@
 #include <nng/protocol/pipeline0/pull.h>
 #include <nng/protocol/pipeline0/push.h>
 
-#include "types.h"
+#include "global.h"
 
-using namespace std;
 using std::filesystem::current_path;
 
 #define NODE0 "node0"

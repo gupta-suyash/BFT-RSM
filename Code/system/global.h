@@ -1,8 +1,11 @@
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
+#include <iostream>
 #include "types.h"
 #include "../configuration/config.h"
+
+using namespace std;
 
 // List of global variables and configuration parameters.
 

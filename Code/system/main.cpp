@@ -37,6 +37,8 @@ int main(int argc, char *argv[])
 
 	parser(argc, argv);
 
+	cout << "Node id: " << g_node_id << endl;
+
         if (g_node_id == 0)
                 return (pp.NodeReceive(url));
 
