@@ -9,5 +9,8 @@
 extern UInt16 g_thread_cnt;
 extern UInt16 g_num_rsm;
 extern UInt16 g_nodes_rsm;
+extern UInt16 g_node_cnt;
+extern UInt16 g_node_id;
+extern UInt16 g_rsm_id; // RSM Id for this node.
 
 #endif

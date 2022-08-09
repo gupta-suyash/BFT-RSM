@@ -2,11 +2,14 @@
 #include <pwd.h>
 #include <filesystem>
 
+#include "global.h"
 #include "pipeline.h"
 
 using std::filesystem::current_path;
 
-int main(int argc, char **argv)
+void parser(int argc, char *argv[]);
+
+int main(int argc, char *argv[])
 {
 	int myuid;
 	passwd *mypasswd;
@@ -31,10 +34,13 @@ int main(int argc, char **argv)
 	
 	string myurl = "tcp://" + pp.getIP(0) + ":3000";
 	const char *url = myurl.c_str();
-        if (strcmp(NODE0, argv[1]) == 0)
+
+	parser(argc, argv);
+
+        if (g_node_id == 0)
                 return (pp.NodeReceive(url));
 
-        if (strcmp(NODE1, argv[1]) == 0)
+        if (g_node_id == 1)
                 return (pp.NodeSend(url));
 
         fprintf(stderr, "Usage: pipeline %s|%s <URL> <ARG> ...'\n",
