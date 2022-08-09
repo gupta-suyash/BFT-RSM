@@ -7,7 +7,7 @@ void parser(int argc, char *argv[])
 	{
 		if (argv[i][0] == 'n' && argv[i][1] == 'i' && argv[i][2] == 'd'){
 			cout << "inside:" << i << endl;
-			g_node_id = atoi(&argv[i][4]);
+			g_node_id = atoi(&argv[i][3]);
 			g_rsm_id = g_node_id / g_nodes_rsm;
 		}	
 	}
