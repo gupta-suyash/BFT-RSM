@@ -35,7 +35,7 @@ int main(int argc, char **argv)
                 return (pp.node0(url));
 
         if (strcmp(NODE1, argv[1]) == 0)
-                return (pp.node1(url, argv[2]));
+                return (pp.node1(url));
 
         fprintf(stderr, "Usage: pipeline %s|%s <URL> <ARG> ...'\n",
                 NODE0, NODE1);

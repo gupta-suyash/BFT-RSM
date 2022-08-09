@@ -34,7 +34,7 @@ public:
 	string getIP(UInt16 id); 
 
 	int node0(const char *url);
-	int node1(const char *url, char *msg);
+	int node1(const char *url);
 	 
 };	
 
