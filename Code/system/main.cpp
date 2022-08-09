@@ -32,10 +32,10 @@ int main(int argc, char **argv)
 	string myurl = "tcp://" + pp.getIP(0) + ":3000";
 	const char *url = myurl.c_str();
         if (strcmp(NODE0, argv[1]) == 0)
-                return (pp.node0(url));
+                return (pp.NodeReceive(url));
 
         if (strcmp(NODE1, argv[1]) == 0)
-                return (pp.node1(url));
+                return (pp.NodeSend(url));
 
         fprintf(stderr, "Usage: pipeline %s|%s <URL> <ARG> ...'\n",
                 NODE0, NODE1);

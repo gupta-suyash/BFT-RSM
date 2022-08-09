@@ -52,7 +52,7 @@ void fatal(const char *func, int rv)
         exit(1);
 }
 
-int Pipeline::node0(const char *url)
+int Pipeline::NodeReceive(const char *url)
 {
 	nng_socket sock;
 	int rv;
@@ -111,7 +111,7 @@ int Pipeline::node0(const char *url)
 	//return 0;
 }
 
-int Pipeline::node1(const char *url)
+int Pipeline::NodeSend(const char *url)
 {
 	//int sz_msg = strlen(msg) + 1;
 	nng_socket sock;
