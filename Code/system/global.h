@@ -15,5 +15,15 @@ extern UInt16 g_nodes_rsm;
 extern UInt16 g_node_cnt;
 extern UInt16 g_node_id;
 extern UInt16 g_rsm_id; // RSM Id for this node.
+			
+
+UInt16 get_nodes_rsm();
+
+UInt16 get_node_id();
+void set_node_id(UInt16 nid);
+
+UInt16 get_rsm_id();
+void set_rsm_id(UInt16 rsm_id);
+
 
 #endif
