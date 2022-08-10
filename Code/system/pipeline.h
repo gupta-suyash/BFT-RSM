@@ -32,8 +32,8 @@ public:
 	void ReadIfconfig(string if_path);
 	string getIP(UInt16 id); 
 
-	int NodeReceive(const char *url);
-	int NodeSend(const char *url);
+	static int NodeReceive(const char *url);
+	static int NodeSend(const char *url);
 	 
 };	
 

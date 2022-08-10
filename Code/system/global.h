@@ -2,6 +2,7 @@
 #define _GLOBAL_H_
 
 #include <iostream>
+#include <memory>
 #include "types.h"
 #include "../configuration/config.h"
 

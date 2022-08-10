@@ -5,8 +5,10 @@
 #include "pipeline.h"
 
 class IOThreads {
-	vector <thread> ithreads; // Input (Receive) threads.
-	vector <thread> othreads; // Output (Send) threads.
+	vector <thread> ithreads_; // Input (Receive) threads.
+	vector <thread> othreads_; // Output (Send) threads.
+	//unique_ptr<Pipeline> iopipe_;
+	Pipeline *iopipe_;
 public:
 	void SetIThreads();
 };	
