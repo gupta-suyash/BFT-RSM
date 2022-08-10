@@ -8,6 +8,8 @@ UInt16 g_node_cnt = NUM_RSM * NODES_RSM;
 UInt16 g_node_id = 0;
 UInt16 g_rsm_id = 0;
 
+UInt16 g_port_num = PORT_NUM;
+
 
 /* Get the number of nodes in a RSM.
  *
@@ -52,4 +54,13 @@ UInt16 get_rsm_id()
 void set_rsm_id(UInt16 rsm_id) 
 {
 	g_rsm_id = rsm_id;
+}
+
+/* Get the starting port number.
+ *
+ * @return g_port_num.
+ */ 
+UInt16 get_port_num()
+{
+	return g_port_num;
 }
