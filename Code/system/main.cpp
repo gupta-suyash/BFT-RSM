@@ -13,6 +13,7 @@ void parser(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
+	parser(argc, argv);
 	//int myuid;
 	//passwd *mypasswd;
 	//string TestFileName;
@@ -42,7 +43,7 @@ int main(int argc, char *argv[])
 	string myurl = "tcp://" + pp->getIP(0) + ":3000";
 	const char *url = myurl.c_str();
 
-	parser(argc, argv);
+	
 
 	cout << "Node id: " << g_node_id << endl;
 
