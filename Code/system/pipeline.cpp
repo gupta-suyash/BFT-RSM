@@ -153,7 +153,7 @@ int Pipeline::NodeSend()
 		fatal("nng_dial", rv);
 	}
 
-	string str = "Hello ";
+	string str = "From: " + to_string(get_node_id()) + " :: Hello ";
 	char *msg;
 	for(int i=0; i<3; i++) {
 		str += to_string(i);
