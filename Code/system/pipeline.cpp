@@ -82,7 +82,7 @@ void Pipeline::SetIThreads()
 		}
 	}	
 
-	sleep(1);
+	sleep(5);
 	
 	cout << "Send URL: " << endl;
 	for(UInt16 i=0; i<g_node_cnt; i++) {
@@ -142,7 +142,7 @@ int Pipeline::NodeSend()
 	int rv, sz_msg;
 	int bytes;
 	
-	const char *url = tcp_url[0].c_str();
+	const char *url = tcp_url[1].c_str();
 	cout << "Con URL:" << url << endl;
 
 	if ((rv = nng_push0_open(&sock)) != 0) {
