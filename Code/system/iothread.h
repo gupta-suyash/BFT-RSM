@@ -10,6 +10,7 @@ class IOThreads {
 	unique_ptr<Pipeline> iopipe_;
 	//Pipeline *iopipe_;
 public:
+	IOThreads();
 	string GetRecvUrl(UInt16 cnt);
 	string GetSendUrl(UInt16 cnt);
 	void SetIThreads();

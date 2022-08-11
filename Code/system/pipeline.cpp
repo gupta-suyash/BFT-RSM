@@ -1,5 +1,12 @@
 #include "pipeline.h"
 
+
+Pipeline::Pipeline()
+{
+	string ifconfig_path = GetPath();
+	ReadIfconfig(ifconfig_path);
+}	
+
 /* Generates the path to ifconfig.txt.
  * 
  * @return the path to ifconfig.txt.

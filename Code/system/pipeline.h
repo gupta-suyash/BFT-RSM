@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <pwd.h>
 
 #include "nng/nng.h"
 #include <nng/protocol/pipeline0/pull.h>
@@ -28,6 +29,7 @@ class Pipeline {
 	string path_cwd_; // Path to current working directory.
 	vector<string> ip_addr; // IP addresses of own RSM.
 public:			    
+	Pipeline();
 	string GetPath();
 	void ReadIfconfig(string if_path);
 	string getIP(UInt16 id); 

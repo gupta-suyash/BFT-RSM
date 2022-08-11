@@ -1,5 +1,10 @@
 #include "iothread.h"
 
+IOThreads::IOThreads() 
+{
+	iopipe_ = make_unique<Pipeline>();
+}
+
 string IOThreads::GetRecvUrl(UInt16 cnt) 
 {
 	UInt16 port_id = get_port_num() + (get_node_id() * get_nodes_rsm()) + cnt;
@@ -19,7 +24,6 @@ string IOThreads::GetSendUrl(UInt16 cnt)
 void IOThreads::SetIThreads() 
 {
 	UInt16 port_id = 7000;
-	iopipe_ = make_unique<Pipeline>();
 	//iopipe_ = new Pipeline();
 	for(UInt16 i=0; i<g_node_cnt; i++) {
 		string rurl = GetRecvUrl(i);
