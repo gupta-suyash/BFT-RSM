@@ -75,9 +75,8 @@ void Pipeline::SetIThreads()
 		if(i != get_node_id()) {
 			string rurl = GetRecvUrl(i);
 			cout << "From " << i << " :: " << rurl << endl;
-			//auto rptr = iopipe_.get();
-			tcp_url.push_back(rurl);
-			thread it = thread(&Pipeline::NodeReceive, this);
+			//tcp_url.push_back(rurl);
+			thread it = thread(&Pipeline::NodeReceive, this, rurl.c_str());
 			athreads_.push_back(move(it));	
 		}
 	}	
@@ -89,9 +88,8 @@ void Pipeline::SetIThreads()
 		if(i != get_node_id()) {
 			string surl = GetSendUrl(i);
 			cout << "To " << i << " :: " << surl << endl;
-			//auto sptr = iopipe_.get();
-			tcp_url.push_back(surl);
-			thread ot(&Pipeline::NodeSend, this);
+			//tcp_url.push_back(surl);
+			thread ot(&Pipeline::NodeSend, this, surl.c_str());
 			athreads_.push_back(move(ot));
 		}
 	}
@@ -108,14 +106,14 @@ void fatal(const char *func, int rv)
         exit(1);
 }
 
-int Pipeline::NodeReceive()
+int Pipeline::NodeReceive(const char *url)
 {
 	cout << "Inside" << endl;
 	nng_socket sock;
 	int rv;
 
-	const char *url = tcp_url[0].c_str();
-	cout << "Con URL:" << url << endl;
+	//const char *url = tcp_url[0].c_str();
+	//cout << "Con URL:" << url << endl;
 
 	if ((rv = nng_pull0_open(&sock)) != 0) {
 		fatal("nng_pull0_open", rv);
@@ -135,15 +133,15 @@ int Pipeline::NodeReceive()
 	}
 }
 
-int Pipeline::NodeSend()
+int Pipeline::NodeSend(const char *url)
 {
 	//int sz_msg = strlen(msg) + 1;
 	nng_socket sock;
 	int rv, sz_msg;
 	int bytes;
 	
-	const char *url = tcp_url[1].c_str();
-	cout << "Con URL:" << url << endl;
+	//const char *url = tcp_url[1].c_str();
+	//cout << "Con URL:" << url << endl;
 
 	if ((rv = nng_push0_open(&sock)) != 0) {
         	fatal("nng_push0_open", rv);

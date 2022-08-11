@@ -28,7 +28,7 @@ using std::filesystem::current_path;
 
 class Pipeline {
 	vector<string> ip_addr; // IP addresses of own RSM.
-	vector <string> tcp_url;
+	//vector <string> tcp_url;
 	vector <thread> athreads_; // Input (Receive) threads.
 public:			    
 	Pipeline();
@@ -40,8 +40,8 @@ public:
 	string GetSendUrl(UInt16 cnt);
 	void SetIThreads();
 
-	int NodeReceive();
-	int NodeSend();
+	int NodeReceive(const char *url);
+	int NodeSend(const char *url);
 	 
 };	
 
