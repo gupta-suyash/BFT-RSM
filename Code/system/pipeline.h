@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <thread>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,16 +27,21 @@ using std::filesystem::current_path;
 
 
 class Pipeline {
-	string path_cwd_; // Path to current working directory.
 	vector<string> ip_addr; // IP addresses of own RSM.
+	vector <string> tcp_url;
+	vector <thread> athreads_; // Input (Receive) threads.
 public:			    
 	Pipeline();
 	string GetPath();
 	void ReadIfconfig(string if_path);
 	string getIP(UInt16 id); 
 
-	static int NodeReceive(const char *url);
-	static int NodeSend(const char *url);
+	string GetRecvUrl(UInt16 cnt);
+	string GetSendUrl(UInt16 cnt);
+	void SetIThreads();
+
+	int NodeReceive();
+	int NodeSend();
 	 
 };	
 

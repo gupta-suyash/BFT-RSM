@@ -42,7 +42,6 @@ void Pipeline::ReadIfconfig(string if_path)
 	//}	
 }	
 
-
 /* Returns the required IP address from the vector ip_addr.
  *
  * @param id is the required IP.
@@ -53,16 +52,69 @@ string Pipeline::getIP(UInt16 id)
 	return ip_addr[id];
 }	
 
+
+string Pipeline::GetRecvUrl(UInt16 cnt) 
+{
+	UInt16 port_id = get_port_num() + (get_node_id() * get_nodes_rsm()) + cnt;
+	string url = "tcp://" + getIP(get_node_id()) + ":" + to_string(port_id); 
+	return url;
+}	
+
+string Pipeline::GetSendUrl(UInt16 cnt) 
+{
+	UInt16 port_id = get_port_num() + (cnt * get_nodes_rsm()) + get_node_id();
+	string url = "tcp://" + getIP(cnt) + ":" + to_string(port_id); 
+	return url;
+}
+
+void Pipeline::SetIThreads() 
+{
+	if(get_node_id() == 0) {
+		cout << "Recv URL:" << endl;
+		for(UInt16 i=0; i<g_node_cnt; i++) {
+			if(i != get_node_id()) {
+				string rurl = GetRecvUrl(i);
+				cout << "From " << i << " :: " << rurl << endl;
+				//auto rptr = iopipe_.get();
+				tcp_url.push_back(rurl);
+				thread it = thread(&Pipeline::NodeReceive, this);
+				athreads_.push_back(move(it));	
+			}
+		}	
+	} else {
+		cout << "Send URL: " << endl;
+		for(UInt16 i=0; i<g_node_cnt; i++) {
+			if(i != get_node_id()) {
+				string surl = GetSendUrl(i);
+				cout << "To " << i << " :: " << surl << endl;
+				//auto sptr = iopipe_.get();
+				tcp_url.push_back(surl);
+				thread ot(&Pipeline::NodeSend, this);
+				athreads_.push_back(move(ot));
+			}
+		}
+	}
+
+	for(auto &th : athreads_) {
+		th.join();
+	}
+}
+
 void fatal(const char *func, int rv)
 {
         fprintf(stderr, "%s: %s\n", func, nng_strerror(rv));
         exit(1);
 }
 
-int Pipeline::NodeReceive(const char *url)
+int Pipeline::NodeReceive()
 {
+	cout << "Inside" << endl;
 	nng_socket sock;
 	int rv;
+
+	const char *url = tcp_url[0].c_str();
+	cout << "Con URL:" << url << endl;
+
 	if ((rv = nng_pull0_open(&sock)) != 0) {
 		fatal("nng_pull0_open", rv);
 	}
@@ -118,13 +170,16 @@ int Pipeline::NodeReceive(const char *url)
 	//return 0;
 }
 
-int Pipeline::NodeSend(const char *url)
+int Pipeline::NodeSend()
 {
 	//int sz_msg = strlen(msg) + 1;
 	nng_socket sock;
 	int rv, sz_msg;
 	int bytes;
 	
+	const char *url = tcp_url[0].c_str();
+	cout << "Con URL:" << url << endl;
+
 	if ((rv = nng_push0_open(&sock)) != 0) {
         	fatal("nng_push0_open", rv);
 	}
