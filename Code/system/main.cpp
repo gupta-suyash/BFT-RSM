@@ -5,6 +5,7 @@
 
 #include "global.h"
 #include "pipeline.h"
+#include "iothread.h"
 
 using std::filesystem::current_path;
 
@@ -24,6 +25,10 @@ int main(int argc, char *argv[])
 	//filesystem::path p = current_path();
 	//string sss = p.string();
 	//cout << "Path in string: " << sss << endl;
+	
+	unique_ptr<IOThreads> ipp = make_unique<IOThreads>();
+	auto pt = ipp.get();
+	pt->SetIThreads();
 
 	unique_ptr<Pipeline> iop = make_unique<Pipeline>();
 	auto pp = iop.get();

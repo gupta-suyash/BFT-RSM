@@ -23,22 +23,27 @@ string IOThreads::GetSendUrl(UInt16 cnt)
 
 void IOThreads::SetIThreads() 
 {
-	UInt16 port_id = 7000;
 	//iopipe_ = new Pipeline();
+	cout << "Recv URL:" << endl;
 	for(UInt16 i=0; i<g_node_cnt; i++) {
 		string rurl = GetRecvUrl(i);
-		const char *recv_url = rurl.c_str();
-		//iopipe_->NodeReceive(url);
-		auto rptr = iopipe_.get();
-		thread it(rptr->NodeReceive, recv_url);
-		ithreads_.push_back(move(it));	
-		
+		cout << "From " << i << " :: " << rurl << endl;
+		//const char *recv_url = rurl.c_str();
+			//iopipe_->NodeReceive(url);
+		//auto rptr = iopipe_.get();
+		//thread it(rptr->NodeReceive, recv_url);
+		//ithreads_.push_back(move(it));	
+	}	
+	
+	cout << "Send URL: " << endl;
+	for(UInt16 i=0; i<g_node_cnt; i++) {
 		// Similar task for othreads;
 		string surl = GetSendUrl(i);
-		const char *send_url = surl.c_str();
-		//iopipe_->NodeSend(url);
-		auto sptr = iopipe_.get();
-		thread ot(sptr->NodeSend, send_url);
-		othreads_.push_back(move(ot));
+		cout << "To " << i << " :: " << surl << endl;
+		//const char *send_url = surl.c_str();
+			//iopipe_->NodeSend(url);
+		//auto sptr = iopipe_.get();
+		//thread ot(sptr->NodeSend, send_url);
+		//othreads_.push_back(move(ot));
 	}
 }	
