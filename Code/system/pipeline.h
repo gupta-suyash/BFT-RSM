@@ -40,8 +40,8 @@ public:
 	string GetSendUrl(UInt16 cnt);
 	void SetIThreads();
 
-	int NodeReceive(const char *url);
-	int NodeSend(const char *url);
+	int NodeReceive(string url);
+	int NodeSend(string url);
 	 
 };	
 
