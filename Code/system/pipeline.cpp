@@ -81,7 +81,7 @@ void Pipeline::SetIThreads()
 		}
 	}	
 
-	sleep(5);
+	sleep(3);
 	
 	cout << "Send URL: " << endl;
 	for(UInt16 i=0; i<g_node_cnt; i++) {
