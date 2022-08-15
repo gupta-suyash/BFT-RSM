@@ -52,7 +52,11 @@ string Pipeline::getIP(UInt16 id)
 	return ip_addr[id];
 }	
 
-
+/* Returns the connection URL for receiver threads.
+ *
+ * @param cnt is the Id the sender node.
+ * @return the url.
+ */
 string Pipeline::GetRecvUrl(UInt16 cnt) 
 {
 	UInt16 port_id = get_port_num() + (get_node_id() * get_nodes_rsm()) + cnt;
@@ -60,6 +64,11 @@ string Pipeline::GetRecvUrl(UInt16 cnt)
 	return url;
 }	
 
+/* Returns the connection URL for the sender threads.
+ *
+ * @param cnt is the Id of the receiver node.
+ * @return the url.
+ */
 string Pipeline::GetSendUrl(UInt16 cnt) 
 {
 	UInt16 port_id = get_port_num() + (cnt * get_nodes_rsm()) + get_node_id();
@@ -67,6 +76,13 @@ string Pipeline::GetSendUrl(UInt16 cnt)
 	return url;
 }
 
+/* This function spawns the sender and receiver threads at each node. 
+ * The sender threads send outgoing messages to other nodes, while 
+ * the receiver threads wait for incoming messages from other nodes.
+ * At present, we are creating one sender thread and one receiver thread for 
+ * each node in the system.
+ *
+ */ 
 void Pipeline::SetIThreads() 
 {
 	
