@@ -14,6 +14,8 @@ Pipeline::Pipeline()
 string Pipeline::GetPath() 
 {
 	filesystem::path p = current_path(); // Path of rundb location.
+
+	// At present, we assume ifconfig.txt is located at this path.
 	string if_path = p.string() + "/configuration/ifconfig.txt";
 	cout << "Path in string: " << if_path << endl;
 	return if_path;
@@ -31,6 +33,7 @@ void Pipeline::ReadIfconfig(string if_path)
 		exit(1);
 	}
 
+	// Line by line fetching each IP address and storing them in vector.
 	string ips;
 	while(getline(fin, ips)) {
 		ip_addr.push_back(ips);
