@@ -1,5 +1,10 @@
 #include "iothread.h"
 
+UInt16 SndThread::GetThreadId()
+{
+	return thd_id_;
+}	
+
 void SndThread::Init(UInt16 thd_id)
 {
 	thd_id_ = thd_id;
@@ -15,7 +20,12 @@ void SndThread::RunYo()
 	cout << "Hello" << endl;
 }
 
-void RcvThread::Run()
-{
-	cout << "Hello" << endl;
-}	
+//void RcvThread::Run()
+//{
+//	cout << "Hello" << endl;
+//}	
+//
+//UInt16 RcvThread::GetThreadId()
+//{
+//	return thd_id_;
+//}

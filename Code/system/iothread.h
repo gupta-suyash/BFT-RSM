@@ -11,6 +11,7 @@ public:
 	thread thd_;
 	virtual void Init(UInt16 thd_id) = 0;
 	virtual void RunYo() = 0;
+	virtual UInt16 GetThreadId() = 0;
 };	
 
 
@@ -18,14 +19,16 @@ class SndThread : public IOThreads {
 public:
 	void Init(UInt16 thd_id);
 	void RunYo();
+	UInt16 GetThreadId();
 };	
 
 
-class RcvThread : public IOThreads {
-public:
-	void Init(UInt16 thd_id);
-	void Run();
-};
+//class RcvThread : public IOThreads {
+//public:
+//	void Init(UInt16 thd_id);
+//	void Run();
+//	UInt16 GetThreadId();
+//};
 
 
 #endif

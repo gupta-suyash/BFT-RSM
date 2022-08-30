@@ -12,6 +12,11 @@ using namespace std;
 class SendPipeQueue;
 
 
+//// Constants
+//#ifndef CONSTANTS
+//
+//#endif
+
 // List of global variables and configuration parameters.
 
 extern UInt16 g_thread_cnt;

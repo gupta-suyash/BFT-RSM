@@ -18,9 +18,9 @@ int main(int argc, char *argv[])
 	parser(argc, argv);
 
 	// Setting up send queues.
-	//unique_ptr<SendPipeQueue> sp_queue = make_unique<SendPipeQueue>();
-	//sp_qptr = sp_queue.get();
-	//sp_qptr->Init();
+	unique_ptr<SendPipeQueue> sp_queue = make_unique<SendPipeQueue>();
+	sp_qptr = sp_queue.get();
+	sp_qptr->CallThreads();
 
 	// Setting up threads.
 	unique_ptr<Pipeline> iop = make_unique<Pipeline>();
