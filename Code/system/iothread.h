@@ -3,32 +3,32 @@
 
 #include <thread>
 #include "global.h"
-#include "pipeline.h"
+#include "pipe_queue.h"
 
 class IOThreads {
 public:
 	UInt16 thd_id_;
 	thread thd_;
 	virtual void Init(UInt16 thd_id) = 0;
-	virtual void RunYo() = 0;
+	virtual void Run() = 0;
 	virtual UInt16 GetThreadId() = 0;
 };	
 
 
-class SndThread : public IOThreads {
+class InterSndThread : public IOThreads {
 public:
 	void Init(UInt16 thd_id);
-	void RunYo();
+	void Run();
 	UInt16 GetThreadId();
 };	
 
 
-//class RcvThread : public IOThreads {
-//public:
-//	void Init(UInt16 thd_id);
-//	void Run();
-//	UInt16 GetThreadId();
-//};
+class InterRcvThread : public IOThreads {
+public:
+	void Init(UInt16 thd_id);
+	void Run();
+	UInt16 GetThreadId();
+};
 
 
 #endif

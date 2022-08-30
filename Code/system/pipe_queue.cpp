@@ -6,8 +6,8 @@
 void SendPipeQueue::Init() 
 {
 	// We have a set of sender queues, one per node.
-	snd_queue = new boost::lockfree::queue<DataPack*> *[2]; //[get_nodes_rsm()];
-	for(int i=0; i<2; i++) {
+	snd_queue = new boost::lockfree::queue<DataPack*> *[get_nodes_rsm()];
+	for(int i=0; i<get_nodes_rsm(); i++) {
 		snd_queue[i] = new boost::lockfree::queue<DataPack*>(1);
 	}
 }
@@ -17,7 +17,7 @@ void SendPipeQueue::Init()
  * 
  * @param buf is the message to be sent.
  */
-void SendPipeQueue::Enqueue(char *buf, size_t data_len)
+void SendPipeQueue::Enqueue(char *buf, size_t data_len, int qid)
 {
 	unique_ptr<DataPack> msg = std::make_unique<DataPack>();
 	msg->data_len = data_len;
@@ -29,10 +29,10 @@ void SendPipeQueue::Enqueue(char *buf, size_t data_len)
 	//Message *msg = Message::CreateMsg(buf, kPipeQueue);
 
 	// Determining which sender thread's queue to place the message.
-	UInt64 qid = 0; //msg->txn_id % get_nodes_rsm();
+	//UInt64 qid = 0; //msg->txn_id % get_nodes_rsm();
 
 	// Continue trying to push until successful.
-	while(!snd_queue[0]->push(q_msg));
+	while(!snd_queue[qid]->push(q_msg));	
 
 	// Remember to delete buf at the caller as we have created a copy.
 }	
@@ -47,13 +47,15 @@ std::unique_ptr<DataPack> SendPipeQueue::Dequeue(UInt16 thd_id)
 	DataPack *msg = NULL;
 
 	// Popping the message; valid returns the status.
-	int i=0;
+	int i=0, qid=0;
 	while(true) {
-		valid = snd_queue[0]->pop(msg);
+		valid = snd_queue[qid]->pop(msg);
 		if(valid) {
-			cout << "Dequeued: " << msg->buf << endl;
+			cout << "Dequeued: " << msg->buf << " : q: " << qid << endl;
 			i++;
 		}
+		if(i == 5)
+			qid = 1;
 		if(i >= 10)
 			break;
 	}
@@ -66,13 +68,17 @@ void SendPipeQueue::CallE()
 	string str = "abc";
 	char *msg;
 
+	int qid = 0;
 	for(int i=0; i<10; i++) {
 		str = "abc" + to_string(i);
 		msg = &str[0];
 		size_t sz = strlen(msg) + 1;
 
-		cout << "Enqueue: " << msg << endl;
-		Enqueue(msg, sz);
+		if(i == 5)
+			qid = 1;
+
+		Enqueue(msg, sz, qid);
+		cout << "Enqueued: " << msg << " :: in q: " << qid << endl;
 	}
 }	
 
@@ -87,8 +93,9 @@ void SendPipeQueue::CallThreads()
 {
 	Init();
 
-	thread it = thread(&SendPipeQueue::CallE, this);
 	thread ot = thread(&SendPipeQueue::CallD, this);
+	thread it = thread(&SendPipeQueue::CallE, this);
+	
 
 	it.join();
 	ot.join();

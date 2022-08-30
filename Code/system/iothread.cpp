@@ -1,31 +1,40 @@
 #include "iothread.h"
 
-UInt16 SndThread::GetThreadId()
+UInt16 InterSndThread::GetThreadId()
 {
 	return thd_id_;
 }	
 
-void SndThread::Init(UInt16 thd_id)
+void InterSndThread::Init(UInt16 thd_id)
 {
 	thd_id_ = thd_id;
 	//thread abc = thread(&SndThread::RunYo, this);
 	//abc.join();
 
-	thd_ = thread(&SndThread::RunYo, this);
-	//thd_.join();
+	thd_ = thread(&InterSndThread::Run, this);
 }	
 
-void SndThread::RunYo() 
+void InterSndThread::Run() 
 {
-	cout << "Hello" << endl;
+	cout << "InterSndThread" << endl;
+	sp_qptr->CallE();
 }
 
-//void RcvThread::Run()
-//{
-//	cout << "Hello" << endl;
-//}	
-//
-//UInt16 RcvThread::GetThreadId()
-//{
-//	return thd_id_;
-//}
+	
+
+UInt16 InterRcvThread::GetThreadId()
+{
+	return thd_id_;
+}
+
+void InterRcvThread::Init(UInt16 thd_id)
+{
+	thd_id_ = thd_id;
+	thd_ = thread(&InterRcvThread::Run, this);
+}
+
+void InterRcvThread::Run()
+{
+	cout << "InterRcvThread" << endl;
+	sp_qptr->CallD();
+}
