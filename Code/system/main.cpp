@@ -36,7 +36,12 @@ int main(int argc, char *argv[])
 	// Setting up threads.
 	unique_ptr<Pipeline> iop = make_unique<Pipeline>();
 	auto pp = iop.get();
-	pp->SetIThreads();
+	//pp->SetIThreads();
+	if(get_node_id() == 0) {
+		pp->NodeReceive("tcp://172.31.24.55:7001");
+	} else {
+		pp->NodeSend("tcp://172.31.24.55:7001");
+	}	
 	
 	//Pipeline *pp = new Pipeline();
 	//pp->SetSockets();
