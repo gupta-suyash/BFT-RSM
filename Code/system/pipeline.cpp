@@ -283,7 +283,7 @@ int Pipeline::NodeSend(string tcp_url)
         	fatal("nng_push0_open", rv);
 	}
 
-	if ((rv = nng_dial(sock, url, NULL, 0)) != 0) {
+	if ((rv = nng_dial(sock, url, NULL, NNG_FLAG_NONBLOCK)) != 0) {
 		fatal("nng_dial", rv);
 	}
 
