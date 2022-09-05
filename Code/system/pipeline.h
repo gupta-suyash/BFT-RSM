@@ -58,8 +58,8 @@ public:
 	void RunRecv();
 
 	void DataToOtherRsm(char *buf, UInt16 node_id);
-	//unique_ptr<DataPack> DataFromOtherRsm(UInt16 node_id);
-	void DataFromOtherRsm(UInt16 node_id);
+	unique_ptr<DataPack> DataFromOtherRsm(UInt16 node_id);
+	//void DataFromOtherRsm(UInt16 node_id);
 
 	//void DataToOwnTsm(char *buf, UInt16 node_id);
 	//unique_ptr<DataPack> DataFromOwnRsm(UInt16 node_id);

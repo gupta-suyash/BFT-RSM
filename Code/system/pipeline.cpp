@@ -193,18 +193,20 @@ void Pipeline::DataToOtherRsm(char *buf, UInt16 node_id)
 /* Receving data from nodes of other RSM.
  *
  */ 
-void Pipeline::DataFromOtherRsm(UInt16 node_id)
+unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
 {
 	int rv;
 	auto sock = recv_sockets_[node_id];
-	char *buf = NULL;
-	size_t sz;
-	if((rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC)) != 0){
+	unique_ptr<DataPack> msg = make_unique<DataPack>();
+	//char *buf = NULL;
+	//size_t sz;
+	if((rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC)) != 0){
 		fatal("nng_recv", rv);
 	}	
-	cout << get_node_id() << " :: " <<buf << endl;
+	cout << get_node_id() << " :: " <<msg->buf << endl;
 	//nng_free(msg->buf, msg->data_len);
-	//return std::unique_ptr<DataPack>(msg);
+	//return std::move(msg);
+	return msg;
 }	
 
 void Pipeline::InitThreads()
@@ -241,9 +243,9 @@ void Pipeline::RunRecv()
 	while(true) {
 		for(int j=0; j<g_node_cnt; j++) {
 			if(j != get_node_id()) {
-				//unique_ptr<DataPack> msg = DataFromOtherRsm(j);
-				DataFromOtherRsm(j);
-				//cout << get_node_id() << " :: " <<msg->buf << endl;
+				unique_ptr<DataPack> msg = DataFromOtherRsm(j);
+				//DataFromOtherRsm(j);
+				cout << "RECO: " << get_node_id() << " :: " <<msg->buf << endl;
 			}
 		}
 	}	
