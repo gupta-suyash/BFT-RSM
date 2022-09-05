@@ -34,13 +34,13 @@ int main(int argc, char *argv[])
 
 
 	// Setting up threads.
-	//unique_ptr<Pipeline> iop = make_unique<Pipeline>();
-	//auto pp = iop.get();
-	//pp->SetIThreads();
+	unique_ptr<Pipeline> iop = make_unique<Pipeline>();
+	auto pp = iop.get();
+	pp->SetIThreads();
 	
-	Pipeline *pp = new Pipeline();
-	pp->SetSockets();
-	pp->InitThreads();
+	//Pipeline *pp = new Pipeline();
+	//pp->SetSockets();
+	//pp->InitThreads();
 
         fprintf(stderr, "Usage: pipeline %s|%s <URL> <ARG> ...'\n",
                 NODE0, NODE1);
