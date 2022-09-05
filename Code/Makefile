@@ -1,11 +1,12 @@
 CC=g++
 CFLAGS=-Wall -g -std=c++17
 NNMSG=${PWD}/deps/nng
+BOOST=${PWD}/deps/boost_1_80_0
 
 .SUFFIXES: .o .cpp .h
 
 SRC_DIRS = ./system/ 
-DEPS = -I$(NNMSG)/include 
+DEPS = -I$(NNMSG)/include -I$(BOOST) 
 
 CFLAGS += $(DEPS) 
 LDFLAGS = -L$(NNMSG)/lib 
