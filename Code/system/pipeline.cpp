@@ -150,7 +150,7 @@ void Pipeline::SetSockets()
 
 			// Asynchronous wait for someone to listen to this socket.
 			nng_dial(sock, curl, NULL, NNG_FLAG_NONBLOCK);
-			send_sockets_[i] = sock;
+			send_sockets_.insert({i,sock});
 		}
 	}	
 
@@ -171,7 +171,7 @@ void Pipeline::SetSockets()
 
 			// Wait for someone to dial up a socket.
 			nng_listen(sock, curl, NULL, 0);
-			recv_sockets_[i] = sock;
+			recv_sockets_.insert({i,sock});
 		}
 	}
 }	
@@ -185,30 +185,36 @@ void Pipeline::DataToOtherRsm(char *buf, UInt16 node_id)
 	int rv;
 	auto sock = send_sockets_[node_id];
 	size_t sz_msg = strlen(buf) + 1;
-	while((rv = nng_send(sock, buf, sz_msg, 0)) != 0);
+	if((rv = nng_send(sock, buf, sz_msg, 0)) != 0) {
+		fatal("nng_send", rv);
+	}
 }
 
 /* Receving data from nodes of other RSM.
  *
  */ 
-unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
+void Pipeline::DataFromOtherRsm(UInt16 node_id)
 {
 	int rv;
 	auto sock = recv_sockets_[node_id];
-	DataPack *msg = NULL;
-	while((rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC)) != 0);
+	char *buf = NULL;
+	size_t sz;
+	if((rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC)) != 0){
+		fatal("nng_recv", rv);
+	}	
+	cout << get_node_id() << " :: " <<buf << endl;
 	//nng_free(msg->buf, msg->data_len);
-	return std::unique_ptr<DataPack>(msg);
+	//return std::unique_ptr<DataPack>(msg);
 }	
 
 void Pipeline::InitThreads()
 {
 	if(get_node_id() == 0) {
-		send_thd_ = thread(&Pipeline::RunSend, this);
-		send_thd_.join();
-	} else {
 		recv_thd_ = thread(&Pipeline::RunRecv, this);
 		recv_thd_.join();
+	} else {
+		send_thd_ = thread(&Pipeline::RunSend, this);
+		send_thd_.join();
 	}
 }	
 
@@ -235,8 +241,9 @@ void Pipeline::RunRecv()
 	while(true) {
 		for(int j=0; j<g_node_cnt; j++) {
 			if(j != get_node_id()) {
-				unique_ptr<DataPack> msg = DataFromOtherRsm(j);
-				cout << get_node_id() << " :: " <<msg->buf << endl;
+				//unique_ptr<DataPack> msg = DataFromOtherRsm(j);
+				DataFromOtherRsm(j);
+				//cout << get_node_id() << " :: " <<msg->buf << endl;
 			}
 		}
 	}	
