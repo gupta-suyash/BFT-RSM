@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <map>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,6 +20,7 @@
 #include <nng/protocol/pipeline0/push.h>
 
 #include "global.h"
+#include "data_comm.h"
 
 using std::filesystem::current_path;
 
@@ -30,6 +32,13 @@ class Pipeline {
 	vector<string> ip_addr; // IP addresses of own RSM.
 	//vector <string> tcp_url;
 	vector <thread> athreads_; // Input (Receive) threads.
+	
+	std::map <UInt16, nng_socket> send_sockets_;
+	std::map <UInt16, nng_socket> recv_sockets_;
+
+	thread send_thd_;	// Thread.
+	thread recv_thd_;	// Thread.
+
 public:			    
 	Pipeline();
 	string GetPath();
@@ -39,10 +48,23 @@ public:
 	string GetRecvUrl(UInt16 cnt);
 	string GetSendUrl(UInt16 cnt);
 	void SetIThreads();
+	void SetSockets();
 
 	int NodeReceive(string url);
 	int NodeSend(string url);
-	 
+
+	void InitThreads();
+	void RunSend();
+	void RunRecv();
+
+	void DataToOtherRsm(char *buf, UInt16 node_id);
+	unique_ptr<DataPack> DataFromOtherRsm(UInt16 node_id);
+
+	//void DataToOwnTsm(char *buf, UInt16 node_id);
+	//unique_ptr<DataPack> DataFromOwnRsm(UInt16 node_id);
+	//
+	//char* DataToHost();
+	//void DataFromHost(char *buf);
 };	
 
 

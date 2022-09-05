@@ -125,6 +125,123 @@ void fatal(const char *func, int rv)
         exit(1);
 }
 
+
+/* This function is used to just create sockets to other nodes. 
+ * For each node, we add two sockets: one send_socket and other recv_socket. 
+ *
+ */ 
+void Pipeline::SetSockets()
+{
+	int rv;
+
+	// Initializing sender sockets.
+	for(UInt16 i=0; i<g_node_cnt; i++) {
+		if(i != get_node_id()) {
+			string url = GetSendUrl(i);
+			const char *curl = url.c_str();
+			cout << "To " << i << " :: " << curl << endl;
+
+			nng_socket sock;
+
+			// Attempt to open the socket; fatal if fails.
+			if ((rv = nng_push0_open(&sock)) != 0) {
+        			fatal("nng_push0_open", rv);
+			}
+
+			// Asynchronous wait for someone to listen to this socket.
+			nng_dial(sock, curl, NULL, NNG_FLAG_NONBLOCK);
+			send_sockets_[i] = sock;
+		}
+	}	
+
+	sleep(3);
+	
+	// Initializing receiver sockets.
+	for(UInt16 i=0; i<g_node_cnt; i++) {
+		if(i != get_node_id()) {
+			string url = GetRecvUrl(i);
+			const char *curl = url.c_str();
+			cout << "From " << i << " :: " << curl << endl;
+
+			nng_socket sock;
+			// Attempt to open the socket; fatal if fails.
+			if ((rv = nng_pull0_open(&sock)) != 0) {
+        			fatal("nng_pull0_open", rv);
+			}
+
+			// Wait for someone to dial up a socket.
+			nng_listen(sock, curl, NULL, 0);
+			recv_sockets_[i] = sock;
+		}
+	}
+}	
+
+
+/* Sending data to nodes of other RSM.
+ *
+ */
+void Pipeline::DataToOtherRsm(char *buf, UInt16 node_id) 
+{
+	int rv;
+	auto sock = send_sockets_[node_id];
+	size_t sz_msg = strlen(buf) + 1;
+	while((rv = nng_send(sock, buf, sz_msg, 0)) != 0);
+}
+
+/* Receving data from nodes of other RSM.
+ *
+ */ 
+unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
+{
+	int rv;
+	auto sock = recv_sockets_[node_id];
+	DataPack *msg = NULL;
+	while((rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC)) != 0);
+	//nng_free(msg->buf, msg->data_len);
+	return std::unique_ptr<DataPack>(msg);
+}	
+
+void Pipeline::InitThreads()
+{
+	if(get_node_id() == 0) {
+		send_thd_ = thread(&Pipeline::RunSend, this);
+		send_thd_.join();
+	} else {
+		recv_thd_ = thread(&Pipeline::RunRecv, this);
+		recv_thd_.join();
+	}
+}	
+
+
+void Pipeline::RunSend()
+{
+	int i=0;
+	char *msg;
+	while(true) {
+		for(int j=0; j<g_node_cnt; j++) {
+			if(j != get_node_id()) {
+				string str = "abc" + to_string(i);
+				msg = &str[0];
+				cout << "Sent: " << msg << " :: to: " << j << endl;  
+				DataToOtherRsm(msg, j);
+				i++;
+			}
+		}	
+	}	
+}	
+
+void Pipeline::RunRecv()
+{
+	while(true) {
+		for(int j=0; j<g_node_cnt; j++) {
+			if(j != get_node_id()) {
+				unique_ptr<DataPack> msg = DataFromOtherRsm(j);
+				cout << get_node_id() << " :: " <<msg->buf << endl;
+			}
+		}
+	}	
+}
+
 int Pipeline::NodeReceive(string tcp_url)
 {
 	cout << "Inside" << endl;

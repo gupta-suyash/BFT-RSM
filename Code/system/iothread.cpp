@@ -8,9 +8,6 @@ UInt16 InterSndThread::GetThreadId()
 void InterSndThread::Init(UInt16 thd_id)
 {
 	thd_id_ = thd_id;
-	//thread abc = thread(&SndThread::RunYo, this);
-	//abc.join();
-
 	thd_ = thread(&InterSndThread::Run, this);
 }	
 
@@ -36,5 +33,41 @@ void InterRcvThread::Init(UInt16 thd_id)
 void InterRcvThread::Run()
 {
 	cout << "InterRcvThread" << endl;
+	sp_qptr->CallD();
+}
+
+
+UInt16 IntraSndThread::GetThreadId()
+{
+	return thd_id_;
+}
+
+void IntraSndThread::Init(UInt16 thd_id)
+{
+	thd_id_ = thd_id;
+	thd_ = thread(&IntraSndThread::Run, this);
+}
+
+void IntraSndThread::Run()
+{
+	cout << "IntraSndThread" << endl;
+	sp_qptr->CallD();
+}
+
+
+UInt16 IntraRcvThread::GetThreadId()
+{
+	return thd_id_;
+}
+
+void IntraRcvThread::Init(UInt16 thd_id)
+{
+	thd_id_ = thd_id;
+	thd_ = thread(&IntraRcvThread::Run, this);
+}
+
+void IntraRcvThread::Run()
+{
+	cout << "IntraRcvThread" << endl;
 	sp_qptr->CallD();
 }
