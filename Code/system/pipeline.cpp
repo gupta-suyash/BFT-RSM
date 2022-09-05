@@ -217,7 +217,7 @@ void Pipeline::RunSend()
 {
 	int i=0;
 	char *msg;
-	while(true) {
+	while(i < 5) {
 		for(int j=0; j<g_node_cnt; j++) {
 			if(j != get_node_id()) {
 				string str = "abc" + to_string(i);
