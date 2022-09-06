@@ -272,6 +272,7 @@ void Pipeline::RecvFromOwnRsm()
 		UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
 		for(int j=0; j<get_nodes_rsm(); j++) {
+			cout << "Inside" << endl;
 			// The id of the sender node.
 			UInt16 sendr_id = j + rsm_id_start;
 
