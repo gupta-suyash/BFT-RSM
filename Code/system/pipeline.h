@@ -47,11 +47,10 @@ public:
 
 	string GetRecvUrl(UInt16 cnt);
 	string GetSendUrl(UInt16 cnt);
-	void SetIThreads();
 	void SetSockets();
 
-	int NodeReceive(string url);
-	int NodeSend(string url);
+	//int NodeReceive(string url);
+	//int NodeSend(string url);
 
 	void InitThreads();
 	void RunSend();

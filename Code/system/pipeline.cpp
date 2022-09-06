@@ -79,45 +79,6 @@ string Pipeline::GetSendUrl(UInt16 cnt)
 	return url;
 }
 
-/* This function spawns the sender and receiver threads at each node. 
- * The sender threads send outgoing messages to other nodes, while 
- * the receiver threads wait for incoming messages from other nodes.
- * At present, we are creating one sender thread and one receiver thread for 
- * each node in the system.
- *
- */ 
-void Pipeline::SetIThreads() 
-{
-	
-	cout << "Recv URL:" << endl;
-	for(UInt16 i=0; i<g_node_cnt; i++) {
-		if(i != get_node_id()) {
-			string rurl = GetRecvUrl(i);
-			cout << "From " << i << " :: " << rurl << endl;
-			//tcp_url.push_back(rurl);
-			thread it = thread(&Pipeline::NodeReceive, this, rurl);
-			athreads_.push_back(move(it));	
-		}
-	}	
-
-	sleep(3);
-	
-	cout << "Send URL: " << endl;
-	for(UInt16 i=0; i<g_node_cnt; i++) {
-		if(i != get_node_id()) {
-			string surl = GetSendUrl(i);
-			cout << "To " << i << " :: " << surl << endl;
-			//tcp_url.push_back(surl);
-			thread ot(&Pipeline::NodeSend, this, surl);
-			athreads_.push_back(move(ot));
-		}
-	}
-	
-
-	for(auto &th : athreads_) {
-		th.join();
-	}
-}
 
 void fatal(const char *func, int rv)
 {
@@ -154,7 +115,7 @@ void Pipeline::SetSockets()
 		}
 	}	
 
-	sleep(3);
+	sleep(1);
 	
 	// Initializing receiver sockets.
 	for(UInt16 i=0; i<g_node_cnt; i++) {
@@ -249,68 +210,6 @@ void Pipeline::RunRecv()
 			}
 		}
 	}	
-}
-
-int Pipeline::NodeReceive(string tcp_url)
-{
-	cout << "Inside" << endl;
-	nng_socket sock;
-	int rv;
-
-	const char *url = tcp_url.c_str();
-	cout << "Con URL:" << url << endl;
-
-	if ((rv = nng_pull0_open(&sock)) != 0) {
-		fatal("nng_pull0_open", rv);
-	}
-        if ((rv = nng_listen(sock, url, NULL, 0)) != 0) {
-		fatal("nng_listen", rv);
-	}
-	for (;;) {
-		char *buf = NULL;
-		size_t sz;
-		if ((rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC)) != 0) {
-			fatal("nng_recv", rv);
-		}
-		
-		cout << get_node_id() << " RECEIVED: " << buf << endl; 
-		nng_free(buf, sz);
-	}
-}
-
-int Pipeline::NodeSend(string tcp_url)
-{
-	//int sz_msg = strlen(msg) + 1;
-	nng_socket sock;
-	int rv, sz_msg;
-	int bytes;
-	
-	const char *url = tcp_url.c_str();
-	cout << "Con URL:" << url << endl;
-
-	if ((rv = nng_push0_open(&sock)) != 0) {
-        	fatal("nng_push0_open", rv);
-	}
-
-	if ((rv = nng_dial(sock, url, NULL, NNG_FLAG_NONBLOCK)) != 0) {
-		fatal("nng_dial", rv);
-	}
-
-	string str = "From: " + to_string(get_node_id()) + " :: Hello ";
-	char *msg;
-	for(int i=0; i<3; i++) {
-		str += to_string(i);
-		msg = &str[0];
-		sz_msg = strlen(msg) + 1; // '\0' too
-
-        	cout << get_node_id() << " SENDING: " << msg << endl;
-        	if ((rv = nng_send(sock, msg, sz_msg, 0)) != 0) {
-        	        fatal("nng_send", rv);
-        	}}
-
-        sleep(1); // wait for messages to flush before shutting down
-        nng_close(sock);
-        return (0);
 }
 
 
