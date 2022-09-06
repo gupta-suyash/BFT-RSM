@@ -12,4 +12,6 @@ jobs:
       runs-on: ubuntu-latest
       
       steps:
-      - run: make -C Code/
+      - run: |
+          cd Code
+          make
