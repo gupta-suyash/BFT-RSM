@@ -13,6 +13,5 @@ jobs:
       
       steps:
       - uses: actions/checkout@v2
-      - run: cd Code
-      - run: sudo ./setup.sh
+      - run: sudo ./Code/setup.sh
       - run: make
