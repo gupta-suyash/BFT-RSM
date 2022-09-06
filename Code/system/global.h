@@ -9,6 +9,7 @@
 
 using namespace std;
 
+class Pipeline;
 class SendPipeQueue;
 
 
@@ -31,6 +32,10 @@ extern UInt16 g_port_num;
 // Pointer to sender queue
 extern unique_ptr<SendPipeQueue> sp_queue;
 extern SendPipeQueue *sp_qptr;
+
+// Pointer to pipeline
+extern unique_ptr<Pipeline> pipe_obj;
+extern Pipeline *pipe_ptr;
 			
 
 UInt16 get_nodes_rsm();

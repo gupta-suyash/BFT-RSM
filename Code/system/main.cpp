@@ -17,35 +17,30 @@ int main(int argc, char *argv[])
 	// Parsing the command line args.
 	parser(argc, argv);
 
+	unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
+	pipe_ptr = pipe_obj.get();
+	pipe_ptr->SetSockets();
+
 	//// Setting up queues for sender threads.
 	//unique_ptr<SendPipeQueue> sp_queue = make_unique<SendPipeQueue>();
 	//sp_qptr = sp_queue.get();
 	//sp_qptr->Init();
 
-	////Creating Inter RSM Threads
-	//unique_ptr<InterSndThread> inter_snd = make_unique<InterSndThread>();
-	//inter_snd->Init(0);
+	//Creating and starting Sender IOThreads.
+	unique_ptr<SendThread> snd_obj = make_unique<SendThread>();
+	snd_obj->Init(0);
 
-	//unique_ptr<InterRcvThread> inter_rcv = make_unique<InterRcvThread>();
-	//inter_rcv->Init(1);
+	// Creating and starting Receiver IOThreads.
+	unique_ptr<RecvThread> rcv_obj = make_unique<RecvThread>();
+	rcv_obj->Init(1);
 
-	//inter_snd->thd_.join();
-	//inter_rcv->thd_.join();
+	snd_obj->thd_.join();
+	rcv_obj->thd_.join();
 
 
-	// Setting up threads.
-	//unique_ptr<Pipeline> iop = make_unique<Pipeline>();
-	//auto pp = iop.get();
-	////pp->SetIThreads();
-	//if(get_node_id() == 0) {
-	//	pp->NodeReceive("tcp://172.31.24.55:7001");
-	//} else {
-	//	pp->NodeSend("tcp://172.31.24.55:7001");
-	//}	
-	
-	Pipeline *pp = new Pipeline();
-	pp->SetSockets();
-	pp->InitThreads();
+	//Pipeline *pp = new Pipeline();
+	//pp->SetSockets();
+	//pp->InitThreads();
 
         fprintf(stderr, "Usage: pipeline %s|%s <URL> <ARG> ...'\n",
                 NODE0, NODE1);

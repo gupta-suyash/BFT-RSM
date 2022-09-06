@@ -1,73 +1,41 @@
 #include "iothread.h"
+#include "pipeline.h"
 
-UInt16 InterSndThread::GetThreadId()
+UInt16 SendThread::GetThreadId()
 {
 	return thd_id_;
 }	
 
-void InterSndThread::Init(UInt16 thd_id)
+void SendThread::Init(UInt16 thd_id)
 {
 	thd_id_ = thd_id;
-	thd_ = thread(&InterSndThread::Run, this);
+	thd_ = thread(&SendThread::Run, this);
 }	
 
-void InterSndThread::Run() 
+void SendThread::Run() 
 {
-	cout << "InterSndThread" << endl;
-	sp_qptr->CallE();
+	cout << "SndThread: " << GetThreadId() << endl;
+	pipe_ptr->RunSend();
 }
 
 	
 
-UInt16 InterRcvThread::GetThreadId()
+UInt16 RecvThread::GetThreadId()
 {
 	return thd_id_;
 }
 
-void InterRcvThread::Init(UInt16 thd_id)
+void RecvThread::Init(UInt16 thd_id)
 {
 	thd_id_ = thd_id;
-	thd_ = thread(&InterRcvThread::Run, this);
+	thd_ = thread(&RecvThread::Run, this);
 }
 
-void InterRcvThread::Run()
+void RecvThread::Run()
 {
-	cout << "InterRcvThread" << endl;
-	sp_qptr->CallD();
+	cout << "RecvThread: " << GetThreadId() << endl;
+	pipe_ptr->RunRecv();
 }
 
 
-UInt16 IntraSndThread::GetThreadId()
-{
-	return thd_id_;
-}
 
-void IntraSndThread::Init(UInt16 thd_id)
-{
-	thd_id_ = thd_id;
-	thd_ = thread(&IntraSndThread::Run, this);
-}
-
-void IntraSndThread::Run()
-{
-	cout << "IntraSndThread" << endl;
-	sp_qptr->CallD();
-}
-
-
-UInt16 IntraRcvThread::GetThreadId()
-{
-	return thd_id_;
-}
-
-void IntraRcvThread::Init(UInt16 thd_id)
-{
-	thd_id_ = thd_id;
-	thd_ = thread(&IntraRcvThread::Run, this);
-}
-
-void IntraRcvThread::Run()
-{
-	cout << "IntraRcvThread" << endl;
-	sp_qptr->CallD();
-}
