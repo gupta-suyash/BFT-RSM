@@ -16,6 +16,7 @@ void SendThread::Run()
 {
 	cout << "SndThread: " << GetThreadId() << endl;
 	pipe_ptr->SendToOtherRsm();
+	pipe_ptr->SendToOwnRsm();
 }
 
 	
@@ -35,6 +36,7 @@ void RecvThread::Run()
 {
 	cout << "RecvThread: " << GetThreadId() << endl;
 	pipe_ptr->RecvFromOtherRsm();
+	pipe_ptr->RecvFromOwnRsm();
 }
 
 
