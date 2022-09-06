@@ -22,7 +22,7 @@ echo "built ninja"
 # nng installation
 tar -xzf ./Code/nng-1.5.2.tar.gz
 echo "untar of nng successful"
-cd ./Code/nng-1.5.2
+cd ./nng-1.5.2
 mkdir build
 cd build
 echo "build directory creation successful"
