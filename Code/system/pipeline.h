@@ -52,8 +52,8 @@ public:
 	void SendToOwnRsm();
 	void RecvFromOwnRsm();
 
-	void DataToOtherRsm(char *buf, UInt16 node_id);
-	unique_ptr<DataPack> DataFromOtherRsm(UInt16 node_id);
+	void DataSend(char *buf, UInt16 node_id);
+	unique_ptr<DataPack> DataRecv(UInt16 node_id);
 
 	//char* DataToHost();
 	//void DataFromHost(char *buf);

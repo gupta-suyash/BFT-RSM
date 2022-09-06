@@ -141,7 +141,7 @@ void Pipeline::SetSockets()
 /* Sending data to nodes of other RSM.
  *
  */
-void Pipeline::DataToOtherRsm(char *buf, UInt16 node_id) 
+void Pipeline::DataSend(char *buf, UInt16 node_id) 
 {
 	int rv;
 	auto sock = send_sockets_[node_id];
@@ -154,23 +154,21 @@ void Pipeline::DataToOtherRsm(char *buf, UInt16 node_id)
 /* Receving data from nodes of other RSM.
  *
  */ 
-unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
+unique_ptr<DataPack> Pipeline::DataRecv(UInt16 node_id)
 {
 	int rv;
 	auto sock = recv_sockets_[node_id];
 	unique_ptr<DataPack> msg = make_unique<DataPack>();
-	//char *buf = NULL;
-	//size_t sz;
 	
+	// We want the nng_recv to be non-blocking and reduce copies. 
+	// So, we use the two available bit masks.
 	rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+
+	// nng_recv is non-blocking, if there is no data, return value is non-zero.
 	if(rv != 0)
 		msg->data_len = 0;
 
-	//if((rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC+NNG_FLAG_NONBLOCK)) != 0){
-	//	fatal("nng_recv", rv);
-	//}	
 	//nng_free(msg->buf, msg->data_len);
-	//return std::move(msg);
 	return msg;
 }	
 
@@ -200,7 +198,7 @@ void Pipeline::SendToOtherRsm()
 				string str = to_string(get_node_id()) + "x" + to_string(i);
 				msg = &str[0];
 				cout << get_node_id() << " :: @Sent: " << msg << " :: To: " << recvr_id << endl;  
-				DataToOtherRsm(msg, recvr_id);
+				DataSend(msg, recvr_id);
 				i++;
 				
 			}
@@ -228,7 +226,7 @@ void Pipeline::RecvFromOtherRsm()
 			// The id of the sender node.
 			UInt16 sendr_id = j + rsm_id_start;
 			
-			unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
+			unique_ptr<DataPack> msg = DataRecv(sendr_id);
 			if(msg->data_len != 0)
 				cout << get_node_id() << " :: @Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
 			
@@ -260,7 +258,7 @@ void Pipeline::SendToOwnRsm()
 			string str = to_string(get_node_id()) + "x" + to_string(i);
 			msg = &str[0];
 			cout << get_node_id() << " :: #Sent: " << msg << " :: To: " << recvr_id << endl;  
-			DataToOtherRsm(msg, recvr_id);
+			DataSend(msg, recvr_id);
 			i++;
 			
 		}
@@ -283,7 +281,7 @@ void Pipeline::RecvFromOwnRsm()
 		if(sendr_id == get_node_id())
 			continue;
 		
-		unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
+		unique_ptr<DataPack> msg = DataRecv(sendr_id);
 		if(msg->data_len != 0)
 			cout << get_node_id() << " :: #Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
 		
