@@ -2,11 +2,11 @@
 
 # ninja install
 echo "shell command working!"
-sudo apt-get update
-sudo apt-get upgrade
-sudo apt-get -y install cmake
-sudo apt -y install build-essential
-sudo apt-get -y install re2c
+apt-get update
+apt-get upgrade
+apt-get -y install cmake
+apt -y install build-essential
+apt-get -y install re2c
 gh repo clone ninja-build/ninja
 cd ninja
 cmake -Bbuild-cmake
