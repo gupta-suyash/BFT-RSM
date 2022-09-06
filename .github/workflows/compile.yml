@@ -13,5 +13,6 @@ jobs:
       
       steps:
       - uses: actions/checkout@v2
-      - run: sudo ./Code/setup.sh
-      - run: make -C ./Code
+      - run: cd Code
+      - run: sudo ./setup.sh
+      - run: make
