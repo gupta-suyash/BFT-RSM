@@ -203,7 +203,6 @@ unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
 	if((rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC)) != 0){
 		fatal("nng_recv", rv);
 	}	
-	cout << get_node_id() << " :: " <<msg->buf << endl;
 	//nng_free(msg->buf, msg->data_len);
 	//return std::move(msg);
 	return msg;
@@ -211,13 +210,14 @@ unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
 
 void Pipeline::InitThreads()
 {
-	if(get_node_id() == 0) {
+	//if(get_node_id() == 0) {
 		recv_thd_ = thread(&Pipeline::RunRecv, this);
-		recv_thd_.join();
-	} else {
+	//	recv_thd_.join();
+	//} else {
 		send_thd_ = thread(&Pipeline::RunSend, this);
 		send_thd_.join();
-	}
+	//}
+		recv_thd_.join();
 }	
 
 
@@ -228,9 +228,9 @@ void Pipeline::RunSend()
 	while(i < 5) {
 		for(int j=0; j<g_node_cnt; j++) {
 			if(j != get_node_id()) {
-				string str = "abc" + to_string(i);
+				string str = to_string(get_node_id()) + "x" + to_string(i);
 				msg = &str[0];
-				cout << "Sent: " << msg << " :: to: " << j << endl;  
+				cout << get_node_id() << " :: Sent: " << msg << " :: To: " << j << endl;  
 				DataToOtherRsm(msg, j);
 				i++;
 			}
@@ -245,7 +245,7 @@ void Pipeline::RunRecv()
 			if(j != get_node_id()) {
 				unique_ptr<DataPack> msg = DataFromOtherRsm(j);
 				//DataFromOtherRsm(j);
-				cout << "RECO: " << get_node_id() << " :: " <<msg->buf << endl;
+				cout << get_node_id() << " :: Recv: " <<msg->buf << " :: From: " << j << endl;
 			}
 		}
 	}	
