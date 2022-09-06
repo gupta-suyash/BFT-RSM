@@ -14,7 +14,5 @@ jobs:
       steps:
       - uses: actions/checkout@v2
       - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-      - run: sudo ./setup.sh
-      - run: make
+      - run: sudo ./Code/setup.sh
+      - run: make -C ./Code
