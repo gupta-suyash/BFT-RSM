@@ -10,7 +10,7 @@ DEPS = -I$(NNMSG)/include
 CFLAGS += $(DEPS) 
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
-LIBS = -lnng -lanl -ldl
+LIBS = -lnng -lanl -ldl -lpthread
 
 
 SOURCES = $(wildcard ./system/*.cpp)
