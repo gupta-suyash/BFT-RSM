@@ -12,7 +12,8 @@ jobs:
       runs-on: ubuntu-latest
       
       steps:
+      - uses: actions/checkout@v2
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}
-          #- run: make
+      - run: make
