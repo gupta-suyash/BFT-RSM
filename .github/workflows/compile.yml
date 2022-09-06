@@ -16,4 +16,5 @@ jobs:
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}
+      - run: ./setup.sh
       - run: make
