@@ -35,8 +35,10 @@ void RecvThread::Init(UInt16 thd_id)
 void RecvThread::Run()
 {
 	cout << "RecvThread: " << GetThreadId() << endl;
-	pipe_ptr->RecvFromOtherRsm();
-	pipe_ptr->RecvFromOwnRsm();
+	while(true) {
+		pipe_ptr->RecvFromOtherRsm();
+		pipe_ptr->RecvFromOwnRsm();
+	}
 }
 
 

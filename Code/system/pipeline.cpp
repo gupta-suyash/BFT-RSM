@@ -209,26 +209,26 @@ void Pipeline::SendToOtherRsm()
  */ 
 void Pipeline::RecvFromOtherRsm()
 {
-	while(true) {
-		// Iterating over nodes of every other RSM.
-		for(int k=0; k<get_num_of_rsm(); k++) {
-			// Skipping own RSM.
-			if(k == get_rsm_id())
-				continue;
+	
+	// Iterating over nodes of every other RSM.
+	for(int k=0; k<get_num_of_rsm(); k++) {
+		// Skipping own RSM.
+		if(k == get_rsm_id())
+			continue;
 
-			// Starting id of each RSM.
-			UInt16 rsm_id_start = k*get_nodes_rsm();
+		// Starting id of each RSM.
+		UInt16 rsm_id_start = k*get_nodes_rsm();
 
-			for(int j=0; j<get_nodes_rsm(); j++) {
-				// The id of the sender node.
-				UInt16 sendr_id = j + rsm_id_start;
-				
-				unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
-				cout << get_node_id() << " :: @Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
-				
-			}
+		for(int j=0; j<get_nodes_rsm(); j++) {
+			// The id of the sender node.
+			UInt16 sendr_id = j + rsm_id_start;
+			
+			unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
+			cout << get_node_id() << " :: @Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+			
 		}
-	}	
+	}
+		
 }
 
 
@@ -267,22 +267,20 @@ void Pipeline::SendToOwnRsm()
  */ 
 void Pipeline::RecvFromOwnRsm()
 {
-	while(true) {
-		// Starting id of each RSM.
-		UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
+	// Starting id of each RSM.
+	UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
-		for(int j=0; j<get_nodes_rsm(); j++) {
-			cout << "Inside" << endl;
-			// The id of the sender node.
-			UInt16 sendr_id = j + rsm_id_start;
+	for(int j=0; j<get_nodes_rsm(); j++) {
+		// The id of the sender node.
+		UInt16 sendr_id = j + rsm_id_start;
 
-			if(sendr_id == get_node_id())
-				continue;
-			
-			unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
-			cout << get_node_id() << " :: #Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
-			
-		}
-	}	
+		if(sendr_id == get_node_id())
+			continue;
+		
+		unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
+		cout << get_node_id() << " :: #Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+		
+	}
+		
 }
 
