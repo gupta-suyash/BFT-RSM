@@ -161,9 +161,12 @@ unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
 	unique_ptr<DataPack> msg = make_unique<DataPack>();
 	//char *buf = NULL;
 	//size_t sz;
-	if((rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC)) != 0){
-		fatal("nng_recv", rv);
-	}	
+	
+	nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC+NNG_FLAG_NONBLOCK);
+
+	//if((rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC+NNG_FLAG_NONBLOCK)) != 0){
+	//	fatal("nng_recv", rv);
+	//}	
 	//nng_free(msg->buf, msg->data_len);
 	//return std::move(msg);
 	return msg;
