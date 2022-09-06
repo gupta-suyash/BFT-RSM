@@ -162,7 +162,9 @@ unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
 	//char *buf = NULL;
 	//size_t sz;
 	
-	nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC+NNG_FLAG_NONBLOCK);
+	rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+	if(rv != 0)
+		msg->data_len = 0;
 
 	//if((rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC+NNG_FLAG_NONBLOCK)) != 0){
 	//	fatal("nng_recv", rv);
@@ -227,7 +229,8 @@ void Pipeline::RecvFromOtherRsm()
 			UInt16 sendr_id = j + rsm_id_start;
 			
 			unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
-			cout << get_node_id() << " :: @Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+			if(msg->data_len != 0)
+				cout << get_node_id() << " :: @Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
 			
 		}
 	}
@@ -281,7 +284,8 @@ void Pipeline::RecvFromOwnRsm()
 			continue;
 		
 		unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
-		cout << get_node_id() << " :: #Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+		if(msg->data_len != 0)
+			cout << get_node_id() << " :: #Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
 		
 	}
 		
