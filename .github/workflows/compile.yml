@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: setup
-      run: ./Code/setup.sh
+      #- name: setup
+      #run: ./Code/setup.sh
     - name: Make
       run: make -C Code/
-  Explore-GitHub-Actions:
+      Explore-GitHub-Actions:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
