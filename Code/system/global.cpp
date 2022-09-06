@@ -1,6 +1,7 @@
 #include "global.h"
 #include "../configuration/config.h"
 
+
 UInt16 g_thread_cnt = THREAD_CNT;
 UInt16 g_num_rsm = NUM_RSM;
 UInt16 g_nodes_rsm = NODES_RSM;
@@ -12,11 +13,24 @@ UInt16 g_port_num = PORT_NUM;
 
 SendPipeQueue *sp_qptr;
 
+// Pointer to pipeline
+Pipeline *pipe_ptr;
+
+
+/* Get the total number of RSMs.
+ *
+ * @return g_num_rsm.
+ */
+UInt16 get_num_of_rsm()
+{
+	return g_num_rsm;
+}	
 
 
 /* Get the number of nodes in a RSM.
+ * At present, we assume each RSM has same number of nodes.
  *
- * @return g_nodes_rsm..
+ * @return g_nodes_rsm.
  */ 
 UInt16 get_nodes_rsm()
 {

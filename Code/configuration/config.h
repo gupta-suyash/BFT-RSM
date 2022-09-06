@@ -2,7 +2,7 @@
 #define _CONFIG_H_
 
 // Specify the number of threads
-#define THREAD_CNT 4
+#define THREAD_CNT 2
 // Total number of RSMs
 #define NUM_RSM 2	
 // Number of nodes in each RSM

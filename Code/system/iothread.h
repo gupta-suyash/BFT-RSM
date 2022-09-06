@@ -7,24 +7,29 @@
 
 class IOThreads {
 public:
-	UInt16 thd_id_;
-	thread thd_;
+	UInt16 thd_id_; // Thread id.
+	thread thd_;	// Thread.
 	virtual void Init(UInt16 thd_id) = 0;
 	virtual void Run() = 0;
 	virtual UInt16 GetThreadId() = 0;
 };	
 
 
-class InterSndThread : public IOThreads {
+// Threads that send or receive messages.
+class SendThread : public IOThreads {
 public:
+	//UInt16 thd_id_; // Thread id.
+	//thread thd_;	// Thread.
 	void Init(UInt16 thd_id);
 	void Run();
 	UInt16 GetThreadId();
 };	
 
 
-class InterRcvThread : public IOThreads {
+class RecvThread : public IOThreads {
 public:
+	//UInt16 thd_id_; // Thread id.
+	//thread thd_;	// Thread.
 	void Init(UInt16 thd_id);
 	void Run();
 	UInt16 GetThreadId();
