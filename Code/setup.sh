@@ -15,6 +15,7 @@ echo "attempt to clone ninja successful"
 cd ninja
 cmake -Bbuild-cmake
 cmake --build build-cmake
+cd ..
 echo "built ninja"
 
 # nng installation
@@ -28,4 +29,5 @@ cmake -G Ninja ..
 ninja
 ninja test
 ninja install
+cd ..
 echo "script is successful!"
