@@ -12,7 +12,4 @@ jobs:
       runs-on: ubuntu-latest
       
       steps:
-      - run: |
-          echo $PWD
-          cd Code
-          make
+      - run: make
