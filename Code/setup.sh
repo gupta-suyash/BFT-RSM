@@ -20,9 +20,9 @@ echo $PWD
 echo "built ninja"
 
 # nng installation
-tar -xzf ./nng-1.5.2.tar.gz
+tar -xzf ./Code/nng-1.5.2.tar.gz
 echo "untar of nng successful"
-cd nng-1.5.2
+cd ./Code/nng-1.5.2
 mkdir build
 cd build
 echo "build directory creation successful"
