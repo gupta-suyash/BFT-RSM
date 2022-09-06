@@ -19,8 +19,9 @@ Pipeline *pipe_ptr;
 
 
 /* Get the number of nodes in a RSM.
+ * At present, we assume each RSM has same number of nodes.
  *
- * @return g_nodes_rsm..
+ * @return g_nodes_rsm.
  */ 
 UInt16 get_nodes_rsm()
 {

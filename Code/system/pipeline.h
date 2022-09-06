@@ -36,9 +36,6 @@ class Pipeline {
 	std::map <UInt16, nng_socket> send_sockets_;
 	std::map <UInt16, nng_socket> recv_sockets_;
 
-	thread send_thd_;	// Thread.
-	thread recv_thd_;	// Thread.
-
 public:			    
 	Pipeline();
 	string GetPath();
@@ -49,12 +46,8 @@ public:
 	string GetSendUrl(UInt16 cnt);
 	void SetSockets();
 
-	//int NodeReceive(string url);
-	//int NodeSend(string url);
-
-	void InitThreads();
-	void RunSend();
-	void RunRecv();
+	void SendToOtherRsm();
+	void RecvFromOtherRsm();
 
 	void DataToOtherRsm(char *buf, UInt16 node_id);
 	unique_ptr<DataPack> DataFromOtherRsm(UInt16 node_id);

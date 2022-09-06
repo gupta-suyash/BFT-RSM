@@ -15,7 +15,7 @@ public:
 };	
 
 
-// Threads that send or receive messages from other RSM.
+// Threads that send or receive messages.
 class SendThread : public IOThreads {
 public:
 	//UInt16 thd_id_; // Thread id.

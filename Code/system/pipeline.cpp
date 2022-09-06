@@ -169,20 +169,8 @@ unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
 	return msg;
 }	
 
-void Pipeline::InitThreads()
-{
-	//if(get_node_id() == 0) {
-		recv_thd_ = thread(&Pipeline::RunRecv, this);
-	//	recv_thd_.join();
-	//} else {
-		send_thd_ = thread(&Pipeline::RunSend, this);
-		send_thd_.join();
-	//}
-		recv_thd_.join();
-}	
 
-
-void Pipeline::RunSend()
+void Pipeline::SendToOtherRsm()
 {
 	int i=0;
 	char *msg;
@@ -199,7 +187,7 @@ void Pipeline::RunSend()
 	}	
 }	
 
-void Pipeline::RunRecv()
+void Pipeline::RecvFromOtherRsm()
 {
 	while(true) {
 		for(int j=0; j<g_node_cnt; j++) {

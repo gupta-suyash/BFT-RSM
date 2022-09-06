@@ -15,7 +15,7 @@ void SendThread::Init(UInt16 thd_id)
 void SendThread::Run() 
 {
 	cout << "SndThread: " << GetThreadId() << endl;
-	pipe_ptr->RunSend();
+	pipe_ptr->SendToOtherRsm();
 }
 
 	
@@ -34,7 +34,7 @@ void RecvThread::Init(UInt16 thd_id)
 void RecvThread::Run()
 {
 	cout << "RecvThread: " << GetThreadId() << endl;
-	pipe_ptr->RunRecv();
+	pipe_ptr->RecvFromOtherRsm();
 }
 
 
