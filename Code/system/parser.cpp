@@ -4,7 +4,7 @@
  * At present only one option is passed, node id.
  * Format: nid<number> :: Example: nid0
  *
- * We assume that the node id's are consecutive numbers, such that
+ * We assume that the node id's are consecutive numbers, starting from 0, such that
  * all the nodes belonging to one RSM have consecutive ids.
  *
  */ 

@@ -170,31 +170,62 @@ unique_ptr<DataPack> Pipeline::DataFromOtherRsm(UInt16 node_id)
 }	
 
 
+/* This function is used to send messages to the nodes in other RSM.
+ *
+ */ 
 void Pipeline::SendToOtherRsm()
 {
 	int i=0;
 	char *msg;
 	while(i < 5) {
-		for(int j=0; j<g_node_cnt; j++) {
-			if(j != get_node_id()) {
+		// Iterating over nodes of every other RSM.
+		for(int k=0; k<get_num_of_rsm(); k++) {
+			// Skipping own RSM.
+			if(k == get_rsm_id())
+				continue;
+
+			// Starting id of each RSM.
+			UInt16 rsm_id_start = k*get_nodes_rsm();
+
+			for(int j=0; j<get_nodes_rsm(); j++) {
+				// The id of the receiver node.
+				UInt16 recvr_id = j + rsm_id_start;
+
+				// Constructing a message to send.
 				string str = to_string(get_node_id()) + "x" + to_string(i);
 				msg = &str[0];
-				cout << get_node_id() << " :: Sent: " << msg << " :: To: " << j << endl;  
-				DataToOtherRsm(msg, j);
+				cout << get_node_id() << " :: Sent: " << msg << " :: To: " << recvr_id << endl;  
+				DataToOtherRsm(msg, recvr_id);
 				i++;
+				
 			}
-		}	
+		}
 	}	
 }	
 
+
+/* This function is used to receive messages from the other RSM.
+ *
+ */ 
 void Pipeline::RecvFromOtherRsm()
 {
 	while(true) {
-		for(int j=0; j<g_node_cnt; j++) {
-			if(j != get_node_id()) {
-				unique_ptr<DataPack> msg = DataFromOtherRsm(j);
-				//DataFromOtherRsm(j);
-				cout << get_node_id() << " :: Recv: " <<msg->buf << " :: From: " << j << endl;
+		// Iterating over nodes of every other RSM.
+		for(int k=0; k<get_num_of_rsm(); k++) {
+			// Skipping own RSM.
+			if(k == get_rsm_id())
+				continue;
+
+			// Starting id of each RSM.
+			UInt16 rsm_id_start = k*get_nodes_rsm();
+
+			for(int j=0; j<get_nodes_rsm(); j++) {
+				// The id of the sender node.
+				UInt16 sendr_id = j + rsm_id_start;
+				
+				unique_ptr<DataPack> msg = DataFromOtherRsm(sendr_id);
+				cout << get_node_id() << " :: Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+				
 			}
 		}
 	}	

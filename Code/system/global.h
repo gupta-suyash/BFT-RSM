@@ -37,7 +37,7 @@ extern SendPipeQueue *sp_qptr;
 extern unique_ptr<Pipeline> pipe_obj;
 extern Pipeline *pipe_ptr;
 			
-
+UInt16 get_num_of_rsm();
 UInt16 get_nodes_rsm();
 
 UInt16 get_node_id();

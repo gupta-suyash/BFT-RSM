@@ -17,6 +17,15 @@ SendPipeQueue *sp_qptr;
 Pipeline *pipe_ptr;
 
 
+/* Get the total number of RSMs.
+ *
+ * @return g_num_rsm.
+ */
+UInt16 get_num_of_rsm()
+{
+	return g_num_rsm;
+}	
+
 
 /* Get the number of nodes in a RSM.
  * At present, we assume each RSM has same number of nodes.
