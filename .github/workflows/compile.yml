@@ -8,10 +8,12 @@ on:
 
 jobs:
     build:
-        
+      defaults:
+          run: 
+            working-directory: Code
       runs-on: ubuntu-latest
       
       steps:
       - uses: actions/checkout@v2
-      - run: sudo ./Code/setup.sh
-      - run: make -C ./Code
+      - run: sudo ./setup.sh
+      - run: make
