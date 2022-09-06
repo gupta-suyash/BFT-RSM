@@ -13,6 +13,5 @@ jobs:
       
       steps:
       - uses: actions/checkout@v2
-      - name: List files in the repository
       - run: sudo ./Code/setup.sh
       - run: make -C ./Code
