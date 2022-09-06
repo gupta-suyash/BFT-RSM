@@ -16,6 +16,7 @@ cd ninja
 cmake -Bbuild-cmake
 cmake --build build-cmake
 cd ..
+echo $PWD
 echo "built ninja"
 
 # nng installation
