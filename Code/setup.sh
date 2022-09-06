@@ -26,7 +26,7 @@ cd ./nng-1.5.2
 mkdir build
 cd build
 echo "build directory creation successful"
-cmake -G Ninja -B ./Code
+cmake -G Ninja -S ..
 ninja
 ninja test
 ninja install
