@@ -13,5 +13,6 @@ jobs:
       
       steps:
       - run: |
+          echo $PWD
           cd Code
           make
