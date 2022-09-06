@@ -10,7 +10,7 @@ jobs:
     build:
       defaults:
           run: 
-            working-directory: Code
+            working-directory: ./Code
       runs-on: ubuntu-latest
       
       steps:
