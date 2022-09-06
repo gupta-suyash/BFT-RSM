@@ -10,7 +10,7 @@ apt-get -y install cmake
 apt -y install build-essential
 apt-get -y install re2c
 echo "basic packages installed"
-gh repo clone ninja-build/ninja
+git clone https://github.com/ninja-build/ninja
 echo "attempt to clone ninja successful"
 cd ninja
 cmake -Bbuild-cmake
