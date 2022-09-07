@@ -16,7 +16,10 @@ void SendThread::Run()
 {
 	cout << "SndThread: " << GetThreadId() << endl;
 	pipe_ptr->SendToOtherRsm();
-	pipe_ptr->SendToOwnRsm();
+
+	while(true) {
+		pipe_ptr->SendToOwnRsm();
+	}
 }
 
 	
