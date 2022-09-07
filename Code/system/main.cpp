@@ -21,10 +21,13 @@ int main(int argc, char *argv[])
 	pipe_ptr = pipe_obj.get();
 	pipe_ptr->SetSockets();
 
-	//// Setting up queues for sender threads.
-	//unique_ptr<SendPipeQueue> sp_queue = make_unique<SendPipeQueue>();
-	//sp_qptr = sp_queue.get();
-	//sp_qptr->Init();
+	// Setting up the queue.
+	unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
+	sp_qptr = sp_queue.get();
+	sp_qptr->Init();
+
+	// The next command is for testing the queue.
+	// sp_qptr->CallThreads();
 
 	//Creating and starting Sender IOThreads.
 	unique_ptr<SendThread> snd_obj = make_unique<SendThread>();
@@ -37,12 +40,5 @@ int main(int argc, char *argv[])
 	snd_obj->thd_.join();
 	rcv_obj->thd_.join();
 
-
-	//Pipeline *pp = new Pipeline();
-	//pp->SetSockets();
-	//pp->InitThreads();
-
-        fprintf(stderr, "Usage: pipeline %s|%s <URL> <ARG> ...'\n",
-                NODE0, NODE1);
         return (1);
 }

@@ -6,31 +6,23 @@
 
 #include "global.h"
 #include "data_comm.h"
-#include "message.h"
 
 #include <boost/lockfree/queue.hpp>
 
 
 class PipeQueue
 {
-public:
-	virtual void Init() = 0;
-	virtual void Enqueue(char *buf, size_t data_len, int qid) = 0;
-	virtual std::unique_ptr<DataPack> Dequeue(UInt16 thd_id) = 0;
-};	
-
-
-class SendPipeQueue : public PipeQueue {
-	//boost::lockfree::queue<DataPack*> snd_queue{1};
-	boost::lockfree::queue<DataPack*> **snd_queue;
+	boost::lockfree::queue<DataPack*> *msg_queue_;
 public:
 	void Init();
-	void Enqueue(char *buf, size_t data_len, int qid);
-	std::unique_ptr<DataPack> Dequeue(UInt16 thd_id);
+	void Enqueue(unique_ptr<DataPack> msg);
+	std::unique_ptr<DataPack> Dequeue();
 
+	// Queue Testing functions.
 	void CallE();
 	void CallD();
 	void CallThreads();
-};
+};	
+
 
 #endif

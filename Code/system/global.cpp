@@ -11,7 +11,7 @@ UInt16 g_rsm_id = 0;
 
 UInt16 g_port_num = PORT_NUM;
 
-SendPipeQueue *sp_qptr;
+PipeQueue *sp_qptr;
 
 // Pointer to pipeline
 Pipeline *pipe_ptr;

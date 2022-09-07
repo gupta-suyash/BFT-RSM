@@ -10,7 +10,7 @@
 using namespace std;
 
 class Pipeline;
-class SendPipeQueue;
+class PipeQueue;
 
 
 //// Constants
@@ -30,8 +30,8 @@ extern UInt16 g_rsm_id; // RSM Id for this node.
 extern UInt16 g_port_num;
 
 // Pointer to sender queue
-extern unique_ptr<SendPipeQueue> sp_queue;
-extern SendPipeQueue *sp_qptr;
+extern unique_ptr<PipeQueue> sp_queue;
+extern PipeQueue *sp_qptr;
 
 // Pointer to pipeline
 extern unique_ptr<Pipeline> pipe_obj;
