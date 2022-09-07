@@ -1,5 +1,5 @@
 #include "pipeline.h"
-
+#include "pipe_queue.h"
 
 Pipeline::Pipeline()
 {
@@ -180,7 +180,7 @@ void Pipeline::SendToOtherRsm()
 {
 	int i=0;
 	char *msg;
-	while(i < 5) {
+	while(i < 3) {
 		// Iterating over nodes of every other RSM.
 		for(int k=0; k<get_num_of_rsm(); k++) {
 			// Skipping own RSM.
@@ -227,8 +227,14 @@ void Pipeline::RecvFromOtherRsm()
 			UInt16 sendr_id = j + rsm_id_start;
 			
 			unique_ptr<DataPack> msg = DataRecv(sendr_id);
-			if(msg->data_len != 0)
+			if(msg->data_len != 0) {
 				cout << get_node_id() << " :: @Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+
+				// This message needs to broadcasted to other nodes
+				// in the RSM, so enqueue in the queue for sender.
+				sp_qptr->Enqueue(std::move(msg));
+			}
+
 			
 		}
 	}
@@ -241,30 +247,48 @@ void Pipeline::RecvFromOtherRsm()
  */ 
 void Pipeline::SendToOwnRsm()
 {
-	int i=0;
-	char *msg;
-	while(i < 5) {
-		// Starting node id of RSM.
-		UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
+	// Check the queue if there is any message.
+	unique_ptr<DataPack> msg = sp_qptr->Dequeue();
+	if(msg->data_len == 0)
+		return;       
+	
+	// Starting node id of RSM.
+	UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
-		for(int j=0; j<get_nodes_rsm(); j++) {
-			// The id of the receiver node.
-			UInt16 recvr_id = j + rsm_id_start;
-			
-			if(recvr_id == get_node_id())
-				continue;
+	for(int j=0; j<get_nodes_rsm(); j++) {
+		// The id of the receiver node.
+		UInt16 recvr_id = j + rsm_id_start;
+		
+		if(recvr_id == get_node_id())
+			continue;
 
-			// Constructing a message to send.
-			string str = to_string(get_node_id()) + "x" + to_string(i);
-			msg = &str[0];
-			cout << get_node_id() << " :: #Sent: " << msg << " :: To: " << recvr_id << endl;  
-			DataSend(msg, recvr_id);
-			i++;
-			
-		}
-	}	
+		// Constructing a message to send.
+		//string str = to_string(get_node_id()) + "x" + to_string(i);
+		//buf = &str[0];
+		  
+		
+		// Create a copy of the message as it is sent to all the nodes.
+		// TODO: Maybe we do not need to as nng_send automatically copies?
+		char *buf = DeepCopyMsg(msg->buf);
+		cout << get_node_id() << " :: #Sent: " << buf << " :: To: " << recvr_id << endl;
+
+		DataSend(buf, recvr_id);
+	}
+		
 }	
 
+
+/* Creates a copy of the input message.
+ *
+ * @param buf to be copied
+ */ 
+char *Pipeline::DeepCopyMsg(char *buf)
+{
+	size_t data_len = strlen(buf) + 1;
+	char *c_buf = new char[data_len];
+	memcpy(c_buf, buf, data_len);
+	return c_buf;
+}	
 
 /* This function is used to receive messages from the nodes in own RSM.
  *

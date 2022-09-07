@@ -55,6 +55,9 @@ public:
 	void DataSend(char *buf, UInt16 node_id);
 	unique_ptr<DataPack> DataRecv(UInt16 node_id);
 
+	char *DeepCopyMsg(char *msg);
+	
+
 	//char* DataToHost();
 	//void DataFromHost(char *buf);
 };	
