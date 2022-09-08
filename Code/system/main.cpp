@@ -7,6 +7,7 @@
 #include "pipeline.h"
 #include "iothread.h"
 #include "pipe_queue.h"
+#include "ack.h"
 
 using std::filesystem::current_path;
 
@@ -16,6 +17,9 @@ int main(int argc, char *argv[])
 {
 	// Parsing the command line args.
 	parser(argc, argv);
+
+	Acknowledgment *ack_obj = new Acknowledgment();
+	ack_obj->TestFunc();
 
 	unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
 	pipe_ptr = pipe_obj.get();
