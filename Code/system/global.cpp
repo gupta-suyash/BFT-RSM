@@ -8,6 +8,7 @@ UInt16 g_nodes_rsm = NODES_RSM;
 UInt16 g_node_cnt = NUM_RSM * NODES_RSM;
 UInt16 g_node_id = 0;
 UInt16 g_rsm_id = 0;
+UInt16 g_max_fail = MAX_NODES_FAIL;
 
 UInt16 g_port_num = PORT_NUM;
 
@@ -80,4 +81,13 @@ void set_rsm_id(UInt16 rsm_id)
 UInt16 get_port_num()
 {
 	return g_port_num;
+}
+
+/* Get the maximum number of nodes that can fail.
+ *
+ * @return g_max_fail.
+ */ 
+UInt16 get_max_nodes_fail()
+{
+	return g_max_fail;
 }

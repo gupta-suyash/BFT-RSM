@@ -182,7 +182,7 @@ void Pipeline::SendToOtherRsm()
 	char *msg;
 	while(i < 3) {
 		// Iterating over nodes of every other RSM.
-		for(int k=0; k<get_num_of_rsm(); k++) {
+		for(UInt16 k=0; k<get_num_of_rsm(); k++) {
 			// Skipping own RSM.
 			if(k == get_rsm_id())
 				continue;
@@ -190,9 +190,14 @@ void Pipeline::SendToOtherRsm()
 			// Starting id of each RSM.
 			UInt16 rsm_id_start = k*get_nodes_rsm();
 
-			for(int j=0; j<get_nodes_rsm(); j++) {
+			for(UInt16 j=0; j<get_nodes_rsm(); j++) {
 				// The id of the receiver node.
 				UInt16 recvr_id = j + rsm_id_start;
+
+				/* TODO
+				 * The message to be sent should include the 
+				 * ackValue as one of its field.
+				 */ 
 
 				// Constructing a message to send.
 				string str = to_string(get_node_id()) + "x" + to_string(i);
@@ -214,7 +219,7 @@ void Pipeline::RecvFromOtherRsm()
 {
 	
 	// Iterating over nodes of every other RSM.
-	for(int k=0; k<get_num_of_rsm(); k++) {
+	for(UInt16 k=0; k<get_num_of_rsm(); k++) {
 		// Skipping own RSM.
 		if(k == get_rsm_id())
 			continue;
@@ -222,13 +227,19 @@ void Pipeline::RecvFromOtherRsm()
 		// Starting id of each RSM.
 		UInt16 rsm_id_start = k*get_nodes_rsm();
 
-		for(int j=0; j<get_nodes_rsm(); j++) {
+		for(UInt16 j=0; j<get_nodes_rsm(); j++) {
 			// The id of the sender node.
 			UInt16 sendr_id = j + rsm_id_start;
 			
 			unique_ptr<DataPack> msg = DataRecv(sendr_id);
 			if(msg->data_len != 0) {
 				cout << get_node_id() << " :: @Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+
+				/* TODO
+				 * Take the transaction id from the message and 
+				 * call the objet of class Acknowledgment to add 
+				 * it to the list msg_recv.
+				 */ 
 
 				// This message needs to broadcasted to other nodes
 				// in the RSM, so enqueue in the queue for sender.
@@ -255,7 +266,7 @@ void Pipeline::SendToOwnRsm()
 	// Starting node id of RSM.
 	UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
-	for(int j=0; j<get_nodes_rsm(); j++) {
+	for(UInt16 j=0; j<get_nodes_rsm(); j++) {
 		// The id of the receiver node.
 		UInt16 recvr_id = j + rsm_id_start;
 		
@@ -298,7 +309,7 @@ void Pipeline::RecvFromOwnRsm()
 	// Starting id of each RSM.
 	UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
-	for(int j=0; j<get_nodes_rsm(); j++) {
+	for(UInt16 j=0; j<get_nodes_rsm(); j++) {
 		// The id of the sender node.
 		UInt16 sendr_id = j + rsm_id_start;
 
@@ -306,8 +317,15 @@ void Pipeline::RecvFromOwnRsm()
 			continue;
 		
 		unique_ptr<DataPack> msg = DataRecv(sendr_id);
-		if(msg->data_len != 0)
+		if(msg->data_len != 0) {
 			cout << get_node_id() << " :: #Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+
+			/* TODO
+			 * Take the transaction id from the message and 
+			 * call the objet of class Acknowledgment to add 
+			 * it to the list msg_recv.
+			 */
+		}	
 		
 	}
 		

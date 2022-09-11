@@ -19,7 +19,9 @@ int main(int argc, char *argv[])
 	parser(argc, argv);
 
 	Acknowledgment *ack_obj = new Acknowledgment();
-	ack_obj->TestFunc();
+	QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
+	//ack_obj->TestFunc();
+	quack_obj->TestFunc();
 
 	unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
 	pipe_ptr = pipe_obj.get();

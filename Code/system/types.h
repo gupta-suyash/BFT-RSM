@@ -3,13 +3,14 @@
 
 #include <stdint.h>
 #include <iostream>
+#include <climits>
 
-using UInt16 = unsigned short int;
-using UInt32 = unsigned long int;
-using UInt64 = unsigned long long int;
+using UInt16 = unsigned int;
+using UInt32 = unsigned long;
+using UInt64 = unsigned long long;
 
-#define MAX_UINT16 65536
-#define MAX_UINT32 4294967295
-#define MAX_UINT64 18446744073709551615
+#define MAX_UINT16 UINT_MAX
+#define MAX_UINT32 ULONG_MAX
+#define MAX_UINT64 ULLONG_MAX
 
 #endif
