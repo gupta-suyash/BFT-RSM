@@ -8,6 +8,7 @@
 #include "iothread.h"
 #include "pipe_queue.h"
 #include "ack.h"
+#include "message.h"
 
 using std::filesystem::current_path;
 
@@ -21,7 +22,9 @@ int main(int argc, char *argv[])
 	Acknowledgment *ack_obj = new Acknowledgment();
 	QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
 	//ack_obj->TestFunc();
-	quack_obj->TestFunc();
+	//quack_obj->TestFunc();
+	
+	SendMessage::TestFunc();
 
 	unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
 	pipe_ptr = pipe_obj.get();

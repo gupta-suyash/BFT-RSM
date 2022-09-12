@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <cstring>
 #include "types.h"
 #include "../configuration/config.h"
 
@@ -53,8 +54,19 @@ UInt16 get_max_nodes_fail();
 
 
 enum MessageType {
-	kPipeQueue=0
+	kSend=0,
+	kForward
 };
+
+
+#define COPY_VAL(v, d, p)		\
+	memcpy(&v, &d[p], sizeof(v));	\
+	p += sizeof(v);
+
+#define COPY_BUF(d, v, p)		\
+	memcpy(&((char *)d)[p], (char *)&v, sizeof(v)); \
+	p += sizeof(v);
+
 
 
 #endif
