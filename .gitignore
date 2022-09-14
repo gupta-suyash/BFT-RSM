@@ -1,0 +1,8 @@
+Code/*.o
+Code/*/*.o
+Code/nng-1.5.2/*
+Code/rundb
+Docs/*.pdf
+Docs/*.aux
+Docs/*.log
+Docs/*.out
