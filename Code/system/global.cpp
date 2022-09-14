@@ -8,7 +8,7 @@ UInt16 g_nodes_rsm = NODES_RSM;
 UInt16 g_node_cnt = NUM_RSM * NODES_RSM;
 UInt16 g_node_id = 0;
 UInt16 g_rsm_id = 0;
-UInt16 g_max_fail = MAX_NODES_FAIL;
+UInt16 g_max_fail = 1; // MAX_NODES_FAIL;
 
 UInt16 g_port_num = PORT_NUM;
 
