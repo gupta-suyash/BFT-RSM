@@ -105,3 +105,6 @@ void SendMessage::TestFunc()
 	Message *msg2 = Message::CreateMsg(buf, kSend);
 	cout << "Again: " << msg2->msize_ << " :: " << msg2->data_ << endl;
 }	
+
+
+	

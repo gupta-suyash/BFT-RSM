@@ -8,6 +8,7 @@ UInt16 SendThread::GetThreadId()
 
 void SendThread::Init(UInt16 thd_id)
 {
+	last_sent_ = get_node_rsm_id(); 
 	thd_id_ = thd_id;
 	thd_ = thread(&SendThread::Run, this);
 }	
@@ -15,13 +16,29 @@ void SendThread::Init(UInt16 thd_id)
 void SendThread::Run() 
 {
 	cout << "SndThread: " << GetThreadId() << endl;
-	pipe_ptr->SendToOtherRsm();
-
 	while(true) {
+		// Send to one node in other rsm.
+		UInt16 nid = GetLastSent();
+		pipe_ptr->SendToOtherRsm(nid);
+
+		// Set the id of next node to send.
+		nid = (nid+1) % get_nodes_rsm();
+		SetLastSent(nid);
+
+		// Broadcast to all in own rsm.
 		pipe_ptr->SendToOwnRsm();
 	}
 }
 
+UInt16 SendThread::GetLastSent() 
+{
+	return last_sent_;
+}	
+
+void SendThread::SetLastSent(UInt16 id)
+{
+	last_sent_ = id;
+}	
 	
 
 UInt16 RecvThread::GetThreadId()

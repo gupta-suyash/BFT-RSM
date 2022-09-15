@@ -4,6 +4,7 @@
 void PipeQueue::Init()
 {
 	msg_queue_ = new boost::lockfree::queue<DataPack *>(0);
+	store_queue_ = new boost::lockfree::queue<ProtoMessage *>(0);
 }	
 
 /* Pushes a message to the queue.
@@ -38,7 +39,41 @@ std::unique_ptr<DataPack> PipeQueue::Dequeue()
 	return unique_ptr<DataPack>(msg);
 }
 
-/* The following functions are meant to test the correctness of the queue.
+
+/* This function is used to dequeue a message received from the protocol running 
+ * at the node and forward it to the other RSM iff the node is designated to 
+ * forward this message. Nodes select which message to send based on the mod of
+ * block_id and number of nodes in each RSM.
+ *
+ * @return the block to be forwarded.
+ */ 
+std::unique_ptr<ProtoMessage> PipeQueue::EnqueueStore()
+{
+	bool valid = false;
+	ProtoMessage *msg = new ProtoMessage();
+
+	// Popping out the message from in_queue to send to other RSM.
+	valid = in_queue->pop(msg);
+	if(valid) {
+		if(msg->GetBlockId() % get_nodes_rsm() != get_node_rsm_id()) {
+			// Any message that is not supposed to be sent by this node,
+			// it pushes it to the store_queue.
+			while(!store_queue_->push(msg));
+			
+			// TODO: Do we need this or this is extra memory alloc.
+			msg = new ProtoMessage();
+			msg->SetBlockId(0);
+		}	
+	} else {
+		// No message in the queue.	
+		msg->SetBlockId(0);
+	}
+
+	return unique_ptr<ProtoMessage>(msg);	
+}	
+
+
+/* The following functions are meant to test the correctness of the msg_queue.
  *
  */ 
 void PipeQueue::CallE()
