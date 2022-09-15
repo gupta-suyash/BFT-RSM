@@ -34,6 +34,7 @@ ninja
 ninja test
 ninja install
 cd ..
+cd ..
 
 # protobuf installation
 tar -xzf ./protobuf-cpp-3.20.2.tar.gz
