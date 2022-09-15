@@ -3,7 +3,7 @@
 
 bool setup_cross_chain_library() {
 	// Setting up the queue
-/*	unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
+	unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
     sp_qptr = sp_queue.get();
     sp_qptr->Init();
 
@@ -17,14 +17,14 @@ bool setup_cross_chain_library() {
 
 	snd_obj->thd_.join();
     rcv_obj->thd_.join();
-*/
+
 	return true;
 }
 
 bool send_cross_chain_transaction() {
-/*	Acknowledgment *ack_obj = new Acknowledgment();
+	Acknowledgment *ack_obj = new Acknowledgment();
     QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
-*/
+
 	return true;
 	// MORE!
 }
