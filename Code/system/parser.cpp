@@ -17,6 +17,10 @@ void parser(int argc, char *argv[])
 			// As nodes have consecutive id, simple division helps to 
 			// set the rsm id (rsm to which this node belongs).
 			set_rsm_id((get_node_id() / get_nodes_rsm()));
+			
+			// The id of each node w.r.t to its rsm (starting from 0).
+			set_node_rsm_id(get_node_id() % get_nodes_rsm());
+
 			break;
 		}	
 	}

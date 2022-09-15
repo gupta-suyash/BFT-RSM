@@ -19,7 +19,11 @@ int main(int argc, char *argv[])
 	// Parsing the command line args.
 	parser(argc, argv);
 
-	Acknowledgment *ack_obj = new Acknowledgment();
+	// Setting up the Acknowledgment object.
+	ack_obj = new Acknowledgment();
+	ack_obj->Init();
+
+
 	QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
 	//ack_obj->TestFunc();
 	//quack_obj->TestFunc();

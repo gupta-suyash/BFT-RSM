@@ -46,7 +46,7 @@ public:
 	string GetSendUrl(UInt16 cnt);
 	void SetSockets();
 
-	void SendToOtherRsm();
+	void SendToOtherRsm(UInt16 nid);
 	void RecvFromOtherRsm();
 
 	void SendToOwnRsm();

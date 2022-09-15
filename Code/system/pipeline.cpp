@@ -1,4 +1,5 @@
 #include "pipeline.h"
+#include "ack.h"
 #include "pipe_queue.h"
 
 Pipeline::Pipeline()
@@ -173,42 +174,31 @@ unique_ptr<DataPack> Pipeline::DataRecv(UInt16 node_id)
 }	
 
 
-/* This function is used to send messages to the nodes in other RSM.
+/* This function is used to send message to a specific node in other RSM.
  *
+ * @param nid is the identifier of the node in the other RSM.
  */ 
-void Pipeline::SendToOtherRsm()
+void Pipeline::SendToOtherRsm(UInt16 nid)
 {
-	int i=0;
-	char *msg;
-	while(i < 3) {
-		// Iterating over nodes of every other RSM.
-		for(UInt16 k=0; k<get_num_of_rsm(); k++) {
-			// Skipping own RSM.
-			if(k == get_rsm_id())
-				continue;
+	// Fetching the block to send, if any.
+	unique_ptr<ProtoMessage> bmsg = sp_qptr->EnqueueStore();
+	if(bmsg->GetBlockId() == 0)
+		return;
 
-			// Starting id of each RSM.
-			UInt16 rsm_id_start = k*get_nodes_rsm();
+	// The id of the receiver node in the other RSM.
+	UInt16 recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
+	
+	// Acking the messages received from the other RSM.
+	UInt64 ack_msg = ack_obj->GetAckIterator();
+ 
+	// TODO: At this point, we need to create a protobuf.
+	// In the meantime, we are just treating the message to send as string.
+	
+	ProtoMessage *pmsg = bmsg.release();
+	
+	cout << get_node_id() << " :: @Sent: " << pmsg->GetBlock() << " :: Last Ack: " << ack_msg << " :: To: " << recvr_id << endl;  
 
-			for(UInt16 j=0; j<get_nodes_rsm(); j++) {
-				// The id of the receiver node.
-				UInt16 recvr_id = j + rsm_id_start;
-
-				/* TODO
-				 * The message to be sent should include the 
-				 * ackValue as one of its field.
-				 */ 
-
-				// Constructing a message to send.
-				string str = to_string(get_node_id()) + "x" + to_string(i);
-				msg = &str[0];
-				cout << get_node_id() << " :: @Sent: " << msg << " :: To: " << recvr_id << endl;  
-				DataSend(msg, recvr_id);
-				i++;
-				
-			}
-		}
-	}	
+	DataSend(pmsg->GetBlock(), recvr_id);
 }	
 
 

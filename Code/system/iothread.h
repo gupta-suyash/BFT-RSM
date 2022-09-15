@@ -17,12 +17,16 @@ public:
 
 // Threads that send or receive messages.
 class SendThread : public IOThreads {
+	UInt16 last_sent_; // Id of node from other RSM.
 public:
 	//UInt16 thd_id_; // Thread id.
 	//thread thd_;	// Thread.
 	void Init(UInt16 thd_id);
 	void Run();
 	UInt16 GetThreadId();
+	
+	UInt16 GetLastSent();
+	void SetLastSent(UInt16 id);
 };	
 
 
