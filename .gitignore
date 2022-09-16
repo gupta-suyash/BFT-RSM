@@ -1,4 +1,5 @@
 Code/*.o
+Code/system/*.pb.*
 Code/*/*.o
 Code/nng-1.5.2/*
 Code/rundb

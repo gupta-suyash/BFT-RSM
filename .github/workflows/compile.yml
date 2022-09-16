@@ -2,7 +2,7 @@ name: Compile
 
 on: 
   push:
-    branches: [ main ]
+      branches: [ main ]
   pull_request:
       branches: [ main ]
 
@@ -16,4 +16,4 @@ jobs:
       steps:
       - uses: actions/checkout@v2
       - run: sudo ./setup.sh
-      - run: make
+      - run: ./build.sh
