@@ -146,8 +146,11 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage* buf, UInt16 node_id
 {
 	int rv;
 	auto sock = send_sockets_[node_id];
+	size_t size = buf->ByteSize(); 
+    void *buffer = malloc(size);
+    buf->SerializeToArray(buffer, size);
 	//size_t sz_msg = strlen(buf) + 1;
-	if((rv = nng_send(sock, (void *)buf, 1500, 0)) != 0) {
+	if((rv = nng_send(sock, buffer, size, 0)) != 0) {
 		fatal("nng_send", rv);
 	}
 }
