@@ -142,12 +142,12 @@ void Pipeline::SetSockets()
 /* Sending data to nodes of other RSM.
  *
  */
-void Pipeline::DataSend(char *buf, UInt16 node_id) 
+void Pipeline::DataSend(crosschain_proto::CrossChainMessage* buf, UInt16 node_id) 
 {
 	int rv;
 	auto sock = send_sockets_[node_id];
-	size_t sz_msg = strlen(buf) + 1;
-	if((rv = nng_send(sock, buf, sz_msg, 0)) != 0) {
+	//size_t sz_msg = strlen(buf) + 1;
+	if((rv = nng_send(sock, (void *)buf, 1500, 0)) != 0) {
 		fatal("nng_send", rv);
 	}
 }
@@ -185,12 +185,17 @@ void Pipeline::SendToOtherRsm(UInt16 nid)
 	if(bmsg->GetBlockId() == 0)
 		return;
 
+
 	// The id of the receiver node in the other RSM.
 	UInt16 recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
 	
 	// Acking the messages received from the other RSM.
 	UInt64 ack_msg = ack_obj->GetAckIterator();
  
+	crosschain_proto::CrossChainMessage* msg;
+	msg->set_sequence_id(bmsg->GetBlockId());
+	msg->set_transactions(bmsg->GetBlock());
+	msg->set_ack_id(ack_msg);
 	// TODO: At this point, we need to create a protobuf.
 	// In the meantime, we are just treating the message to send as string.
 	
@@ -198,7 +203,7 @@ void Pipeline::SendToOtherRsm(UInt16 nid)
 	
 	cout << get_node_id() << " :: @Sent: " << pmsg->GetBlock() << " :: Last Ack: " << ack_msg << " :: To: " << recvr_id << endl;  
 
-	DataSend(pmsg->GetBlock(), recvr_id);
+	DataSend(msg, recvr_id);
 }	
 
 
@@ -273,7 +278,7 @@ void Pipeline::SendToOwnRsm()
 		char *buf = DeepCopyMsg(msg->buf);
 		cout << get_node_id() << " :: #Sent: " << buf << " :: To: " << recvr_id << endl;
 
-		DataSend(buf, recvr_id);
+		//DataSend(buf, recvr_id);
 	}
 		
 }	

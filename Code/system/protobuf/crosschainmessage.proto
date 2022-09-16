@@ -6,4 +6,5 @@ package crosschain_proto;
 message CrossChainMessage {
     uint64 sequence_id = 1;
 	bytes transactions = 2;
+	uint64 ack_id = 3;
 }

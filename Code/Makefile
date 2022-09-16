@@ -13,7 +13,7 @@ PROTO_DIR = ./system/protobuf/
 CFLAGS += $(DEPS) 
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
-LIBS = -lnng -lanl -ldl -lpthread
+LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
 
 SOURCES = $(wildcard ./system/*.cpp)
 SOURCES += $(wildcard ./configuration/*.cpp)

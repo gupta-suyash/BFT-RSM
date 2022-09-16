@@ -22,6 +22,7 @@
 #include "global.h"
 #include "data_comm.h"
 
+#include "crosschainmessage.pb.h"
 using std::filesystem::current_path;
 
 #define NODE0 "node0"
@@ -52,7 +53,7 @@ public:
 	void SendToOwnRsm();
 	void RecvFromOwnRsm();
 
-	void DataSend(char *buf, UInt16 node_id);
+	void DataSend(crosschain_proto::CrossChainMessage* buf, UInt16 node_id);
 	unique_ptr<DataPack> DataRecv(UInt16 node_id);
 
 	char *DeepCopyMsg(char *msg);

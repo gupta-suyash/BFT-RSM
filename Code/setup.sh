@@ -9,6 +9,7 @@ apt-get install  libboost-all-dev
 apt-get -y install cmake
 apt -y install build-essential
 apt-get -y install re2c
+apt-get remove libprotobuf-dev
 echo "basic packages installed"
 
 # ninja install
