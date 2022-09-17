@@ -15,7 +15,7 @@ LDFLAGS = -L$(NNMSG)/lib
 LDFLAGS += $(CFLAGS)
 LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
 
-SOURCES = $(wildcard ./system/*.cpp)
+SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
 SOURCES += $(wildcard ./configuration/*.cpp)
 SOURCES_OBJ = $(SOURCES:.cpp=.o)
 

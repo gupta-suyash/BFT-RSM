@@ -1,6 +1,7 @@
 #include "pipeline.h"
 #include "ack.h"
 #include "pipe_queue.h"
+#include "crosschainmessage.pb.h"
 
 Pipeline::Pipeline()
 {
@@ -142,13 +143,13 @@ void Pipeline::SetSockets()
 /* Sending data to nodes of other RSM.
  *
  */
-void Pipeline::DataSend(crosschain_proto::CrossChainMessage* buf, UInt16 node_id) 
+void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id) 
 {
 	int rv;
 	auto sock = send_sockets_[node_id];
-	size_t size = buf->ByteSize(); 
+	size_t size = buf.ByteSize(); 
     void *buffer = malloc(size);
-    buf->SerializeToArray(buffer, size);
+    buf.SerializeToArray(buffer, size);
 	//size_t sz_msg = strlen(buf) + 1;
 	if((rv = nng_send(sock, buffer, size, 0)) != 0) {
 		fatal("nng_send", rv);
@@ -194,11 +195,11 @@ void Pipeline::SendToOtherRsm(UInt16 nid)
 	
 	// Acking the messages received from the other RSM.
 	UInt64 ack_msg = ack_obj->GetAckIterator();
- 
-	crosschain_proto::CrossChainMessage* msg;
-	msg->set_sequence_id(bmsg->GetBlockId());
-	msg->set_transactions(bmsg->GetBlock());
-	msg->set_ack_id(ack_msg);
+
+	crosschain_proto::CrossChainMessage msg;
+	msg.set_sequence_id(bmsg->GetBlockId());
+	msg.set_transactions(bmsg->GetBlock());
+	msg.set_ack_id(ack_msg);
 	// TODO: At this point, we need to create a protobuf.
 	// In the meantime, we are just treating the message to send as string.
 	
