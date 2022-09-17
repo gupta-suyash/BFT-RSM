@@ -8,6 +8,7 @@ UInt16 g_nodes_rsm = NODES_RSM;
 UInt16 g_node_cnt = NUM_RSM * NODES_RSM;
 UInt16 g_node_id = 0;
 UInt16 g_node_rsm_id = 0;
+UInt16 g_other_rsm_id; // RSM Id of other RSM.
 UInt16 g_rsm_id = 0;
 UInt16 g_max_fail = 1; // MAX_NODES_FAIL;
 

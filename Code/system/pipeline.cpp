@@ -141,39 +141,54 @@ void Pipeline::SetSockets()
 
 /* Sending data to nodes of other RSM.
  *
+ * @param buf is the outgoing message of protobuf type.
+ * @param nid is the destination node id.
  */
 void Pipeline::DataSend(crosschain_proto::CrossChainMessage* buf, UInt16 node_id) 
 {
 	int rv;
+
+	// Socket to communicate.
 	auto sock = send_sockets_[node_id];
-	size_t size = buf->ByteSize(); 
-    void *buffer = malloc(size);
-    buf->SerializeToArray(buffer, size);
-	//size_t sz_msg = strlen(buf) + 1;
-	if((rv = nng_send(sock, buffer, size, 0)) != 0) {
+
+	// Size of the protobuf.
+	size_t sz = buf->ByteSize(); 
+
+	// Serialization buffer. 
+	// TODO: We need to deallocate the malloc?
+	void *buffer = malloc(sz);
+    	buf->SerializeToArray(buffer, sz);
+	if((rv = nng_send(sock, buffer, sz, 0)) != 0) {
 		fatal("nng_send", rv);
 	}
 }
 
 /* Receving data from nodes of other RSM.
  *
+ * @param nid is the sender node id.
+ * @return the protobuf.
  */ 
-unique_ptr<DataPack> Pipeline::DataRecv(UInt16 node_id)
+crosschain_proto::CrossChainMessage * Pipeline::DataRecv(UInt16 node_id)
 {
-	int rv;
+	int rv; 
+	size_t sz;
 	auto sock = recv_sockets_[node_id];
-	unique_ptr<DataPack> msg = make_unique<DataPack>();
-	
+	void *buffer;
+	crosschain_proto::CrossChainMessage* buf;
+
 	// We want the nng_recv to be non-blocking and reduce copies. 
 	// So, we use the two available bit masks.
-	rv = nng_recv(sock, &msg->buf, &msg->data_len, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+	rv = nng_recv(sock, buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
 
 	// nng_recv is non-blocking, if there is no data, return value is non-zero.
-	if(rv != 0)
-		msg->data_len = 0;
-
+	if(rv != 0) {
+		buf->set_sequence_id(MAX_UINT64);
+	} else {
+		bool flag = buf->ParseFromArray(buffer, sz);
+	}
+	
 	//nng_free(msg->buf, msg->data_len);
-	return msg;
+	return buf;
 }	
 
 
@@ -195,15 +210,14 @@ void Pipeline::SendToOtherRsm(UInt16 nid)
 	// Acking the messages received from the other RSM.
 	UInt64 ack_msg = ack_obj->GetAckIterator();
  
+	// Protobuf creation for cross-chain communication.
 	crosschain_proto::CrossChainMessage* msg;
 	msg->set_sequence_id(bmsg->GetBlockId());
 	msg->set_transactions(bmsg->GetBlock());
 	msg->set_ack_id(ack_msg);
-	// TODO: At this point, we need to create a protobuf.
-	// In the meantime, we are just treating the message to send as string.
 	
+	// The next two lines should be removed.
 	ProtoMessage *pmsg = bmsg.release();
-	
 	cout << get_node_id() << " :: @Sent: " << pmsg->GetBlock() << " :: Last Ack: " << ack_msg << " :: To: " << recvr_id << endl;  
 
 	DataSend(msg, recvr_id);
@@ -229,7 +243,7 @@ void Pipeline::RecvFromOtherRsm()
 			// The id of the sender node.
 			UInt16 sendr_id = j + rsm_id_start;
 			
-			unique_ptr<DataPack> msg = DataRecv(sendr_id);
+			unique_ptr<DataPack> msg;// = DataRecv(sendr_id);
 			if(msg->data_len != 0) {
 				cout << get_node_id() << " :: @Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
 
@@ -314,7 +328,7 @@ void Pipeline::RecvFromOwnRsm()
 		if(sendr_id == get_node_id())
 			continue;
 		
-		unique_ptr<DataPack> msg = DataRecv(sendr_id);
+		unique_ptr<DataPack> msg;// = DataRecv(sendr_id);
 		if(msg->data_len != 0) {
 			cout << get_node_id() << " :: #Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
 
