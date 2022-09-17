@@ -21,6 +21,8 @@ void parser(int argc, char *argv[])
 			// The id of each node w.r.t to its rsm (starting from 0).
 			set_node_rsm_id(get_node_id() % get_nodes_rsm());
 
+			set_other_rsm_id(get_num_of_rsm() - 1 - get_rsm_id());
+
 			break;
 		}	
 	}

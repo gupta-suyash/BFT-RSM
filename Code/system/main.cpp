@@ -28,6 +28,18 @@ int main(int argc, char *argv[])
 	//ack_obj->TestFunc();
 	//quack_obj->TestFunc();
 	
+	cout << "done" << endl;
+
+	crosschain_proto::CrossChainMessage* msg;
+	cout << "done2" << endl;
+	msg->set_sequence_id(5);
+	cout << "done3" << endl;
+	string str = "hello";
+	char *cstr = &str[0];
+	msg->set_transactions(cstr);
+	msg->set_ack_id(10);
+
+
 	SendMessage::TestFunc();
 
 	unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
