@@ -30,15 +30,23 @@ int main(int argc, char *argv[])
 	
 	cout << "done" << endl;
 
-	crosschain_proto::CrossChainMessage* msg;
+	crosschain_proto::CrossChainMessage msg;
 	cout << "done2" << endl;
-	msg->set_sequence_id(5);
+	{
+	msg.set_sequence_id(5);
 	cout << "done3" << endl;
 	string str = "hello";
 	char *cstr = &str[0];
-	msg->set_transactions(cstr);
-	msg->set_ack_id(10);
+	msg.set_transactions(cstr);
+	msg.set_ack_id(10);
+	}
 
+	UInt64 rid = msg.sequence_id();
+	cout << "What I received: " << rid << endl;
+	string really = msg.transactions();
+	cout << "My string: " << really << endl;
+	UInt64 rackid = msg.ack_id();
+	cout << "My ack: " << rackid << endl;
 
 	SendMessage::TestFunc();
 

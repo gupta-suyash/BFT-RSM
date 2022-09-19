@@ -55,7 +55,7 @@ public:
 	void RecvFromOwnRsm();
 
 	void DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id);
-	crosschain_proto::CrossChainMessage * DataRecv(UInt16 node_id);
+	crosschain_proto::CrossChainMessage DataRecv(UInt16 node_id);
 
 	char *DeepCopyMsg(char *msg);
 	

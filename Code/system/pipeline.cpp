@@ -151,11 +151,14 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id)
 
 	// Socket to communicate.
 	auto sock = send_sockets_[node_id];
-	size_t size = buf.ByteSize(); 
-    void *buffer = malloc(size);
-    buf.SerializeToArray(buffer, size);
-	//size_t sz_msg = strlen(buf) + 1;
-	if((rv = nng_send(sock, buffer, size, 0)) != 0) {
+
+	// Size of proto message.
+	size_t sz = buf.ByteSize(); 
+	void *buffer = malloc(sz);
+
+	// Serialize to array for sending.
+	buf.SerializeToArray(buffer, sz);
+	if((rv = nng_send(sock, buffer, sz, 0)) != 0) {
 		fatal("nng_send", rv);
 	}
 }
@@ -165,23 +168,26 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id)
  * @param nid is the sender node id.
  * @return the protobuf.
  */ 
-crosschain_proto::CrossChainMessage * Pipeline::DataRecv(UInt16 node_id)
+crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 {
 	int rv; 
-	size_t sz;
+
 	auto sock = recv_sockets_[node_id];
-	void *buffer;
-	crosschain_proto::CrossChainMessage* buf;
+	unique_ptr<DataPack> recv_buf = make_unique<DataPack>();
 
 	// We want the nng_recv to be non-blocking and reduce copies. 
 	// So, we use the two available bit masks.
-	rv = nng_recv(sock, buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+	rv = nng_recv(sock, recv_buf->buf, &recv_buf->data_len, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+
+
+	crosschain_proto::CrossChainMessage buf;
 
 	// nng_recv is non-blocking, if there is no data, return value is non-zero.
 	if(rv != 0) {
-		buf->set_sequence_id(MAX_UINT64);
+		buf.set_sequence_id(MAX_UINT64);
 	} else {
-		bool flag = buf->ParseFromArray(buffer, sz);
+		DataPack *dbuf = recv_buf.release();
+		bool flag = buf.ParseFromArray(dbuf->buf, dbuf->data_len);
 	}
 	
 	//nng_free(msg->buf, msg->data_len);
@@ -200,7 +206,6 @@ void Pipeline::SendToOtherRsm(UInt16 nid)
 	if(bmsg->GetBlockId() == 0)
 		return;
 
-
 	// The id of the receiver node in the other RSM.
 	UInt16 recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
 	
@@ -212,9 +217,6 @@ void Pipeline::SendToOtherRsm(UInt16 nid)
 	msg.set_sequence_id(bmsg->GetBlockId());
 	msg.set_transactions(bmsg->GetBlock());
 	msg.set_ack_id(ack_msg);
-	// TODO: At this point, we need to create a protobuf.
-	// In the meantime, we are just treating the message to send as string.
-	// Protobuf creation for cross-chain communication.
 	
 	// The next two lines should be removed.
 	ProtoMessage *pmsg = bmsg.release();
