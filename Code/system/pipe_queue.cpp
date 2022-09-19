@@ -54,15 +54,20 @@ std::unique_ptr<ProtoMessage> PipeQueue::EnqueueStore()
 
 	// Popping out the message from in_queue to send to other RSM.
 	valid = in_queue->pop(msg);
+
 	if(valid) {
 		if(msg->GetBlockId() % get_nodes_rsm() != get_node_rsm_id()) {
 			// Any message that is not supposed to be sent by this node,
 			// it pushes it to the store_queue.
+			cout << "Will store: " << msg->GetBlockId() <<  endl;
+
 			while(!store_queue_->push(msg));
 			
 			// TODO: Do we need this or this is extra memory alloc.
 			msg = new ProtoMessage();
 			msg->SetBlockId(0);
+		} else {
+			cout <<  "Will send: " << msg->GetBlockId() << " :: " << msg->GetBlock() << endl;
 		}	
 	} else {
 		// No message in the queue.	

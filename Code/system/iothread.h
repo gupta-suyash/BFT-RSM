@@ -27,6 +27,8 @@ public:
 	
 	UInt16 GetLastSent();
 	void SetLastSent(UInt16 id);
+
+	void TestAddBlockToInQueue(UInt64 bid);
 };	
 
 

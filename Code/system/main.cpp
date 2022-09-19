@@ -9,6 +9,7 @@
 #include "pipe_queue.h"
 #include "ack.h"
 #include "message.h"
+#include "connect.h"
 
 using std::filesystem::current_path;
 
@@ -18,57 +19,60 @@ int main(int argc, char *argv[])
 {
 	// Parsing the command line args.
 	parser(argc, argv);
+	cout << "Done Parsing" << endl;
 
 	// Setting up the Acknowledgment object.
 	ack_obj = new Acknowledgment();
 	ack_obj->Init();
+	cout << "Done Initializing Acknowledgment Object" << endl;
 
 
 	QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
 	//ack_obj->TestFunc();
 	//quack_obj->TestFunc();
 	
-	cout << "done" << endl;
+	//crosschain_proto::CrossChainMessage msg;
+	//{
+	//msg.set_sequence_id(5);
+	//string str = "hello";
+	//char *cstr = &str[0];
+	//msg.set_transactions(cstr);
+	//msg.set_ack_id(10);
+	//}
 
-	crosschain_proto::CrossChainMessage msg;
-	cout << "done2" << endl;
-	{
-	msg.set_sequence_id(5);
-	cout << "done3" << endl;
-	string str = "hello";
-	char *cstr = &str[0];
-	msg.set_transactions(cstr);
-	msg.set_ack_id(10);
-	}
-
-	UInt64 rid = msg.sequence_id();
-	cout << "What I received: " << rid << endl;
-	string really = msg.transactions();
-	cout << "My string: " << really << endl;
-	UInt64 rackid = msg.ack_id();
-	cout << "My ack: " << rackid << endl;
-
-	SendMessage::TestFunc();
+	//UInt64 rid = msg.sequence_id();
+	//cout << "What I received: " << rid << endl;
+	//string really = msg.transactions();
+	//cout << "My string: " << really << endl;
+	//UInt64 rackid = msg.ack_id();
+	//cout << "My ack: " << rackid << endl;
 
 	unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
 	pipe_ptr = pipe_obj.get();
 	pipe_ptr->SetSockets();
+	cout << "Done setting up sockets between nodes." << endl;
 
 	// Setting up the queue.
 	unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
 	sp_qptr = sp_queue.get();
 	sp_qptr->Init();
+	cout << "Done setting up msg-queue and store-queue between threads." << endl; 
 
 	// The next command is for testing the queue.
 	// sp_qptr->CallThreads();
 
+	Init();
+	cout << "Done setting up the in-queue for messages from protocol." << endl;
+
 	//Creating and starting Sender IOThreads.
 	unique_ptr<SendThread> snd_obj = make_unique<SendThread>();
 	snd_obj->Init(0);
+	cout << "Created Sender Thread: " << snd_obj->GetThreadId() << endl;
 
 	// Creating and starting Receiver IOThreads.
 	unique_ptr<RecvThread> rcv_obj = make_unique<RecvThread>();
 	rcv_obj->Init(1);
+	cout << "Created Receiver Thread: " << rcv_obj->GetThreadId() << endl;
 
 	snd_obj->thd_.join();
 	rcv_obj->thd_.join();

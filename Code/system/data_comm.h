@@ -29,10 +29,10 @@ class ProtoMessage
 	UInt64 block_id;
 	char *block;
 public:
-	static ProtoMessage *SetMessage(UInt64 bid, char *blk);
+	static ProtoMessage * SetMessage(UInt64 bid, char *blk);
 	UInt64 GetBlockId();
 	void SetBlockId(UInt64 bid);
-	char *GetBlock();
+	char * GetBlock();
 };
 
 #endif
