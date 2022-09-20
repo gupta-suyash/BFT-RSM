@@ -27,7 +27,7 @@ void SendBlock(uint64_t block_id, char *block)
 	msg.set_transactions(block);
 	msg.set_ack_id(0);
 
-	while(!in_queue->push(msg));
+	in_queue->push(msg);
 	
 	// TODO: Do we need to delete this msg? 
 }

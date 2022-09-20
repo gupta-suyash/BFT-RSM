@@ -16,7 +16,7 @@ void PipeQueue::Enqueue(unique_ptr<DataPack> msg)
 	DataPack *q_msg = msg.release();
 
 	// Continue trying to push until successful.
-	while(!msg_queue_.push(q_msg));
+	msg_queue_.push(q_msg);
 }	
 
 /* Pops a message from the rear of the queue.
@@ -29,8 +29,10 @@ std::unique_ptr<DataPack> PipeQueue::Dequeue()
 	DataPack *msg = new DataPack();
 
 	// Popping the message; valid returns the status.
-	valid = msg_queue_.pop(msg);
-	if(valid) {
+	//valid = msg_queue_.pop(msg);
+	if(!msg_queue_.empty()) {
+		msg = msg_queue_.front();
+		msg_queue_.pop();
 		cout << "Dequeued: " << msg->buf << endl;
 	} else {
 		msg->data_len = 0;
@@ -54,15 +56,17 @@ crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
 
 	crosschain_proto::CrossChainMessage msg;
 	// Popping out the message from in_queue to send to other RSM.
-	valid = in_queue->pop(msg);
+	//valid = in_queue->pop(msg);
 
-	if(valid) {
+	if(!in_queue->empty()) {
+		msg = in_queue->front();
+		in_queue->pop();
 		if(msg.sequence_id() % get_nodes_rsm() != get_node_rsm_id()) {
 			// Any message that is not supposed to be sent by this node,
 			// it pushes it to the store_queue.
 			cout << "Will store: " << msg.sequence_id() <<  endl;
 
-			while(!store_queue_.push(msg));
+			store_queue_.push(msg);
 			
 			// TODO: Do we need this or this is extra memory alloc.
 			msg.clear_sequence_id();
