@@ -3,8 +3,8 @@
 
 void PipeQueue::Init()
 {
-	msg_queue_ = new boost::lockfree::queue<DataPack *>(0);
-	store_queue_ = new boost::lockfree::queue<ProtoMessage *>(0);
+	//msg_queue_ = new std::queue<DataPack *>(0);
+	//store_queue_ = new std::queue<crosschain_proto::CrossChainMessage>(0);
 }	
 
 /* Pushes a message to the queue.
@@ -16,7 +16,7 @@ void PipeQueue::Enqueue(unique_ptr<DataPack> msg)
 	DataPack *q_msg = msg.release();
 
 	// Continue trying to push until successful.
-	while(!msg_queue_->push(q_msg));
+	while(!msg_queue_.push(q_msg));
 }	
 
 /* Pops a message from the rear of the queue.
@@ -29,7 +29,7 @@ std::unique_ptr<DataPack> PipeQueue::Dequeue()
 	DataPack *msg = new DataPack();
 
 	// Popping the message; valid returns the status.
-	valid = msg_queue_->pop(msg);
+	valid = msg_queue_.pop(msg);
 	if(valid) {
 		cout << "Dequeued: " << msg->buf << endl;
 	} else {
@@ -47,34 +47,37 @@ std::unique_ptr<DataPack> PipeQueue::Dequeue()
  *
  * @return the block to be forwarded.
  */ 
-std::unique_ptr<ProtoMessage> PipeQueue::EnqueueStore()
+crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
 {
 	bool valid = false;
-	ProtoMessage *msg = new ProtoMessage();
+	//ProtoMessage *msg = new ProtoMessage();
 
+	crosschain_proto::CrossChainMessage msg;
 	// Popping out the message from in_queue to send to other RSM.
 	valid = in_queue->pop(msg);
 
 	if(valid) {
-		if(msg->GetBlockId() % get_nodes_rsm() != get_node_rsm_id()) {
+		if(msg.sequence_id() % get_nodes_rsm() != get_node_rsm_id()) {
 			// Any message that is not supposed to be sent by this node,
 			// it pushes it to the store_queue.
-			cout << "Will store: " << msg->GetBlockId() <<  endl;
+			cout << "Will store: " << msg.sequence_id() <<  endl;
 
-			while(!store_queue_->push(msg));
+			while(!store_queue_.push(msg));
 			
 			// TODO: Do we need this or this is extra memory alloc.
-			msg = new ProtoMessage();
-			msg->SetBlockId(0);
+			msg.clear_sequence_id();
+			msg.clear_ack_id();
+			msg.clear_transactions();
+			msg.set_sequence_id(0);
 		} else {
-			cout <<  "Will send: " << msg->GetBlockId() << " :: " << msg->GetBlock() << endl;
+			cout <<  "Will send: " << msg.sequence_id() << " :: " << msg.transactions() << endl;
 		}	
 	} else {
 		// No message in the queue.	
-		msg->SetBlockId(0);
+		msg.set_sequence_id(0);
 	}
 
-	return unique_ptr<ProtoMessage>(msg);	
+	return msg;	
 }	
 
 

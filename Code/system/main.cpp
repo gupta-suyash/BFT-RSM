@@ -77,5 +77,5 @@ int main(int argc, char *argv[])
 	snd_obj->thd_.join();
 	rcv_obj->thd_.join();
 
-        return (1);
+    return (1);
 }

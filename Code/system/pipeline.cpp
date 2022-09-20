@@ -205,32 +205,33 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 void Pipeline::SendToOtherRsm(UInt16 nid)
 {
 	// Fetching the block to send, if any.
-	unique_ptr<ProtoMessage> bmsg = sp_qptr->EnqueueStore();
+	/*unique_ptr<ProtoMessage> bmsg = sp_qptr->EnqueueStore();
 	if(bmsg->GetBlockId() == 0)
 		return;
 
 	cout << "Extracted: " << bmsg->GetBlockId() << " :: " << bmsg->GetBlock() << endl;
-
+	*/
 	// The id of the receiver node in the other RSM.
+	crosschain_proto::CrossChainMessage msg = sp_qptr->EnqueueStore();
 	UInt16 recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
 	
 	// Acking the messages received from the other RSM.
 	UInt64 ack_msg = ack_obj->GetAckIterator();
 
 	//Extract from unique_ptr.
-	ProtoMessage *bmsg_ptr = bmsg.release();
-	cout << "Released: " << bmsg_ptr->GetBlockId() << " :: " << bmsg_ptr->GetBlock() << endl;
+	//ProtoMessage *bmsg_ptr = bmsg.release();
+	//cout << "Released: " << bmsg_ptr->GetBlockId() << " :: Get block: " << bmsg_ptr->GetBlock() << endl;
     
 	// Protobuf creation for cross-chain communication. 
-	crosschain_proto::CrossChainMessage msg;
+	/*crosschain_proto::CrossChainMessage msg;
 	msg.set_sequence_id(bmsg_ptr->GetBlockId());
-	msg.set_transactions(bmsg_ptr->GetBlock());
+	msg.set_transactions(bmsg_ptr->GetBlock());*/
 	msg.set_ack_id(ack_msg);
 	
-	cout << "Again: " << bmsg_ptr->GetBlockId() << " :: " << bmsg_ptr->GetBlock() << endl;
+	//cout << "Again: " << bmsg_ptr->GetBlockId() << " :: " << bmsg_ptr->GetBlock() << endl;
 	cout << "Before: " << msg.sequence_id() << " :: Content: " << msg.transactions() << " :: Last Ack: " << msg.ack_id() << endl;
 
-	DataSend(msg, recvr_id);
+	DataSend(sp_qptr->EnqueueStore(), recvr_id);
 }	
 
 

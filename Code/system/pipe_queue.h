@@ -9,14 +9,14 @@
 
 class PipeQueue
 {
-	boost::lockfree::queue<DataPack*> *msg_queue_;
-	boost::lockfree::queue<ProtoMessage*> *store_queue_;
+	std::queue<DataPack*> msg_queue_;
+	std::queue<crosschain_proto::CrossChainMessage> store_queue_;
 public:
 	void Init();
 	void Enqueue(unique_ptr<DataPack> msg);
 	std::unique_ptr<DataPack> Dequeue();
 
-	std::unique_ptr<ProtoMessage> EnqueueStore();
+	crosschain_proto::CrossChainMessage EnqueueStore();
 
 	// Msg_Queue Testing functions.
 	void CallE();

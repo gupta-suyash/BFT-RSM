@@ -20,7 +20,7 @@ PipeQueue *sp_qptr;
 Pipeline *pipe_ptr;
 
 // Input queue.
-boost::lockfree::queue<ProtoMessage *> *in_queue;
+std::queue<ProtoMessage *> *in_queue;
 
 // Acknowledgement object.
 Acknowledgment *ack_obj;

@@ -1,6 +1,6 @@
 #include "data_comm.h"
 
-ProtoMessage *ProtoMessage::SetMessage(UInt64 bid, char *blk)
+/*ProtoMessage *ProtoMessage::SetMessage(UInt64 bid, char *blk)
 {
 	ProtoMessage *msg = new ProtoMessage();
 	msg->block_id = bid;
@@ -22,4 +22,4 @@ void ProtoMessage::SetBlockId(UInt64 bid)
 char * ProtoMessage::GetBlock()
 {
 	return block;
-}
+}*/

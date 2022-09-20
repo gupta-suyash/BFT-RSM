@@ -1,4 +1,4 @@
-#include "cross_chain_library.h"
+/*#include "cross_chain_library.h"
 
 
 bool setup_cross_chain_library() {
@@ -27,4 +27,4 @@ bool send_cross_chain_transaction() {
 
 	return true;
 	// MORE!
-}
+}*/
