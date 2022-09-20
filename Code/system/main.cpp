@@ -61,7 +61,6 @@ int main(int argc, char *argv[])
 	// The next command is for testing the queue.
 	// sp_qptr->CallThreads();
 
-	Init();
 	cout << "Done setting up the in-queue for messages from protocol." << endl;
 
 	//Creating and starting Sender IOThreads.

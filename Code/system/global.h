@@ -8,14 +8,15 @@
 #include <utility>
 #include "types.h"
 #include "../configuration/config.h"
-
+#include "crosschainmessage.pb.h"
 #include <boost/lockfree/queue.hpp>
+#include <queue>
 
 using namespace std;
 
 class Pipeline;
 class PipeQueue;
-class ProtoMessage;
+//class ProtoMessage;
 class Acknowledgment;
 
 
@@ -80,7 +81,8 @@ enum MessageType {
 
 
 // Queue to interact with the protocol accessing Scrooge.
-extern boost::lockfree::queue<ProtoMessage *> *in_queue;
+//extern boost::lockfree::queue<ProtoMessage *> *in_queue;
+extern std::queue<crosschain_proto::CrossChainMessage> in_queue;
 
 // Object to access the Acknowledgments.
 extern Acknowledgment *ack_obj;

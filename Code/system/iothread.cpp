@@ -28,11 +28,13 @@ void SendThread::Run()
 		TestAddBlockToInQueue(bid);
 		bid++;
 
-		pipe_ptr->SendToOtherRsm(nid);
-
-		// Set the id of next node to send.
-		nid = (nid+1) % get_nodes_rsm();
-		SetLastSent(nid);
+		bool did_send = pipe_ptr->SendToOtherRsm(nid);
+		// Did send to other RSM?
+		if(did_send) {
+			// Set the id of next node to send.
+			nid = (nid+1) % get_nodes_rsm();
+			SetLastSent(nid);
+		}
 
 		//// Broadcast to all in own rsm.
 		//pipe_ptr->SendToOwnRsm();

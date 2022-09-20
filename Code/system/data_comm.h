@@ -24,7 +24,7 @@ struct DataPack {
 };
 
 
-class ProtoMessage
+/*class ProtoMessage
 {
 	UInt64 block_id;
 	char *block;
@@ -33,6 +33,6 @@ public:
 	UInt64 GetBlockId();
 	void SetBlockId(UInt64 bid);
 	char * GetBlock();
-};
+};*/
 
 #endif

@@ -187,7 +187,7 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 
 	// nng_recv is non-blocking, if there is no data, return value is non-zero.
 	if(rv != 0) {
-		buf.set_sequence_id(MAX_UINT64);
+		buf.set_sequence_id(0);
 	} else {
 		DataPack *dbuf = recv_buf.release();
 		bool flag = buf.ParseFromArray(dbuf->buf, dbuf->data_len);
@@ -202,35 +202,25 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
  *
  * @param nid is the identifier of the node in the other RSM.
  */ 
-void Pipeline::SendToOtherRsm(UInt16 nid)
+bool Pipeline::SendToOtherRsm(UInt16 nid)
 {
 	// Fetching the block to send, if any.
-	unique_ptr<ProtoMessage> bmsg = sp_qptr->EnqueueStore();
-	if(bmsg->GetBlockId() == 0)
-		return;
-
-	cout << "Extracted: " << bmsg->GetBlockId() << " :: " << bmsg->GetBlock() << endl;
+	crosschain_proto::CrossChainMessage msg = sp_qptr->EnqueueStore();
+	if(msg.sequence_id() == 0)
+		return false;
 
 	// The id of the receiver node in the other RSM.
 	UInt16 recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
 	
 	// Acking the messages received from the other RSM.
 	UInt64 ack_msg = ack_obj->GetAckIterator();
-
-	//Extract from unique_ptr.
-	ProtoMessage *bmsg_ptr = bmsg.release();
-	cout << "Released: " << bmsg_ptr->GetBlockId() << " :: " << bmsg_ptr->GetBlock() << endl;
-    
-	// Protobuf creation for cross-chain communication. 
-	crosschain_proto::CrossChainMessage msg;
-	msg.set_sequence_id(bmsg_ptr->GetBlockId());
-	msg.set_transactions(bmsg_ptr->GetBlock());
 	msg.set_ack_id(ack_msg);
-	
-	cout << "Again: " << bmsg_ptr->GetBlockId() << " :: " << bmsg_ptr->GetBlock() << endl;
-	cout << "Before: " << msg.sequence_id() << " :: Content: " << msg.transactions() << " :: Last Ack: " << msg.ack_id() << endl;
+
+	//cout << "Before: " << msg.sequence_id() << " :: Content: " << msg.transactions() << " :: Last Ack: " << msg.ack_id() << endl;
 
 	DataSend(msg, recvr_id);
+
+	return true;
 }	
 
 
@@ -239,7 +229,7 @@ void Pipeline::SendToOtherRsm(UInt16 nid)
  */ 
 void Pipeline::RecvFromOtherRsm()
 {
-	// Starting id of each RSM.
+	// Starting id of the other RSM.
 	UInt16 sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
 
 	for(UInt16 j=0; j<get_nodes_rsm(); j++) {
@@ -247,8 +237,7 @@ void Pipeline::RecvFromOtherRsm()
 		UInt16 sendr_id = j + sendr_id_start;
 
 		crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
-		//unique_ptr<DataPack> msg = DataRecv(sendr_id);
-		if(msg.sequence_id() != MAX_UINT64) {
+		if(msg.sequence_id() != 0) {
 			cout << get_node_id() << " :: @Recv: " <<msg.sequence_id() << " :: " << msg.transactions() << " :: " << msg.ack_id() << " :: From: " << sendr_id << endl;
 
 			/* TODO

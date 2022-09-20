@@ -1,12 +1,12 @@
 #include "connect.h"
 #include "global.h"
 #include "data_comm.h"
-
+#include <queue>
 #include <boost/lockfree/queue.hpp>
 
 void Init()
 {
-	in_queue = new boost::lockfree::queue<ProtoMessage *>(0);
+	//in_queue = new std::queue<crosschain_proto::CrossChainMessage>(0);
 }	
 
 /* The protocol running at the node will call this function to send a block
@@ -21,8 +21,15 @@ void Init()
  */ 
 void SendBlock(uint64_t block_id, char *block) 
 {
-	ProtoMessage *msg = ProtoMessage::SetMessage(block_id, block);
-	while(!in_queue->push(msg));
+	//ProtoMessage *msg = ProtoMessage::SetMessage(block_id, block);
+	crosschain_proto::CrossChainMessage msg;
+	msg.set_sequence_id(block_id);
+	msg.set_transactions(block);
+	msg.set_ack_id(0);
+
+	//cout << "Message added: " << msg.sequence_id() << " :: " << msg.transactions() << endl;
+
+	in_queue.push(msg);
 	
 	// TODO: Do we need to delete this msg? 
 }
