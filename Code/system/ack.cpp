@@ -27,7 +27,7 @@ void Acknowledgment::AddToAckList(UInt64 mid)
 		// Flag to check if mid is added at the end of the list.
 		bool last_flag = true;
 		for(; it != msg_recv_.end(); ++it) {
-			cout << "Compare Value: " << *it << endl;
+			//cout << "Compare Value: " << *it << endl;
 			if(*it > mid) {
 				// Insert before the element larger than mid.
 				msg_recv_.emplace(it, mid);
@@ -46,13 +46,13 @@ void Acknowledgment::AddToAckList(UInt64 mid)
 	// Need to lock accesses to ackValue as it used by multiple threads
 	ack_mutex.lock();
 
-	cout << "AckValue: " << ackValue << " :: mid: " << mid << endl;
-	if(mid == 0) {
-		// If mid = 0, set the ackValue to 0.
-		ackValue = 0;
+	//cout << "AckValue: " << ackValue << " :: mid: " << mid << endl;
+	if(mid == 1) {
+		// If mid = 1, set the ackValue to 1.
+		ackValue = 1;
 	}
 
-	// Enter if ackValue is not MAX_UINT64; possible if mid=0, not inserted yet.
+	// Enter if ackValue is not MAX_UINT64; possible if mid=1, not inserted yet.
 	if(ackValue != MAX_UINT64) {
 		// Flag to determine if we need to delete old acknowledgments.
 		bool del_flag = false;
