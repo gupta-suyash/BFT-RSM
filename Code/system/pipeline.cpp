@@ -176,21 +176,29 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 	int rv; 
 
 	auto sock = recv_sockets_[node_id];
-	unique_ptr<DataPack> recv_buf = make_unique<DataPack>();
+	//unique_ptr<DataPack> recv_buf = make_unique<DataPack>();
+	void *buffer;
+	size_t sz;
+
+	cout << "Before" << endl;
 
 	// We want the nng_recv to be non-blocking and reduce copies. 
 	// So, we use the two available bit masks.
-	rv = nng_recv(sock, recv_buf->buf, &recv_buf->data_len, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+	rv = nng_recv(sock, buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
 
 
 	crosschain_proto::CrossChainMessage buf;
 
 	// nng_recv is non-blocking, if there is no data, return value is non-zero.
 	if(rv != 0) {
+		cout << "One" << endl;
 		buf.set_sequence_id(0);
 	} else {
-		DataPack *dbuf = recv_buf.release();
-		bool flag = buf.ParseFromArray(dbuf->buf, dbuf->data_len);
+		cout << "Two: " << sz << endl;
+		//DataPack *dbuf = recv_buf.release();
+		bool flag = buf.ParseFromArray(buffer, sz);
+		cout << "Parsed: " << buf.sequence_id() << " :: " << buf.transactions() << endl;
+		buf.set_sequence_id(0);
 	}
 	
 	//nng_free(msg->buf, msg->data_len);
