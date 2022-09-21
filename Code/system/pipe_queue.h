@@ -9,13 +9,11 @@
 
 class PipeQueue
 {
-	std::queue<DataPack*> msg_queue_;
+	std::queue<crosschain_proto::CrossChainMessage> msg_queue_;
 	std::queue<crosschain_proto::CrossChainMessage> store_queue_;
 public:
-	void Init();
-	void Enqueue(unique_ptr<DataPack> msg);
-	std::unique_ptr<DataPack> Dequeue();
-
+	void Enqueue(crosschain_proto::CrossChainMessage msg);
+	crosschain_proto::CrossChainMessage Dequeue();
 	crosschain_proto::CrossChainMessage EnqueueStore();
 
 	// Msg_Queue Testing functions.

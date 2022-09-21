@@ -36,8 +36,8 @@ void SendThread::Run()
 			SetLastSent(nid);
 		}
 
-		//// Broadcast to all in own rsm.
-		//pipe_ptr->SendToOwnRsm();
+		// Broadcast to all in own rsm.
+		pipe_ptr->SendToOwnRsm();
 	}
 }
 
@@ -75,7 +75,7 @@ void RecvThread::Run()
 	//cout << "RecvThread: " << GetThreadId() << endl;
 	while(true) {
 		pipe_ptr->RecvFromOtherRsm();
-		//pipe_ptr->RecvFromOwnRsm();
+		pipe_ptr->RecvFromOwnRsm();
 	}
 }
 

@@ -5,7 +5,7 @@ bool setup_cross_chain_library() {
 	// Setting up the queue
 	unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
     sp_qptr = sp_queue.get();
-    sp_qptr->Init();
+    //sp_qptr->Init();
 
 	//Creating and starting Sender IOThreads.
     unique_ptr<SendThread> snd_obj = make_unique<SendThread>();

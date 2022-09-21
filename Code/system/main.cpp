@@ -31,22 +31,6 @@ int main(int argc, char *argv[])
 	//ack_obj->TestFunc();
 	//quack_obj->TestFunc();
 	
-	//crosschain_proto::CrossChainMessage msg;
-	//{
-	//msg.set_sequence_id(5);
-	//string str = "hello";
-	//char *cstr = &str[0];
-	//msg.set_transactions(cstr);
-	//msg.set_ack_id(10);
-	//}
-
-	//UInt64 rid = msg.sequence_id();
-	//cout << "What I received: " << rid << endl;
-	//string really = msg.transactions();
-	//cout << "My string: " << really << endl;
-	//UInt64 rackid = msg.ack_id();
-	//cout << "My ack: " << rackid << endl;
-
 	unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
 	pipe_ptr = pipe_obj.get();
 	pipe_ptr->SetSockets();
@@ -55,7 +39,6 @@ int main(int argc, char *argv[])
 	// Setting up the queue.
 	unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
 	sp_qptr = sp_queue.get();
-	sp_qptr->Init();
 	cout << "Done setting up msg-queue and store-queue between threads." << endl; 
 
 	// The next command is for testing the queue.

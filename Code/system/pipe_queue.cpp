@@ -1,44 +1,36 @@
 #include "pipe_queue.h"
 #include <cstring>
 
-void PipeQueue::Init()
-{
-	//msg_queue_ = new std::queue<DataPack *>(0);
-	//store_queue_ = new std::queue<crosschain_proto::CrossChainMessage>(0);
-}	
 
 /* Pushes a message to the queue.
  * 
  * @param msg is the message to be queued..
  */
-void PipeQueue::Enqueue(unique_ptr<DataPack> msg)
+void PipeQueue::Enqueue(crosschain_proto::CrossChainMessage msg)
 {
-	DataPack *q_msg = msg.release();
-
 	// Continue trying to push until successful.
-	msg_queue_.push(q_msg);
+	msg_queue_.push(msg);
 }	
 
 /* Pops a message from the rear of the queue.
  * 
  * @return the popped message.
  */
-std::unique_ptr<DataPack> PipeQueue::Dequeue()
+crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
 {
-	bool valid = false;
-	DataPack *msg = new DataPack();
+	crosschain_proto::CrossChainMessage msg;
 
 	// Popping the message; valid returns the status.
 	//valid = msg_queue_.pop(msg);
 	if(!msg_queue_.empty()) {
 		msg = msg_queue_.front();
 		msg_queue_.pop();
-		cout << "Dequeued: " << msg->buf << endl;
+		cout << "Dequeued: " << msg.sequence_id() << endl;
 	} else {
-		msg->data_len = 0;
+		msg.set_sequence_id(0);;
 	}
 
-	return unique_ptr<DataPack>(msg);
+	return msg;
 }
 
 
@@ -88,31 +80,31 @@ crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
  */ 
 void PipeQueue::CallE()
 {
-	for(int i=0; i<20; i++) {
-		string str = "abc" + to_string(i);
-		char *buf = &str[0];
+	//for(int i=0; i<20; i++) {
+	//	string str = "abc" + to_string(i);
+	//	char *buf = &str[0];
 
-		unique_ptr<DataPack> msg = std::make_unique<DataPack>();
-		msg->data_len = strlen(buf) + 1;
-		msg->buf = new char[msg->data_len];
-		memcpy(msg->buf, buf, msg->data_len);
+	//	unique_ptr<DataPack> msg = std::make_unique<DataPack>();
+	//	msg->data_len = strlen(buf) + 1;
+	//	msg->buf = new char[msg->data_len];
+	//	memcpy(msg->buf, buf, msg->data_len);
 
-		cout << "Enqueue: " << msg->buf << endl;
+	//	cout << "Enqueue: " << msg->buf << endl;
 
-		Enqueue(std::move(msg));
-	}
+	//	Enqueue(std::move(msg));
+	//}
 }
 
 void PipeQueue::CallD()
 {
-	int i=0;
-	while(i < 20) {
-		unique_ptr<DataPack> msg = Dequeue();
-		if(msg->data_len != 0) {
-			cout << "Dequeue done: " << msg->buf << endl;
-			i++;
-		}
-	}	
+	//int i=0;
+	//while(i < 20) {
+	//	unique_ptr<DataPack> msg = Dequeue();
+	//	if(msg->data_len != 0) {
+	//		cout << "Dequeue done: " << msg->buf << endl;
+	//		i++;
+	//	}
+	//}	
 }
 
 void PipeQueue::CallThreads() 

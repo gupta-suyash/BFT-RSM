@@ -256,7 +256,7 @@ void Pipeline::RecvFromOtherRsm()
 
 			// This message needs to broadcasted to other nodes
 			// in the RSM, so enqueue in the queue for sender.
-			//sp_qptr->Enqueue(std::move(msg));
+			sp_qptr->Enqueue(msg);
 		}
 	}
 }
@@ -269,8 +269,8 @@ void Pipeline::SendToOwnRsm()
 {
 	//cout << "SendToOwnRsm" << endl;
 	// Check the queue if there is any message.
-	unique_ptr<DataPack> msg = sp_qptr->Dequeue();
-	if(msg->data_len == 0)
+	crosschain_proto::CrossChainMessage msg = sp_qptr->Dequeue();
+	if(msg.sequence_id() == 0)
 		return;       
 	
 	// Starting node id of RSM.
@@ -282,18 +282,11 @@ void Pipeline::SendToOwnRsm()
 		
 		if(recvr_id == get_node_id())
 			continue;
-
-		// Constructing a message to send.
-		//string str = to_string(get_node_id()) + "x" + to_string(i);
-		//buf = &str[0];
-		  
 		
 		// Create a copy of the message as it is sent to all the nodes.
-		// TODO: Maybe we do not need to as nng_send automatically copies?
-		char *buf = DeepCopyMsg(msg->buf);
-		cout << get_node_id() << " :: #Sent: " << buf << " :: To: " << recvr_id << endl;
+		//cout << get_node_id() << " :: #Sent: " << buf << " :: To: " << recvr_id << endl;
 
-		//DataSend(buf, recvr_id);
+		DataSend(msg, recvr_id);
 	}
 		
 }	
@@ -328,17 +321,13 @@ void Pipeline::RecvFromOwnRsm()
 		if(sendr_id == get_node_id())
 			continue;
 		
-		unique_ptr<DataPack> msg;// = DataRecv(sendr_id);
-		if(msg->data_len != 0) {
-			cout << get_node_id() << " :: #Recv: " <<msg->buf << " :: From: " << sendr_id << endl;
+		crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
+		if(msg.sequence_id() != 0) {
+			cout << get_node_id() << " :: #Recv: " <<msg.sequence_id() << " :: " << msg.transactions() << " :: " << msg.ack_id() << " :: From: " << sendr_id << endl;
 
-			/* TODO
-			 * Take the transaction id from the message and 
-			 * call the objet of class Acknowledgment to add 
-			 * it to the list msg_recv.
-			 */
+			// Updating the ack list for msg received.
+			ack_obj->AddToAckList(msg.sequence_id());	
 		}	
-		
 	}
 		
 }
