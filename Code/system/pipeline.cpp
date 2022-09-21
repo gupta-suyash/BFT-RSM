@@ -83,6 +83,7 @@ string Pipeline::GetSendUrl(UInt16 cnt)
 
 void fatal(const char *func, int rv)
 {
+	//cout << "Fatal " << endl;
         fprintf(stderr, "%s: %s\n", func, nng_strerror(rv));
         exit(1);
 }
@@ -94,6 +95,7 @@ void fatal(const char *func, int rv)
  */ 
 void Pipeline::SetSockets()
 {
+	//cout << "SetSockets" << endl;
 	int rv;
 
 	// Initializing sender sockets.
@@ -146,6 +148,7 @@ void Pipeline::SetSockets()
  */
 void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id) 
 {
+	//cout << "DataSend" << endl;
 	int rv;
 
 	// Socket to communicate.
@@ -173,6 +176,7 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id)
  */ 
 crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 {
+	//cout << "DataRecv" << endl;
 	int rv; 
 
 	auto sock = recv_sockets_[node_id];
@@ -180,12 +184,11 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 	void *buffer;
 	size_t sz;
 
-	cout << "Before" << endl;
+	//cout << "Before" << endl;
 
 	// We want the nng_recv to be non-blocking and reduce copies. 
 	// So, we use the two available bit masks.
 	rv = nng_recv(sock, buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
-
 
 	crosschain_proto::CrossChainMessage buf;
 
@@ -193,8 +196,10 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 	if(rv != 0) {
 		cout << "One" << endl;
 		buf.set_sequence_id(0);
+		buf.set_ack_id(0);
+		buf.set_transactions("hello");
 	} else {
-		cout << "Two: " << sz << endl;
+		//cout << "Two: " << sz << endl;
 		//DataPack *dbuf = recv_buf.release();
 		bool flag = buf.ParseFromArray(buffer, sz);
 		cout << "Parsed: " << buf.sequence_id() << " :: " << buf.transactions() << endl;
@@ -212,6 +217,7 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
  */ 
 bool Pipeline::SendToOtherRsm(UInt16 nid)
 {
+	//cout << "SendToOtherRSM" << endl;
 	// Fetching the block to send, if any.
 	crosschain_proto::CrossChainMessage msg = sp_qptr->EnqueueStore();
 	if(msg.sequence_id() == 0)
@@ -238,6 +244,7 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
  */ 
 void Pipeline::RecvFromOtherRsm()
 {
+	//cout << "RecvFromOtherRSM" << endl;
 	// Starting id of the other RSM.
 	UInt16 sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
 
@@ -269,6 +276,7 @@ void Pipeline::RecvFromOtherRsm()
  */ 
 void Pipeline::SendToOwnRsm()
 {
+	//cout << "SendToOwnRsm" << endl;
 	// Check the queue if there is any message.
 	unique_ptr<DataPack> msg = sp_qptr->Dequeue();
 	if(msg->data_len == 0)
@@ -306,6 +314,7 @@ void Pipeline::SendToOwnRsm()
  */ 
 char *Pipeline::DeepCopyMsg(char *buf)
 {
+	//cout << "DeepCopyMsg" << endl;
 	size_t data_len = strlen(buf) + 1;
 	char *c_buf = new char[data_len];
 	memcpy(c_buf, buf, data_len);
@@ -317,6 +326,7 @@ char *Pipeline::DeepCopyMsg(char *buf)
  */ 
 void Pipeline::RecvFromOwnRsm()
 {
+	//cout << "RecvFromOwnRsm" << endl;
 	// Starting id of each RSM.
 	UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
