@@ -150,21 +150,20 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id)
 {
 	//cout << "DataSend" << endl;
 	int rv;
+	string buffer;
 
 	// Socket to communicate.
 	auto sock = send_sockets_[node_id];
 
-	// Size of proto message.
-	size_t sz = buf.ByteSize(); 
-	void *buffer = malloc(sz);
+	// Serialize to array for sending.
+	//buf.SerializeToArray(buffer, sz);
+	buf.SerializeToString(&buffer);
+	size_t sz = buffer.size();
 
 	// TODO: The next line should be removed.
-	cout << get_node_id() << " :: @Sent: " << buf.sequence_id() << " :: Content: " << buf.transactions() << " :: Last Ack: " << buf.ack_id() << " :: To: " << node_id << endl;
-	
+	cout << get_node_id() << " :: @Sent: " << buf.sequence_id() << " :: Content: " << buf.transactions() << " :: Last Ack: " << buf.ack_id() << " :: Size: " << sz << " :: To: " << node_id << endl;
 
-	// Serialize to array for sending.
-	buf.SerializeToArray(buffer, sz);
-	if((rv = nng_send(sock, buffer, sz, 0)) != 0) {
+	if((rv = nng_send(sock, &buffer[0], sz, 0)) != 0) {
 		fatal("nng_send", rv);
 	}
 }
@@ -178,32 +177,27 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 {
 	//cout << "DataRecv" << endl;
 	int rv; 
-
-	auto sock = recv_sockets_[node_id];
-	//unique_ptr<DataPack> recv_buf = make_unique<DataPack>();
-	void *buffer;
+	char* buffer;
 	size_t sz;
-
-	//cout << "Before" << endl;
-
+	auto sock = recv_sockets_[node_id];
+	
 	// We want the nng_recv to be non-blocking and reduce copies. 
 	// So, we use the two available bit masks.
-	rv = nng_recv(sock, buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+	rv = nng_recv(sock, &buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
 
 	crosschain_proto::CrossChainMessage buf;
 
 	// nng_recv is non-blocking, if there is no data, return value is non-zero.
 	if(rv != 0) {
-		cout << "One" << endl;
+		//cout << "One" << endl;
 		buf.set_sequence_id(0);
 		buf.set_ack_id(0);
 		buf.set_transactions("hello");
 	} else {
-		//cout << "Two: " << sz << endl;
-		//DataPack *dbuf = recv_buf.release();
-		bool flag = buf.ParseFromArray(buffer, sz);
-		cout << "Parsed: " << buf.sequence_id() << " :: " << buf.transactions() << endl;
-		buf.set_sequence_id(0);
+		//cout << "Two: " << sz << " :: " << buffer << endl;
+		std::string str_buf(buffer);
+		bool flag = buf.ParseFromString(str_buf);
+		//cout << "Parsed: " << buf.sequence_id() << " :: " << buf.transactions() << " :: Ack: " << buf.ack_id() << endl;
 	}
 	
 	//nng_free(msg->buf, msg->data_len);
