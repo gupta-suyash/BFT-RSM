@@ -64,7 +64,7 @@ crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
 		if(msg.sequence_id() % get_nodes_rsm() != get_node_rsm_id()) {
 			// Any message that is not supposed to be sent by this node,
 			// it pushes it to the store_queue.
-			cout << "Will store: " << msg.sequence_id() << " :: " << msg.transactions() << endl;
+			//cout << "Will store: " << msg.sequence_id() << " :: " << msg.transactions() << endl;
 
 			store_queue_.push(msg);
 			
@@ -73,9 +73,7 @@ crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
 			msg.clear_ack_id();
 			msg.clear_transactions();
 			msg.set_sequence_id(0);
-		} else {
-			cout <<  "Will send: " << msg.sequence_id() << " :: " << msg.transactions() << endl;
-		}	
+		} 
 	} else {
 		// No message in the queue.	
 		msg.set_sequence_id(0);

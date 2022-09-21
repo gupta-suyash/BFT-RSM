@@ -251,11 +251,8 @@ void Pipeline::RecvFromOtherRsm()
 		if(msg.sequence_id() != 0) {
 			cout << get_node_id() << " :: @Recv: " <<msg.sequence_id() << " :: " << msg.transactions() << " :: " << msg.ack_id() << " :: From: " << sendr_id << endl;
 
-			/* TODO
-			 * Take the transaction id from the message and 
-			 * call the objet of class Acknowledgment to add 
-			 * it to the list msg_recv.
-			 */ 
+			// Updating the ack list for msg received.
+			ack_obj->AddToAckList(msg.sequence_id());
 
 			// This message needs to broadcasted to other nodes
 			// in the RSM, so enqueue in the queue for sender.
