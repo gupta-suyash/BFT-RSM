@@ -218,8 +218,8 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
 		return false;
 
 	// The id of the receiver node in the other RSM.
-	//UInt16 recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
-	UInt16 recvr_id = 1;
+	UInt16 recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
+	//UInt16 recvr_id = 1;
 	
 	// Acking the messages received from the other RSM.
 	UInt64 ack_msg = ack_obj->GetAckIterator();
@@ -239,13 +239,13 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
 void Pipeline::RecvFromOtherRsm()
 {
 	//cout << "RecvFromOtherRSM" << endl;
+	
 	// Starting id of the other RSM.
 	UInt16 sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
 
-	//for(UInt16 j=0; j<get_nodes_rsm(); j++) {
-	//	// The id of the sender node.
-	//	UInt16 sendr_id = j + sendr_id_start;
-		UInt16 sendr_id = 0;
+	for(UInt16 j=0; j<get_nodes_rsm(); j++) {
+		// The id of the sender node.
+		UInt16 sendr_id = j + sendr_id_start;
 
 		crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
 		if(msg.sequence_id() != 0) {
@@ -261,7 +261,7 @@ void Pipeline::RecvFromOtherRsm()
 			// in the RSM, so enqueue in the queue for sender.
 			//sp_qptr->Enqueue(std::move(msg));
 		}
-	//}
+	}
 }
 
 
