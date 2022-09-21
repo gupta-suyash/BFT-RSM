@@ -63,18 +63,25 @@ int main(int argc, char *argv[])
 
 	cout << "Done setting up the in-queue for messages from protocol." << endl;
 
+	if(get_node_id() == 0) {
 	//Creating and starting Sender IOThreads.
 	unique_ptr<SendThread> snd_obj = make_unique<SendThread>();
 	snd_obj->Init(0);
 	cout << "Created Sender Thread: " << snd_obj->GetThreadId() << endl;
+	
+	snd_obj->thd_.join();
 
+	} else {
 	// Creating and starting Receiver IOThreads.
 	unique_ptr<RecvThread> rcv_obj = make_unique<RecvThread>();
 	rcv_obj->Init(1);
 	cout << "Created Receiver Thread: " << rcv_obj->GetThreadId() << endl;
 
-	snd_obj->thd_.join();
 	rcv_obj->thd_.join();
+
+	}
+	//snd_obj->thd_.join();
+	//rcv_obj->thd_.join();
 
         return (1);
 }
