@@ -47,38 +47,3 @@ Moreover, this switching does not prevent communication of other messages.
 
 
 \end{itemize}
-
-
-\section{Formalization}
-\subsection{Thinking in terms of TCP - Michaela [Notes are very messy rn, will clean up]}
-\begin{enumerate}
-	\item \href{https://www.ietf.org/rfc/rfc793.txt}{RFC}
-\end{enumerate}
-We have been discussing how Scrooge should be providing guarantees analogous to that of TCP. Looking at the TCP specification, it seems that it has 
-a couple key properties:
-\begin{enumerate}
-	\item Basic Data Transfer: Relatively straightforward to make analogous with. We decide when to send and how to package data.
-		Key element of this is a "push" functionality to ensure \textbf{all} the data the user wishes to send is sent. I think we can
-		easily provide this functionality.
-	\item Reliability: We must recover data that is damaged, lost, duplicated, or delivered out of order. Via the sequential acking
-		technique, it seems we should cover this point easily. Are there any other guarantees we need to provide?
-	\item Flow Control: We must provide a means for regulating how many packets a sender is sending to the receiver. We could most
-		likely just do what TCP does and provide a sliding window to determine what messages should be sent. This is based off the
-		number of acks received.
-	\item Multiplexing
-	\item Connections
-	\item Precedence and Security: Also seems fairly straightforward, We don't stop the participating RSMs from signing their messages
-		or making them more secure.
-\end{enumerate}
-
-Beyond these properties, I think it is also important to very clearly define:
-\begin{enumerate}
-	\item What are the endpoints in our protocol? In the TCP RFC, it states: "The TCP is intended to be a host-to-host protocol 
-		in common use in multiple networks." What are our "hosts"? I think our protocol must have \textbf{two} layers to deal with
-		the two levels of communication guarantees we want to provide: \textbf{node} level and \textbf{cluster} level.
-\end{enumerate}
-
-\subsection{Thinking in terms of TCP - Reggie}
-
-Page 9 - acks
-
