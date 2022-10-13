@@ -1,4 +1,5 @@
 #include "iothread.h"
+#include "ack.h"
 #include "pipeline.h"
 #include "connect.h"
 
@@ -21,6 +22,8 @@ void SendThread::Run()
 	UInt64 bid=1;
 
 	while(true) {
+		if(bid < 500) {
+
 		// Send to one node in other rsm.
 		UInt16 nid = GetLastSent();
 
@@ -34,6 +37,8 @@ void SendThread::Run()
 			// Set the id of next node to send.
 			nid = (nid+1) % get_nodes_rsm();
 			SetLastSent(nid);
+		}
+
 		}
 
 		// Broadcast to all in own rsm.
@@ -76,6 +81,10 @@ void RecvThread::Run()
 	while(true) {
 		pipe_ptr->RecvFromOtherRsm();
 		pipe_ptr->RecvFromOwnRsm();
+
+		if(ack_obj->GetAckIterator() < MAX_UINT64) {
+			cout << "Ack list at: " << ack_obj->GetAckIterator() << endl;
+		}
 	}
 }
 
