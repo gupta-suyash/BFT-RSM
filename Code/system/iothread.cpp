@@ -22,7 +22,7 @@ void SendThread::Run()
 	UInt64 bid=1;
 
 	while(true) {
-		if(bid < 400) {
+		if(bid < 500) {
 
 		// Send to one node in other rsm.
 		UInt16 nid = GetLastSent();
@@ -86,7 +86,7 @@ void RecvThread::Run()
 		UInt64 bid  = ack_obj->GetAckIterator();
 		if(bid < MAX_UINT64 && flag) {
 			cout << "Ack list at: " << bid << endl;
-			if(bid == 399) {
+			if(bid == 499) {
 				flag = false;
 			}	
 		}
