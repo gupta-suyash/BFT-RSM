@@ -8,8 +8,14 @@
  */
 void PipeQueue::Enqueue(crosschain_proto::CrossChainMessage msg)
 {
+	// Locking access to queue.
+	msg_q_mutex.lock();
+
 	// Continue trying to push until successful.
 	msg_queue_.push(msg);
+
+	// Unlocking the mutex.
+	msg_q_mutex.unlock();
 }	
 
 /* Pops a message from the rear of the queue.
@@ -20,6 +26,9 @@ crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
 {
 	crosschain_proto::CrossChainMessage msg;
 
+	// Locking access to queue.
+	msg_q_mutex.lock();
+	
 	// Popping the message; valid returns the status.
 	//valid = msg_queue_.pop(msg);
 	if(!msg_queue_.empty()) {
@@ -29,6 +38,9 @@ crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
 	} else {
 		msg.set_sequence_id(0);;
 	}
+
+	// Unlocking the mutex.
+	msg_q_mutex.unlock();
 
 	return msg;
 }

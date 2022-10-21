@@ -3,13 +3,16 @@
 
 #include <iostream>
 #include <thread>
+#include <mutex>
 #include "global.h"
 #include "data_comm.h"
 
 
 class PipeQueue
 {
+	std::mutex msg_q_mutex;
 	std::queue<crosschain_proto::CrossChainMessage> msg_queue_;
+	std::mutex store_q_mutex;
 	std::queue<crosschain_proto::CrossChainMessage> store_queue_;
 public:
 	void Enqueue(crosschain_proto::CrossChainMessage msg);
