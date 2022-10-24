@@ -20,6 +20,7 @@ void SendThread::Run()
 	//cout << "SndThread: " << GetThreadId() << endl;
 	// TODO: Remove this line.
 	UInt64 bid=1;
+	bool flag = true;
 
 	while(true) {
 		if(bid < 500) {
@@ -43,6 +44,19 @@ void SendThread::Run()
 
 		// Broadcast to all in own rsm.
 		pipe_ptr->SendToOwnRsm();
+
+		// Receiver thread code -- temporary.
+		pipe_ptr->RecvFromOtherRsm();
+		pipe_ptr->RecvFromOwnRsm();
+
+		UInt64 cid  = ack_obj->GetAckIterator();
+		if(cid < MAX_UINT64 && flag) {
+			cout << "Ack list at: " << cid << endl;
+			if(cid == 499) {
+				flag = false;
+			}	
+		}
+	
 	}
 }
 

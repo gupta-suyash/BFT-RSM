@@ -52,12 +52,12 @@ int main(int argc, char *argv[])
 	cout << "Created Sender Thread: " << snd_obj->GetThreadId() << endl;
 	
 	// Creating and starting Receiver IOThreads.
-	unique_ptr<RecvThread> rcv_obj = make_unique<RecvThread>();
-	rcv_obj->Init(1);
-	cout << "Created Receiver Thread: " << rcv_obj->GetThreadId() << endl;
+	//unique_ptr<RecvThread> rcv_obj = make_unique<RecvThread>();
+	//rcv_obj->Init(1);
+	//cout << "Created Receiver Thread: " << rcv_obj->GetThreadId() << endl;
 
 	snd_obj->thd_.join();
-	rcv_obj->thd_.join();
+	//rcv_obj->thd_.join();
 
         return (1);
 }

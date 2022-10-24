@@ -9,6 +9,7 @@
 
 class Acknowledgment
 {
+private:
 	UInt64 ackValue;
 	std::mutex ack_mutex;
 	std::list<UInt64> msg_recv_;

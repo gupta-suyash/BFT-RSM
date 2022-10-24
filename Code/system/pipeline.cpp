@@ -83,7 +83,7 @@ string Pipeline::GetSendUrl(UInt16 cnt)
 
 void fatal(const char *func, int rv)
 {
-	//cout << "Fatal " << endl;
+	cout << "Fatal " << endl;
         fprintf(stderr, "%s: %s\n", func, nng_strerror(rv));
         exit(1);
 }
