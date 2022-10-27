@@ -71,9 +71,9 @@ void SendThread::SetLastSent(UInt16 id)
 }	
 
 
-void SendThread::TestAddBlockToInQueue(UInt64 bid) 
+void SendThread::TestAddBlockToInQueue(const UInt64 bid) 
 {
-	string str = "Tmsg " + to_string(bid);
+	const string str = "Tmsg " + to_string(bid);
 	SendBlock(bid, &str[0]);
 }	
 	

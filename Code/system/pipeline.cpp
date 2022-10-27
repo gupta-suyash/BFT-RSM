@@ -227,7 +227,7 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
 	//UInt16 recvr_id = 1;
 	
 	// Acking the messages received from the other RSM.
-	UInt64 ack_msg = ack_obj->GetAckIterator();
+	const UInt64 ack_msg = ack_obj->GetAckIterator();
 	msg.set_ack_id(ack_msg);
 
 	cout << "Os: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;

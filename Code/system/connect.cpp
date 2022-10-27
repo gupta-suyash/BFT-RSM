@@ -19,7 +19,7 @@ void Init()
  *
  * @params undefined TODO.
  */ 
-void SendBlock(uint64_t block_id, char *block) 
+void SendBlock(const uint64_t block_id, const char *block) 
 {
 	//ProtoMessage *msg = ProtoMessage::SetMessage(block_id, block);
 	crosschain_proto::CrossChainMessage msg;
