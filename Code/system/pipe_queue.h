@@ -10,6 +10,7 @@
 
 class PipeQueue
 {
+private:
 	std::mutex msg_q_mutex;
 	std::queue<crosschain_proto::CrossChainMessage> msg_queue_;
 	std::mutex store_q_mutex;

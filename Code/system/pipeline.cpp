@@ -161,7 +161,12 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id)
 	size_t sz = buffer.size();
 
 	// TODO: The next line should be removed.
-	//cout << get_node_id() << " :: @Sent: " << buf.sequence_id() << " :: Content: " << buf.transactions() << " :: Last Ack: " << buf.ack_id() << " :: Size: " << sz << " :: To: " << node_id << endl;
+	cout << "Sent: " << sz << " :: " << &buffer[0] << endl;
+
+	crosschain_proto::CrossChainMessage chk_buf;
+	chk_buf.ParseFromString(buffer);
+
+	cout << "Pb: seq: "  << chk_buf.sequence_id() << " :: ack: " << chk_buf.ack_id() << " :: data: " << chk_buf.transactions() << endl;
 
 	if((rv = nng_send(sock, &buffer[0], sz, 0)) != 0) {
 		fatal("nng_send", rv);
@@ -194,10 +199,10 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
 		buf.set_ack_id(0);
 		buf.set_transactions("hello");
 	} else {
-		//cout << "Two: " << sz << " :: " << buffer << endl;
+		cout << "Two: " << sz << " :: " << buffer << endl;
 		std::string str_buf(buffer);
 		bool flag = buf.ParseFromString(str_buf);
-		//cout << "Parsed: " << buf.sequence_id() << " :: " << buf.transactions() << " :: Ack: " << buf.ack_id() << endl;
+		cout << "Recvd: " << buf.sequence_id() << endl;
 	}
 	
 	//nng_free(msg->buf, msg->data_len);
@@ -225,8 +230,7 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
 	UInt64 ack_msg = ack_obj->GetAckIterator();
 	msg.set_ack_id(ack_msg);
 
-	//cout << "Os: From: " << get_node_id() << " :: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << " :: content: " << msg.transactions() << " :: ack: " << msg.ack_id() << endl;
-	cout << "Os: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << endl;
+	cout << "Os: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;
 
 	DataSend(msg, recvr_id);
 
@@ -250,8 +254,7 @@ void Pipeline::RecvFromOtherRsm()
 
 		crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
 		if(msg.sequence_id() != 0) {
-			//cout << "@r: From: " << sendr_id << " :: mid: " << get_node_id() << " :: seq: "  << msg.sequence_id() << " :: content: " << msg.transactions() << endl;
-			cout << "@r: From: " << sendr_id << " :: seq: "  << msg.sequence_id() << endl;
+			cout << "@r: From: " << sendr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;
 
 			// Updating the ack list for msg received.
 			ack_obj->AddToAckList(msg.sequence_id());
@@ -286,8 +289,7 @@ void Pipeline::SendToOwnRsm()
 			continue;
 		
 		// TODO: Remove this line.
-		//cout << "Ms: From: " << get_node_id() << " :: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << " :: content: " << msg.transactions() << endl;
-		cout << "Ms: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << endl;
+		cout << "Ms: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;
 
 		DataSend(msg, recvr_id);
 	}
@@ -326,8 +328,7 @@ void Pipeline::RecvFromOwnRsm()
 		
 		crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
 		if(msg.sequence_id() != 0) {
-			//cout << "#r: From: " << sendr_id << " :: mid: " << get_node_id() << " :: seq: "  << msg.sequence_id() << " :: content: " << msg.transactions() << endl;
-			cout << "#r: From: " << sendr_id << " :: seq: "  << msg.sequence_id() << endl;
+			cout << "#r: From: " << sendr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;
 
 			// Updating the ack list for msg received.
 			ack_obj->AddToAckList(msg.sequence_id());	
