@@ -21,6 +21,8 @@ int main(int argc, char *argv[])
 	parser(argc, argv);
 	cout << "Done Parsing" << endl;
 
+	//Message::TestFunc();
+
 	// Setting up the Acknowledgment object.
 	ack_obj = new Acknowledgment();
 	ack_obj->Init();

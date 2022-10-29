@@ -1,73 +1,59 @@
 #include "message.h"
 
-Message * Message::CreateMsg(char *buf, UInt64 sz, MessageType mtype)
+Message * Message::CreateMsg()
 {
-	Message *msg = CreateMsg(mtype);
-	msg->CopyFromBuf(buf, sz);
-
-	//COPY_VAL(dest_id,data,ptr);
-	return msg;
-}
-
-Message * Message::CreateMsg(char *buf, MessageType mtype)
-{
-	Message *msg = CreateMsg(mtype);
-	msg->CopyFromBuf(buf);
-
-	return msg;
-}	
-
-Message * Message::CreateMsg(MessageType mtype)
-{
-	Message *msg;
-	switch(mtype) {
-		case kSend:
-			msg = new SendMessage();
-			break;
-		case kForward:
-			break;
-		default:
-			cout << "Invalid Type" << endl;
-			exit(1);
-	}
+	Message *msg = new Message();
 	msg->msize_ = UINT64_MAX;
-	msg->mtype_ = mtype;
 	msg->txn_id_ = UINT64_MAX;
-	msg->sender_id_ = UINT16_MAX;
-	msg->receiver_id_ = UINT16_MAX;
 	msg->cumm_ack_ = UINT64_MAX;
+
 	return msg;
-}	
-
-void SendMessage::CopyFromBuf(char *buf, UInt64 sz)
-{
-	// Copying the first field: size of the message.
-	msize_ = sz;
-
-	// Copying the buf as the rest of the message; data blob.
-	data_ = new char[msize_];
-	memcpy(data_, buf, sz);
-
-	cout << "Given Size: " << msize_ << endl;
-	cout << "Given Data: " << data_ << endl;
 }
 
-void SendMessage::CopyFromBuf(char *buf)
+void Message::SetTxnId(UInt64 txn_id)
+{
+	txn_id_ = txn_id;
+}	
+
+void Message::SetAckId(UInt64 cumm_ack_id)
+{
+	cumm_ack_ = cumm_ack_id;
+}	
+
+void Message::SetData(char* data, UInt64 msize) 
+{
+	msize_ = msize;
+	data_ = data;
+}	
+
+void Message::CopyFromBuf(char *buf)
 {
 	UInt64 ptr = 0;
 
-	// Copying the first field: size of the message.
+	// Copying the first field: size of the data blob.
 	COPY_VAL(msize_, buf, ptr);
+
+	// Copying next field, txn_id_
+	COPY_VAL(txn_id_, buf, ptr);
+
+	// Copying next field, cummulative ack 
+	COPY_VAL(cumm_ack_, buf, ptr);
 
 	// Copying the rest of the messages as the data blob.
 	data_ = new char[msize_];
 	COPY_VAL(data_, buf, ptr);
 
-	cout << "Buf Size: " << msize_ << endl;
-	cout << "Buf Data: " << data_ << endl;
-}	
+	cout << "Data Blob Size: " << msize_ << endl;
+	cout << "Data Blob: " << data_ << endl;
 
-char * SendMessage::CopyToBuf()
+	//// Copying the buf as the rest of the message; data blob.
+	//data_ = new char[sz];
+	//memcpy(data_, buf, sz);
+}
+
+	
+
+char * Message::CopyToBuf()
 {
 	// Getting the size of the message.
 	UInt64 sz = GetSize();
@@ -76,14 +62,18 @@ char * SendMessage::CopyToBuf()
 
 	UInt64 ptr = 0;
 	COPY_BUF(buf, msize_, ptr);
+	COPY_BUF(buf, txn_id_, ptr);
+	COPY_BUF(buf, cumm_ack_, ptr);
 	COPY_BUF(buf, data_, ptr);
 
 	return buf;
 }	
 
-UInt64 SendMessage::GetSize()
+UInt64 Message::GetSize()
 {
 	UInt64 sz = 0;
+	sz += sizeof(UInt64);
+	sz += sizeof(UInt64);
 	sz += sizeof(UInt64);
 	sz += msize_;
 
@@ -91,18 +81,23 @@ UInt64 SendMessage::GetSize()
 }	
 
 
-void SendMessage::TestFunc()
+void Message::TestFunc()
 {
 	string str = "Hello";
 	char *c_str = &str[0];
 	UInt64 sz = strlen(c_str)+1;
 	
-	Message *msg1 = Message::CreateMsg(c_str, sz, kSend);
+	Message *msg1 = Message::CreateMsg();
+	msg1->SetTxnId(3);
+	msg1->SetAckId(112);
+
+	msg1->SetData(c_str, sz);
 	cout << "Checking: " << msg1->msize_ << " :: " << msg1->data_ << endl;
 
 	char *buf = msg1->CopyToBuf();
 
-	Message *msg2 = Message::CreateMsg(buf, kSend);
+	Message *msg2 = Message::CreateMsg();
+	msg2->CopyFromBuf(buf);
 	cout << "Again: " << msg2->msize_ << " :: " << msg2->data_ << endl;
 }	
 
