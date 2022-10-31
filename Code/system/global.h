@@ -16,7 +16,7 @@ using namespace std;
 
 class Pipeline;
 class PipeQueue;
-//class ProtoMessage;
+class Message;
 class Acknowledgment;
 
 
@@ -76,13 +76,12 @@ enum MessageType {
 
 // Copy data at v to buffer d starting from position p.
 #define COPY_BUF(d, v, p)		\
-	memcpy(&((char *)d)[p], (char *)&v, sizeof(v)); \
+	memcpy(d+p, (char *)&v, sizeof(v)); \
 	p += sizeof(v);
 
 
 // Queue to interact with the protocol accessing Scrooge.
-//extern boost::lockfree::queue<ProtoMessage *> *in_queue;
-extern std::queue<crosschain_proto::CrossChainMessage> in_queue;
+extern boost::lockfree::queue<Message *> *in_queue;
 
 // Object to access the Acknowledgments.
 extern Acknowledgment *ack_obj;

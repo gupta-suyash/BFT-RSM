@@ -10,8 +10,11 @@ class Message {
 	UInt64 cumm_ack_;	// Cummulative acknowledgement of received messages. 
 public:
 	static Message * CreateMsg();
+	UInt64 GetTxnId();
 	void SetTxnId(UInt64 txn_id);
+	UInt64 GetAckId();
 	void SetAckId(UInt64 cumm_ack_id);
+	char * GetData();
 	void SetData(char* data, UInt64 msize);
 
 	void CopyFromBuf(char *buf);

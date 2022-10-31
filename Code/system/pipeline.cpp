@@ -143,32 +143,29 @@ void Pipeline::SetSockets()
 
 /* Sending data to nodes of other RSM.
  *
- * @param buf is the outgoing message of protobuf type.
+ * @param msg is the outgoing message of protobuf type.
  * @param nid is the destination node id.
  */
-void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id) 
+void Pipeline::DataSend(Message *msg, UInt16 node_id) 
 {
 	//cout << "DataSend" << endl;
 	int rv;
-	string buffer;
 
 	// Socket to communicate.
 	auto sock = send_sockets_[node_id];
 
 	// Serialize to array for sending.
-	//buf.SerializeToArray(buffer, sz);
-	buf.SerializeToString(&buffer);
-	size_t sz = buffer.size();
+	char *buf = msg->CopyToBuf();
+	size_t sz = msg->GetSize();
 
 	// TODO: The next line should be removed.
-	cout << "Sent: " << sz << " :: " << &buffer[0] << endl;
+	cout << "Sent: " << sz << " :: " << buf << endl;
 
-	crosschain_proto::CrossChainMessage chk_buf;
-	chk_buf.ParseFromString(buffer);
+	//Message *buff = Message::CreateMsg();
+	//buff->CopyFromBuf(buf);
+	//cout << "Pb: seq: "  << buff->GetTxnId() << " :: ack: " << buff->GetAckId() << " :: data: " << buff->GetData() << endl;
 
-	cout << "Pb: seq: "  << chk_buf.sequence_id() << " :: ack: " << chk_buf.ack_id() << " :: data: " << chk_buf.transactions() << endl;
-
-	if((rv = nng_send(sock, &buffer[0], sz, 0)) != 0) {
+	if((rv = nng_send(sock, buf, sz, 0)) != 0) {
 		fatal("nng_send", rv);
 	}
 }
@@ -178,35 +175,29 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id)
  * @param nid is the sender node id.
  * @return the protobuf.
  */ 
-crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
+Message * Pipeline::DataRecv(UInt16 node_id)
 {
 	//cout << "DataRecv" << endl;
 	int rv; 
-	char* buffer;
+	char* buf = NULL;
 	size_t sz;
 	auto sock = recv_sockets_[node_id];
 	
 	// We want the nng_recv to be non-blocking and reduce copies. 
 	// So, we use the two available bit masks.
-	rv = nng_recv(sock, &buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+	rv = nng_recv(sock, buf, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
 
-	crosschain_proto::CrossChainMessage buf;
+	Message *msg = Message::CreateMsg();
 
 	// nng_recv is non-blocking, if there is no data, return value is non-zero.
-	if(rv != 0) {
-		//cout << "One" << endl;
-		buf.set_sequence_id(0);
-		buf.set_ack_id(0);
-		buf.set_transactions("hello");
-	} else {
-		cout << "Two: " << sz << " :: " << buffer << endl;
-		std::string str_buf(buffer);
-		bool flag = buf.ParseFromString(str_buf);
-		cout << "Recvd: " << buf.sequence_id() << endl;
+	if(rv == 0) {
+		cout << "Two: " << sz << " :: " << &buf[0] << endl;
+		msg->CopyFromBuf(buf);
+		cout << "Recvd: " << msg->GetTxnId() << endl;
 	}
 	
 	//nng_free(msg->buf, msg->data_len);
-	return buf;
+	return msg;
 }	
 
 
@@ -218,8 +209,8 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
 {
 	//cout << "SendToOtherRSM" << endl;
 	// Fetching the block to send, if any.
-	crosschain_proto::CrossChainMessage msg = sp_qptr->EnqueueStore();
-	if(msg.sequence_id() == 0)
+	Message *msg = sp_qptr->EnqueueStore();
+	if(msg->GetTxnId() == 0)
 		return false;
 
 	// The id of the receiver node in the other RSM.
@@ -228,9 +219,9 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
 	
 	// Acking the messages received from the other RSM.
 	const UInt64 ack_msg = ack_obj->GetAckIterator();
-	msg.set_ack_id(ack_msg);
+	msg->SetAckId(ack_msg);
 
-	cout << "Os: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;
+	cout << "Os: To: " << recvr_id << " :: seq: "  << msg->GetTxnId() << " :: ack: " << msg->GetAckId() << " :: data: " << msg->GetData() << endl;
 
 	DataSend(msg, recvr_id);
 
@@ -252,12 +243,12 @@ void Pipeline::RecvFromOtherRsm()
 		// The id of the sender node.
 		UInt16 sendr_id = j + sendr_id_start;
 
-		crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
-		if(msg.sequence_id() != 0) {
-			cout << "@r: From: " << sendr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;
+		Message *msg = DataRecv(sendr_id);
+		if(msg->GetTxnId() != 0) {
+			cout << "@r: From: " << sendr_id << " :: seq: "  << msg->GetTxnId() << " :: ack: " << msg->GetAckId() << " :: data: " << msg->GetData() << endl;
 
 			// Updating the ack list for msg received.
-			ack_obj->AddToAckList(msg.sequence_id());
+			ack_obj->AddToAckList(msg->GetTxnId());
 
 			// This message needs to broadcasted to other nodes
 			// in the RSM, so enqueue in the queue for sender.
@@ -274,8 +265,8 @@ void Pipeline::SendToOwnRsm()
 {
 	//cout << "SendToOwnRsm" << endl;
 	// Check the queue if there is any message.
-	crosschain_proto::CrossChainMessage msg = sp_qptr->Dequeue();
-	if(msg.sequence_id() == 0)
+	Message * msg = sp_qptr->Dequeue();
+	if(msg->GetTxnId() == 0)
 		return;       
 	
 	// Starting node id of RSM.
@@ -289,7 +280,7 @@ void Pipeline::SendToOwnRsm()
 			continue;
 		
 		// TODO: Remove this line.
-		cout << "Ms: To: " << recvr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;
+		cout << "Ms: To: " << recvr_id << " :: seq: "  << msg->GetTxnId() << " :: ack: " << msg->GetAckId() << " :: data: " << msg->GetData() << endl;
 
 		DataSend(msg, recvr_id);
 	}
@@ -326,12 +317,12 @@ void Pipeline::RecvFromOwnRsm()
 		if(sendr_id == get_node_id())
 			continue;
 		
-		crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
-		if(msg.sequence_id() != 0) {
-			cout << "#r: From: " << sendr_id << " :: seq: "  << msg.sequence_id() << " :: ack: " << msg.ack_id() << " :: data: " << msg.transactions() << endl;
+		Message * msg = DataRecv(sendr_id);
+		if(msg->GetTxnId() != 0) {
+			cout << "#r: From: " << sendr_id << " :: seq: "  << msg->GetTxnId() << " :: ack: " << msg->GetAckId() << " :: data: " << msg->GetData() << endl;
 
 			// Updating the ack list for msg received.
-			ack_obj->AddToAckList(msg.sequence_id());	
+			ack_obj->AddToAckList(msg->GetTxnId());	
 		}	
 	}
 		

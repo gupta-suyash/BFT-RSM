@@ -1,46 +1,37 @@
 #include "pipe_queue.h"
 #include <cstring>
 
+void PipeQueue::Init()
+{
+	msg_queue_ = new boost::lockfree::queue<Message *>(0);
+	store_queue_ = new boost::lockfree::queue<Message *>(0);
+}
+
 
 /* Pushes a message to the queue.
  * 
  * @param msg is the message to be queued..
  */
-void PipeQueue::Enqueue(crosschain_proto::CrossChainMessage msg)
+void PipeQueue::Enqueue(Message *msg)
 {
-	// Locking access to queue.
-	msg_q_mutex.lock();
-
 	// Continue trying to push until successful.
-	msg_queue_.push(msg);
-
-	// Unlocking the mutex.
-	msg_q_mutex.unlock();
+	while(!msg_queue_->push(msg));
 }	
 
 /* Pops a message from the rear of the queue.
  * 
  * @return the popped message.
  */
-crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
+Message * PipeQueue::Dequeue()
 {
-	crosschain_proto::CrossChainMessage msg;
+	bool valid = false;
+	Message *msg = Message::CreateMsg(); // Is allocation a memory leak.
 
-	// Locking access to queue.
-	msg_q_mutex.lock();
-	
 	// Popping the message; valid returns the status.
-	//valid = msg_queue_.pop(msg);
-	if(!msg_queue_.empty()) {
-		msg = msg_queue_.front();
-		msg_queue_.pop();
-		cout << "Dequeued: " << msg.sequence_id() << endl;
-	} else {
-		msg.set_sequence_id(0);;
+	valid = msg_queue_->pop(msg);
+	if(valid) {
+		cout << "Dequeued: " << msg->GetTxnId() << endl;
 	}
-
-	// Unlocking the mutex.
-	msg_q_mutex.unlock();
 
 	return msg;
 }
@@ -49,38 +40,32 @@ crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
 /* This function is used to dequeue a message received from the protocol running 
  * at the node and forward it to the other RSM iff the node is designated to 
  * forward this message. Nodes select which message to send based on the mod of
- * block_id and number of nodes in each RSM.
+ * txn_id_ and number of nodes in each RSM.
  *
  * @return the block to be forwarded.
  */ 
-crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
+Message * PipeQueue::EnqueueStore()
 {
 	bool valid = false;
-	//ProtoMessage *msg = new ProtoMessage();
+	//unique_ptr<Message> pmsg = make_unique<Message>();
+	//Message *msg = pmsg.release();
 
-	crosschain_proto::CrossChainMessage msg;
+	Message *msg = Message::CreateMsg(); // TODO: Is allocation a memory leak.
+
 	// Popping out the message from in_queue to send to other RSM.
-	//valid = in_queue->pop(msg);
-
-	if(!in_queue.empty()) {
-		msg = in_queue.front();
-		in_queue.pop();
-		if(msg.sequence_id() % get_nodes_rsm() != get_node_rsm_id()) {
+	valid = in_queue->pop(msg);
+	if(valid) {
+		cout << "Popped InQueue: " << msg->GetTxnId() << " : Data: " << msg->GetData() << endl;
+		if(msg->GetTxnId() % get_nodes_rsm() != get_node_rsm_id()) {
 			// Any message that is not supposed to be sent by this node,
 			// it pushes it to the store_queue.
-			//cout << "Will store: " << msg.sequence_id() << " :: " << msg.transactions() << endl;
-
-			store_queue_.push(msg);
 			
-			// TODO: Do we need this or this is extra memory alloc.
-			msg.clear_sequence_id();
-			msg.clear_ack_id();
-			msg.clear_transactions();
-			msg.set_sequence_id(0);
-		} 
-	} else {
-		// No message in the queue.	
-		msg.set_sequence_id(0);
+			while(!store_queue_->push(msg));
+			
+			// TODO: Is this redundant?
+			msg = Message::CreateMsg();
+		}	
+		
 	}
 
 	return msg;	

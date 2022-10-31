@@ -22,6 +22,10 @@ int main(int argc, char *argv[])
 	cout << "Done Parsing" << endl;
 
 	//Message::TestFunc();
+	
+	InitInQueue();
+	cout << "Done Initializing InQueue" << endl;
+
 
 	// Setting up the Acknowledgment object.
 	ack_obj = new Acknowledgment();
@@ -41,6 +45,7 @@ int main(int argc, char *argv[])
 	// Setting up the queue.
 	unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
 	sp_qptr = sp_queue.get();
+	sp_qptr->Init();
 	cout << "Done setting up msg-queue and store-queue between threads." << endl; 
 
 	// The next command is for testing the queue.

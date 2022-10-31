@@ -4,10 +4,15 @@ Message * Message::CreateMsg()
 {
 	Message *msg = new Message();
 	msg->msize_ = UINT64_MAX;
-	msg->txn_id_ = UINT64_MAX;
+	msg->txn_id_ = 0;
 	msg->cumm_ack_ = UINT64_MAX;
 
 	return msg;
+}
+
+UInt64 Message::GetTxnId()
+{
+	return txn_id_;
 }
 
 void Message::SetTxnId(UInt64 txn_id)
@@ -15,15 +20,27 @@ void Message::SetTxnId(UInt64 txn_id)
 	txn_id_ = txn_id;
 }	
 
+UInt64 Message::GetAckId()
+{
+	return cumm_ack_;
+}
+
 void Message::SetAckId(UInt64 cumm_ack_id)
 {
 	cumm_ack_ = cumm_ack_id;
 }	
 
+char * Message::GetData()
+{
+	return data_;
+}
+
 void Message::SetData(char* data, UInt64 msize) 
 {
 	msize_ = msize;
-	data_ = data;
+	data_ = new char[msize_];
+	memcpy(data_, data, msize);
+	//data_ = data;
 }	
 
 void Message::CopyFromBuf(char *buf)
@@ -58,10 +75,22 @@ char * Message::CopyToBuf()
 	// Getting the size of the message.
 	UInt64 sz = GetSize();
 
+	//cout << "Buf Size: " << sz << " : mszie: " << msize_ << " : Data: " << data_ << endl;
+
 	char *buf = new char[sz];
 
-	UInt64 ptr = 0;
+	size_t ptr = 0;
 	COPY_BUF(buf, msize_, ptr);
+	//memcpy(buf, (char *)&msize_, sizeof(msize_));
+	//ptr += sizeof(msize_);
+
+	//cout << "Buf State1: " << buf << " : length: " << sizeof(buf) << endl;
+
+	//UInt64 lola = 0;
+	//memcpy(&lola, &buf[0], sizeof(lola));
+	//cout << "Outed: " << lola << endl;
+
+
 	COPY_BUF(buf, txn_id_, ptr);
 	COPY_BUF(buf, cumm_ack_, ptr);
 	COPY_BUF(buf, data_, ptr);

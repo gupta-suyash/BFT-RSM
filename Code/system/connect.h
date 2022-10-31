@@ -8,6 +8,6 @@
 #include <iostream>
 
 // TODO: Define correct parameters for these functions.
-void SendBlock(const uint64_t block_id, const char *block);
+void SendBlock(uint64_t block_id, char *block, size_t bsize);
 void ReceiveBlock();
-void Init();
+void InitInQueue();

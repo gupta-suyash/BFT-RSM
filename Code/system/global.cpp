@@ -20,7 +20,7 @@ PipeQueue *sp_qptr;
 Pipeline *pipe_ptr;
 
 // Input queue.
-std::queue<crosschain_proto::CrossChainMessage> in_queue;
+boost::lockfree::queue<Message *> *in_queue;
 
 // Acknowledgement object.
 Acknowledgment *ack_obj;
