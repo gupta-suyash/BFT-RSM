@@ -350,6 +350,7 @@ void Pipeline::RecvFromOwnRsm()
 			string str2 = str.substr(5,(str.length()-5));
 			UInt64 num = std::stoi(str2);
 			cout << "Recvd: " << sz << " :: " << buf <<  " : num: " << num << endl;
+			ack_obj->AddToAckList(num);
 		}
 	}
 		
