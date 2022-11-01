@@ -1,62 +1,133 @@
-#include <filesystem>
-#include <memory>
-#include <pwd.h>
+#include <fstream>
+#include <iostream>
 #include <string>
+#include <vector>
 
-#include "ack.h"
-#include "connect.h"
-#include "global.h"
-#include "iothread.h"
-#include "message.h"
-#include "pipe_queue.h"
-#include "pipeline.h"
+#include "crosschainmessage.pb.h"
+#include <google/protobuf/util/json_util.h>
 
-using std::filesystem::current_path;
+crosschain_proto::CrossChainMessage generateMessage(const int i)
+{
+    crosschain_proto::CrossChainMessage message;
+    message.set_sequence_id(i);
+    message.set_ack_id(7 * i);
+    message.set_transactions("This is the " + std::to_string(i) + "th message");
 
-void parser(int argc, char *argv[]);
+    return message;
+}
+
+void outputTestFile(const std::string &fileOutputName)
+{
+    static constexpr auto kNumberOfTests = 500;
+    std::ofstream output{fileOutputName};
+
+    output << "INPUT" << std::endl;
+    for (int i = 0; i < kNumberOfTests; i++)
+    {
+        const auto generatedMessage = generateMessage(i);
+        output << generatedMessage.SerializeAsString().size() << '\n'
+               << generatedMessage.SerializeAsString() << std::endl;
+    }
+
+    output << "EXPECTED_OUTPUT" << std::endl;
+    for (int i = 0; i < kNumberOfTests; i++)
+    {
+        const auto generatedMessage = generateMessage(i);
+        std::string jsonString;
+        google::protobuf::util::MessageToJsonString(generatedMessage, &jsonString);
+        output << jsonString << std::endl;
+    }
+}
+
+void readInput(std::ifstream &input, std::vector<std::string> *serializedStrings, std::vector<std::string> *jsonStrings)
+{
+    const std::string INPUT_START = "INPUT";
+    const std::string OUTPUT_START = "EXPECTED_OUTPUT";
+    std::string line;
+
+    std::getline(input, line);
+    if (INPUT_START != line)
+    {
+        std::cout << "First line should be " << INPUT_START << "\nExiting...";
+        exit(1);
+    }
+
+    std::getline(input, line); // Go to input start
+    while (OUTPUT_START != line)
+    {
+        const auto numberOfBytes = std::stoull(line);
+        char *const buff = new char[numberOfBytes + 1];
+
+        input.read(buff, numberOfBytes);
+        buff[numberOfBytes] = '\0'; // null terminate string ?? wtf c++
+        std::getline(input, line);  // clear newline
+        line = buff;
+
+        serializedStrings->push_back(line);
+
+        std::getline(input, line);
+    }
+
+    while (std::getline(input, line))
+    {
+        jsonStrings->push_back(line);
+    }
+}
+
+void testInput(const std::string &filename)
+{
+    std::ifstream input{filename};
+    std::vector<std::string> serializedStrings;
+    std::vector<std::string> jsonStrings;
+
+    readInput(input, &serializedStrings, &jsonStrings);
+
+    assert(serializedStrings.size() == jsonStrings.size() && "Searilized and Json quantity differ");
+
+    bool testPassed = true;
+
+    for (size_t i = 0; i < serializedStrings.size(); i++)
+    {
+        const auto &serializedString = serializedStrings[i];
+        const auto &jsonString = jsonStrings[i];
+
+        crosschain_proto::CrossChainMessage searilizedMessage;
+        crosschain_proto::CrossChainMessage jsonMessage;
+
+        searilizedMessage.ParseFromString(serializedString);
+        google::protobuf::util::JsonStringToMessage(jsonString, &jsonMessage);
+
+        const auto correctSequenceId = searilizedMessage.sequence_id() == jsonMessage.sequence_id();
+        const auto correctTransaction = searilizedMessage.transactions() == jsonMessage.transactions();
+        const auto correctAckId = searilizedMessage.ack_id() == jsonMessage.ack_id();
+
+        if (!(correctSequenceId && correctTransaction && correctAckId))
+        {
+            testPassed = false;
+            std::string serializedJson;
+            google::protobuf::util::MessageToJsonString(searilizedMessage, &serializedJson);
+            std::cout << "ERROR: Message " << i << " not equal on [" << (correctSequenceId ? "" : "seq_id ")
+                      << (correctTransaction ? "" : "transaction ") << (correctAckId ? "" : "ackId") << "]\n";
+            std::cout << "\tExpected: " << jsonString << "\n\tReceived: " << serializedJson << std::endl;
+        }
+    }
+    std::cout << "Test Finished.\n" << (testPassed ? "Success!\n" : "Failure\n");
+}
 
 int main(int argc, char *argv[])
 {
-    // Parsing the command line args.
-    parser(argc, argv);
-    cout << "Done Parsing" << endl;
-
-    // Setting up the Acknowledgment object.
-    ack_obj = new Acknowledgment();
-    ack_obj->Init();
-    cout << "Done Initializing Acknowledgment Object" << endl;
-
-    QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
-    // ack_obj->TestFunc();
-    // quack_obj->TestFunc();
-
-    unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
-    pipe_ptr = pipe_obj.get();
-    pipe_ptr->SetSockets();
-    cout << "Done setting up sockets between nodes." << endl;
-
-    // Setting up the queue.
-    unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
-    sp_qptr = sp_queue.get();
-    cout << "Done setting up msg-queue and store-queue between threads." << endl;
-
-    // The next command is for testing the queue.
-    // sp_qptr->CallThreads();
-
-    cout << "Done setting up the in-queue for messages from protocol." << endl;
-
-    // Creating and starting Sender IOThreads.
-    unique_ptr<SendThread> snd_obj = make_unique<SendThread>();
-    snd_obj->Init(0);
-    cout << "Created Sender Thread: " << snd_obj->GetThreadId() << endl;
-
-    // Creating and starting Receiver IOThreads.
-    // unique_ptr<RecvThread> rcv_obj = make_unique<RecvThread>();
-    // rcv_obj->Init(1);
-    // cout << "Created Receiver Thread: " << rcv_obj->GetThreadId() << endl;
-
-    snd_obj->thd_.join();
-    // rcv_obj->thd_.join();
-
-    return (1);
+    const std::string kFileName = "OUTPUT";
+    if (std::string{"read"} == argv[1])
+    {
+        testInput(kFileName);
+    }
+    else if (std::string{"write"} == argv[1])
+    {
+        outputTestFile(kFileName);
+    }
+    else
+    {
+        std::cout << "PROVIDE INPUT READ OR WRITE" << std::endl;
+    }
+    return 0;
 }
