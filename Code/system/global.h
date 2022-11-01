@@ -1,24 +1,23 @@
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-#include <iostream>
-#include <vector>
-#include <memory>
-#include <cstring>
-#include <utility>
-#include "types.h"
 #include "../configuration/config.h"
 #include "crosschainmessage.pb.h"
+#include "types.h"
 #include <boost/lockfree/queue.hpp>
+#include <cstring>
+#include <iostream>
+#include <memory>
 #include <queue>
+#include <utility>
+#include <vector>
 
 using namespace std;
 
 class Pipeline;
 class PipeQueue;
-//class ProtoMessage;
+// class ProtoMessage;
 class Acknowledgment;
-
 
 // List of global variables and configuration parameters.
 
@@ -28,9 +27,9 @@ extern UInt16 g_nodes_rsm;
 extern UInt16 g_node_cnt;
 extern UInt16 g_node_id;
 extern UInt16 g_node_rsm_id;
-extern UInt16 g_rsm_id; // RSM Id for this node.
+extern UInt16 g_rsm_id;       // RSM Id for this node.
 extern UInt16 g_other_rsm_id; // RSM Id of other RSM.
-extern UInt16 g_max_fail; 
+extern UInt16 g_max_fail;
 
 extern UInt16 g_port_num;
 
@@ -41,7 +40,7 @@ extern PipeQueue *sp_qptr;
 // Pointer to pipeline
 extern unique_ptr<Pipeline> pipe_obj;
 extern Pipeline *pipe_ptr;
-			
+
 UInt16 get_num_of_rsm();
 UInt16 get_nodes_rsm();
 
@@ -59,29 +58,27 @@ void set_node_rsm_id(UInt16 nid);
 
 UInt16 get_port_num();
 
-UInt16 get_max_nodes_fail();	
-
+UInt16 get_max_nodes_fail();
 
 // An enum that states different types of messages.
-enum MessageType {
-	kSend=0,
-	kForward
+enum MessageType
+{
+    kSend = 0,
+    kForward
 };
 
-
 // Copy data in buffer d starting at position p to v.
-#define COPY_VAL(v, d, p)		\
-	memcpy(&v, &d[p], sizeof(v));	\
-	p += sizeof(v);
+#define COPY_VAL(v, d, p)                                                                                              \
+    memcpy(&v, &d[p], sizeof(v));                                                                                      \
+    p += sizeof(v);
 
 // Copy data at v to buffer d starting from position p.
-#define COPY_BUF(d, v, p)		\
-	memcpy(&((char *)d)[p], (char *)&v, sizeof(v)); \
-	p += sizeof(v);
-
+#define COPY_BUF(d, v, p)                                                                                              \
+    memcpy(&((char *)d)[p], (char *)&v, sizeof(v));                                                                    \
+    p += sizeof(v);
 
 // Queue to interact with the protocol accessing Scrooge.
-//extern boost::lockfree::queue<ProtoMessage *> *in_queue;
+// extern boost::lockfree::queue<ProtoMessage *> *in_queue;
 extern std::queue<crosschain_proto::CrossChainMessage> in_queue;
 
 // Object to access the Acknowledgments.
