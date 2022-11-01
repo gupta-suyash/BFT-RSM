@@ -263,7 +263,7 @@ void Pipeline::RecvFromOtherRsm()
  */ 
 void Pipeline::SendToOwnRsm()
 {
-	cout << "SendToOwnRsm" << endl;
+	//cout << "SendToOwnRsm" << endl;
 	//// Check the queue if there is any message.
 	//Message * msg = sp_qptr->Dequeue();
 	//if(msg->GetTxnId() == 0)
@@ -318,7 +318,7 @@ char *Pipeline::DeepCopyMsg(char *buf)
  */ 
 void Pipeline::RecvFromOwnRsm()
 {
-	cout << "RecvFromOwnRsm" << endl;
+	//cout << "RecvFromOwnRsm" << endl;
 	// Starting id of each RSM.
 	UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
