@@ -3,6 +3,8 @@
 #include "connect.h"
 #include "pipeline.h"
 
+#include <limits>
+
 uint16_t SendThread::GetThreadId()
 {
     return thd_id_;
@@ -52,7 +54,7 @@ void SendThread::Run()
         pipe_ptr->RecvFromOwnRsm();
 
         uint64_t cid = ack_obj->GetAckIterator();
-        if (cid < MAX_UINT64 && flag)
+        if (cid < std::numeric_limits<uint64_t>::max() && flag)
         {
             cout << "Ack list at: " << cid << endl;
             if (cid == 199)
@@ -100,7 +102,7 @@ void RecvThread::Run()
         pipe_ptr->RecvFromOwnRsm();
 
         uint64_t bid = ack_obj->GetAckIterator();
-        if (bid < MAX_UINT64 && flag)
+        if (bid < std::numeric_limits<uint64_t>::max() && flag)
         {
             cout << "Ack list at: " << bid << endl;
             if (bid == 499)
