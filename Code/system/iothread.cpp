@@ -25,38 +25,41 @@ void SendThread::Run()
 	while(true) {
 		if(bid < 5) {
 
-		// Send to one node in other rsm.
-		UInt16 nid = GetLastSent();
+		//// Send to one node in other rsm.
+		//UInt16 nid = GetLastSent();
 
-		// TODO: Next two lines, remove.
-		TestAddBlockToInQueue(bid);
+		//// TODO: Next two lines, remove.
+		//TestAddBlockToInQueue(bid);
 		bid++;
 
-		bool did_send = pipe_ptr->SendToOtherRsm(nid);
+		//bool did_send = pipe_ptr->SendToOtherRsm(nid);
 
-		// Did send to other RSM?
-		if(did_send) {
-			// Set the id of next node to send.
-			nid = (nid+1) % get_nodes_rsm();
-			SetLastSent(nid);
+		//// Did send to other RSM?
+		//if(did_send) {
+		//	// Set the id of next node to send.
+		//	nid = (nid+1) % get_nodes_rsm();
+		//	SetLastSent(nid);
+		//}
+
+		  // Broadcast to all in own rsm.
+		  pipe_ptr->SendToOwnRsm();
+
 		}
 
-		}
-
-		// Broadcast to all in own rsm.
-		pipe_ptr->SendToOwnRsm();
+		//// Broadcast to all in own rsm.
+		//pipe_ptr->SendToOwnRsm();
 
 		// Receiver thread code -- temporary.
-		pipe_ptr->RecvFromOtherRsm();
+		//pipe_ptr->RecvFromOtherRsm();
 		pipe_ptr->RecvFromOwnRsm();
 
-		UInt64 cid  = ack_obj->GetAckIterator();
-		if(cid < MAX_UINT64 && flag) {
-			cout << "Ack list at: " << cid << endl;
-			if(cid == 4) {
-				flag = false;
-			}	
-		}
+		//UInt64 cid  = ack_obj->GetAckIterator();
+		//if(cid < MAX_UINT64 && flag) {
+		//	cout << "Ack list at: " << cid << endl;
+		//	if(cid == 4) {
+		//		flag = false;
+		//	}	
+		//}
 	
 	}
 }

@@ -165,7 +165,7 @@ void Pipeline::DataSend(Message *msg, UInt16 node_id)
 	//buff->CopyFromBuf(buf);
 	//cout << "Pb: seq: "  << buff->GetTxnId() << " :: ack: " << buff->GetAckId() << " :: data: " << buff->GetData() << endl;
 
-	if((rv = nng_send(sock, buf, sz, 0)) != 0) {
+	if((rv = nng_send(sock, buf, sz+1, 0)) != 0) {
 		fatal("nng_send", rv);
 	}
 }
@@ -177,21 +177,21 @@ void Pipeline::DataSend(Message *msg, UInt16 node_id)
  */ 
 Message * Pipeline::DataRecv(UInt16 node_id)
 {
-	//cout << "DataRecv" << endl;
+	cout << "DataRecv" << endl;
 	int rv; 
 	char* buf = NULL;
 	size_t sz;
 	auto sock = recv_sockets_[node_id];
-	
+
 	// We want the nng_recv to be non-blocking and reduce copies. 
 	// So, we use the two available bit masks.
-	rv = nng_recv(sock, buf, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+	rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
 
 	Message *msg = Message::CreateMsg();
 
 	// nng_recv is non-blocking, if there is no data, return value is non-zero.
 	if(rv == 0) {
-		cout << "Two: " << sz << " :: " << &buf[0] << endl;
+		cout << "Two: " << sz << " :: " << buf << endl;
 		msg->CopyFromBuf(buf);
 		cout << "Recvd: " << msg->GetTxnId() << endl;
 	}
@@ -207,7 +207,7 @@ Message * Pipeline::DataRecv(UInt16 node_id)
  */ 
 bool Pipeline::SendToOtherRsm(UInt16 nid)
 {
-	//cout << "SendToOtherRSM" << endl;
+	cout << "SendToOtherRSM" << endl;
 	// Fetching the block to send, if any.
 	Message *msg = sp_qptr->EnqueueStore();
 	if(msg->GetTxnId() == 0)
@@ -234,7 +234,7 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
  */ 
 void Pipeline::RecvFromOtherRsm()
 {
-	//cout << "RecvFromOtherRSM" << endl;
+	cout << "RecvFromOtherRSM" << endl;
 	
 	// Starting id of the other RSM.
 	UInt16 sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
@@ -263,11 +263,11 @@ void Pipeline::RecvFromOtherRsm()
  */ 
 void Pipeline::SendToOwnRsm()
 {
-	//cout << "SendToOwnRsm" << endl;
-	// Check the queue if there is any message.
-	Message * msg = sp_qptr->Dequeue();
-	if(msg->GetTxnId() == 0)
-		return;       
+	cout << "SendToOwnRsm" << endl;
+	//// Check the queue if there is any message.
+	//Message * msg = sp_qptr->Dequeue();
+	//if(msg->GetTxnId() == 0)
+	//	return;       
 	
 	// Starting node id of RSM.
 	UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
@@ -279,10 +279,22 @@ void Pipeline::SendToOwnRsm()
 		if(recvr_id == get_node_id())
 			continue;
 		
-		// TODO: Remove this line.
-		cout << "Ms: To: " << recvr_id << " :: seq: "  << msg->GetTxnId() << " :: ack: " << msg->GetAckId() << " :: data: " << msg->GetData() << endl;
+		//// TODO: Remove this line.
+		//cout << "Ms: To: " << recvr_id << " :: seq: "  << msg->GetTxnId() << " :: ack: " << msg->GetAckId() << " :: data: " << msg->GetData() << endl;
 
-		DataSend(msg, recvr_id);
+		//DataSend(msg, recvr_id);
+		
+		int rv;
+		auto sock = send_sockets_[recvr_id];
+
+		string str = "Tmsg ";
+		char *buf = &str[0];
+		size_t sz = str.length();
+		cout << "Sent: " << sz << " :: " << buf << endl;
+
+		if((rv = nng_send(sock, buf, sz+1, 0)) != 0) {
+			fatal("nng_send", rv);
+		}	
 	}
 		
 }	
@@ -306,7 +318,7 @@ char *Pipeline::DeepCopyMsg(char *buf)
  */ 
 void Pipeline::RecvFromOwnRsm()
 {
-	//cout << "RecvFromOwnRsm" << endl;
+	cout << "RecvFromOwnRsm" << endl;
 	// Starting id of each RSM.
 	UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
@@ -317,13 +329,25 @@ void Pipeline::RecvFromOwnRsm()
 		if(sendr_id == get_node_id())
 			continue;
 		
-		Message * msg = DataRecv(sendr_id);
-		if(msg->GetTxnId() != 0) {
-			cout << "#r: From: " << sendr_id << " :: seq: "  << msg->GetTxnId() << " :: ack: " << msg->GetAckId() << " :: data: " << msg->GetData() << endl;
+		//Message * msg = DataRecv(sendr_id);
+		//if(msg->GetTxnId() != 0) {
+		//	cout << "#r: From: " << sendr_id << " :: seq: "  << msg->GetTxnId() << " :: ack: " << msg->GetAckId() << " :: data: " << msg->GetData() << endl;
 
-			// Updating the ack list for msg received.
-			ack_obj->AddToAckList(msg->GetTxnId());	
-		}	
+		//	// Updating the ack list for msg received.
+		//	ack_obj->AddToAckList(msg->GetTxnId());	
+		//}	
+
+		int rv; 
+		char* buf = NULL;
+		size_t sz;
+		auto sock = recv_sockets_[sendr_id];
+
+		rv = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+
+		// nng_recv is non-blocking, if there is no data, return value is non-zero.
+		if(rv == 0) {
+			cout << "Recvd: " << sz << " :: " << buf << endl;
+		}
 	}
 		
 }

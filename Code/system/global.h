@@ -76,7 +76,7 @@ enum MessageType {
 
 // Copy data at v to buffer d starting from position p.
 #define COPY_BUF(d, v, p)		\
-	memcpy(d+p, (char *)&v, sizeof(v)); \
+	memcpy(&((char *)d)[p], (char *)&v, sizeof(v)); \
 	p += sizeof(v);
 
 

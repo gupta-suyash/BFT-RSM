@@ -50,15 +50,31 @@ void Message::CopyFromBuf(char *buf)
 	// Copying the first field: size of the data blob.
 	COPY_VAL(msize_, buf, ptr);
 
+	cout << "Msize: " << msize_ << endl;
+
 	// Copying next field, txn_id_
 	COPY_VAL(txn_id_, buf, ptr);
+
+	cout << "txn_id: " << txn_id_ << endl;
 
 	// Copying next field, cummulative ack 
 	COPY_VAL(cumm_ack_, buf, ptr);
 
+	cout << "ack: " << cumm_ack_ << endl;
+
 	// Copying the rest of the messages as the data blob.
-	data_ = new char[msize_];
-	COPY_VAL(data_, buf, ptr);
+	
+	string str;
+	char v;
+	for (uint64_t i = 0; i < msize_; i++)
+	{
+		COPY_VAL(v, buf, ptr);
+		str += v;
+	}
+	memcpy(data_, &str[0], msize_);
+	
+	//data_ = new char[msize_];
+	//COPY_VAL(data_, buf, ptr);
 
 	cout << "Data Blob Size: " << msize_ << endl;
 	cout << "Data Blob: " << data_ << endl;
@@ -93,7 +109,15 @@ char * Message::CopyToBuf()
 
 	COPY_BUF(buf, txn_id_, ptr);
 	COPY_BUF(buf, cumm_ack_, ptr);
-	COPY_BUF(buf, data_, ptr);
+
+	char v;
+	for (uint j = 0; j < msize_; j++)
+	{
+		v = data_[j];
+		COPY_BUF(buf, v, ptr);
+	}
+
+	//COPY_BUF(buf, data_, ptr);
 
 	return buf;
 }	
