@@ -6,8 +6,8 @@
 void Acknowledgment::Init()
 {
 	// The first entry to the list is not a msg identifier (max int).
-	msg_recv_.push_back(MAX_UINT64);
-	ackValue = MAX_UINT64;
+	msg_recv_.push_back(0);
+	ackValue = 0;
 }
 
 /* Adds an element to the lsit msg_recv_. 
@@ -17,61 +17,45 @@ void Acknowledgment::Init()
  */
 void Acknowledgment::AddToAckList(UInt64 mid)
 {
-	auto it = msg_recv_.begin();
-
-	// If the first element is max value, remove it and add mid.
-	if(*it == MAX_UINT64) {
-		msg_recv_.push_back(mid);
-		it = msg_recv_.erase(it);
-	} else {
-		// Flag to check if mid is added at the end of the list.
-		bool last_flag = true;
-		for(; it != msg_recv_.end(); ++it) {
-			//cout << "Compare Value: " << *it << endl;
-			if(*it > mid) {
-				// Insert before the element larger than mid.
-				msg_recv_.emplace(it, mid);
-				last_flag = false;
-				break;
-			}
+	// Flag to check if mid is added at the end of the list.
+	bool last_flag = true;
+	for(auto it = msg_recv_.begin(); it != msg_recv_.end(); ++it) {
+		//cout << "Compare Value: " << *it << endl;
+		if(*it > mid) {
+			// Insert before the element larger than mid.
+			msg_recv_.emplace(it, mid);
+			last_flag = false;
+			break;
 		}
+	}
 
-		if(last_flag) {
-			// Appending to the list.
-			msg_recv_.push_back(mid);
-		}	
+	if(last_flag) {
+		// Appending to the list.
+		msg_recv_.push_back(mid);
 	}	
-
 	
 	// Need to lock accesses to ackValue as it used by multiple threads
 	ack_mutex.lock();
 
 	//cout << "AckValue: " << ackValue << " :: mid: " << mid << endl;
-	if(mid == 1) {
-		// If mid = 1, set the ackValue to 1.
-		ackValue = 1;
-	}
-
-	// Enter if ackValue is not MAX_UINT64; possible if mid=1, not inserted yet.
-	if(ackValue != MAX_UINT64) {
-		// Flag to determine if we need to delete old acknowledgments.
-		bool del_flag = false;
-		it = msg_recv_.begin(); 
-		it++;
-		for(;it != msg_recv_.end(); it++) {
-			if(*it != ackValue+1) {
-				break;
-			}
-			ackValue++;
-			del_flag = true;
+	// Flag to determine if we need to delete old acknowledgments.
+	bool del_flag = false;
+	auto it = msg_recv_.begin(); 
+	it++;
+	for(;it != msg_recv_.end(); it++) {
+		if(*it != ackValue+1) {
+			break;
 		}
-
-		if(del_flag) {
-			// Delete from beginning to the element less than ackValue.
-			--it;
-			msg_recv_.erase(msg_recv_.begin(), it);
-		}	
+		ackValue++;
+		del_flag = true;
 	}
+
+	if(del_flag) {
+		// Delete from beginning to the element less than ackValue.
+		--it;
+		msg_recv_.erase(msg_recv_.begin(), it);
+	}	
+	
 
 	// Unlocking the mutex.
 	ack_mutex.unlock();	
