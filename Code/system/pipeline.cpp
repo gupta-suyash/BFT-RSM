@@ -53,7 +53,7 @@ void Pipeline::ReadIfconfig(string if_path)
  * @param id is the required IP.
  * @return the IP address.
  */
-string Pipeline::getIP(UInt16 id)
+string Pipeline::getIP(uint16_t id)
 {
     return ip_addr[id];
 }
@@ -63,9 +63,9 @@ string Pipeline::getIP(UInt16 id)
  * @param cnt is the Id the sender node.
  * @return the url.
  */
-string Pipeline::GetRecvUrl(UInt16 cnt)
+string Pipeline::GetRecvUrl(uint16_t cnt)
 {
-    UInt16 port_id = get_port_num() + (get_node_id() * get_nodes_rsm()) + cnt;
+    uint16_t port_id = get_port_num() + (get_node_id() * get_nodes_rsm()) + cnt;
     string url = "tcp://" + getIP(get_node_id()) + ":" + to_string(port_id);
     return url;
 }
@@ -75,9 +75,9 @@ string Pipeline::GetRecvUrl(UInt16 cnt)
  * @param cnt is the Id of the receiver node.
  * @return the url.
  */
-string Pipeline::GetSendUrl(UInt16 cnt)
+string Pipeline::GetSendUrl(uint16_t cnt)
 {
-    UInt16 port_id = get_port_num() + (cnt * get_nodes_rsm()) + get_node_id();
+    uint16_t port_id = get_port_num() + (cnt * get_nodes_rsm()) + get_node_id();
     string url = "tcp://" + getIP(cnt) + ":" + to_string(port_id);
     return url;
 }
@@ -99,7 +99,7 @@ void Pipeline::SetSockets()
     int rv;
 
     // Initializing sender sockets.
-    for (UInt16 i = 0; i < g_node_cnt; i++)
+    for (uint16_t i = 0; i < g_node_cnt; i++)
     {
         if (i != get_node_id())
         {
@@ -124,7 +124,7 @@ void Pipeline::SetSockets()
     sleep(1);
 
     // Initializing receiver sockets.
-    for (UInt16 i = 0; i < g_node_cnt; i++)
+    for (uint16_t i = 0; i < g_node_cnt; i++)
     {
         if (i != get_node_id())
         {
@@ -151,7 +151,7 @@ void Pipeline::SetSockets()
  * @param buf is the outgoing message of protobuf type.
  * @param nid is the destination node id.
  */
-void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id)
+void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, uint16_t node_id)
 {
     // cout << "DataSend" << endl;
     int rv;
@@ -185,7 +185,7 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id)
  * @param nid is the sender node id.
  * @return the protobuf.
  */
-crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
+crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
 {
     // cout << "DataRecv" << endl;
     int rv;
@@ -223,7 +223,7 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(UInt16 node_id)
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-bool Pipeline::SendToOtherRsm(UInt16 nid)
+bool Pipeline::SendToOtherRsm(uint16_t nid)
 {
     // cout << "SendToOtherRSM" << endl;
     // Fetching the block to send, if any.
@@ -232,11 +232,11 @@ bool Pipeline::SendToOtherRsm(UInt16 nid)
         return false;
 
     // The id of the receiver node in the other RSM.
-    UInt16 recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
-    // UInt16 recvr_id = 1;
+    uint16_t recvr_id = nid + (get_other_rsm_id() * get_nodes_rsm());
+    // uint16_t recvr_id = 1;
 
     // Acking the messages received from the other RSM.
-    const UInt64 ack_msg = ack_obj->GetAckIterator();
+    const uint64_t ack_msg = ack_obj->GetAckIterator();
     msg.set_ack_id(ack_msg);
 
     cout << "Os: To: " << recvr_id << " :: seq: " << msg.sequence_id() << " :: ack: " << msg.ack_id()
@@ -255,12 +255,12 @@ void Pipeline::RecvFromOtherRsm()
     // cout << "RecvFromOtherRSM" << endl;
 
     // Starting id of the other RSM.
-    UInt16 sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
+    uint16_t sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
 
-    for (UInt16 j = 0; j < get_nodes_rsm(); j++)
+    for (uint16_t j = 0; j < get_nodes_rsm(); j++)
     {
         // The id of the sender node.
-        UInt16 sendr_id = j + sendr_id_start;
+        uint16_t sendr_id = j + sendr_id_start;
 
         crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
         if (msg.sequence_id() != 0)
@@ -290,12 +290,12 @@ void Pipeline::SendToOwnRsm()
         return;
 
     // Starting node id of RSM.
-    UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
+    uint16_t rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
-    for (UInt16 j = 0; j < get_nodes_rsm(); j++)
+    for (uint16_t j = 0; j < get_nodes_rsm(); j++)
     {
         // The id of the receiver node.
-        UInt16 recvr_id = j + rsm_id_start;
+        uint16_t recvr_id = j + rsm_id_start;
 
         if (recvr_id == get_node_id())
             continue;
@@ -328,12 +328,12 @@ void Pipeline::RecvFromOwnRsm()
 {
     // cout << "RecvFromOwnRsm" << endl;
     // Starting id of each RSM.
-    UInt16 rsm_id_start = get_rsm_id() * get_nodes_rsm();
+    uint16_t rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
-    for (UInt16 j = 0; j < get_nodes_rsm(); j++)
+    for (uint16_t j = 0; j < get_nodes_rsm(); j++)
     {
         // The id of the sender node.
-        UInt16 sendr_id = j + rsm_id_start;
+        uint16_t sendr_id = j + rsm_id_start;
 
         if (sendr_id == get_node_id())
             continue;

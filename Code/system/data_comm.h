@@ -1,7 +1,6 @@
 #ifndef _DATA_COMM_
 #define _DATA_COMM_
 
-#include "types.h"
 #include <iostream>
 
 struct DataPack
@@ -27,12 +26,12 @@ struct DataPack
 
 /*class ProtoMessage
 {
-    UInt64 block_id;
+    uint64_t block_id;
     char *block;
 public:
-    static ProtoMessage * SetMessage(UInt64 bid, char *blk);
-    UInt64 GetBlockId();
-    void SetBlockId(UInt64 bid);
+    static ProtoMessage * SetMessage(uint64_t bid, char *blk);
+    uint64_t GetBlockId();
+    void SetBlockId(uint64_t bid);
     char * GetBlock();
 };*/
 

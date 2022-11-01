@@ -3,7 +3,6 @@
 
 #include "../configuration/config.h"
 #include "crosschainmessage.pb.h"
-#include "types.h"
 #include <boost/lockfree/queue.hpp>
 #include <cstring>
 #include <iostream>
@@ -21,17 +20,17 @@ class Acknowledgment;
 
 // List of global variables and configuration parameters.
 
-extern UInt16 g_thread_cnt;
-extern UInt16 g_num_rsm;
-extern UInt16 g_nodes_rsm;
-extern UInt16 g_node_cnt;
-extern UInt16 g_node_id;
-extern UInt16 g_node_rsm_id;
-extern UInt16 g_rsm_id;       // RSM Id for this node.
-extern UInt16 g_other_rsm_id; // RSM Id of other RSM.
-extern UInt16 g_max_fail;
+extern uint16_t g_thread_cnt;
+extern uint16_t g_num_rsm;
+extern uint16_t g_nodes_rsm;
+extern uint16_t g_node_cnt;
+extern uint16_t g_node_id;
+extern uint16_t g_node_rsm_id;
+extern uint16_t g_rsm_id;       // RSM Id for this node.
+extern uint16_t g_other_rsm_id; // RSM Id of other RSM.
+extern uint16_t g_max_fail;
 
-extern UInt16 g_port_num;
+extern uint16_t g_port_num;
 
 // Pointer to sender queue
 extern unique_ptr<PipeQueue> sp_queue;
@@ -41,24 +40,24 @@ extern PipeQueue *sp_qptr;
 extern unique_ptr<Pipeline> pipe_obj;
 extern Pipeline *pipe_ptr;
 
-UInt16 get_num_of_rsm();
-UInt16 get_nodes_rsm();
+uint16_t get_num_of_rsm();
+uint16_t get_nodes_rsm();
 
-UInt16 get_node_id();
-void set_node_id(UInt16 nid);
+uint16_t get_node_id();
+void set_node_id(uint16_t nid);
 
-UInt16 get_rsm_id();
-void set_rsm_id(UInt16 rsm_id);
+uint16_t get_rsm_id();
+void set_rsm_id(uint16_t rsm_id);
 
-UInt16 get_other_rsm_id();
-void set_other_rsm_id(UInt16 rsm_id);
+uint16_t get_other_rsm_id();
+void set_other_rsm_id(uint16_t rsm_id);
 
-UInt16 get_node_rsm_id();
-void set_node_rsm_id(UInt16 nid);
+uint16_t get_node_rsm_id();
+void set_node_rsm_id(uint16_t nid);
 
-UInt16 get_port_num();
+uint16_t get_port_num();
 
-UInt16 get_max_nodes_fail();
+uint16_t get_max_nodes_fail();
 
 // An enum that states different types of messages.
 enum MessageType

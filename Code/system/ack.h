@@ -10,28 +10,28 @@
 class Acknowledgment
 {
   private:
-    UInt64 ackValue;
+    uint64_t ackValue;
     std::mutex ack_mutex;
-    std::list<UInt64> msg_recv_;
+    std::list<uint64_t> msg_recv_;
 
   public:
     void Init();
-    void AddToAckList(UInt64 mid);
-    UInt64 GetAckIterator();
+    void AddToAckList(uint64_t mid);
+    uint64_t GetAckIterator();
 
     void TestFunc();
 };
 
 class QuorumAcknowledgment
 {
-    UInt64 quack_value_;
-    std::unordered_map<UInt64, UInt16> quack_recv_;
+    uint64_t quack_value_;
+    std::unordered_map<uint64_t, uint16_t> quack_recv_;
 
   public:
     void Init();
-    void QuackCheck(UInt64 min, UInt64 max);
-    void AddToQuackMap(UInt64 mid);
-    UInt64 GetQuackIterator();
+    void QuackCheck(uint64_t min, uint64_t max);
+    void AddToQuackMap(uint64_t mid);
+    uint64_t GetQuackIterator();
 
     void TestFunc();
 };

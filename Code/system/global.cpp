@@ -1,17 +1,17 @@
 #include "global.h"
 #include "../configuration/config.h"
 
-UInt16 g_thread_cnt = THREAD_CNT;
-UInt16 g_num_rsm = NUM_RSM;
-UInt16 g_nodes_rsm = NODES_RSM;
-UInt16 g_node_cnt = NUM_RSM * NODES_RSM;
-UInt16 g_node_id = 0;
-UInt16 g_node_rsm_id = 0;
-UInt16 g_other_rsm_id; // RSM Id of other RSM.
-UInt16 g_rsm_id = 0;
-UInt16 g_max_fail = 1; // MAX_NODES_FAIL;
+uint16_t g_thread_cnt = THREAD_CNT;
+uint16_t g_num_rsm = NUM_RSM;
+uint16_t g_nodes_rsm = NODES_RSM;
+uint16_t g_node_cnt = NUM_RSM * NODES_RSM;
+uint16_t g_node_id = 0;
+uint16_t g_node_rsm_id = 0;
+uint16_t g_other_rsm_id; // RSM Id of other RSM.
+uint16_t g_rsm_id = 0;
+uint16_t g_max_fail = 1; // MAX_NODES_FAIL;
 
-UInt16 g_port_num = PORT_NUM;
+uint16_t g_port_num = PORT_NUM;
 
 PipeQueue *sp_qptr;
 
@@ -28,7 +28,7 @@ Acknowledgment *ack_obj;
  *
  * @return g_num_rsm.
  */
-UInt16 get_num_of_rsm()
+uint16_t get_num_of_rsm()
 {
     return g_num_rsm;
 }
@@ -38,7 +38,7 @@ UInt16 get_num_of_rsm()
  *
  * @return g_nodes_rsm.
  */
-UInt16 get_nodes_rsm()
+uint16_t get_nodes_rsm()
 {
     return g_nodes_rsm;
 }
@@ -47,7 +47,7 @@ UInt16 get_nodes_rsm()
  *
  * @return g_node_id.
  */
-UInt16 get_node_id()
+uint16_t get_node_id()
 {
     return g_node_id;
 }
@@ -56,7 +56,7 @@ UInt16 get_node_id()
  *
  * @param nid is the node id.
  */
-void set_node_id(UInt16 nid)
+void set_node_id(uint16_t nid)
 {
     g_node_id = nid;
 }
@@ -65,7 +65,7 @@ void set_node_id(UInt16 nid)
  *
  * @return g_rsm_id.
  */
-UInt16 get_rsm_id()
+uint16_t get_rsm_id()
 {
     return g_rsm_id;
 }
@@ -74,7 +74,7 @@ UInt16 get_rsm_id()
  *
  * @param rsm_id is the RSM id.
  */
-void set_rsm_id(UInt16 rsm_id)
+void set_rsm_id(uint16_t rsm_id)
 {
     g_rsm_id = rsm_id;
 }
@@ -83,7 +83,7 @@ void set_rsm_id(UInt16 rsm_id)
  *
  * @return g_other_rsm_id.
  */
-UInt16 get_other_rsm_id()
+uint16_t get_other_rsm_id()
 {
     return g_other_rsm_id;
 }
@@ -92,7 +92,7 @@ UInt16 get_other_rsm_id()
  *
  * @param rsm_id is the RSM id.
  */
-void set_other_rsm_id(UInt16 rsm_id)
+void set_other_rsm_id(uint16_t rsm_id)
 {
     g_other_rsm_id = rsm_id;
 }
@@ -101,7 +101,7 @@ void set_other_rsm_id(UInt16 rsm_id)
  *
  * @return g_node_rsm_id.
  */
-UInt16 get_node_rsm_id()
+uint16_t get_node_rsm_id()
 {
     return g_node_rsm_id;
 }
@@ -110,7 +110,7 @@ UInt16 get_node_rsm_id()
  *
  * @param nid is the node's RSM id.
  */
-void set_node_rsm_id(UInt16 nid)
+void set_node_rsm_id(uint16_t nid)
 {
     g_node_rsm_id = nid;
 }
@@ -119,7 +119,7 @@ void set_node_rsm_id(UInt16 nid)
  *
  * @return g_port_num.
  */
-UInt16 get_port_num()
+uint16_t get_port_num()
 {
     return g_port_num;
 }
@@ -128,7 +128,7 @@ UInt16 get_port_num()
  *
  * @return g_max_fail.
  */
-UInt16 get_max_nodes_fail()
+uint16_t get_max_nodes_fail()
 {
     return g_max_fail;
 }

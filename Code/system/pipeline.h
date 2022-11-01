@@ -35,27 +35,27 @@ class Pipeline
     // vector <string> tcp_url;
     vector<thread> athreads_; // Input (Receive) threads.
 
-    std::map<UInt16, nng_socket> send_sockets_;
-    std::map<UInt16, nng_socket> recv_sockets_;
+    std::map<uint16_t, nng_socket> send_sockets_;
+    std::map<uint16_t, nng_socket> recv_sockets_;
 
   public:
     Pipeline();
     string GetPath();
     void ReadIfconfig(string if_path);
-    string getIP(UInt16 id);
+    string getIP(uint16_t id);
 
-    string GetRecvUrl(UInt16 cnt);
-    string GetSendUrl(UInt16 cnt);
+    string GetRecvUrl(uint16_t cnt);
+    string GetSendUrl(uint16_t cnt);
     void SetSockets();
 
-    bool SendToOtherRsm(UInt16 nid);
+    bool SendToOtherRsm(uint16_t nid);
     void RecvFromOtherRsm();
 
     void SendToOwnRsm();
     void RecvFromOwnRsm();
 
-    void DataSend(crosschain_proto::CrossChainMessage buf, UInt16 node_id);
-    crosschain_proto::CrossChainMessage DataRecv(UInt16 node_id);
+    void DataSend(crosschain_proto::CrossChainMessage buf, uint16_t node_id);
+    crosschain_proto::CrossChainMessage DataRecv(uint16_t node_id);
 
     char *DeepCopyMsg(char *msg);
 

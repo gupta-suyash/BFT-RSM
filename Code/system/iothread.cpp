@@ -3,12 +3,12 @@
 #include "connect.h"
 #include "pipeline.h"
 
-UInt16 SendThread::GetThreadId()
+uint16_t SendThread::GetThreadId()
 {
     return thd_id_;
 }
 
-void SendThread::Init(UInt16 thd_id)
+void SendThread::Init(uint16_t thd_id)
 {
     last_sent_ = get_node_rsm_id();
     thd_id_ = thd_id;
@@ -19,7 +19,7 @@ void SendThread::Run()
 {
     // cout << "SndThread: " << GetThreadId() << endl;
     // TODO: Remove this line.
-    UInt64 bid = 1;
+    uint64_t bid = 1;
     bool flag = true;
 
     while (true)
@@ -28,7 +28,7 @@ void SendThread::Run()
         {
 
             // Send to one node in other rsm.
-            UInt16 nid = GetLastSent();
+            uint16_t nid = GetLastSent();
 
             // TODO: Next two lines, remove.
             TestAddBlockToInQueue(bid);
@@ -51,7 +51,7 @@ void SendThread::Run()
         pipe_ptr->RecvFromOtherRsm();
         pipe_ptr->RecvFromOwnRsm();
 
-        UInt64 cid = ack_obj->GetAckIterator();
+        uint64_t cid = ack_obj->GetAckIterator();
         if (cid < MAX_UINT64 && flag)
         {
             cout << "Ack list at: " << cid << endl;
@@ -63,28 +63,28 @@ void SendThread::Run()
     }
 }
 
-UInt16 SendThread::GetLastSent()
+uint16_t SendThread::GetLastSent()
 {
     return last_sent_;
 }
 
-void SendThread::SetLastSent(UInt16 id)
+void SendThread::SetLastSent(uint16_t id)
 {
     last_sent_ = id;
 }
 
-void SendThread::TestAddBlockToInQueue(const UInt64 bid)
+void SendThread::TestAddBlockToInQueue(const uint64_t bid)
 {
     const string str = "Tmsg " + to_string(bid);
     SendBlock(bid, &str[0]);
 }
 
-UInt16 RecvThread::GetThreadId()
+uint16_t RecvThread::GetThreadId()
 {
     return thd_id_;
 }
 
-void RecvThread::Init(UInt16 thd_id)
+void RecvThread::Init(uint16_t thd_id)
 {
     thd_id_ = thd_id;
     thd_ = thread(&RecvThread::Run, this);
@@ -99,7 +99,7 @@ void RecvThread::Run()
         pipe_ptr->RecvFromOtherRsm();
         pipe_ptr->RecvFromOwnRsm();
 
-        UInt64 bid = ack_obj->GetAckIterator();
+        uint64_t bid = ack_obj->GetAckIterator();
         if (bid < MAX_UINT64 && flag)
         {
             cout << "Ack list at: " << bid << endl;

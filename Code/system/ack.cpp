@@ -15,7 +15,7 @@ void Acknowledgment::Init()
  *
  * @param mid is the value to be added
  */
-void Acknowledgment::AddToAckList(UInt64 mid)
+void Acknowledgment::AddToAckList(uint64_t mid)
 {
     auto it = msg_recv_.begin();
 
@@ -91,9 +91,9 @@ void Acknowledgment::AddToAckList(UInt64 mid)
  *
  * @return ackValue
  */
-UInt64 Acknowledgment::GetAckIterator()
+uint64_t Acknowledgment::GetAckIterator()
 {
-    UInt64 aval;
+    uint64_t aval;
 
     // Protecting accesses to the mutex.
     ack_mutex.lock();
@@ -118,7 +118,7 @@ void QuorumAcknowledgment::Init()
  *
  * @param aid is the value to be added
  */
-void QuorumAcknowledgment::AddToQuackMap(UInt64 aid)
+void QuorumAcknowledgment::AddToQuackMap(uint64_t aid)
 {
     cout << "QV: " << quack_value_ << endl;
 
@@ -157,10 +157,10 @@ void QuorumAcknowledgment::AddToQuackMap(UInt64 aid)
  * @param max is the last value for check.
  *
  */
-void QuorumAcknowledgment::QuackCheck(UInt64 min, UInt64 max)
+void QuorumAcknowledgment::QuackCheck(uint64_t min, uint64_t max)
 {
     bool quack_update = false;
-    for (UInt64 i = min; i <= max; i++)
+    for (uint64_t i = min; i <= max; i++)
     {
         auto search = quack_recv_.find(i);
         if (search != quack_recv_.end())
@@ -174,7 +174,7 @@ void QuorumAcknowledgment::QuackCheck(UInt64 min, UInt64 max)
         }
     }
 
-    for (UInt64 i = min; i <= max; i++)
+    for (uint64_t i = min; i <= max; i++)
     {
         // When f+1 quacks hve been received.
         if (quack_recv_[i] == get_max_nodes_fail() + 1)
@@ -188,7 +188,7 @@ void QuorumAcknowledgment::QuackCheck(UInt64 min, UInt64 max)
 
     if (quack_update)
     {
-        for (UInt64 i = min; i < quack_value_; i++)
+        for (uint64_t i = min; i < quack_value_; i++)
         {
             // Erasing lower value entries based on the key.
             cout << "Erasing: " << i << endl;
@@ -201,7 +201,7 @@ void QuorumAcknowledgment::QuackCheck(UInt64 min, UInt64 max)
  *
  * @return quackValue
  */
-UInt64 QuorumAcknowledgment::GetQuackIterator()
+uint64_t QuorumAcknowledgment::GetQuackIterator()
 {
     return quack_value_;
 }
