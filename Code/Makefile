@@ -18,6 +18,7 @@ LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
 SOURCES += $(wildcard ./configuration/*.cpp)
 SOURCES_OBJ = $(SOURCES:.cpp=.o)
+FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 
 #abc:
 #	echo ${SOURCES}
@@ -42,3 +43,7 @@ rundb : $(SOURCES_OBJ)
 .PHONY: clean
 clean:
 	rm -f system/*.o configuration/*.o rundb
+
+format:
+	find system -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
+	find configuration -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;

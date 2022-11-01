@@ -1,9 +1,9 @@
 
-/* This file is supposed to be imported by the protocol 
- * running at each node and it will use these functions 
+/* This file is supposed to be imported by the protocol
+ * running at each node and it will use these functions
  * to send messages to scrooge.
  *
- */ 
+ */
 
 #include <iostream>
 

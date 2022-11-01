@@ -1,9 +1,9 @@
-#include "global.h"
-#include "pipeline.h"
-#include "iothread.h"
-#include "pipe_queue.h"
 #include "ack.h"
 #include "crosschainmessage.pb.h"
+#include "global.h"
+#include "iothread.h"
+#include "pipe_queue.h"
+#include "pipeline.h"
 
 bool setup_cross_chain_library();
 
