@@ -1,5 +1,4 @@
-#ifndef _CONFIG_H_
-#define _CONFIG_H_
+#pragma once
 
 // Specify the number of threads.
 #define THREAD_CNT 2
@@ -11,5 +10,3 @@
 #define MAX_NODES_FAIL 1
 // TCP Port Number.
 #define PORT_NUM 7000
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef _DATA_COMM_
-#define _DATA_COMM_
+#pragma once
 
 #include <iostream>
 
@@ -34,5 +33,3 @@ public:
     void SetBlockId(uint64_t bid);
     char * GetBlock();
 };*/
-
-#endif

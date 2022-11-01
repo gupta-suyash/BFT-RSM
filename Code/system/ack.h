@@ -1,5 +1,4 @@
-#ifndef _ACKNOW_
-#define _ACKNOW_
+#pragma once
 
 #include <list>
 #include <mutex>
@@ -35,5 +34,3 @@ class QuorumAcknowledgment
 
     void TestFunc();
 };
-
-#endif

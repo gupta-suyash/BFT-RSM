@@ -1,5 +1,4 @@
-#ifndef _GLOBAL_H_
-#define _GLOBAL_H_
+#pragma once
 
 #include "../configuration/config.h"
 #include "crosschainmessage.pb.h"
@@ -82,5 +81,3 @@ extern std::queue<crosschain_proto::CrossChainMessage> in_queue;
 
 // Object to access the Acknowledgments.
 extern Acknowledgment *ack_obj;
-
-#endif

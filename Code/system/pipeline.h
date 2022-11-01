@@ -1,5 +1,4 @@
-#ifndef _PIPELINE_
-#define _PIPELINE_
+#pragma once
 
 #include <filesystem>
 #include <fstream>
@@ -25,9 +24,6 @@
 #include "crosschainmessage.pb.h"
 
 using std::filesystem::current_path;
-
-#define NODE0 "node0"
-#define NODE1 "node1"
 
 class Pipeline
 {
@@ -62,5 +58,3 @@ class Pipeline
     // char* DataToHost();
     // void DataFromHost(char *buf);
 };
-
-#endif

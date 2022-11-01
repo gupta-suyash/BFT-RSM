@@ -1,5 +1,4 @@
-#ifndef _IO_THREAD_
-#define _IO_THREAD_
+#pragma once
 
 #include "global.h"
 #include "pipe_queue.h"
@@ -41,5 +40,3 @@ class RecvThread : public IOThreads
     void Run();
     uint16_t GetThreadId();
 };
-
-#endif

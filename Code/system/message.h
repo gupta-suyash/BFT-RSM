@@ -1,5 +1,4 @@
-#ifndef _MESSAGE_
-#define _MESSAGE_
+#pragma once
 
 #include "global.h"
 
@@ -34,5 +33,3 @@ class SendMessage : public Message
 
     static void TestFunc();
 };
-
-#endif
