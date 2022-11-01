@@ -51,7 +51,7 @@ public:
 	bool SendToOtherRsm(UInt16 nid);
 	void RecvFromOtherRsm();
 
-	void SendToOwnRsm();
+	void SendToOwnRsm(UInt64 bid);
 	void RecvFromOwnRsm();
 
 	void DataSend(Message *msg, UInt16 node_id);

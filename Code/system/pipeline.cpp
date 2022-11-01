@@ -261,7 +261,7 @@ void Pipeline::RecvFromOtherRsm()
 /* This function is used to send messages to the nodes in own RSM.
  *
  */ 
-void Pipeline::SendToOwnRsm()
+void Pipeline::SendToOwnRsm(UInt64 bid)
 {
 	//cout << "SendToOwnRsm" << endl;
 	//// Check the queue if there is any message.
@@ -287,7 +287,7 @@ void Pipeline::SendToOwnRsm()
 		int rv;
 		auto sock = send_sockets_[recvr_id];
 
-		string str = "Tmsg ";
+		string str = "Tmsg " + to_string(bid);
 		char *buf = &str[0];
 		size_t sz = str.length();
 		cout << "Sent: " << sz << " :: " << buf << endl;

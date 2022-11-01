@@ -42,7 +42,7 @@ void SendThread::Run()
 		//}
 
 		  // Broadcast to all in own rsm.
-		  pipe_ptr->SendToOwnRsm();
+		  pipe_ptr->SendToOwnRsm(bid);
 
 		}
 
