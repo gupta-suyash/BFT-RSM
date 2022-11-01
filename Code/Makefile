@@ -25,9 +25,9 @@ FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 #	echo ${SOURCES_OBJ}
 
 .PHONY: all
-all: rundb
+all: scrooge
 
-rundb : $(SOURCES_OBJ)
+scrooge : $(SOURCES_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} -o $@ $<
@@ -42,7 +42,7 @@ rundb : $(SOURCES_OBJ)
 
 .PHONY: clean
 clean:
-	rm -f system/*.o configuration/*.o rundb
+	rm -f system/*.o configuration/*.o scrooge
 
 format:
 	find system -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
