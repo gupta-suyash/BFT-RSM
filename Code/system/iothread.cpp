@@ -24,6 +24,8 @@ void SendThread::Run()
 
 	while(true) {
 		if(bid < 5) {
+		  // Broadcast to all in own rsm.
+		  pipe_ptr->SendToOwnRsm(bid);
 
 		//// Send to one node in other rsm.
 		//UInt16 nid = GetLastSent();
@@ -40,9 +42,6 @@ void SendThread::Run()
 		//	nid = (nid+1) % get_nodes_rsm();
 		//	SetLastSent(nid);
 		//}
-
-		  // Broadcast to all in own rsm.
-		  pipe_ptr->SendToOwnRsm(bid);
 
 		}
 
