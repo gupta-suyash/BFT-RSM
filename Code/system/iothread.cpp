@@ -52,13 +52,13 @@ void SendThread::Run()
 		//pipe_ptr->RecvFromOtherRsm();
 		pipe_ptr->RecvFromOwnRsm();
 
-		UInt64 cid  = ack_obj->GetAckIterator();
-		if(cid < MAX_UINT64 && flag) {
-			cout << "Ack list at: " << cid << endl;
-			if(cid == 4) {
-				flag = false;
-			}	
-		}
+		//UInt64 cid  = ack_obj->GetAckIterator();
+		//if(cid < MAX_UINT64 && flag) {
+		//	cout << "Ack list at: " << cid << endl;
+		//	if(cid == 4) {
+		//		flag = false;
+		//	}	
+		//}
 	
 	}
 }
