@@ -57,7 +57,7 @@ void Message::CopyFromBuf(char *buf)
 
 	// String from buf.
 	string str = std::string(buf);
-	//cout << "MString: " << str << " :: " << str.length() << endl;
+	cout << "MString: " << str << " :: " << str.length() << endl;
 
 	size_t pos = 0;
 	std::string str_sub;
@@ -100,8 +100,9 @@ char * Message::CopyToBuf()
 	SetStringSize(str.length());
 	//cout << "str: " << str << endl;
 
-	char *buf = new char[str.length()];
+	char *buf = new char[str.length()+1];
 	memcpy(buf, &str[0], str.length());
+	buf[str.length()] = '\0';
 	//cout << "Buffer: " << buf << " : " << GetStringSize() << endl;
 
 	return buf;
