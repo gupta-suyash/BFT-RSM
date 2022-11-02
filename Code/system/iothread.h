@@ -1,5 +1,4 @@
-#ifndef _IO_THREAD_
-#define _IO_THREAD_
+#pragma once
 
 #include "global.h"
 #include "pipe_queue.h"
@@ -8,38 +7,36 @@
 class IOThreads
 {
   public:
-    UInt16 thd_id_; // Thread id.
-    thread thd_;    // Thread.
-    virtual void Init(UInt16 thd_id) = 0;
+    uint16_t thd_id_; // Thread id.
+    thread thd_;      // Thread.
+    virtual void Init(uint16_t thd_id) = 0;
     virtual void Run() = 0;
-    virtual UInt16 GetThreadId() = 0;
+    virtual uint16_t GetThreadId() = 0;
 };
 
 // Threads that send or receive messages.
 class SendThread : public IOThreads
 {
-    UInt16 last_sent_; // Id of node from other RSM.
+    uint16_t last_sent_; // Id of node from other RSM.
   public:
-    // UInt16 thd_id_; // Thread id.
+    // uint16_t thd_id_; // Thread id.
     // thread thd_;	// Thread.
-    void Init(UInt16 thd_id);
+    void Init(uint16_t thd_id);
     void Run();
-    UInt16 GetThreadId();
+    uint16_t GetThreadId();
 
-    UInt16 GetLastSent();
-    void SetLastSent(UInt16 id);
+    uint16_t GetLastSent();
+    void SetLastSent(uint16_t id);
 
-    void TestAddBlockToInQueue(const UInt64 bid);
+    void TestAddBlockToInQueue(const uint64_t bid);
 };
 
 class RecvThread : public IOThreads
 {
   public:
-    // UInt16 thd_id_; // Thread id.
+    // uint16_t thd_id_; // Thread id.
     // thread thd_;	// Thread.
-    void Init(UInt16 thd_id);
+    void Init(uint16_t thd_id);
     void Run();
-    UInt16 GetThreadId();
+    uint16_t GetThreadId();
 };
-
-#endif

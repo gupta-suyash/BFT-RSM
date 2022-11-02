@@ -1,13 +1,15 @@
 #include "ack.h"
 
+#include <limits>
+
 /* Appends max integer to the list and ackValue is set to this max integer.
  *
  */
 void Acknowledgment::Init()
 {
     // The first entry to the list is not a msg identifier (max int).
-    msg_recv_.push_back(MAX_UINT64);
-    ackValue = MAX_UINT64;
+    msg_recv_.push_back(std::numeric_limits<uint64_t>::max());
+    ackValue = std::numeric_limits<uint64_t>::max();
 }
 
 /* Adds an element to the lsit msg_recv_.
@@ -15,12 +17,12 @@ void Acknowledgment::Init()
  *
  * @param mid is the value to be added
  */
-void Acknowledgment::AddToAckList(UInt64 mid)
+void Acknowledgment::AddToAckList(uint64_t mid)
 {
     auto it = msg_recv_.begin();
 
     // If the first element is max value, remove it and add mid.
-    if (*it == MAX_UINT64)
+    if (*it == std::numeric_limits<uint64_t>::max())
     {
         msg_recv_.push_back(mid);
         it = msg_recv_.erase(it);
@@ -58,8 +60,8 @@ void Acknowledgment::AddToAckList(UInt64 mid)
         ackValue = 1;
     }
 
-    // Enter if ackValue is not MAX_UINT64; possible if mid=1, not inserted yet.
-    if (ackValue != MAX_UINT64)
+    // Enter if ackValue is not std::numeric_limits<uint64_t>::max(); possible if mid=1, not inserted yet.
+    if (ackValue != std::numeric_limits<uint64_t>::max())
     {
         // Flag to determine if we need to delete old acknowledgments.
         bool del_flag = false;
@@ -91,9 +93,9 @@ void Acknowledgment::AddToAckList(UInt64 mid)
  *
  * @return ackValue
  */
-UInt64 Acknowledgment::GetAckIterator()
+uint64_t Acknowledgment::GetAckIterator()
 {
-    UInt64 aval;
+    uint64_t aval;
 
     // Protecting accesses to the mutex.
     ack_mutex.lock();
@@ -109,8 +111,8 @@ UInt64 Acknowledgment::GetAckIterator()
 void QuorumAcknowledgment::Init()
 {
     // The first entry to the list is not a msg identifier (max int).
-    quack_recv_.emplace(MAX_UINT64, 0);
-    quack_value_ = MAX_UINT64;
+    quack_recv_.emplace(std::numeric_limits<uint64_t>::max(), 0);
+    quack_value_ = std::numeric_limits<uint64_t>::max();
 }
 
 /* Adds an element to the map quack_recv_.
@@ -118,13 +120,13 @@ void QuorumAcknowledgment::Init()
  *
  * @param aid is the value to be added
  */
-void QuorumAcknowledgment::AddToQuackMap(UInt64 aid)
+void QuorumAcknowledgment::AddToQuackMap(uint64_t aid)
 {
     cout << "QV: " << quack_value_ << endl;
 
-    if (quack_value_ == MAX_UINT64)
+    if (quack_value_ == std::numeric_limits<uint64_t>::max())
     {
-        quack_recv_[MAX_UINT64] = quack_recv_[MAX_UINT64] + 1;
+        quack_recv_[std::numeric_limits<uint64_t>::max()] = quack_recv_[std::numeric_limits<uint64_t>::max()] + 1;
 
         // if(aid == 0) {
         //	auto search = quack_recv_.find(0);
@@ -135,10 +137,10 @@ void QuorumAcknowledgment::AddToQuackMap(UInt64 aid)
 
         QuackCheck(0, aid);
 
-        // Removing the MAX_UINT64, the default entry.
-        if (quack_value_ != MAX_UINT64)
+        // Removing the std::numeric_limits<uint64_t>::max(), the default entry.
+        if (quack_value_ != std::numeric_limits<uint64_t>::max())
         {
-            quack_recv_.erase(MAX_UINT64);
+            quack_recv_.erase(std::numeric_limits<uint64_t>::max());
         }
     }
     else
@@ -157,10 +159,10 @@ void QuorumAcknowledgment::AddToQuackMap(UInt64 aid)
  * @param max is the last value for check.
  *
  */
-void QuorumAcknowledgment::QuackCheck(UInt64 min, UInt64 max)
+void QuorumAcknowledgment::QuackCheck(uint64_t min, uint64_t max)
 {
     bool quack_update = false;
-    for (UInt64 i = min; i <= max; i++)
+    for (uint64_t i = min; i <= max; i++)
     {
         auto search = quack_recv_.find(i);
         if (search != quack_recv_.end())
@@ -174,7 +176,7 @@ void QuorumAcknowledgment::QuackCheck(UInt64 min, UInt64 max)
         }
     }
 
-    for (UInt64 i = min; i <= max; i++)
+    for (uint64_t i = min; i <= max; i++)
     {
         // When f+1 quacks hve been received.
         if (quack_recv_[i] == get_max_nodes_fail() + 1)
@@ -188,7 +190,7 @@ void QuorumAcknowledgment::QuackCheck(UInt64 min, UInt64 max)
 
     if (quack_update)
     {
-        for (UInt64 i = min; i < quack_value_; i++)
+        for (uint64_t i = min; i < quack_value_; i++)
         {
             // Erasing lower value entries based on the key.
             cout << "Erasing: " << i << endl;
@@ -201,7 +203,7 @@ void QuorumAcknowledgment::QuackCheck(UInt64 min, UInt64 max)
  *
  * @return quackValue
  */
-UInt64 QuorumAcknowledgment::GetQuackIterator()
+uint64_t QuorumAcknowledgment::GetQuackIterator()
 {
     return quack_value_;
 }

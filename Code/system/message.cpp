@@ -1,6 +1,6 @@
 #include "message.h"
 
-Message *Message::CreateMsg(char *buf, UInt64 sz, MessageType mtype)
+Message *Message::CreateMsg(char *buf, uint64_t sz, MessageType mtype)
 {
     Message *msg = CreateMsg(mtype);
     msg->CopyFromBuf(buf, sz);
@@ -40,7 +40,7 @@ Message *Message::CreateMsg(MessageType mtype)
     return msg;
 }
 
-void SendMessage::CopyFromBuf(char *buf, UInt64 sz)
+void SendMessage::CopyFromBuf(char *buf, uint64_t sz)
 {
     // Copying the first field: size of the message.
     msize_ = sz;
@@ -55,7 +55,7 @@ void SendMessage::CopyFromBuf(char *buf, UInt64 sz)
 
 void SendMessage::CopyFromBuf(char *buf)
 {
-    UInt64 ptr = 0;
+    uint64_t ptr = 0;
 
     // Copying the first field: size of the message.
     COPY_VAL(msize_, buf, ptr);
@@ -71,21 +71,21 @@ void SendMessage::CopyFromBuf(char *buf)
 char *SendMessage::CopyToBuf()
 {
     // Getting the size of the message.
-    UInt64 sz = GetSize();
+    uint64_t sz = GetSize();
 
     char *buf = new char[sz];
 
-    UInt64 ptr = 0;
+    uint64_t ptr = 0;
     COPY_BUF(buf, msize_, ptr);
     COPY_BUF(buf, data_, ptr);
 
     return buf;
 }
 
-UInt64 SendMessage::GetSize()
+uint64_t SendMessage::GetSize()
 {
-    UInt64 sz = 0;
-    sz += sizeof(UInt64);
+    uint64_t sz = 0;
+    sz += sizeof(uint64_t);
     sz += msize_;
 
     return sz;
@@ -95,7 +95,7 @@ void SendMessage::TestFunc()
 {
     string str = "Hello";
     char *c_str = &str[0];
-    UInt64 sz = strlen(c_str) + 1;
+    uint64_t sz = strlen(c_str) + 1;
 
     Message *msg1 = Message::CreateMsg(c_str, sz, kSend);
     cout << "Checking: " << msg1->msize_ << " :: " << msg1->data_ << endl;

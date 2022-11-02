@@ -1,5 +1,4 @@
-#ifndef _PIPE_QUEUE_
-#define _PIPE_QUEUE_
+#pragma once
 
 #include "data_comm.h"
 #include "global.h"
@@ -25,5 +24,3 @@ class PipeQueue
     void CallD();
     void CallThreads();
 };
-
-#endif
