@@ -23,7 +23,7 @@ void SendThread::Run()
 	bool flag = true;
 
 	while(true) {
-		if(bid < 20) {
+		if(bid < 200) {
 		  // Broadcast to all in own rsm.
 		  pipe_ptr->SendToOwnRsm(bid);
 
