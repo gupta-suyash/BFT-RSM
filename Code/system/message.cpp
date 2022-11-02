@@ -45,42 +45,41 @@ void Message::SetData(char* data, UInt64 msize)
 
 void Message::CopyFromBuf(char *buf)
 {
-	UInt64 ptr = 0;
-
-	// Copying the first field: size of the data blob.
-	COPY_VAL(msize_, buf, ptr);
-
-	cout << "Msize: " << msize_ << endl;
-
+	//UInt64 ptr = 0;
+	//// Copying the first field: size of the data blob.
+	//COPY_VAL(msize_, buf, ptr);
 	//// Copying next field, txn_id_
 	//COPY_VAL(txn_id_, buf, ptr);
-
-	//cout << "txn_id: " << txn_id_ << endl;
-
 	//// Copying next field, cummulative ack 
 	//COPY_VAL(cumm_ack_, buf, ptr);
+	//data_ = new char[msize_+1];
+	//COPY_VAL(data_, buf, ptr);
 
-	//cout << "ack: " << cumm_ack_ << endl;
+	// String from buf.
+	string str = std::string(buf);
+	cout << "MString: " << str << " :: " << str.length() << endl;
 
-	//// Copying the rest of the messages as the data blob.
-	//string str;
-	//char v;
-	//for (uint64_t i = 0; i < msize_; i++)
-	//{
-	//	COPY_VAL(v, buf, ptr);
-	//	str += v;
-	//}
-	//memcpy(data_, &str[0], msize_);
-	
+	size_t pos = 0;
+	std::string str_sub;
+	std::string delimit = " ";
+
+	// Extracting data blob size.
+	pos = str.find(delimit);
+	str_sub = str.substr(0, pos);
+	msize_ = std::stoi(str_sub);
+	str.erase(0, pos + delimit.length());
+
+	// Extracting data blob.
+	pos = str.find(delimit);
+	str_sub = str.substr(0, pos);
 	data_ = new char[msize_];
-	COPY_VAL(data_, buf, ptr);
+	memcpy(data_, &str_sub[0], msize_);
+	str.erase(0, pos + delimit.length());
 
-	cout << "Data Blob Size: " << msize_ << endl;
-	cout << "Data Blob: " << data_ << endl;
-
-	//// Copying the buf as the rest of the message; data blob.
-	//data_ = new char[sz];
-	//memcpy(data_, buf, sz);
+	// Extracting txn_id.
+	txn_id_ = std::stoi(str);
+	
+	cout << "Data: " << data_ << " :: Blob size: " << msize_ << endl;
 }
 
 	
@@ -88,27 +87,21 @@ void Message::CopyFromBuf(char *buf)
 char * Message::CopyToBuf()
 {
 	// Getting the size of the message.
-	UInt64 sz = GetSize();
-
-	//cout << "Buf Size: " << sz << " : mszie: " << msize_ << " : Data: " << data_ << endl;
-
-	char *buf = new char[sz];
-
-	size_t ptr = 0;
-	COPY_BUF(buf, msize_, ptr);
-	
+	//UInt64 sz = GetSize();
+	//char *buf = new char[sz];
+	//COPY_BUF(buf, msize_, ptr);
 	//COPY_BUF(buf, txn_id_, ptr);
 	//COPY_BUF(buf, cumm_ack_, ptr);
+	//COPY_BUF(buf, data_, ptr);
 
-	//char v;
-	//for (uint j = 0; j < msize_; j++)
-	//{
-	//	v = data_[j];
-	//	COPY_BUF(buf, v, ptr);
-	//}
+	string dstr = std::string(data_);
+	string str = to_string(dstr.length()) + " " + dstr + " ";
+	str += to_string(txn_id_);
+	SetStringSize(str.length());
+	//cout << "str: " << str << endl;
 
-	COPY_BUF(buf, data_, ptr);
-	buf[sz-1] = '\0'; // Null terminating.
+	char *buf = &str[0];
+	cout << "Buffer: " << buf << " : " << GetStringSize() << endl;
 
 	return buf;
 }	
@@ -123,6 +116,16 @@ UInt64 Message::GetSize()
 
 	return sz;
 }	
+
+UInt64 Message::GetStringSize()
+{
+	return str_size_;
+}	
+
+void Message::SetStringSize(UInt64 sz)
+{
+	str_size_ = sz;
+}
 
 
 void Message::TestFunc()
