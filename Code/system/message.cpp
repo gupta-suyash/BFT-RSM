@@ -100,7 +100,8 @@ char * Message::CopyToBuf()
 	SetStringSize(str.length());
 	//cout << "str: " << str << endl;
 
-	char *buf = &str[0];
+	char *buf = new char[str.length()];
+	memcpy(buf, &str[0], str.length());
 	cout << "Buffer: " << buf << " : " << GetStringSize() << endl;
 
 	return buf;
