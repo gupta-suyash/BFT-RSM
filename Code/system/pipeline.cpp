@@ -298,7 +298,7 @@ void Pipeline::SendToOwnRsm(UInt64 bid)
 		cout << "Sent: " << msg->GetSize() << " :: " << msg->GetData() << endl;
 		
 		char *buf = msg->CopyToBuf();
-		
+
 		if((rv = nng_send(sock, buf, msg->GetSize(), 0)) != 0) {
 			fatal("nng_send", rv);
 		}	

@@ -108,6 +108,7 @@ char * Message::CopyToBuf()
 	//}
 
 	COPY_BUF(buf, data_, ptr);
+	buf[sz-1] = '\0'; // Null terminating.
 
 	return buf;
 }	
@@ -118,7 +119,7 @@ UInt64 Message::GetSize()
 	sz += sizeof(UInt64);
 	//sz += sizeof(UInt64);
 	//sz += sizeof(UInt64);
-	sz += msize_;
+	sz += msize_+1;
 
 	return sz;
 }	
