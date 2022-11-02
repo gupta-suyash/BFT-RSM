@@ -23,7 +23,7 @@ void SendThread::Run()
 	bool flag = true;
 
 	while(true) {
-		if(bid < 1000000) {
+		if(bid < 5) {
 		  // Broadcast to all in own rsm.
 		  pipe_ptr->SendToOwnRsm(bid);
 
@@ -55,7 +55,7 @@ void SendThread::Run()
 		UInt64 cid  = ack_obj->GetAckIterator();
 		if(cid < MAX_UINT64 && flag) {
 			cout << "Ack list at: " << cid << endl;
-			if(cid == 999999) {
+			if(cid == 4) {
 				flag = false;
 			}	
 		}

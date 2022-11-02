@@ -287,12 +287,19 @@ void Pipeline::SendToOwnRsm(UInt64 bid)
 		int rv;
 		auto sock = send_sockets_[recvr_id];
 
-		string str = "Tmsg " + to_string(bid);
-		char *buf = &str[0];
-		size_t sz = str.length();
-		cout << "Sent: " << sz << " :: " << buf << endl;
+		Message *msg = Message::CreateMsg();
 
-		if((rv = nng_send(sock, buf, sz+1, 0)) != 0) {
+		string str = "Tmsg " + to_string(bid);
+		//char *buf = &str[0];
+		//size_t sz = str.length();
+		//cout << "Sent: " << sz << " :: " << buf << endl;
+
+		msg->SetData(&str[0], str.length());
+		cout << "Sent: " << msg->GetSize() << " :: " << msg->GetData() << endl;
+		
+		char *buf = msg->CopyToBuf();
+		
+		if((rv = nng_send(sock, buf, msg->GetSize(), 0)) != 0) {
 			fatal("nng_send", rv);
 		}	
 	}
@@ -346,10 +353,13 @@ void Pipeline::RecvFromOwnRsm()
 
 		// nng_recv is non-blocking, if there is no data, return value is non-zero.
 		if(rv == 0) {
-			string str = std::string(buf);
+			//string str = std::string(buf);
+			Message *msg = Message::CreateMsg();
+			msg->CopyFromBuf(buf);
+			string str = std::string(msg->GetData());
 			string str2 = str.substr(5,(str.length()-5));
 			UInt64 num = std::stoi(str2);
-			cout << "Recvd: " << sz << " :: " << buf <<  " : num: " << num << endl;
+			cout << "Recvd: " << sz << " :: " << str <<  " : num: " << num << endl;
 			ack_obj->AddToAckList(num);
 		}
 	}
