@@ -290,9 +290,9 @@ void Pipeline::SendToOwnRsm(UInt64 bid)
 		Message *msg = Message::CreateMsg();
 
 		string str = "Tmsg" + to_string(bid);
-		msg->SetTxnId(1000);
+		msg->SetTxnId(bid);
 		msg->SetData(&str[0], str.length());
-		cout << "Sent: " << msg->GetSize() << " :: " << msg->GetData() << endl;
+		//cout << "Sent: " << msg->GetSize() << " :: " << msg->GetData() << endl;
 		
 		char *buf = msg->CopyToBuf();
 

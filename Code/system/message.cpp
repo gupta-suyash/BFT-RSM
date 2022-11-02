@@ -79,7 +79,7 @@ void Message::CopyFromBuf(char *buf)
 	// Extracting txn_id.
 	txn_id_ = std::stoi(str);
 	
-	cout << "Data: " << data_ << " :: Blob size: " << msize_ << endl;
+	//cout << "Data: " << data_ << " :: Blob size: " << msize_ << endl;
 }
 
 	
@@ -102,7 +102,7 @@ char * Message::CopyToBuf()
 
 	char *buf = new char[str.length()];
 	memcpy(buf, &str[0], str.length());
-	cout << "Buffer: " << buf << " : " << GetStringSize() << endl;
+	//cout << "Buffer: " << buf << " : " << GetStringSize() << endl;
 
 	return buf;
 }	
