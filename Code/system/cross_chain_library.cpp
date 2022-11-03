@@ -24,7 +24,7 @@ bool setup_cross_chain_library()
 bool send_cross_chain_transaction()
 {
     Acknowledgment *ack_obj = new Acknowledgment();
-    QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
+    QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment(get_nodes_rsm());
 
     return true;
     // MORE!

@@ -1,5 +1,5 @@
 #include "iothread.h"
-#include "ack.h"
+#include "acknowledgement.h"
 #include "connect.h"
 #include "pipeline.h"
 
@@ -53,7 +53,7 @@ void SendThread::Run()
         pipe_ptr->RecvFromOtherRsm();
         pipe_ptr->RecvFromOwnRsm();
 
-        uint64_t cid = ack_obj->GetAckIterator();
+        auto cid = ack_obj->getAckIterator().value_or(0);
         if (cid < std::numeric_limits<uint64_t>::max() && flag)
         {
             cout << "Ack list at: " << cid << endl;
@@ -101,7 +101,7 @@ void RecvThread::Run()
         pipe_ptr->RecvFromOtherRsm();
         pipe_ptr->RecvFromOwnRsm();
 
-        uint64_t bid = ack_obj->GetAckIterator();
+        uint64_t bid = ack_obj->getAckIterator().value_or(0);
         if (bid < std::numeric_limits<uint64_t>::max() && flag)
         {
             cout << "Ack list at: " << bid << endl;

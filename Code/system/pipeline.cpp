@@ -1,5 +1,5 @@
 #include "pipeline.h"
-#include "ack.h"
+#include "acknowledgement.h"
 #include "pipe_queue.h"
 
 Pipeline::Pipeline()
@@ -227,7 +227,7 @@ bool Pipeline::SendToOtherRsm(uint16_t nid)
     // uint16_t recvr_id = 1;
 
     // Acking the messages received from the other RSM.
-    const uint64_t ack_msg = ack_obj->GetAckIterator();
+    const uint64_t ack_msg = ack_obj->getAckIterator().value_or(0);
     msg.set_ack_id(ack_msg);
 
     SPDLOG_DEBUG("Sending message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
@@ -260,7 +260,7 @@ void Pipeline::RecvFromOtherRsm()
                 sendr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
 
             // Updating the ack list for msg received.
-            ack_obj->AddToAckList(msg.sequence_id());
+            ack_obj->addToAckList(msg.sequence_id());
 
             // This message needs to broadcasted to other nodes
             // in the RSM, so enqueue in the queue for sender.
@@ -333,7 +333,7 @@ void Pipeline::RecvFromOwnRsm()
                 sendr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
 
             // Updating the ack list for msg received.
-            ack_obj->AddToAckList(msg.sequence_id());
+            ack_obj->addToAckList(msg.sequence_id());
         }
     }
 }
