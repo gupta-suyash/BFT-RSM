@@ -2,6 +2,7 @@ CC=g++
 CFLAGS=-Wall -g -std=c++17
 NNMSG=${PWD}/deps/nng
 BOOST=${PWD}/deps/boost_1_80_0
+SANITIZERS=-fsanitize=address -fsanitize=undefined
 
 .SUFFIXES: .o .cpp .h
 
@@ -10,9 +11,11 @@ DEPS = -I$(NNMSG)/include -I$(BOOST)
 
 PROTO_DIR = ./system/protobuf/
 
-CFLAGS += $(DEPS) 
+CFLAGS += $(DEPS)
+CFLAGS += $(SANITIZERS)
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
+LDFLAGS += $(SANITIZERS)
 LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
 
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
