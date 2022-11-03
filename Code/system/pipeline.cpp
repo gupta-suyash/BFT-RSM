@@ -191,7 +191,11 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
     // nng_recv is non-blocking, if there is no data, return value is non-zero.
     if (rv != 0)
     {
-        SPDLOG_ERROR("nng_recv has error value = {}", rv);
+        if (rv != 8)
+        {
+            // Silence error EAGAIN while using nonblocking nng functions
+            SPDLOG_ERROR("nng_recv has error value = {}", nng_strerror(rv));
+        }
 
         crosschain_proto::CrossChainMessage fakeMsg;
         fakeMsg.set_transactions("ERROR=" + std::to_string(rv));
