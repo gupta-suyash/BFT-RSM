@@ -75,6 +75,9 @@ enum MessageType
     memcpy(&((char *)d)[p], (char *)&v, sizeof(v));                                                                    \
     p += sizeof(v);
 
+// Enable all spdlog logging macros for development
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 // Queue to interact with the protocol accessing Scrooge.
 // extern boost::lockfree::queue<ProtoMessage *> *in_queue;
 extern std::queue<crosschain_proto::CrossChainMessage> in_queue;

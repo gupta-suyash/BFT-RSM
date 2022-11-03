@@ -10,7 +10,8 @@ apt-get -y install cmake
 apt -y install build-essential
 apt-get -y install re2c
 apt-get remove libprotobuf-dev
-apt-get install -y clang-tidy clang-format
+apt-get install -y clang-format
+apt-get install -y libspdlog-dev
 echo "basic packages installed"
 
 # ninja install

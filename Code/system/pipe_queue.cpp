@@ -57,9 +57,6 @@ crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
  */
 crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
 {
-    bool valid = false;
-    // ProtoMessage *msg = new ProtoMessage();
-
     crosschain_proto::CrossChainMessage msg;
     // Popping out the message from in_queue to send to other RSM.
     // valid = in_queue->pop(msg);

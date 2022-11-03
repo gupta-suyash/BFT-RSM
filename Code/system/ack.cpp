@@ -1,6 +1,7 @@
 #include "ack.h"
 
 #include <limits>
+#include <spdlog/spdlog.h>
 
 /* Appends max integer to the list and ackValue is set to this max integer.
  *
@@ -33,7 +34,6 @@ void Acknowledgment::AddToAckList(uint64_t mid)
         bool last_flag = true;
         for (; it != msg_recv_.end(); ++it)
         {
-            // cout << "Compare Value: " << *it << endl;
             if (*it > mid)
             {
                 // Insert before the element larger than mid.
@@ -53,7 +53,6 @@ void Acknowledgment::AddToAckList(uint64_t mid)
     // Need to lock accesses to ackValue as it used by multiple threads
     ack_mutex.lock();
 
-    // cout << "AckValue: " << ackValue << " :: mid: " << mid << endl;
     if (mid == 1)
     {
         // If mid = 1, set the ackValue to 1.
@@ -122,7 +121,7 @@ void QuorumAcknowledgment::Init()
  */
 void QuorumAcknowledgment::AddToQuackMap(uint64_t aid)
 {
-    cout << "QV: " << quack_value_ << endl;
+    spdlog::debug("Current QuackValue = {}", quack_value_);
 
     if (quack_value_ == std::numeric_limits<uint64_t>::max())
     {
@@ -169,6 +168,7 @@ void QuorumAcknowledgment::QuackCheck(uint64_t min, uint64_t max)
         {
             search->second = search->second + 1;
             cout << "Found: " << search->first << " :: " << search->second << endl;
+            spdlog::debug("Found");
         }
         else
         {
