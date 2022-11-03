@@ -197,26 +197,24 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
     // So, we use the two available bit masks.
     rv = nng_recv(sock, &buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
 
-    crosschain_proto::CrossChainMessage buf;
-
     // nng_recv is non-blocking, if there is no data, return value is non-zero.
     if (rv != 0)
     {
-        // cout << "One" << endl;
-        buf.set_sequence_id(0);
-        buf.set_ack_id(0);
-        buf.set_transactions("hello");
-    }
-    else
-    {
-        std::string str_buf(buffer, sz);
-        cout << "Two: " << sz << " :: " << str_buf << endl;
-        bool flag = buf.ParseFromString(str_buf);
-        cout << "Recvd: " << buf.sequence_id() << endl;
+        cout << "ERROR nng_recv has error value = " << rv << std::endl;
+
+        crosschain_proto::CrossChainMessage fakeMsg;
+        fakeMsg.set_transactions("ERROR=" + std::to_string(rv));
+        return fakeMsg;
     }
 
-    // nng_free(msg->buf, msg->data_len);
-    return buf;
+    crosschain_proto::CrossChainMessage receivedMsg;
+    const std::string str_buf{buffer, sz};
+    nng_free(buffer, sz);
+    cout << "Two: " << sz << " :: " << str_buf << endl;
+    receivedMsg.ParseFromString(str_buf);
+    cout << "Recvd: " << receivedMsg.sequence_id() << endl;
+
+    return receivedMsg;
 }
 
 /* This function is used to send message to a specific node in other RSM.
