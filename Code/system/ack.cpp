@@ -1,7 +1,6 @@
 #include "ack.h"
 
 #include <limits>
-#include <spdlog/spdlog.h>
 
 /* Appends max integer to the list and ackValue is set to this max integer.
  *

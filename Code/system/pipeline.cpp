@@ -2,8 +2,6 @@
 #include "ack.h"
 #include "pipe_queue.h"
 
-#include <spdlog/spdlog.h>
-
 Pipeline::Pipeline()
 {
     string ifconfig_path = GetPath();

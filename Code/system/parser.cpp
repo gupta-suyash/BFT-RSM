@@ -1,5 +1,4 @@
 #include "global.h"
-#include <spdlog/spdlog.h>
 
 /* Parses commandline options.
  * At present only one option is passed, node id.
@@ -33,5 +32,4 @@ void parser(int argc, char *argv[])
     // Set log level
     // TODO: set based on user input
     spdlog::set_level(spdlog::level::debug);
-    spdlog::debug("test");
 }

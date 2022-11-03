@@ -10,6 +10,10 @@
 #include <utility>
 #include <vector>
 
+// Enable all spdlog logging macros for development
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#include <spdlog/spdlog.h>
+
 using namespace std;
 
 class Pipeline;
@@ -74,9 +78,6 @@ enum MessageType
 #define COPY_BUF(d, v, p)                                                                                              \
     memcpy(&((char *)d)[p], (char *)&v, sizeof(v));                                                                    \
     p += sizeof(v);
-
-// Enable all spdlog logging macros for development
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 
 // Queue to interact with the protocol accessing Scrooge.
 // extern boost::lockfree::queue<ProtoMessage *> *in_queue;

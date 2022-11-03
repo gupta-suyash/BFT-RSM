@@ -1,7 +1,6 @@
 #include <filesystem>
 #include <memory>
 #include <pwd.h>
-#include <spdlog/spdlog.h>
 #include <string>
 
 #include "ack.h"
