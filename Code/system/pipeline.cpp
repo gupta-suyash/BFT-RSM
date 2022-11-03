@@ -209,8 +209,8 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
     }
     else
     {
-        cout << "Two: " << sz << " :: " << buffer << endl;
-        std::string str_buf(buffer);
+        std::string str_buf(buffer, sz);
+        cout << "Two: " << sz << " :: " << str_buf << endl;
         bool flag = buf.ParseFromString(str_buf);
         cout << "Recvd: " << buf.sequence_id() << endl;
     }
