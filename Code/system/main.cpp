@@ -4,6 +4,7 @@
 #include <string>
 
 #include "acknowledgement.h"
+#include "quorum_acknowledgement.h"
 #include "connect.h"
 #include "global.h"
 #include "iothread.h"
@@ -20,12 +21,9 @@ int main(int argc, char *argv[])
     parser(argc, argv);
     // Setting up the Acknowledgment object.
     ack_obj = new Acknowledgment();
-    ack_obj->Init();
-    SPDLOG_INFO("Done Initializing Acknowledgment Object");
 
-    QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
-    // ack_obj->TestFunc();
-    // quack_obj->TestFunc();
+    constexpr uint64_t kQuorumSize = 1;
+    QuorumAcknowledgment quack_obj(kQuorumSize);
 
     unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
     pipe_ptr = pipe_obj.get();
