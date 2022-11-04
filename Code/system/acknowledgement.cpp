@@ -12,16 +12,11 @@ void Acknowledgment::addToAckList(const uint64_t nodeId)
 
     mAckWindows.add(nodeId);
 
-    const auto minimumAck = std::cbegin(mAckWindows)->lower();
+    const auto minimumAckWindow = std::cbegin(mAckWindows);
 
-    if (!mAckValue.has_value() && minimumAck == 0)
+    if (minimumAckWindow->lower() == 0)
     {
-        // Acks start counting up from 0
-        mAckValue = 0;
-    }
-    else if (mAckValue.value() + 1 == minimumAck)
-    {
-        mAckValue = minimumAck;
+        mAckValue = minimumAckWindow->upper();
     }
 }
 
