@@ -1,5 +1,5 @@
 FILE = bftcomm
-$(FILE).pdf: $(FILE).tex intro.tex prelim.tex algo.tex failures.tex motivate.tex formalization.tex bridges.tex
+$(FILE).pdf: $(FILE).tex intro.tex prelim.tex algo.tex failures.tex motivate.tex formalization.tex bridges.tex threat_model.tex
 	pdflatex $(FILE)
 
 newcite: refined.bib $(FILE).pdf 
