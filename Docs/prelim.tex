@@ -1,37 +1,86 @@
 \section{Preliminaries}
-In this draft, we consider communication across two clusters $\Cluster{X}$ and $\Cluster{Y}$.
-We expect each cluster to be capable of independently ordering and 
-executing their client transactions.
-For this purpose, we assume that each cluster is replicated, and we designate the 
-number of replicas in these clusters as $\Replicas{X}$ and $\Replicas{Y}$.
-Depending on the fault model, to order the transactions, 
-these clusters can employ a crash fault-tolerant protocol like Paxos or 
-a byzantine fault-tolerant (\BFT{}) protocol like \pbft{}.
-For the rest of this draft, we assume existence of byzantine faults, 
-though nothing prevents our protocol \Shadow{} to be applied to crash fault-tolerant environment.
-
-We require standard \BFT{} assumptions. 
-Cluster $\Cluster{X}$ has $\n{\Cluster{X}} = \abs{\Replicas{X}}$ replicas, 
-of which $\f{\Cluster{X}}$ are byzantine, such that $\n{\Cluster{X}} = 3\f{\Cluster{X}}+1$. 
-The remaining replicas are honest and follow the protocol.
-Similarly, Cluster $\Cluster{Y}$ has $\n{\Cluster{Y}} = \abs{\Replicas{Y}}$ replicas, 
-of which $\f{\Cluster{Y}}$ are byzantine, such that $\n{\Cluster{Y}} = 3\f{\Cluster{Y}}+1$.
-We assume each cluster also has access to its own set of clients and we make no assumptions on 
-the behavior of the clients.
-We assume that each cluster runs a \BFT{} protocol to order its client transactions; 
-a transaction is termed as ordered if it receives support of at least two-third replicas.
-In \pbft{} terminology, a transaction is considered committed if at least one honest replica receives 
-$\Name{Commit}$ messages from $2\f{}+1$ distinct replicas.
-
-We assume authenticated communication. 
-Each replica uses digital signatures (\DS{}) to sign any message that they will be transferring across clusters.
-To represent a message $m$ signed by a replica $\Replica{}{}$ using \DS{}, we use the notation 
-{\bf $\SignMessage{m}{\Replica{}{}}$}.
-We assume that byzantine replicas can neither impersonate honest
-replicas, nor subvert cryptographic constructs.
-Each message communicated across the clusters has the following structure: 
-$\SignMessage{\Message{recv-id}{data}{}}{\Replica{}{}}$, where $recv-id$ identifies the receiver of this message, 
-$data$ denotes the content to be communicated, and $\Name{Ack}$ is an acknowledgment of a previously received message.  
-For simplicity, in rest of this draft, we assume that each replica of a cluster is assigned an identifier, starting from $0$, 
+Prior to explaining our \Scrooge{} protocol, we state the assumptions we make 
+in this paper.
+We assume existence of a finite set of replicated state machines (\RSM{}), 
+$\SMR{1}, \SMR{2}, \SMR{3}, ...$.
+The \Scrooge{} protocol aims to establish a reliable communication layer among each pair 
+of \RSM{s}.
+Each $i$-th \RSM{} $\SMR{i}$ includes $\n{i}$ replicas. 
+We assume that at most $\f{i}$ of these $\n{i}$ replicas can act Byzantine, while ensuring 
+that $\n{i} \ge 3\f{i} + 1$.
+Byzantine replicas can drop or indefinitely delay messages.
+For each \RSM{} $\SMR{i}$, its replicas are assigned an identifier, starting from $0$, 
 which can be obtained by calling the function $\ID{}$.
+
+%Depending on the fault model, to order the transactions, 
+%these clusters can employ a crash fault-tolerant protocol like Paxos or 
+%a byzantine fault-tolerant (\BFT{}) protocol like \pbft{}.
+
+We make no assumptions on the Byzantine Fault-Tolerant (\BFT{}) protocol employed by each \RSM{} 
+to reach consensus among its replicas on the incoming client transactions; 
+each \RSM{} can run any \BFT{} consensus protocol of its choice.
+However, we do require each \RSM{} to {\em certify} each message it wants to communicate 
+to another \RSM{} using our \Scrooge{} protocol.
+We represent a certificate on message $m$ as $\SignMessage{m, \Seqn}{\Qusign{i}}$ where
+$\Qusign{i}$ is a set of digital signatures (\DS{}) on $\langle m, \Seqn \rangle$ by a quorum of replicas 
+of the $i$-th \RSM{}.
+Like traditional \BFT{} protocols, we assume the quorum size for $\Qusign{i}$ to be at least $2\f{i}+1$.
+{\bf Note:} we do not make any assumption on the content of $m$; 
+\Scrooge{} does not verify the state change on executing $m$ at the receiving \RSM{}.
+We assume that the Byzantine replicas can neither impersonate honest replicas, nor subvert cryptographic constructs.
+
+
+\begin{definition}
+{\bf \Scrooge{}:}
+An \RSM{}-to-\RSM{} asynchronous communication protocol that enables reliable message delivery with a constant 
+number of message copies.
+\end{definition}
+
+\begin{definition}
+{\bf Communication Abstraction:}
+\Scrooge{} guarantees reliable communication of a message between two \RSM{s} if each \RSM{} includes at least $\n{} \ge 3\f{}+1$ 
+replicas;
+\Scrooge{} does not guarantee reliable communication between two replicas.
+\end{definition}
+
+
+\Scrooge{} provides the following \RSM{}-to-\RSM{} communication properties.
+\begin{enumerate}[wide,nosep]
+	\item \textbf{Basic Data Transfer:} \Scrooge{} provides a ``push'' functionality, which guarantees that any message, which a replica of the 
+sending \RSM{} wants to send will be eventually sent to a receiver.
+	\item \textbf{Message Reliability:} Any message dropped or delayed by Byzantine replicas is eventually received by honest replicas.
+To achieve this property, we acknowledge receipt of each message.
+	\item {\bf Flow Control:} \Scrooge{} ensures that a message is only re-send if and only if a sufficient number of honest replicas 
+have implicitly acknowledged its non-receipt.
+\end{enumerate}
+
+
+Next, we state the safety and liveness guarantees provided by our \Scrooge{} protocol. 
+To do so, we distinguish the guarantees provides by the \RSM{} and a replica in an \RSM{}.
+
+
+\begin{description}
+\item[\bf Replica Safety.] 
+If an honest replica $\Replica{i}{}$ sends a message $\SignMessage{m, \Seqn}{\Qusign{j}}$, 
+then $\Qusign{j}$ was committed by at least $2\f{j}+1$ replicas of \RSM{} $\SMR{j}$ at sequence number $\Seqn$.
+
+\item[\bf Replica Liveness.]
+For any two honest replicas $\Replica{i}{}$ and $\Replica{j}{}$,
+if $\Replica{i}{}$ sends a message $m$, then $\Replica{j}{}$ will receive $m$.
+
+\item[\bf \RSM{} Safety.]
+\RSM{} $\SMR{i}$ delivers message $m$ to \RSM{} $\SMR{j}$ if and only if
+$\SMR{i}$ commits message $m$.
+
+\item[\bf \RSM{} Liveness.]
+If \RSM{} $\SMR{i}$ decides to send a message $m$, then $m$ will be eventually
+delivered to \RSM{} $\SMR{j}$.
+\end{description}
+
+
+
+%
+%Each message communicated across the clusters has the following structure: 
+%$\SignMessage{\Message{recv-id}{data}{}}{\Replica{}{}}$, where $recv-id$ identifies the receiver of this message, 
+%$data$ denotes the content to be communicated, and $\Name{Ack}$ is an acknowledgment of a previously received message.  
 

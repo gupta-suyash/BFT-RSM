@@ -17,9 +17,12 @@
 %% BFT Protocol names (and Fabric Name).
 \newcommand{\Name}[1]{\textsc{#1}}
 \newcommand{\BFT}{\textsc{Bft}}
+\newcommand{\CFT}{\textsc{Cft}}
 \newcommand{\IBC}{\textsc{Ibc}}
+\newcommand{\RSM}{\textsc{RSM}}
 \newcommand{\pbft}{\textsc{Pbft}}
 \newcommand{\Shadow}{\textsc{Scrooge}}
+\newcommand{\Scrooge}{\textsc{Scrooge}}
 \newcommand{\quack}{\textsc{Quack}}
 \newcommand{\duck}{\textsc{Duck}}
 \newcommand{\Cluster}[1]{\mathcal{#1}}
@@ -27,7 +30,7 @@
 \newcommand{\DS}{\textsc{DS}}
 
 \newcommand{\Replica}[2]{\textsc{R}_{{#1}{#2}}}
-
+\newcommand{\SMR}[1]{\textsc{S}_{#1}}
 
 
 \newcommand{\n}[1]{\textbf{n}_{#1}}
@@ -35,6 +38,8 @@
 \newcommand{\Ack}[1]{\Name{Ack}(#1)}
 \newcommand{\Message}[3]{{#1},{#2},\Ack{#3}}
 \newcommand{\SignMessage}[2]{\langle#1\rangle_{#2}}
+\newcommand{\Seqn}{k}
+\newcommand{\Qusign}[1]{\mathcal{Q}_{#1}}
 
 \newcommand{\abs}[1]{\lvert #1 \rvert}
 \newcommand{\ID}[1]{\texttt{ID}({#1})}
@@ -43,4 +48,8 @@
 \newcommand{\Rbuf}[1]{\texttt{RBuf}[{#1}]}
 \newcommand{\highest}{\texttt{highest}}
 
-\newtheorem{example}{Example}
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}[section]
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}

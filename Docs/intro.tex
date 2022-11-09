@@ -1,52 +1,62 @@
 \section{Introduction}
 \begin{itemize}
-\item Federated applications require communication among multiple independent organizations, 
-each of which manages its own data. 
-These organizations communicate with each other to share data pertaining to the application.
+\item This paper presents \Shadow{}, the first message communication protocol 
+between two Byzantine fault-tolerant (\BFT{}) replicated state machines (\RSM{}). 
+\Shadow{} learns from the TCP-protocol and guarantees reliable and efficient 
+communication even in the presence of adversaries.
 
-\item Generally, each organization has several departments or sub-organizations, which although 
-work together fulfilling towards the same goal, may not trust each other.
+\item On the one hand, \Shadow{} establishes efficient bi-directional communication channels 
+for untrusted organizations that wish to reliably exchange data. 
+On the other hand, \Shadow{} permits cross-chain communication among modern blockchain-based cryptocurrencies, 
+such as Bitcoin, Ethereum, and Algorand.
 
-\item A simple example of lack of trust across departments arises in case of incidents or accidents when 
-no party is ready to share the blame. 
-Hence, each organization can be observed as a collection of known untrusted parties; 
-any decision within the organization requires agreement among multiple such parties.
+\item Internally, each of these organizations and/or cryptocurrencies can 
+be observed as an \RSM{} sharing data among multiple sub-organizations or participants, and 
+run crash fault-tolerant (\CFT{}) consensus protocols for availability and 
+byzantine fault-tolerant protocols for an additional data-integrity.
 
-\item These untrusted parties within an organization may individually store a copy of all the shared data, 
-and any transaction that modifies the state of the shared data requires a consensus. 
-Hence, we observe each organization as a replicated state machine (RSM).
+\item The concern for data-integrity within an organization arises 
+from lack of trust among sub-organizations or participants. 
+For example, some participants could act malicious.
+Similarly, in the case of an incident, no sub-organization may take responsibility. 
 
-\item Following this, any federated application can be viewed as a communication between 
-multiple RSMs. 
-Prior works often refer to this communication as cross-chain communication as 
-each RSM logs (or chains) its own data.
 
-\item Prior works on cross-chain communication mainly focus on two aspects:
-(i) the merits of performing cross-chain communication, and 
-(ii) the safe application of data communicated across chains. 
-However, they lack sufficient details on {\em how} this communication should take place.
-The common assumption is that some {\em reliable and efficient channel} will guarantee seamless 
-cross-chain communication.
+%\item These untrusted parties within an organization may individually store a copy of all the shared data, 
+%and any transaction that modifies the state of the shared data requires a consensus. 
+%Hence, we observe each organization as a replicated state machine (RSM).
 
-\item We argue that designing a reliable and efficient channel is challenging as it raises 
-several questions. 
+\item Communication between two or more \RSM{s} is even more challenging:
+communicating \RSM{s} may want to share a subset of their data and
+need to determine reliable communication channels. 
+
+\item A simple way to solve this challenge is to require each \RSM{} to designate 
+some parties as {\em trusted} and route all the communication through these 
+trusted parties.
+However, such trusted parties can be compromised and can face targeted attacks. 
+
+
+\item As a result, recent works that expect communication between two or more \RSM{s} 
+do not employ trusted parties and assume their nodes will {\em somehow} manage communication. 
+Specifically, these works lack details regarding {\em how} this communication should take place 
+and only focus on:
+(i) the merits of communication between \RSM{s}, and 
+(ii) the safe application of data communicated across \RSM{s}. 
+The underlying assumption is that some protocol will guarantee {\em reliable and efficient communication} 
+among the \RSM{s}.
+
+\item Our protocol \Shadow{} fills this gap by answering following questions.
 (1) How many senders and receivers are needed to reliably communicate one message? 
 (2) How many copies of a message should each sender send?
 (3) How frequently do the senders have to send the copies of the message?
 (4) How does the sender know that the message has been received?
 (5) Can the communication channel be full-duplex?
 
-\item To resolve these questions, we present the design of first cross-chain message communication 
-protocol, \Shadow{}, which learns from the TCP-protocol and guarantees reliable and efficient 
-communication even in the presence of byzantine attacks.
+\item \Shadow{} provides communicating \RSM{s} access to full-duplex channels.
+\Shadow{} permits sender to buffer messages until they are received and 
+resend undelivered messages.
+Further, \Shadow{} conserves channel bandwidth by allowing receivers to send cumulative acknowledgments.
 
-\item Like TCP, \Shadow{} supports full-duplex communication, 
-buffers messages at the sender until they are received, 
-requires receivers to send cumulative acknowledgments, and 
-resends undelivered messages.
-However, TCP is not designed to handle byzantine attacks. 
-
-\item To ensure reliable communication under byzantine attacks, \Shadow{} introduces the following:
+\item Two key innovative takeaways of \Shadow{} are:
 (1) Quorum acknowledgment (\quack{}), which provide the guarantee that the message has been received by 
 at least one honest party at the receiving RSM.
 (2) implicit \duck{}, which informs the sending RSM about a missing message. 
@@ -61,7 +71,7 @@ with the outgoing messages.
 
 \item We argue that \Shadow{} provides optimal asynchronous duplex communication without the 
 need for any advanced cryptographic primitives or network coding.
-\Shadow{} is designed for permitting high throughput communication between the RSMs.
+\Shadow{} is designed for permitting high throughput communication between the RSMs, while ensuring a bounded latency.
 
 \end{itemize}
 %A large number of existing applications require communication between multiple clusters of replicas. 
