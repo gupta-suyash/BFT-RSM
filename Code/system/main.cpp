@@ -7,7 +7,6 @@
 #include "connect.h"
 #include "global.h"
 #include "iothread.h"
-#include "message.h"
 #include "pipe_queue.h"
 #include "pipeline.h"
 
@@ -19,12 +18,10 @@ int main(int argc, char *argv[])
 {
     // Parsing the command line args.
     parser(argc, argv);
-    cout << "Done Parsing" << endl;
-
     // Setting up the Acknowledgment object.
     ack_obj = new Acknowledgment();
     ack_obj->Init();
-    cout << "Done Initializing Acknowledgment Object" << endl;
+    SPDLOG_INFO("Done Initializing Acknowledgment Object");
 
     QuorumAcknowledgment *quack_obj = new QuorumAcknowledgment();
     // ack_obj->TestFunc();
@@ -33,22 +30,22 @@ int main(int argc, char *argv[])
     unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
     pipe_ptr = pipe_obj.get();
     pipe_ptr->SetSockets();
-    cout << "Done setting up sockets between nodes." << endl;
+    SPDLOG_INFO("Done setting up sockets between nodes.");
 
     // Setting up the queue.
     unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
     sp_qptr = sp_queue.get();
-    cout << "Done setting up msg-queue and store-queue between threads." << endl;
+    SPDLOG_INFO("Done setting up msg-queue and store-queue between threads.");
 
     // The next command is for testing the queue.
     // sp_qptr->CallThreads();
 
-    cout << "Done setting up the in-queue for messages from protocol." << endl;
+    SPDLOG_INFO("Done setting up the in-queue for messages from protocol.");
 
     // Creating and starting Sender IOThreads.
     unique_ptr<SendThread> snd_obj = make_unique<SendThread>();
     snd_obj->Init(0);
-    cout << "Created Sender Thread: " << snd_obj->GetThreadId() << endl;
+    SPDLOG_INFO("Created Sender Thread with ID={} ", snd_obj->GetThreadId());
 
     // Creating and starting Receiver IOThreads.
     // unique_ptr<RecvThread> rcv_obj = make_unique<RecvThread>();

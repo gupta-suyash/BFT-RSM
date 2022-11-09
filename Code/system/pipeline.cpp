@@ -18,7 +18,7 @@ string Pipeline::GetPath()
 
     // At present, we assume ifconfig.txt is located at this path.
     string if_path = p.string() + "/configuration/ifconfig.txt";
-    cout << "Path in string: " << if_path << endl;
+    SPDLOG_INFO("IfConfigPath = {}", if_path);
     return if_path;
 }
 
@@ -31,7 +31,7 @@ void Pipeline::ReadIfconfig(string if_path)
     std::ifstream fin{if_path};
     if (!fin)
     {
-        cout << "Error opening file for reading" << endl;
+        SPDLOG_CRITICAL("Error opening file for reading");
         exit(1);
     }
 
@@ -40,12 +40,8 @@ void Pipeline::ReadIfconfig(string if_path)
     while (getline(fin, ips))
     {
         ip_addr.push_back(ips);
-        cout << "IP: " << ips << endl;
+        SPDLOG_INFO("IP = {}", ips);
     }
-
-    // for(int i=0; i<ip_addr.size(); i++) {
-    //	cout << "Stored IP: " << ip_addr[0] << endl;
-    //}
 }
 
 /* Returns the required IP address from the vector ip_addr.
@@ -84,8 +80,7 @@ string Pipeline::GetSendUrl(uint16_t cnt)
 
 void fatal(const char *func, int rv)
 {
-    cout << "Fatal " << endl;
-    fprintf(stderr, "%s: %s\n", func, nng_strerror(rv));
+    SPDLOG_CRITICAL("Fatal '{}' {}", func, nng_strerror(rv));
     exit(1);
 }
 
@@ -95,7 +90,6 @@ void fatal(const char *func, int rv)
  */
 void Pipeline::SetSockets()
 {
-    // cout << "SetSockets" << endl;
     int rv;
 
     // Initializing sender sockets.
@@ -105,7 +99,7 @@ void Pipeline::SetSockets()
         {
             string url = GetSendUrl(i);
             const char *curl = url.c_str();
-            cout << "To " << i << " :: " << curl << endl;
+            SPDLOG_INFO("Generated URL for sending to nodeId = {} as '{}'", i, url);
 
             nng_socket sock;
 
@@ -130,7 +124,7 @@ void Pipeline::SetSockets()
         {
             string url = GetRecvUrl(i);
             const char *curl = url.c_str();
-            cout << "From " << i << " :: " << curl << endl;
+            SPDLOG_INFO("Generated URL for receiving from nodeId = {} as '{}'", i, url);
 
             nng_socket sock;
             // Attempt to open the socket; fatal if fails.
@@ -153,26 +147,22 @@ void Pipeline::SetSockets()
  */
 void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, uint16_t node_id)
 {
-    // cout << "DataSend" << endl;
     int rv;
     string buffer;
 
     // Socket to communicate.
     auto sock = send_sockets_[node_id];
 
-    // Serialize to array for sending.
-    // buf.SerializeToArray(buffer, sz);
     buf.SerializeToString(&buffer);
     size_t sz = buffer.size();
 
-    // TODO: The next line should be removed.
-    cout << "Sent: " << sz << " :: " << &buffer[0] << endl;
+    SPDLOG_DEBUG("Sending {} bytes to nodeId {}", sz, node_id);
 
     crosschain_proto::CrossChainMessage chk_buf;
     chk_buf.ParseFromString(buffer);
 
-    cout << "Pb: seq: " << chk_buf.sequence_id() << " :: ack: " << chk_buf.ack_id()
-         << " :: data: " << chk_buf.transactions() << endl;
+    SPDLOG_DEBUG("Sent message: [SequenceId={}, AckId={}, transaction='{}']", chk_buf.sequence_id(), chk_buf.ack_id(),
+                 chk_buf.transactions());
 
     if ((rv = nng_send(sock, &buffer[0], sz, 0)) != 0)
     {
@@ -187,7 +177,6 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, uint16_t node_i
  */
 crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
 {
-    // cout << "DataRecv" << endl;
     int rv;
     char *buffer;
     size_t sz;
@@ -200,7 +189,11 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
     // nng_recv is non-blocking, if there is no data, return value is non-zero.
     if (rv != 0)
     {
-        cout << "ERROR nng_recv has error value = " << rv << std::endl;
+        if (rv != 8)
+        {
+            // Silence error EAGAIN while using nonblocking nng functions
+            SPDLOG_ERROR("nng_recv has error value = {}", nng_strerror(rv));
+        }
 
         crosschain_proto::CrossChainMessage fakeMsg;
         fakeMsg.set_transactions("ERROR=" + std::to_string(rv));
@@ -209,11 +202,12 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
 
     crosschain_proto::CrossChainMessage receivedMsg;
     const std::string str_buf{buffer, sz};
-    nng_free(buffer, sz);
-    cout << "Two: " << sz << " :: " << str_buf << endl;
     receivedMsg.ParseFromString(str_buf);
-    cout << "Recvd: " << receivedMsg.sequence_id() << endl;
 
+    SPDLOG_DEBUG("Received {} bytes from nodeId={}, message = [SequenceId={}, AckId={}, transaction='{}']", sz, node_id,
+                 receivedMsg.sequence_id(), receivedMsg.ack_id(), receivedMsg.transactions());
+
+    nng_free(buffer, sz);
     return receivedMsg;
 }
 
@@ -223,7 +217,6 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
  */
 bool Pipeline::SendToOtherRsm(uint16_t nid)
 {
-    // cout << "SendToOtherRSM" << endl;
     // Fetching the block to send, if any.
     crosschain_proto::CrossChainMessage msg = sp_qptr->EnqueueStore();
     if (msg.sequence_id() == 0)
@@ -237,8 +230,8 @@ bool Pipeline::SendToOtherRsm(uint16_t nid)
     const uint64_t ack_msg = ack_obj->GetAckIterator();
     msg.set_ack_id(ack_msg);
 
-    cout << "Os: To: " << recvr_id << " :: seq: " << msg.sequence_id() << " :: ack: " << msg.ack_id()
-         << " :: data: " << msg.transactions() << endl;
+    SPDLOG_DEBUG("Sending message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
+                 recvr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
 
     DataSend(msg, recvr_id);
 
@@ -250,7 +243,6 @@ bool Pipeline::SendToOtherRsm(uint16_t nid)
  */
 void Pipeline::RecvFromOtherRsm()
 {
-    // cout << "RecvFromOtherRSM" << endl;
 
     // Starting id of the other RSM.
     uint16_t sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
@@ -263,8 +255,9 @@ void Pipeline::RecvFromOtherRsm()
         crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
         if (msg.sequence_id() != 0)
         {
-            cout << "@r: From: " << sendr_id << " :: seq: " << msg.sequence_id() << " :: ack: " << msg.ack_id()
-                 << " :: data: " << msg.transactions() << endl;
+            SPDLOG_DEBUG(
+                "Received message from other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
+                sendr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
 
             // Updating the ack list for msg received.
             ack_obj->AddToAckList(msg.sequence_id());
@@ -281,7 +274,6 @@ void Pipeline::RecvFromOtherRsm()
  */
 void Pipeline::SendToOwnRsm()
 {
-    // cout << "SendToOwnRsm" << endl;
     // Check the queue if there is any message.
     crosschain_proto::CrossChainMessage msg = sp_qptr->Dequeue();
     if (msg.sequence_id() == 0)
@@ -298,9 +290,8 @@ void Pipeline::SendToOwnRsm()
         if (recvr_id == get_node_id())
             continue;
 
-        // TODO: Remove this line.
-        cout << "Ms: To: " << recvr_id << " :: seq: " << msg.sequence_id() << " :: ack: " << msg.ack_id()
-             << " :: data: " << msg.transactions() << endl;
+        SPDLOG_DEBUG("Sent message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
+                     recvr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
 
         DataSend(msg, recvr_id);
     }
@@ -312,7 +303,6 @@ void Pipeline::SendToOwnRsm()
  */
 char *Pipeline::DeepCopyMsg(char *buf)
 {
-    // cout << "DeepCopyMsg" << endl;
     size_t data_len = strlen(buf) + 1;
     char *c_buf = new char[data_len];
     memcpy(c_buf, buf, data_len);
@@ -324,7 +314,6 @@ char *Pipeline::DeepCopyMsg(char *buf)
  */
 void Pipeline::RecvFromOwnRsm()
 {
-    // cout << "RecvFromOwnRsm" << endl;
     // Starting id of each RSM.
     uint16_t rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
@@ -339,8 +328,9 @@ void Pipeline::RecvFromOwnRsm()
         crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
         if (msg.sequence_id() != 0)
         {
-            cout << "#r: From: " << sendr_id << " :: seq: " << msg.sequence_id() << " :: ack: " << msg.ack_id()
-                 << " :: data: " << msg.transactions() << endl;
+            SPDLOG_DEBUG(
+                "Received message from own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
+                sendr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
 
             // Updating the ack list for msg received.
             ack_obj->AddToAckList(msg.sequence_id());

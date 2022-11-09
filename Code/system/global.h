@@ -10,6 +10,10 @@
 #include <utility>
 #include <vector>
 
+// Enable all spdlog logging macros for development
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#include <spdlog/spdlog.h>
+
 using namespace std;
 
 class Pipeline;

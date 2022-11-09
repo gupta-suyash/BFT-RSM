@@ -28,4 +28,8 @@ void parser(int argc, char *argv[])
             break;
         }
     }
+
+    // Set log level
+    // TODO: set based on user input
+    spdlog::set_level(spdlog::level::debug);
 }
