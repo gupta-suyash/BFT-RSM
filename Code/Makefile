@@ -27,7 +27,7 @@ FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 #	echo ${SOURCES}
 #	echo ${SOURCES_OBJ}
 
-.PHONY: all
+.PHONY: all clean format
 all: scrooge
 
 scrooge : $(SOURCES_OBJ)
@@ -43,7 +43,6 @@ scrooge : $(SOURCES_OBJ)
 #	$(CC) -c ${CFLAGS} $(INCLUDE) $(LIBS) -o $@ $<
 
 
-.PHONY: clean
 clean:
 	rm -f system/*.o configuration/*.o scrooge
 
