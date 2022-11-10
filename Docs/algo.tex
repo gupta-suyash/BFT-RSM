@@ -1,28 +1,59 @@
 \section{\Shadow{} Protocol}
-To explain our protocol that facilitates reliable communication between two clusters, 
-we assume that both the clusters have a large number of messages to send to each other; 
-each cluster can continuously send messages to the other without stalling.
-Further, we assume that any message an honest replica in a cluster plans to send to the other cluster 
-has been ordered with the support of $2\f{}+1$ replicas.
-The protocol used to order this message is orthogonal to our \Shadow{} protocol;
-the clusters can employ any consensus protocol to order messages.
-However, we do expect each ordered message to be assigned a monotonically increasing sequence number (say $k$)
-and expect no gaps in these sequence numbers (e.g. $1,2,3,...$).
+To facilitate reliable \RSM{}-to-\RSM{} communication using the \Scrooge{} protocol, 
+we require each replica to maintain several lists and maps, which
+help to track the messages communicated across \RSM{s}.
+Each message communicated using \Scrooge{} has two parts: 
+(1) transaction part, which is the actual message committed at the \RSM{}, and 
+(2) acknowledgment part, which is an acknowledgement for messages from the receiver \RSM{}. 
+Let $\SSet{i}$ be the set of all messages to be sent by $i$-th \RSM{} $\SMR{i}$, such that:
+\begin{equation*}
+\SSet{i} = \{\SignMessage{m, 1}{\Qusign{i}},  \SignMessage{m, 2}{\Qusign{i}}, ... , \SignMessage{m, \Seqn}{\Qusign{i}}, ... \} 
+\end{equation*}
+%Here, $m', m''$ are committed by \RSM{} $\SMR{j}$, $j \neq i$. 
+Each $l$-th replica $\Replica{i}{l}$ in \RSM{} $\SMR{i}$ maintains following:
 
-Our \Shadow{} protocol expects that each replica in a cluster has a {\em sending buffer} (\Sbuf{}) and 
-a {\em receiving buffer} (\Rbuf{}) of finite sizes. 
-\Sbuf{} stores all the messages that a replica plans to send to the other cluster, while $\Rbuf{}$ 
-includes the messages from the other cluster. 
-We visualize $\Sbuf{}$ as a {\em queue} where new messages are added at the {\em rear} and 
-messages are removed from the {\em front}.
-Additionally, each message stored in $\Sbuf{}$ has an associated {\em counter}. 
-As the aim of our protocol is to reduce the number of messages communicated across the clusters, 
-so in the normal-case (failure-free) we require each replica to send a distinct message.
-We do this by dividing the messages to be sent between the replicas based on their sequence numbers ($k \mod \ID{} = 0$).
-Each replica can use this simple function to find out the messages it is expected to send and it stores them 
-in $\Sbuf{}$.
-The remaining messages (to be sent by other replicas) are stored in a {\em holding buffer} (\Hbuf{}) and 
-we also require a counter to be associated with each message in $\Hbuf{}$. 
+\begin{itemize}[wide]
+\item $\Sbuf{l} = \{\SignMessage{m, k}{\Qusign{i}} ~|~ k \bmod l = 0 ~\wedge ~\SignMessage{m, k}{\Qusign{i}} \in \SSet{i} \}$, the set of messages to be sent $\Replica{i}{l}$.
+
+\item $\Hbuf{l} = \SSet{i} - \Sbuf{l}$, the remaining set of messages.
+
+\item $\Rbuf{l} = \{\SignMessage{m, k}{\Qusign{j}} ~|~ j \neq i ~\wedge ~\SignMessage{m, k}{\Qusign{j}} \in \SSet{j} \}$, the messages received from \RSM{} $\SMR{j}$.
+
+\item $\SAck{l} = \{\Ack{k} ~|~ \SignMessage{m, k}{\Qusign{j}} \in \Rbuf{l} \}$, the acknowledgments for received messages.
+
+\end{itemize}
+%
+Additionally, we assume that each replica in \RSM{} $\SMR{i}$ 
+counts the number of acknowledgments it has received for 
+each message in the set $\SSet{i}$ from the replicas in \RSM{} $\SMR{j}$.
+It maintains the map $\RAck{l}{}$ for this purpose. 
+
+
+{\bf Setup.}
+Definition~\ref{def:scrooge} states that \Scrooge{} provides an \RSM{}-to-\RSM{} asynchronous communication.
+This implies that \Scrooge{} supports {\em bi-directional} communication where both the \RSM{s} can send/receive 
+messages at the same time.
+This property allows us to conserve the bandwidth by piggybacking acknowledgments along with the messages.
+For the rest of this section, we assume that \RSM{s} $\SMR{i}$ and $\SMR{j}$ want to communicate a 
+steady stream of committed messages.
+Further, \Scrooge{} requires each message that an \RSM{} plans to communicate has 
+a monotonically increasing sequence number (say $\Seqn \ge 1$), and there are no gaps in these sequence numbers.
+
+
+%Our \Shadow{} protocol expects that each replica in a cluster has a {\em sending buffer} (\Sbuf{}) and 
+%a {\em receiving buffer} (\Rbuf{}) of finite sizes. 
+%\Sbuf{} stores all the messages that a replica plans to send to the other cluster, while $\Rbuf{}$ 
+%includes the messages from the other cluster. 
+%We visualize $\Sbuf{}$ as a {\em queue} where new messages are added at the {\em rear} and 
+%messages are removed from the {\em front}.
+%Additionally, each message stored in $\Sbuf{}$ has an associated {\em counter}. 
+%As the aim of our protocol is to reduce the number of messages communicated across the clusters, 
+%so in the normal-case (failure-free) we require each replica to send a distinct message.
+%We do this by dividing the messages to be sent between the replicas based on their sequence numbers ($k \mod \ID{} = 0$).
+%Each replica can use this simple function to find out the messages it is expected to send and it stores them 
+%in $\Sbuf{}$.
+%The remaining messages (to be sent by other replicas) are stored in a {\em holding buffer} (\Hbuf{}) and 
+%we also require a counter to be associated with each message in $\Hbuf{}$. 
 
 \begin{example}\label{ex:rep-send}
 Assume cluster $\Cluster{X}$ has $4$ replicas ($\Replica{\Cluster{X}}{1}$, $\Replica{\Cluster{X}}{2}$, $\Replica{\Cluster{X}}{3}$, and $\Replica{\Cluster{X}}{4}$), 
@@ -34,60 +65,95 @@ For $\Replica{\Cluster{X}}{2}$: $\Sbuf{2,6,10,...}$ and $\Hbuf{1,3,4,5,7,8,...}$
 For $\Replica{\Cluster{X}}{3}$: $\Sbuf{3,7,11,...}$ and $\Hbuf{1,2,4,5,6,8,...}$.
 \end{example}
 
-We visualize $\Rbuf{}$ as an array, which stores a copy of received message from the other cluster, 
-indexed by the sequence number.
-We also require replicas to acknowledge (\Name{Ack}) messages they have received from the other cluster. 
-But, sending $\n{}$ \Name{Ack} messages for each received messaged is expensive, so we make replicas send 
-cumulative acknowledgment messages, which help to acknowledge receipt of multiple messages in a shot. 
-In this draft, when a replica sends $\Ack{k}$, it implies that this replica has received all the messages 
-with sequence number less than or equal to $k$.
-Next, we discuss the protocol steps.
+
+
 
 \begin{itemize}[wide]
-\item {\bf \em Transmit.}
-When the $i$-th replica $\Replica{\Cluster{X}}{i}$ in cluster $\Cluster{X}$ has messages in its $\Sbuf{}$, it 
-removes the message at the front of the queue (say message $m$).
-Next, $\Replica{\Cluster{X}}{i}$ creates a message $\SignMessage{\Message{i}{m}{l}}{\Replica{\Cluster{X}}{i}}$ 
-and forwards this message to the $j$-th replica $\Replica{\Cluster{Y}}{j}$ in cluster $\Cluster{Y}$.
-As $\Replica{\Cluster{X}}{i}$ is also receiving messages from the other cluster, it uses its outgoing message 
-to acknowledge the receipt of some of those messages (cumulative acknowledgments). 
-As cumulative acknowledgments represent a contiguous sequence of messages, every $\Ack{l}$ message 
-that a replica sends in our protocol implies the following: 
-all messages till sequence number $l$ have been received.
-We require each replica to send a cumulative acknowledgment with every outgoing message 
-even if it implies resending the same acknowledgment (in the case no new messages have been received).
+\item {\bf Transmit.}
+When the $l$-th replica $\Replica{i}{l}$ of the $i$-th \RSM{} $\SMR{i}$ has 
+at least one message in its $\Sbuf{l}$, 
+it extracts the message with least sequence number; 
+say message $\SignMessage{m, k}{\Qusign{i}}$ where no other message in $\Sbuf{l}$ has a sequence number larger than $\Seqn$.
+Next, replica $\Replica{i}{l}$ searches $\SAck{l}$ to search for the longest contiguous set of acknowledgments starting from $1$. 
+Assume $\Ack{1}, \Ack{2}, ... , \Ack{k'}$ is one such set.
+If this is the case, then $\Replica{i}{l}$ appends acknowledgment $\Ack{k'}$ to message $\SignMessage{m, k}{\Qusign{i}}$ and 
+sends this to a replica in the $j$-th \RSM{} $\SMR{j}$.
 
 
-Note: $i$ and $j$ may have different values.
-We do this because $\Replica{\Cluster{X}}{i}$ loops over the set of replicas in cluster $\Cluster{Y}$ and sends 
-distinct messages to each of them.
-In the case of Example~\ref{ex:rep-send}, 
-$\Replica{\Cluster{X}}{1}$ sends the message with sequence $1$ to $\Replica{\Cluster{Y}}{1}$, $5$ to $\Replica{\Cluster{Y}}{2}$, 
-$9$ to $\Replica{\Cluster{Y}}{3}$, $13$ to $\Replica{\Cluster{Y}}{4}$, $17$ to $\Replica{\Cluster{Y}}{1}$, and so on. 
+\item {\bf Cumulative Acknowledgments.}
+To conserve bandwidth, instead of sending an acknowledgment for each received message, 
+\Scrooge{} creates and sends cumulative acknowledgments. 
+This requires each replica to search in its list $\SAck{l}$ for the longest contiguous set of acknowledgments. 
+The last acknowledgment of this contiguous list is considered as the cumulative acknowledgment for all the 
+messages in this list. 
+
+%We require each replica to send a cumulative acknowledgment with every outgoing message 
+%even if it implies resending the same acknowledgment (in the case no new messages have been received).
+
+\item {\bf Pairwise Round-Robin.}
+Our \Scrooge{} protocol requires each replica $\Replica{i}{l}$ of \RSM{} $\SMR{i}$ to send the message
+$\SignMessage{m, k}{\Qusign{i}}$ and acknowledgment $\Ack{k'}$ to exactly one replica of the \RSM{} $\SMR{j}$.
+To identify the correct destination, we design a pairwise round-robin algorithm; 
+$\Replica{i}{l}$ sends the message to replica $\Replica{j}{r}$ of \RSM{} $\SMR{j}$, 
+where $r$ represents the communication round and $r = (l+r) \bmod \n{j} ~\wedge ~r \in [1,\n{j}]$.
+Specifically, in each communication round, each replica $\Replica{i}{l}$ 
+sends a message to a replica of the other \RSM{}; the destination replica varies per round.
+A key advantage of switching destination is to prevent honest replicas to be stuck with byzantine replicas.
+
+
+%Note: $i$ and $j$ may have different values.
+%We do this because $\Replica{\Cluster{X}}{i}$ loops over the set of replicas in cluster $\Cluster{Y}$ and sends 
+%distinct messages to each of them.
+%In the case of Example~\ref{ex:rep-send}, 
+%$\Replica{\Cluster{X}}{1}$ sends the message with sequence $1$ to $\Replica{\Cluster{Y}}{1}$, $5$ to $\Replica{\Cluster{Y}}{2}$, 
+%$9$ to $\Replica{\Cluster{Y}}{3}$, $13$ to $\Replica{\Cluster{Y}}{4}$, $17$ to $\Replica{\Cluster{Y}}{1}$, and so on. 
 
 
 \item {\bf \em Receipt.}
-When the $i$-th replica $\Replica{\Cluster{X}}{i}$ in cluster $\Cluster{X}$ receives a message 
-$m' = \SignMessage{\Message{i}{m}{k}}{\Replica{\Cluster{Y}}{j}}$ from the $j$-th replica in cluster $\Cluster{Y}$, 
-it broadcasts $m'$ in its cluster.
-Say the sequence number for $m$ be $l$.
-If $\Replica{\Cluster{X}}{i}$ has received all the messages with sequence number less than $l$ from cluster $\Cluster{Y}$, 
-it goes ahead and processes $m$. 
-If this is not the case, then $\Replica{\Cluster{X}}{i}$ stores $m$ at the index $l$ in $\Rbuf{}$.
-This $\Rbuf{}$ helps $\Replica{\Cluster{X}}{i}$ to determine the contiguous sequence of messages it has received to send a cumulative 
-acknowledgment in future.
+When the $r$-th replica $\Replica{j}{r}$ of the $j$-th \RSM{} receives the 
+message $\SignMessage{m, k}{\Qusign{i}}$ and acknowledgment $\Ack{k'}$ from replica $\Replica{i}{l}$ of \RSM{} $\SMR{i}$,
+it broadcasts the message and acknowledgment to all the replicas in its \RSM{}.
+Next, replica $\Replica{j}{r}$ updates the data-structure $\RAck{r}{}$ as follows:
+for all the values $u \in [1,k']$, increment $\RAck{r}{u}$ by one.
+If any $\RAck{r}{u}$ reaches the count $\f{j}+1$, it marks the message $\SignMessage{m, u}{\Qusign{j}}$ 
+as {\em delivered}.
+Further, we keep track of the last message acknowledged by a quorum of replicas (one with highest sequence number till now) in the variable $\highest{}$.
 
-Each message $m'$ received by $\Replica{\Cluster{X}}{i}$ also includes a cumulative acknowledgment ($\Ack{k}$). 
-This is the acknowledgment from the replica $\Replica{\Cluster{Y}}{j}$ (sender of $m'$).
-Through this $\Ack{k}$, $\Replica{\Cluster{Y}}{j}$ wants to inform that it has received all the messages till sequence number $k$ 
-from cluster $\Cluster{X}$.
-This allows $\Replica{\Cluster{X}}{i}$ to increment the {\em counter} for each message with sequence number $\le k$ 
-in its $\Sbuf{}$ and $\Hbuf{}$.
-When the counter for any message reaches $\f{\Replicas{}}+1$, the corresponding message is removed from $\Sbuf{}$ or $\Hbuf{}$.
-We call this message to be {\em majority acknowledged}.
-Further, we keep track of the last majority acknowledged message (one with highest sequence number till now) in variable $\highest{}$.
+%Say the sequence number for $m$ be $l$.
+%If $\Replica{\Cluster{X}}{i}$ has received all the messages with sequence number less than $l$ from cluster $\Cluster{Y}$, 
+%it goes ahead and processes $m$. 
+%If this is not the case, then $\Replica{\Cluster{X}}{i}$ stores $m$ at the index $l$ in $\Rbuf{}$.
+%This $\Rbuf{}$ helps $\Replica{\Cluster{X}}{i}$ to determine the contiguous sequence of messages it has received to send a cumulative 
+%acknowledgment in future.
+%
+%Each message $m'$ received by $\Replica{\Cluster{X}}{i}$ also includes a cumulative acknowledgment ($\Ack{k}$). 
+%This is the acknowledgment from the replica $\Replica{\Cluster{Y}}{j}$ (sender of $m'$).
+%Through this $\Ack{k}$, $\Replica{\Cluster{Y}}{j}$ wants to inform that it has received all the messages till sequence number $k$ 
+%from cluster $\Cluster{X}$.
+%This allows $\Replica{\Cluster{X}}{i}$ to increment the {\em counter} for each message with sequence number $\le k$ 
+%in its $\Sbuf{}$ and $\Hbuf{}$.
+%When the counter for any message reaches $\f{\Replicas{}}+1$, the corresponding message is removed from $\Sbuf{}$ or $\Hbuf{}$.
+%We call this message to be {\em majority acknowledged}.
+
 
 \end{itemize}
+
+
+%\Scrooge{} requires each honest replica to acknowledge the receipt of a valid message. 
+%When a replica $\Replica{i}{l}$ in \RSM{} $\SMR{i}$ receives a message with sequence number $\Seqn$ 
+%from the \RSM{} $\SMR{j}$, 
+%it creates an acknowledgment $\Ack{k}$ in set $\SAck{l}$.
+%
+%
+%We visualize $\Rbuf{}$ as an array, which stores a copy of received message from the other cluster, 
+%indexed by the sequence number.
+%We also require replicas to acknowledge (\Name{Ack}) messages they have received from the other cluster. 
+%But, sending $\n{}$ \Name{Ack} messages for each received messaged is expensive, so we make replicas send 
+%cumulative acknowledgment messages, which help to acknowledge receipt of multiple messages in a shot. 
+%In this draft, when a replica sends $\Ack{k}$, it implies that this replica has received all the messages 
+%with sequence number less than or equal to $k$.
+%Next, we discuss the protocol steps.
+
 
 
 {\bf Complexity.}

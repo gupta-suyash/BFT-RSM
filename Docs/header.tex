@@ -36,6 +36,7 @@
 \newcommand{\n}[1]{\textbf{n}_{#1}}
 \newcommand{\f}[1]{\textbf{f}_{#1}}
 \newcommand{\Ack}[1]{\Name{Ack}(#1)}
+\newcommand{\Packet}[2]{\langle {#1}, \Ack{#2}\rangle}
 \newcommand{\Message}[3]{{#1},{#2},\Ack{#3}}
 \newcommand{\SignMessage}[2]{\langle#1\rangle_{#2}}
 \newcommand{\Seqn}{k}
@@ -43,9 +44,13 @@
 
 \newcommand{\abs}[1]{\lvert #1 \rvert}
 \newcommand{\ID}[1]{\texttt{ID}({#1})}
-\newcommand{\Sbuf}[1]{\texttt{SBuf}[{#1}]}
-\newcommand{\Hbuf}[1]{\texttt{HBuf}[{#1}]}
-\newcommand{\Rbuf}[1]{\texttt{RBuf}[{#1}]}
+\newcommand{\SSet}[1]{\mathcal{M}(#1)}
+\newcommand{\RSet}{\mathcal{R}}
+\newcommand{\Sbuf}[1]{\textsc{SBuf}[{#1}]}
+\newcommand{\Hbuf}[1]{\textsc{HBuf}[{#1}]}
+\newcommand{\Rbuf}[1]{\textsc{RBuf}[{#1}]}
+\newcommand{\SAck}[1]{\textsc{SAck}[{#1}]}
+\newcommand{\RAck}[2]{\textsc{RAck}[{#1}][{#2}]}
 \newcommand{\highest}{\texttt{highest}}
 
 \usepackage{amsthm}
