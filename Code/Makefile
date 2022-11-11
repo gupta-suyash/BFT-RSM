@@ -20,14 +20,20 @@ LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
 
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
 SOURCES += $(wildcard ./configuration/*.cpp)
+LIBRARY_SOURCES = $(filter-out ./system/main.cpp, $(SOURCES))
+TEST_SOURCES = $(wildcard ./test/*.cpp ./test/*.cc)
+
 SOURCES_OBJ = $(SOURCES:.cpp=.o)
+LIBRARY_SOURCES_OBJ = $(LIBRARY_SOURCES:.cpp=.o)
+TEST_SOURCES_OBJ = $(TEST_SOURCES:.cpp=.o)
+
 FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 
 #abc:
 #	echo ${SOURCES}
 #	echo ${SOURCES_OBJ}
 
-.PHONY: all
+.PHONY: all clean format test
 all: scrooge
 
 scrooge : $(SOURCES_OBJ)
@@ -43,10 +49,15 @@ scrooge : $(SOURCES_OBJ)
 #	$(CC) -c ${CFLAGS} $(INCLUDE) $(LIBS) -o $@ $<
 
 
-.PHONY: clean
 clean:
-	rm -f system/*.o configuration/*.o scrooge
+	rm -f system/*.o configuration/*.o scrooge test/*.o check
 
 format:
 	find system -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
 	find configuration -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
+
+check : $(LIBRARY_SOURCES_OBJ) $(TEST_SOURCES_OBJ)
+	$(CC) -o $@ $^ -I$(SRC_DIRS) $(LDFLAGS) $(LIBS)
+	./check -l message
+%.o : %.cpp
+	$(CC) -c ${CFLAGS} -I$(SRC_DIRS)  -o $@ $<
