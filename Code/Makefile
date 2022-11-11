@@ -12,10 +12,8 @@ DEPS = -I$(NNMSG)/include -I$(BOOST)
 PROTO_DIR = ./system/protobuf/
 
 CFLAGS += $(DEPS)
-CFLAGS += $(SANITIZERS)
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
-LDFLAGS += $(SANITIZERS)
 LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
 
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
@@ -37,9 +35,9 @@ FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 all: scrooge
 
 scrooge : $(SOURCES_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(SANITIZERS) $(LIBS) 
 %.o : %.cpp
-	$(CC) -c ${CFLAGS} -o $@ $<
+	$(CC) -c ${CFLAGS} $(SANITIZERS) -o $@ $<
 
 # protobuf: protoc -I=$(PROTO_DIR) --cpp_out=$(SRC_DIRS) $(PROTO_DIR)/crosschainmessage.proto
 
@@ -55,9 +53,10 @@ clean:
 format:
 	find system -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
 	find configuration -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
+	find test -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
 
 check : $(LIBRARY_SOURCES_OBJ) $(TEST_SOURCES_OBJ)
 	$(CC) -o $@ $^ -I$(SRC_DIRS) $(LDFLAGS) $(LIBS)
-	./check -l message
+	./check -l unit_scope
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} -I$(SRC_DIRS)  -o $@ $<
