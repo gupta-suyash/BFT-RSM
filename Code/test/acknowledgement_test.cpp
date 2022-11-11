@@ -3,6 +3,9 @@
 #include <acknowledgement.h>
 #include <array>
 
+namespace acknowledgement_test
+{
+
 BOOST_AUTO_TEST_SUITE(acknowledgement_test)
 
 BOOST_AUTO_TEST_CASE(test_empty_ack)
@@ -62,3 +65,5 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_acks)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+} // namespace acknowledgement_test

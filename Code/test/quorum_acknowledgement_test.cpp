@@ -2,6 +2,9 @@
 
 #include <quorum_acknowledgement.h>
 
+namespace quorum_acknowledgement_test
+{
+
 BOOST_AUTO_TEST_SUITE(quorum_acknowledgement_test)
 
 constexpr uint64_t kTestQuorumSize = 50;
@@ -94,3 +97,5 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_quacks)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+}; // namespace quorum_acknowledgement_test
