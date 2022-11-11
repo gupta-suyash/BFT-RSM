@@ -4,12 +4,12 @@
 #include <string>
 
 #include "acknowledgement.h"
-#include "quorum_acknowledgement.h"
 #include "connect.h"
 #include "global.h"
 #include "iothread.h"
 #include "pipe_queue.h"
 #include "pipeline.h"
+#include "quorum_acknowledgement.h"
 
 using std::filesystem::current_path;
 

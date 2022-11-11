@@ -1,26 +1,29 @@
 #include <boost/test/unit_test.hpp>
 
-#include <array>
 #include <acknowledgement.h>
+#include <array>
 
 BOOST_AUTO_TEST_SUITE(acknowledgement_test)
 
-BOOST_AUTO_TEST_CASE(test_empty_ack) {
+BOOST_AUTO_TEST_CASE(test_empty_ack)
+{
     Acknowledgment ack;
     BOOST_CHECK(ack.getAckIterator() == std::nullopt);
 }
 
-BOOST_AUTO_TEST_CASE(test_useless_acks) {
+BOOST_AUTO_TEST_CASE(test_useless_acks)
+{
     Acknowledgment ack;
-    std::array bigAckValues{10,11,12,13,15,20,62,54,10000};
-    for (const auto& x : bigAckValues)
+    std::array bigAckValues{10, 11, 12, 13, 15, 20, 62, 54, 10000};
+    for (const auto &x : bigAckValues)
     {
         ack.addToAckList(x);
         BOOST_CHECK(ack.getAckIterator() == std::nullopt);
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_consecutive_acks) {
+BOOST_AUTO_TEST_CASE(test_consecutive_acks)
+{
     constexpr auto kCases = 10000;
     Acknowledgment ack;
     for (int i = 1; i <= kCases; i++)
@@ -30,7 +33,8 @@ BOOST_AUTO_TEST_CASE(test_consecutive_acks) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_nonconsecutive_acks) {
+BOOST_AUTO_TEST_CASE(test_nonconsecutive_acks)
+{
     constexpr auto cases = 10000;
     constexpr auto jumpSize = 10;
     Acknowledgment ack;

@@ -53,6 +53,7 @@ clean:
 format:
 	find system -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
 	find configuration -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
+	find test -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
 
 check : $(LIBRARY_SOURCES_OBJ) $(TEST_SOURCES_OBJ)
 	$(CC) -o $@ $^ -I$(SRC_DIRS) $(LDFLAGS) $(LIBS)

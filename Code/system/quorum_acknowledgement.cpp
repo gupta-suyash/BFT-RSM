@@ -48,7 +48,7 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
         mNodesAboveCurQuorum++;
     }
 
-    const auto nodesAtCurQuack = (mQuorumAck.has_value())? getNodesAtAck(mQuorumAck.value()) : 0;
+    const auto nodesAtCurQuack = (mQuorumAck.has_value()) ? getNodesAtAck(mQuorumAck.value()) : 0;
 
     const auto isNewQuorum = mNodesAboveCurQuorum - nodesAtCurQuack >= kQuorumSize;
     if (isNewQuorum)
@@ -71,7 +71,7 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
 uint64_t QuorumAcknowledgment::getNodesAtAck(uint64_t ack) const
 {
     std::scoped_lock lock{mMutex};
-    
+
     const auto ackToNodeCountIt = mAckToNodeCount.find(ack);
     if (std::cend(mAckToNodeCount) == ackToNodeCountIt)
     {

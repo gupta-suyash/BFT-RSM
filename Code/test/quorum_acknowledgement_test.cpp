@@ -7,12 +7,14 @@ BOOST_AUTO_TEST_SUITE(quorum_acknowledgement_test)
 constexpr uint64_t kTestQuorumSize = 50;
 constexpr uint64_t kTestNetworkSize = 3 * kTestQuorumSize + 1;
 
-BOOST_AUTO_TEST_CASE(test_empty_quack) {
+BOOST_AUTO_TEST_CASE(test_empty_quack)
+{
     QuorumAcknowledgment quack{kTestQuorumSize};
     BOOST_CHECK(quack.getCurrentQuack() == std::nullopt);
 }
 
-BOOST_AUTO_TEST_CASE(test_useless_quacks) {
+BOOST_AUTO_TEST_CASE(test_useless_quacks)
+{
     QuorumAcknowledgment quack{kTestQuorumSize};
     for (uint64_t node = 1; node < kTestQuorumSize; node++)
     {
@@ -21,7 +23,8 @@ BOOST_AUTO_TEST_CASE(test_useless_quacks) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_useful_quacks) {
+BOOST_AUTO_TEST_CASE(test_useful_quacks)
+{
     const auto getNode = [&](const auto nodeOffset) {
         constexpr int64_t curNodeGenerator = 79; // gcd(curNodeGen, kTestNetworkSize) == 1
         return (nodeOffset * curNodeGenerator) % kTestNetworkSize + 1;
@@ -42,7 +45,8 @@ BOOST_AUTO_TEST_CASE(test_useful_quacks) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_monotonicity) {
+BOOST_AUTO_TEST_CASE(test_monotonicity)
+{
     QuorumAcknowledgment quack{kTestQuorumSize};
     for (uint64_t node = 1; node < kTestQuorumSize; node++)
     {
@@ -57,7 +61,8 @@ BOOST_AUTO_TEST_CASE(test_monotonicity) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_nonconsecutive_quacks) {
+BOOST_AUTO_TEST_CASE(test_nonconsecutive_quacks)
+{
     constexpr auto cases = 10000;
     constexpr auto jumpSize = 10;
     const auto getNode = [&](const auto nodeOffset) {
