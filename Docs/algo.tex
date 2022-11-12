@@ -13,7 +13,7 @@ Let $\SSet{i}$ be the set of all messages to be sent by $i$-th \RSM{} $\SMR{i}$,
 Each $l$-th replica $\Replica{i}{l}$ in \RSM{} $\SMR{i}$ maintains following:
 
 \begin{itemize}[wide]
-\item $\Sbuf{l} = \{\SignMessage{m, k}{\Qusign{i}} ~|~ k \bmod l = 0 ~\wedge ~\SignMessage{m, k}{\Qusign{i}} \in \SSet{i} \}$, the set of messages to be sent $\Replica{i}{l}$.
+\item $\Sbuf{l} = \{\SignMessage{m, k}{\Qusign{i}} ~|~ k ~\equiv l \pmod{n_i} ~\wedge ~\SignMessage{m, k}{\Qusign{i}} \in \SSet{i} \}$, the set of messages to be sent $\Replica{i}{l}$.
 
 \item $\Hbuf{l} = \SSet{i} - \Sbuf{l}$, the remaining set of messages.
 
