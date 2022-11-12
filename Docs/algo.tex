@@ -13,13 +13,13 @@ Let $\SSet{i}$ be the set of all messages to be sent by $i$-th \RSM{} $\SMR{i}$,
 Each $l$-th replica $\Replica{i}{l}$ in \RSM{} $\SMR{i}$ maintains following:
 
 \begin{itemize}[wide]
-\item $\Sbuf{l} = \{\SignMessage{m, k}{\Qusign{i}} ~|~ k \bmod l = 0 ~\wedge ~\SignMessage{m, k}{\Qusign{i}} \in \SSet{i} \}$, the set of messages to be sent $\Replica{i}{l}$.
-
-\item $\Hbuf{l} = \SSet{i} - \Sbuf{l}$, the remaining set of messages.
+\item $\Sbuf{l} = \{\SignMessage{m, k}{\Qusign{i}} ~|~ k ~\equiv l \pmod{n_i} ~\wedge ~\SignMessage{m, k}{\Qusign{i}} \in \SSet{i} \}$, the set of messages to be sent $\Replica{i}{l}$.
 
 \item $\Rbuf{l} = \{\SignMessage{m, k}{\Qusign{j}} ~|~ j \neq i ~\wedge ~\SignMessage{m, k}{\Qusign{j}} \in \SSet{j} \}$, the messages received from \RSM{} $\SMR{j}$.
 
 \item $\SAck{l} = \{\Ack{k} ~|~ \SignMessage{m, k}{\Qusign{j}} \in \Rbuf{l} \}$, the acknowledgments for received messages.
+
+\item $\Hbuf{l} = \{ \SignMessage{m, k}{\Qusign{i}} ~\in \Sbuf{l} ~|~ \Ack{k} ~\notin \SAck{l} \}$, the set of messages remaining to be sent and or confirmed.
 
 \end{itemize}
 %
