@@ -33,5 +33,5 @@ class QuorumAcknowledgment
     // This represents the current acknowledged value of the entire quorum
     std::optional<uint64_t> mQuorumAck{std::nullopt};
 
-    uint64_t mNodesAboveCurQuorum = 0;
+    uint64_t mNumNodesInCurQuorum = 0;
 };

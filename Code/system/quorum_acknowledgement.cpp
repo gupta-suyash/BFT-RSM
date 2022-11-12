@@ -42,18 +42,19 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
     mNodeToAck[nodeId] = ackValue;
     mAckToNodeCount[ackValue]++;
 
-    // Update mNodesAboveCurQuorum
+    // Update mNumNodesInCurQuorum
     if (!mQuorumAck.has_value() || mQuorumAck < ackValue)
     {
-        mNodesAboveCurQuorum++;
+        mNumNodesInCurQuorum++;
     }
 
     const auto nodesAtCurQuack = (mQuorumAck.has_value()) ? getNodesAtAck(mQuorumAck.value()) : 0;
+    const auto nodesAboveCurQuorum = mNumNodesInCurQuorum - nodesAtCurQuack;
 
-    const auto isNewQuorum = mNodesAboveCurQuorum - nodesAtCurQuack >= kQuorumSize;
+    const auto isNewQuorum = nodesAboveCurQuorum >= kQuorumSize;
     if (isNewQuorum)
     {
-        mNodesAboveCurQuorum -= nodesAtCurQuack;
+        mNumNodesInCurQuorum -= nodesAtCurQuack;
 
         if (mQuorumAck.has_value())
         {
