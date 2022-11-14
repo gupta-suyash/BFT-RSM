@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+package scrooge;
+
+// Message to identify a specific RSM cluster
+message ClusterIdentifier {
+    // An identifier used to identify this network
+    // If not specified then this is referring to the domestic RSM
+    google.protobuf.StringValue network_identifier = 1;
+}
+
+// Message to represent the Configuration of a single node
+message NodeConfiguration {
+    // URL as string which the this node can be found at
+    string url_address = 1;
+    // Scrooge's internal idea of what id this node is in [1,...,network_size]
+    uint64 node_id = 2;
+}
+
+// Message to represent the configuration of a network
+message ClusterConfiguration {
+    // Identifier for which cluster configuration is being addressed
+    ClusterIdentifier cluster_identifier = 1;
+    // A structure enumerating all nodes in the cluster
+    repeated NodeConfiguration node_configurations = 2;
+    // The configuration of the node this scrooge instance is running on
+    NodeConfiguration self_configuration = 3;
+}

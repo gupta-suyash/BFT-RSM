@@ -16,6 +16,7 @@ LDFLAGS = -L$(NNMSG)/lib
 LDFLAGS += $(CFLAGS)
 LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
 
+PROTO_SOURCES = $(wildcard ./system/protobuf/*.proto)
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
 SOURCES += $(wildcard ./configuration/*.cpp)
 LIBRARY_SOURCES = $(filter-out ./system/main.cpp, $(SOURCES))
@@ -31,8 +32,8 @@ FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 #	echo ${SOURCES}
 #	echo ${SOURCES_OBJ}
 
-.PHONY: all clean format test
-all: scrooge
+.PHONY: all clean format test proto
+all: proto scrooge
 
 scrooge : $(SOURCES_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(SANITIZERS) $(LIBS) 
@@ -46,9 +47,11 @@ scrooge : $(SOURCES_OBJ)
 #./obj/%.o: system/%.cpp
 #	$(CC) -c ${CFLAGS} $(INCLUDE) $(LIBS) -o $@ $<
 
+proto: $(PROTO_SOURCES)
+	protoc -I./system/protobuf --cpp_out=./system ./system/protobuf/*
 
 clean:
-	rm -f system/*.o configuration/*.o scrooge test/*.o check
+	rm -f system/*.o configuration/*.o scrooge test/*.o check system/*pb*
 
 format:
 	find system -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;

@@ -10,14 +10,14 @@ class PipeQueue
 {
   private:
     std::mutex msg_q_mutex;
-    std::queue<crosschain_proto::CrossChainMessage> msg_queue_;
+    std::queue<scrooge::CrossChainMessage> msg_queue_;
     std::mutex store_q_mutex;
-    std::queue<crosschain_proto::CrossChainMessage> store_queue_;
+    std::queue<scrooge::CrossChainMessage> store_queue_;
 
   public:
-    void Enqueue(crosschain_proto::CrossChainMessage msg);
-    crosschain_proto::CrossChainMessage Dequeue();
-    crosschain_proto::CrossChainMessage EnqueueStore();
+    void Enqueue(scrooge::CrossChainMessage msg);
+    scrooge::CrossChainMessage Dequeue();
+    scrooge::CrossChainMessage EnqueueStore();
 
     // Msg_Queue Testing functions.
     void CallE();

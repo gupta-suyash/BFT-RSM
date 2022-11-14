@@ -5,7 +5,7 @@
  *
  * @param msg is the message to be queued..
  */
-void PipeQueue::Enqueue(crosschain_proto::CrossChainMessage msg)
+void PipeQueue::Enqueue(scrooge::CrossChainMessage msg)
 {
     // Locking access to queue.
     msg_q_mutex.lock();
@@ -21,9 +21,9 @@ void PipeQueue::Enqueue(crosschain_proto::CrossChainMessage msg)
  *
  * @return the popped message.
  */
-crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
+scrooge::CrossChainMessage PipeQueue::Dequeue()
 {
-    crosschain_proto::CrossChainMessage msg;
+    scrooge::CrossChainMessage msg;
 
     // Locking access to queue.
     msg_q_mutex.lock();
@@ -34,11 +34,11 @@ crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
     {
         msg = msg_queue_.front();
         msg_queue_.pop();
-        cout << "Dequeued: " << msg.sequence_id() << endl;
+        cout << "Dequeued: " << msg.data().sequence_number() << endl;
     }
     else
     {
-        msg.set_sequence_id(0);
+        msg.mutable_data()->set_sequence_number(0);
         ;
     }
 
@@ -55,9 +55,9 @@ crosschain_proto::CrossChainMessage PipeQueue::Dequeue()
  *
  * @return the block to be forwarded.
  */
-crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
+scrooge::CrossChainMessage PipeQueue::EnqueueStore()
 {
-    crosschain_proto::CrossChainMessage msg;
+    scrooge::CrossChainMessage msg;
     // Popping out the message from in_queue to send to other RSM.
     // valid = in_queue->pop(msg);
 
@@ -65,25 +65,25 @@ crosschain_proto::CrossChainMessage PipeQueue::EnqueueStore()
     {
         msg = in_queue.front();
         in_queue.pop();
-        if (msg.sequence_id() % get_nodes_rsm() != get_node_rsm_id())
+        if (msg.data().sequence_number() % get_nodes_rsm() != get_node_rsm_id())
         {
             // Any message that is not supposed to be sent by this node,
             // it pushes it to the store_queue.
-            // cout << "Will store: " << msg.sequence_id() << " :: " << msg.transactions() << endl;
+            // cout << "Will store: " << msg.data().sequence_number() << " :: " << msg.data().message_content() << endl;
 
             store_queue_.push(msg);
 
             // TODO: Do we need this or this is extra memory alloc.
-            msg.clear_sequence_id();
-            msg.clear_ack_id();
-            msg.clear_transactions();
-            msg.set_sequence_id(0);
+            msg.mutable_data()->clear_sequence_number();
+            msg.clear_ack_count();
+            msg.mutable_data()->clear_message_content();
+            msg.mutable_data()->set_sequence_number(0);
         }
     }
     else
     {
         // No message in the queue.
-        msg.set_sequence_id(0);
+        msg.mutable_data()->set_sequence_number(0);
     }
 
     return msg;

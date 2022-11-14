@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../configuration/config.h"
-#include "crosschainmessage.pb.h"
+#include "scrooge_message.pb.h"
 #include <boost/lockfree/queue.hpp>
 #include <cstring>
 #include <iostream>
@@ -81,7 +81,7 @@ enum MessageType
 
 // Queue to interact with the protocol accessing Scrooge.
 // extern boost::lockfree::queue<ProtoMessage *> *in_queue;
-extern std::queue<crosschain_proto::CrossChainMessage> in_queue;
+extern std::queue<scrooge::CrossChainMessage> in_queue;
 
 // Object to access the Acknowledgments.
 extern Acknowledgment *ack_obj;

@@ -145,7 +145,7 @@ void Pipeline::SetSockets()
  * @param buf is the outgoing message of protobuf type.
  * @param nid is the destination node id.
  */
-void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, uint16_t node_id)
+void Pipeline::DataSend(scrooge::CrossChainMessage buf, uint16_t node_id)
 {
     int rv;
     string buffer;
@@ -158,11 +158,11 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, uint16_t node_i
 
     SPDLOG_DEBUG("Sending {} bytes to nodeId {}", sz, node_id);
 
-    crosschain_proto::CrossChainMessage chk_buf;
+    scrooge::CrossChainMessage chk_buf;
     chk_buf.ParseFromString(buffer);
 
-    SPDLOG_DEBUG("Sent message: [SequenceId={}, AckId={}, transaction='{}']", chk_buf.sequence_id(), chk_buf.ack_id(),
-                 chk_buf.transactions());
+    SPDLOG_DEBUG("Sent message: [SequenceId={}, AckId={}, transaction='{}']", chk_buf.data().sequence_number(),
+                 chk_buf.ack_count(), chk_buf.data().message_content());
 
     if ((rv = nng_send(sock, &buffer[0], sz, 0)) != 0)
     {
@@ -175,7 +175,7 @@ void Pipeline::DataSend(crosschain_proto::CrossChainMessage buf, uint16_t node_i
  * @param nid is the sender node id.
  * @return the protobuf.
  */
-crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
+scrooge::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
 {
     int rv;
     char *buffer;
@@ -195,17 +195,17 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
             SPDLOG_ERROR("nng_recv has error value = {}", nng_strerror(rv));
         }
 
-        crosschain_proto::CrossChainMessage fakeMsg;
-        fakeMsg.set_transactions("ERROR=" + std::to_string(rv));
+        scrooge::CrossChainMessage fakeMsg;
+        fakeMsg.mutable_data()->set_message_content("ERROR=" + std::to_string(rv));
         return fakeMsg;
     }
 
-    crosschain_proto::CrossChainMessage receivedMsg;
+    scrooge::CrossChainMessage receivedMsg;
     const std::string str_buf{buffer, sz};
     receivedMsg.ParseFromString(str_buf);
 
     SPDLOG_DEBUG("Received {} bytes from nodeId={}, message = [SequenceId={}, AckId={}, transaction='{}']", sz, node_id,
-                 receivedMsg.sequence_id(), receivedMsg.ack_id(), receivedMsg.transactions());
+                 receivedMsg.data().sequence_number(), receivedMsg.ack_count(), receivedMsg.data().message_content());
 
     nng_free(buffer, sz);
     return receivedMsg;
@@ -218,8 +218,8 @@ crosschain_proto::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
 bool Pipeline::SendToOtherRsm(uint16_t nid)
 {
     // Fetching the block to send, if any.
-    crosschain_proto::CrossChainMessage msg = sp_qptr->EnqueueStore();
-    if (msg.sequence_id() == 0)
+    scrooge::CrossChainMessage msg = sp_qptr->EnqueueStore();
+    if (msg.data().sequence_number() == 0)
         return false;
 
     // The id of the receiver node in the other RSM.
@@ -228,10 +228,10 @@ bool Pipeline::SendToOtherRsm(uint16_t nid)
 
     // Acking the messages received from the other RSM.
     const uint64_t ack_msg = ack_obj->getAckIterator().value_or(0);
-    msg.set_ack_id(ack_msg);
+    msg.set_ack_count(ack_msg);
 
     SPDLOG_DEBUG("Sending message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
-                 recvr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
+                 recvr_id, msg.data().sequence_number(), msg.ack_count(), msg.data().message_content());
 
     DataSend(msg, recvr_id);
 
@@ -252,15 +252,15 @@ void Pipeline::RecvFromOtherRsm()
         // The id of the sender node.
         uint16_t sendr_id = j + sendr_id_start;
 
-        crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
-        if (msg.sequence_id() != 0)
+        scrooge::CrossChainMessage msg = DataRecv(sendr_id);
+        if (msg.data().sequence_number() != 0)
         {
             SPDLOG_DEBUG(
                 "Received message from other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
-                sendr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
+                sendr_id, msg.data().sequence_number(), msg.ack_count(), msg.data().message_content());
 
             // Updating the ack list for msg received.
-            ack_obj->addToAckList(msg.sequence_id());
+            ack_obj->addToAckList(msg.data().sequence_number());
 
             // This message needs to broadcasted to other nodes
             // in the RSM, so enqueue in the queue for sender.
@@ -275,8 +275,8 @@ void Pipeline::RecvFromOtherRsm()
 void Pipeline::SendToOwnRsm()
 {
     // Check the queue if there is any message.
-    crosschain_proto::CrossChainMessage msg = sp_qptr->Dequeue();
-    if (msg.sequence_id() == 0)
+    scrooge::CrossChainMessage msg = sp_qptr->Dequeue();
+    if (msg.data().sequence_number() == 0)
         return;
 
     // Starting node id of RSM.
@@ -291,7 +291,7 @@ void Pipeline::SendToOwnRsm()
             continue;
 
         SPDLOG_DEBUG("Sent message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
-                     recvr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
+                     recvr_id, msg.data().sequence_number(), msg.ack_count(), msg.data().message_content());
 
         DataSend(msg, recvr_id);
     }
@@ -325,15 +325,15 @@ void Pipeline::RecvFromOwnRsm()
         if (sendr_id == get_node_id())
             continue;
 
-        crosschain_proto::CrossChainMessage msg = DataRecv(sendr_id);
-        if (msg.sequence_id() != 0)
+        scrooge::CrossChainMessage msg = DataRecv(sendr_id);
+        if (msg.data().sequence_number() != 0)
         {
             SPDLOG_DEBUG(
                 "Received message from own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
-                sendr_id, msg.sequence_id(), msg.ack_id(), msg.transactions());
+                sendr_id, msg.data().sequence_number(), msg.ack_count(), msg.data().message_content());
 
             // Updating the ack list for msg received.
-            ack_obj->addToAckList(msg.sequence_id());
+            ack_obj->addToAckList(msg.data().sequence_number());
         }
     }
 }

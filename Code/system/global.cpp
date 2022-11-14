@@ -19,7 +19,7 @@ PipeQueue *sp_qptr;
 Pipeline *pipe_ptr;
 
 // Input queue.
-std::queue<crosschain_proto::CrossChainMessage> in_queue;
+std::queue<scrooge::CrossChainMessage> in_queue;
 
 // Acknowledgement object.
 Acknowledgment *ack_obj;

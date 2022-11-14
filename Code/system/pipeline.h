@@ -21,7 +21,7 @@
 #include "data_comm.h"
 #include "global.h"
 
-#include "crosschainmessage.pb.h"
+#include "scrooge_message.pb.h"
 
 using std::filesystem::current_path;
 
@@ -50,8 +50,8 @@ class Pipeline
     void SendToOwnRsm();
     void RecvFromOwnRsm();
 
-    void DataSend(crosschain_proto::CrossChainMessage buf, uint16_t node_id);
-    crosschain_proto::CrossChainMessage DataRecv(uint16_t node_id);
+    void DataSend(scrooge::CrossChainMessage buf, uint16_t node_id);
+    scrooge::CrossChainMessage DataRecv(uint16_t node_id);
 
     char *DeepCopyMsg(char *msg);
 

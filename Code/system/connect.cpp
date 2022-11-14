@@ -6,7 +6,7 @@
 
 void Init()
 {
-    // in_queue = new std::queue<crosschain_proto::CrossChainMessage>(0);
+    // in_queue = new std::queue<scrooge::CrossChainMessage>(0);
 }
 
 /* The protocol running at the node will call this function to send a block
@@ -22,12 +22,12 @@ void Init()
 void SendBlock(const uint64_t block_id, const char *block)
 {
     // ProtoMessage *msg = ProtoMessage::SetMessage(block_id, block);
-    crosschain_proto::CrossChainMessage msg;
-    msg.set_sequence_id(block_id);
-    msg.set_transactions(block);
-    msg.set_ack_id(0);
+    scrooge::CrossChainMessage msg;
+    msg.mutable_data()->set_sequence_number(block_id);
+    msg.mutable_data()->set_message_content(block);
+    msg.set_ack_count(0);
 
-    // cout << "Message added: " << msg.sequence_id() << " :: " << msg.transactions() << endl;
+    // cout << "Message added: " << msg.data().sequence_number() << " :: " << msg.data().message_content() << endl;
 
     in_queue.push(msg);
 
