@@ -1,4 +1,5 @@
 \section{\Shadow{} Protocol}
+\label{s:algo}
 To facilitate reliable \RSM{}-to-\RSM{} communication using the \Scrooge{} protocol, 
 we require each replica to maintain several lists and maps, which
 help to track the messages communicated across \RSM{s}.
@@ -157,12 +158,12 @@ Further, we keep track of the last message acknowledged by a quorum of replicas 
 
 
 {\bf Complexity.}
-In the normal-case, when there are no failures, every replica in either cluster will send and receive each message.
-Each receiver will get a message either from a replica in the other cluster or through broadcast from a replica in its cluster. 
-So, {\em one} message delay to send a message across clusters, and {\em two} message delays to send a message to all the replicas in a cluster.
-However, the sender cannot remove a message from its $\Sbuf{}$ or $\Hbuf{}$ unless it receives $\f{\Replicas{}}+1$ cumulative $\Ack{}$ messages (majority acknowledged) 
+In the normal-case, when there are no failures, every replica in either \RSM{} will send and receive each message.
+Each receiver will get a message either from a replica in the other \RSM{} or through broadcast from a replica in its \RSM{}. 
+So, {\em one} message delay to send a message across \RSM{}, and {\em two} message delays to send a message to all the replicas in a \RSM{}.
+However, the sender cannot remove a message from its $\Sbuf{}$ or $\Hbuf{}$ unless it receives $\f{}+1$ cumulative $\Ack{}$ messages (majority acknowledged) 
 from distinct replicas.
-As cumulative acknowledgments imply  receipt of a sequence of messages, so at steady state {\em two} communications across clusters 
+As cumulative acknowledgments imply  receipt of a sequence of messages, so at steady state {\em two} communications across \RSM{} 
 per message.
 
 

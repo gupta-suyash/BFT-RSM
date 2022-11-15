@@ -1,49 +1,53 @@
 \section{Failures}
-Our \Shadow{} protocol permits up to $\f{\Replicas{}}$ in each cluster to act maliciously.
+\Scrooge{} permits up to $\f{}$ in each cluster to act byzantine.
 These replicas may decide to delay or avoid sending a message. 
-As our \Shadow{} protocol is {\em asynchronous} in nature and guarantees liveness only when the network is reliable, 
-we cannot employ timers to resolve byzantine attacks.
-However, the robust design of our \Shadow{} protocol requires minimal changes to handle these byzantine attacks, 
-which we illustrate next.
+Further, \Scrooge{} guarantees message delivery between two \RSM{s} in an 
+{\em asynchronous} network if the messages are eventually delivered.
+However, in a practical setting, we permit replicas to set timers that help them to quickly make progress.
+To allow our \Scrooge{} protocol to handle byzantine attacks, 
+we need to make minimal changes to the protocol stated in Section~\ref{s:algo}.
+
+In each \RSM{}, as any of the $\f{}$ replicas out of $\n{}$ may act byzantine, 
+so it is possible that a sending replica, receiving replica or both could be byzantine. 
+In such a case, the honest replicas of the receiving \RSM{} may not receive one or more messages, 
+which would prevent the longest contiguous acknowledgment set from increasing.
+As a result, the replicas of the receiving \RSM{}  
+would continue sending the same cumulative acknowledgement.
+To detect this attack, \Scrooge{} require honest replicas of the sending \RSM{} to 
+track cumulative acknowledgments and trigger a new pair of replicas to {\em re-send} the impacted message.
+Further, to reduce communication among replicas, we require each replica to independently 
+detect this attack and to proceed with its resolution.
+Specifically, we expect each honest replica to run the following steps.
+
 
 \begin{itemize}[wide]
 \item {\bf \em Decide.}
-We know that each sending side replica removes a message $m$ with sequence number $k$ from its $\Sbuf{}$ or $\Hbuf{}$ 
-after it has been majority acknowledged ($\f{\Replicas{}}+1$ $\Ack{l}$ messages from distinct replicas at receiving cluster, such that $k \le l$).
-Post this, each replica updates the \highest{} variable to reflect that $m$ is the highest sequence number messages acknowledged till now.
+At the $l$-th replica $\Replica{i}{l}$ of \RSM{} $\SMR{i}$, assume $\highest{}$ is the sequence number of the 
+last acknowledged message by $\f{j}+1$ replicas of \RSM{} $\SMR{j}$.
+This message can be acknowledged by at most $\n{j}$ replicas of \RSM{} $\SMR{j}$.
+Let us represent this set of acknowledging replicas as $\RAS{}$, where $\abs{\RAS} \le \n{j}$.
+% 
+If the replica $\Replica{i}{l}$ receives {\em one more} acknowledgement message for the $\highest{}$ 
+message from at least $\f{j}+1$ replicas in set $\RAS{}$, then $\Replica{i}{l}$ assumes that the subsequent message with the 
+sequence number $\highest + 1$ did not get successfully delivered.
 
-Assume that the replica $\Replica{\Cluster{X}}{i}$ sends a message $m'$ with sequence number $l$ ($l = k+1$) to replica $\Replica{\Cluster{Y}}{j}$.
-All the replicas of cluster $\Cluster{X}$ have majority acknowledged $m$ and $\highest$ is set to $m$ (sequence $k$).
-If either $\Replica{\Cluster{X}}{i}$ or $\Replica{\Cluster{Y}}{j}$ are byzantine, following two cases are possible:
-(i) all the honest replicas in $\Cluster{Y}$ may not receive $m'$, and 
-(ii) all the honest replicas in $\Cluster{X}$ may not receive $\f{\Replicas{}}+1$ $\Ack{l}$ messages.
-
-The latter case is of specific interest because it implies that 
-each replica in $\Cluster{X}$ will receive more than $\f{\Replicas{}}+1$ $\Ack{k}$ messages corresponding to $m$.
-This is possible because each replica of $\Cluster{Y}$ is required to send an acknowledgment message along with any message it wants to send. 
-As this acknowledgment message represents the longest contiguous stream of messages received, and 
-less than $\f{\Replicas{}}+1$ replicas of $\Cluster{Y}$ have received $m'$, so they continue sending acknowledgments for $m$.
-Eventually, at least $2\f{\Replicas{}}+1$ replicas in $\Cluster{Y}$ would end up sending 
-{\em two} $\Ack{k}$ messages each to all the replicas in $\Cluster{X}$.
-At this point, the replicas in $\Cluster{X}$ decide that message $m'$ needs to communicated between another {\em distinct pair} of replicas.
 
 
 \item {\bf \em Switch.}
-We require replicas to deterministically select a new pair of replicas to communicate message $m'$. 
-Our deterministic scheme is simply switching to the next pair of replicas; 
-previously, if replica $\Replica{\Cluster{X}}{i}$ sent $m'$ to replica $\Replica{\Cluster{Y}}{j}$, now 
-replica $\Replica{\Cluster{X}}{(i+1)}$ sent $m'$ to replica $\Replica{\Cluster{Y}}{(j+1)}$.
-As every replica in cluster $\Cluster{X}$ can independently determine the next pair of replicas, 
-so $\Replica{\Cluster{X}}{(i+1)}$ is expected to automatically send $m'$ when it is its turn. 
-Hence, no communication among the replicas is needed for this switch.
+If the replica $\Replica{i}{l}$ discovers additional set of acknowledgments, it does the following tasks:
+(1) It discovers the pair of replica responsible for communicating this message; this task can be deterministically determined by each replica.
+Say $b$-th replica ($b \neq l$) of \RSM{} $\SMR{i}$ was supposed to send the message to $c$-th replica of \RSM{} $\SMR{j}$.
+(2) If $l = (b+1) \bmod \n{i}$, then the replica $\Replica{i}{l}$ decides to send the message with sequence number $\highest+1$ 
+to replica $\Replica{j}{c'}$ of \RSM{} $\SMR{j}$, where $c' = (c+1) \bmod \n{j}$.
 
-What if even $\Replica{\Cluster{X}}{(i+1)}$ is byzantine, then like earlier case, eventually, 
-each replica in $\Cluster{X}$ would receive third $\Ack{k}$ message from at least $2\f{\Replicas{}}+1$ in $\Cluster{Y}$. 
-This will trigger another switch and a new pair of replicas will be expected to communicate $m'$.
-Note: this pair switching can take place at most $2\f{\Replicas{}}$ times as after that there is 
-a guarantee that the next pair will be honest.
-Moreover, this switching does not prevent communication of other messages.
 
+\item {\bf Tracking.}
+In the case, $l \neq (b+1) \bmod \n{i}$, replica $\Replica{i}{l}$ continues tracking if the message 
+$\highest+1$ is delivered or not.
+This step is necessary as the subsequent pair of communicating replicas could have a byzantine party. 
+As at most $\f{i}+\f{j}$ communicating pairs could be byzantine, so $\Replica{i}{l}$ 
+may have to wait for at least $\f{j}+1$ replicas each to send $\f{i}+\f{j}+1$ duplicate acknowledgments for the $\highest{}$ message 
+before it is $\Replica{i}{l}$'s turn to send the ($\highest+1$)-th message.
 
 
 \end{itemize}
