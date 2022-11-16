@@ -71,7 +71,7 @@ scrooge::CrossChainMessage PipeQueue::EnqueueStore()
             // it pushes it to the store_queue.
             // cout << "Will store: " << msg.data().sequence_number() << " :: " << msg.data().message_content() << endl;
 
-            store_queue_.push(msg);
+            store_queue_.push(std::make_tuple(msg, std::chrono::steady_clock::now()));
 
             // TODO: Do we need this or this is extra memory alloc.
             msg.mutable_data()->clear_sequence_number();
@@ -87,6 +87,21 @@ scrooge::CrossChainMessage PipeQueue::EnqueueStore()
     }
 
     return msg;
+}
+
+scrooge::CrossChainMessage PipeQueue::DequeueStore(scrooge::CrossChainMessage msg) {
+	scrooge::CrossChainMessage front = store_queue_.front();
+	if(std::get<0>(store_queue_.front()).data().sequence_number() == msg.data().sequence_number()) {
+		store_queue_.pop();
+	}
+	return front; // what exactly should this value do?
+}
+
+bool CheckTime(int sequence_id) {
+	auto timestamp = std::chrono::steady_clock::now();
+	// cycle through queue and get the 'start' value
+	std::chrono::duration<double> curr_duration = timestamp - start;
+	return curr_duration.count() >= duration.count();
 }
 
 /* The following functions are meant to test the correctness of the msg_queue.
