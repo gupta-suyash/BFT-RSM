@@ -23,7 +23,7 @@ class PipeQueue
     scrooge::CrossChainMessage Dequeue();
     scrooge::CrossChainMessage EnqueueStore();
 	scrooge::CrossChainMessage DequeueStore();
-	scrooge::CrossChainMessage CheckTime();
+	int CheckTime();
 	scrooge::CrossChainMessage UpdateStore();
 
     // Msg_Queue Testing functions.

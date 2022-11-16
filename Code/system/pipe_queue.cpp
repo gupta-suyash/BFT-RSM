@@ -97,11 +97,28 @@ scrooge::CrossChainMessage PipeQueue::DequeueStore(scrooge::CrossChainMessage ms
 	return front; // what exactly should this value do?
 }
 
-bool CheckTime(int sequence_id) {
+scrooge::CrossChainMessage PipeQueue::UpdateStore(scrooge::CrossChainMessage msg, int sequence_id) {
+	for (std::tuple<scrooge::CrossChainMessage, static std::chrono::time_point> entry : store_queue_) {
+		if (std::get<0>(entry).data().sequence_number() == sequence_id) {
+			std::get<1>(entry) = std::chrono::steady_clock::now();
+		}
+	}
+	return msg;
+}
+
+/** This function is used to check how much time has elapsed since the message was supposed
+ * to be sent. It only has three possible return values: 1 (the wait time for the message has
+ * elapsed), 0 (the wait time has not elapsed), -1 (error: sequence id not found)
+ */
+int CheckTime(int sequence_id) {
 	auto timestamp = std::chrono::steady_clock::now();
-	// cycle through queue and get the 'start' value
-	std::chrono::duration<double> curr_duration = timestamp - start;
-	return curr_duration.count() >= duration.count();
+	for (std::tuple<scrooge::CrossChainMessage, static std::chrono::time_point> entry : store_queue_) {
+		if (std::get<0>(entry).data().sequence_number() == sequence_id) {
+			std::chrono::duration<double> curr_duration = timestamp - std::get<1>(entry);
+			return curr_duration.count() >= duration.count() : 1 ? 0;
+		}
+	}
+	return -1;
 }
 
 /* The following functions are meant to test the correctness of the msg_queue.
