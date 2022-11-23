@@ -1,86 +1,139 @@
 \section{Preliminaries}
 Prior to explaining our \Scrooge{} protocol, we state the assumptions we make 
 in this paper.
-We assume existence of a finite set of replicated state machines (\RSM{}), 
-$\SMR{1}, \SMR{2}, \SMR{3}, ...$.
-The \Scrooge{} protocol aims to establish a reliable communication layer among each pair 
-of \RSM{s}.
-Each $i$-th \RSM{} $\SMR{i}$ includes $\n{i}$ replicas. 
-We assume that at most $\f{i}$ of these $\n{i}$ replicas can act Byzantine, while ensuring 
-that $\n{i} \ge 3\f{i} + 1$.
-Byzantine replicas can drop or indefinitely delay messages.
-For each \RSM{} $\SMR{i}$, its replicas are assigned an identifier, starting from $0$, 
-which can be obtained by calling the function $\ID{}$.
+We assume existence of a set of systems that offer some {\em services} to clients.
+Each such system includes several nodes that manage client data and process client transactions.
+Often, these systems need to interact with each other to communicate client data and transactions.
+Our \Scrooge{} protocol aims to establish such a reliable communication layer 
+between any pair of communicating systems.
+
+{\bf Replica modeling.}
+To manage its data, each system models its state as a replicated state machines (\RSM{}).
+We denote the \RSM{} at $i$-th system as $\SMR{i}$.
+Simply put, each \RSM{} includes a set of nodes that maintain the 
+complete state of the system. 
+Different systems use different terminology, such as replicas, acceptors, or full nodes, to refer
+to the nodes of an \RSM{}.
+For simplicity, we stick with the term replica;
+we denote the $l$-th replica of the $i$-th \RSM{} as $\Replica{i}{l}$.
+
+We assume each replica $\Replica{i}{l}$ has a share $\share{l}$, which represents its {\em weight} 
+in its \RSM{} $\SMR{i}$.
+This share helps to determine the {\em decision making power} of a replica; 
+higher the share, greater the decision making power.
+For traditional \RSM{s}, each replica has an identical share--weighted {\em one}, while 
+some blockchain applications permits replicas to have different shares.
+As a result, we denote the total number of replicas in the $i$-th \RSM{} $\SMR{i}$ as 
+$\n{i} = \sum_{l=1}^{\abs{\SMR{i}}} \share{l}$; 
+if all shares are equal, then $\n{i} = \abs{\SMR{i}}$.
+
+Each system permits a subset of the replicas of its \RSM{} to fail; 
+for the $i$-th \RSM{} $\SMR{i}$, we use $\f{i}$ to denote the number of replicas that can fail.
+Generally, for \RSM{s} that can only handle replica crashes, $\f{i} < \n{i}/2$, 
+while \RSM{s} that allow replicas to act arbitrary or Byzantine, $\f{i} < \n{i}/3$.
+To guarantee consistent state across replicas despite failures, 
+each system runs a consensus protocol to reach an agreement among its replicas.
+
+
+{\bf System modeling.}
+In this paper, we are interested in the following three popular types of systems:
+(1) Crash fault-tolerant (\CFT{}) systems where replicas can only fail through crashes. 
+(2) Traditional byzantine fault-tolerant (\BFT{}) systems where faulty replicas can act byzantine 
+and each replica has identical share.
+(3) Modern \BFT/blockchain systems, Proof-of-Stake (\PoS{}), where replicas could have different shares.
+\CFT{} systems employ consensus protocols like Paxos and Raft, while traditional \BFT{} systems
+run a \pbft{}-like consensus protocol.
+Blockchain systems use a variety of consensus protocols, but we focus on \PoS{} systems, 
+such as Ethereum, Algorand, and Sui, as they present a sustainable design.
+
+All of these systems permit {\em reconfiguration}, where a subset of the replicas to leave or join the \RSM{}.
+\BFT{} and \PoS{} systems also allow an adaptive adversary to corrupt some honest replicas; 
+the total number of byzantine replicas is still less than one-third.
+Additionally, \PoS{} systems also permit share of replicas to change.
+However, each of these systems limits the extent of this reconfiguration. 
+For instance, an $i$-th \RSM{} running a \CFT{} or \BFT{} protocol 
+allows a replica to only leave the \RSM{} at the boundary of the consensus 
+(once the last transaction is committed), which requires informing all the other replicas and updating $\f{i}$.
+Similarly, adding a new replica to the \RSM{} requires verifying the identity 
+of the replica, updating $\f{i}$, and bringing the new replica to common state
+before it can participate in the consensus protocol.
+
+None of these systems support a fully adaptive adversary; 
+an ``adaptive adversary'' is  expected to allow ongoing consensus invocations to complete.
+Existing \PoS{} systems also adopt a similar design. 
+On the one hand, Ethereum and Sui assume that the change in shares of replicas of the \RSM{} 
+are infrequent or rare.
+On the other hand, Algorand assumes that a large percentage of shares is ``trusted and unchanging''
+as it is controlled by the Algorand Foundation (organization maintaining Algorand).
+Specifically, in these \PoS{} systems, each replica's share is determined by {\em what stake of its wealth 
+it is willing to burn}.
+We use the term burn as a replica cannot access the staked wealth till it is part of the \RSM{}, 
+and if a replica acts Byzantine or becomes non-responsive, it may end losing its staked resources.
+Essentially, staking allows these \PoS{} systems to restrict frequent reconfiguration.
+
+
+%For each \RSM{} $\SMR{i}$, its replicas are assigned an identifier, starting from $0$, 
+%which can be obtained by calling the function $\ID{}$.
 
 %Depending on the fault model, to order the transactions, 
 %these clusters can employ a crash fault-tolerant protocol like Paxos or 
 %a byzantine fault-tolerant (\BFT{}) protocol like \pbft{}.
 
-We make no assumptions on the Byzantine Fault-Tolerant (\BFT{}) protocol employed by each \RSM{} 
-to reach consensus among its replicas on the incoming client transactions; 
-each \RSM{} can run any \BFT{} consensus protocol of its choice.
-However, we do require each \RSM{} to {\em certify} each message it wants to communicate 
-to another \RSM{} using our \Scrooge{} protocol.
-We represent a certificate on message $m$ as $\SignMessage{m, \Seqn}{\Qusign{i}}$ where
+{\bf \Scrooge{} modeling.}
+\Scrooge{} makes no assumption on the consensus protocol employed by the communicating \RSM{s},
+but needs to know the identity of the communicating replicas in each \RSM{}. 
+Specifically, for the $i$-th \RSM{}, \Scrooge{} needs to $\n{i}$, $\f{i}$,
+and the shares of each replica in the \RSM{}.
+This implies that reconfigurations, although infrequent in these systems, 
+need to be declared to \Scrooge{}.
+
+Further, \Scrooge{} requires each message to be communicated across \RSM{s} to be 
+{\em certified} by the sender \RSM{}.
+We represent a certificate on message $m$ ordered at sequence number $k$ 
+(through the underlying consensus protocol) as $\SignMessage{m, \Seqn}{\Qusign{i}}$ where
 $\Qusign{i}$ is a set of digital signatures (\DS{}) on $\langle m, \Seqn \rangle$ by a quorum of replicas 
 of the $i$-th \RSM{}.
-Like traditional \BFT{} protocols, we assume the quorum size for $\Qusign{i}$ to be at least $2\f{i}+1$.
-{\bf Note:} we do not make any assumption on the content of $m$; 
-\Scrooge{} does not verify the state change on executing $m$ at the receiving \RSM{}.
+For \BFT{} and \PoS{} systems, we assume the quorum size, $\abs{\Qusign{i}}$ to be at least $2\f{i}+1$ 
+while $\abs{\Qusign{i}} = \f{i} + 1$ for \CFT{} systems.
+Finally, we do not make any assumption on the content of $m$; 
+\Scrooge{} does not verify the state change on executing $m$ at the receiver \RSM{}.
 We assume that the Byzantine replicas can neither impersonate honest replicas, nor subvert cryptographic constructs.
 
 
-\begin{definition}\label{def:scrooge}
-{\bf \Scrooge{}:}
-An \RSM{}-to-\RSM{} asynchronous communication protocol that enables reliable message delivery with a constant 
-number of message copies.
-\end{definition}
-
-\begin{definition}
-{\bf Communication Abstraction:}
-\Scrooge{} guarantees reliable communication of a message between two \RSM{s} if each \RSM{} includes at least $\n{} \ge 3\f{}+1$ 
-replicas;
-\Scrooge{} does not guarantee reliable communication between two replicas.
-\end{definition}
-
-
-\Scrooge{} provides the following \RSM{}-to-\RSM{} communication properties.
-\begin{enumerate}[wide,nosep]
-	\item \textbf{Basic Data Transfer:} \Scrooge{} provides a ``push'' functionality, which guarantees that any message, which a replica of the 
-sending \RSM{} wants to send will be eventually sent to a receiver.
-	\item \textbf{Message Reliability:} Any message dropped or delayed by Byzantine replicas is eventually received by honest replicas.
-To achieve this property, we acknowledge receipt of each message.
-	\item {\bf Flow Control:} \Scrooge{} ensures that a message is only re-send if and only if a sufficient number of honest replicas 
-have implicitly acknowledged its non-receipt.
-\end{enumerate}
-
-
-Next, we state the safety and liveness guarantees provided by our \Scrooge{} protocol. 
-To do so, we distinguish the guarantees provides by the \RSM{} and a replica in an \RSM{}.
+{\bf Guarantees.} 
+\Scrooge{} guarantees safety and liveness in an asynchronous environment where messages 
+can delay or drop and at most one-third replicas in each \RSM{} act Byzantine.
+Notice that \Scrooge{} guarantees asynchronous communication even when the communicating 
+\RSM{s} are partially synchronous.
+However, \Scrooge{} cannot provide service in a dynamically reconfigurable environment where 
+the replicas can leave the system without intimation or there can be unannounced change in 
+shares of replicas.
+As noted above, in practice, such systems do not exist. 
+Next, we state the safety and liveness guarantees.
 
 
 \begin{description}
-\item[\bf Replica Safety.] 
-If an honest replica $\Replica{i}{}$ sends a message $\SignMessage{m, \Seqn}{\Qusign{j}}$, 
-then $\Qusign{j}$ was committed by at least $2\f{j}+1$ replicas of \RSM{} $\SMR{j}$ at sequence number $\Seqn$.
+\item[\bf Safety.] 
+\RSM{} $\SMR{i}$ sends a message $\SignMessage{m, \Seqn}{\Qusign{i}}$, 
+iff $m$ was committed at sequence $\Seqn$ by $\abs{\Qusign{i}} \ge \f{i}+1$ (\CFT{})
+or $\abs{\Qusign{i}} \ge \f{i}+1$ (otherwise) replicas.
 
-\item[\bf Replica Liveness.]
-For any two honest replicas $\Replica{i}{}$ and $\Replica{j}{}$,
-if $\Replica{i}{}$ sends a message $m$, then $\Replica{j}{}$ will receive $m$.
+\item[\bf Liveness.]
+If \RSM{} $\SMR{i}$ decides to send a message $m$ to \RSM{} $\SMR{j}$, 
+then $\SMR{j}$ with eventually receive $m$.
 
-\item[\bf \RSM{} Safety.]
-\RSM{} $\SMR{i}$ delivers message $m$ to \RSM{} $\SMR{j}$ if and only if
-$\SMR{i}$ commits message $m$.
-
-\item[\bf \RSM{} Liveness.]
-If \RSM{} $\SMR{i}$ decides to send a message $m$, then $m$ will be eventually
-delivered to \RSM{} $\SMR{j}$.
 \end{description}
 
-
-
+%\item[\bf \RSM{} Safety.]
+%\RSM{} $\SMR{i}$ delivers message $m$ to \RSM{} $\SMR{j}$ if and only if
+%$\SMR{i}$ commits message $m$.
 %
-%Each message communicated across the clusters has the following structure: 
-%$\SignMessage{\Message{recv-id}{data}{}}{\Replica{}{}}$, where $recv-id$ identifies the receiver of this message, 
-%$data$ denotes the content to be communicated, and $\Name{Ack}$ is an acknowledgment of a previously received message.  
+%\item[\bf \RSM{} Liveness.]
+%For any two honest replicas $\Replica{i}{}$ and $\Replica{j}{}$,
+%if $\Replica{i}{}$ sends a message $m$, then $\Replica{j}{}$ will receive $m$.
+
+
+
+
+
 

@@ -1,5 +1,38 @@
 \section{\Shadow{} Protocol}
 \label{s:algo}
+
+
+
+
+
+\begin{definition}\label{def:scrooge}
+{\bf \Scrooge{}:}
+An \RSM{}-to-\RSM{} asynchronous communication protocol that enables reliable message delivery with a constant 
+number of message copies.
+\end{definition}
+
+\begin{definition}
+{\bf Communication Abstraction:}
+\Scrooge{} guarantees reliable communication of a message between two \RSM{s} if each \RSM{} includes at least $\n{} \ge 3\f{}+1$ 
+replicas;
+\Scrooge{} does not guarantee reliable communication between two replicas.
+\end{definition}
+
+
+\Scrooge{} provides the following \RSM{}-to-\RSM{} communication properties.
+\begin{enumerate}[wide,nosep]
+	\item \textbf{Basic Data Transfer:} \Scrooge{} provides a ``push'' functionality, which guarantees that any message, which a replica of the 
+sending \RSM{} wants to send will be eventually sent to a receiver.
+	\item \textbf{Message Reliability:} Any message dropped or delayed by Byzantine replicas is eventually received by honest replicas.
+To achieve this property, we acknowledge receipt of each message.
+	\item {\bf Flow Control:} \Scrooge{} ensures that a message is only re-send if and only if a sufficient number of honest replicas 
+have implicitly acknowledged its non-receipt.
+\end{enumerate}
+
+
+
+
+
 To facilitate reliable \RSM{}-to-\RSM{} communication using the \Scrooge{} protocol, 
 we require each replica to maintain several lists and maps, which
 help to track the messages communicated across \RSM{s}.
