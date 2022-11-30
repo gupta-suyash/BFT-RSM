@@ -3,7 +3,7 @@ syntax = "proto3";
 import "scrooge_networking.proto";
 
 package scrooge;
-
+option go_package="/scrooge";
 
 // This is a one-to-one mapping in the honest case.
 // On the case of collision, ignore both messages as sender_id is guaranteed to be valid by TLS

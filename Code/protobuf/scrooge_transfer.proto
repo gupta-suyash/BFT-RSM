@@ -4,6 +4,7 @@ import "scrooge_message.proto";
 import "scrooge_networking.proto";
 
 package scrooge;
+option go_package="/scrooge";
 
 // Message with data scrooge sends to appliaction/protocol users
 message ScroogeTransfer {

@@ -10,6 +10,7 @@ apt-get -y install cmake
 apt-get -y install build-essential
 apt-get -y install re2c
 apt-get -y remove libprotobuf-dev
+apt-get -y install golang-goprotobuf-dev
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
 echo "basic packages installed"

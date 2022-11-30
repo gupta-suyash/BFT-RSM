@@ -9,14 +9,14 @@ SANITIZERS=-fsanitize=address -fsanitize=undefined
 SRC_DIRS = ./system/ 
 DEPS = -I$(NNMSG)/include -I$(BOOST) 
 
-PROTO_DIR = ./system/protobuf/
+PROTO_DIR = ./protobuf/
 
 CFLAGS += $(DEPS)
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
 LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
 
-PROTO_SOURCES = $(wildcard ./system/protobuf/*.proto)
+PROTO_SOURCES = $(wildcard ./protobuf/*.proto)
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
 SOURCES += $(wildcard ./configuration/*.cpp)
 LIBRARY_SOURCES = $(filter-out ./system/main.cpp, $(SOURCES))
@@ -48,11 +48,11 @@ scrooge : $(SOURCES_OBJ)
 #	$(CC) -c ${CFLAGS} $(INCLUDE) $(LIBS) -o $@ $<
 
 proto: $(PROTO_SOURCES)
-	protoc -I./system/protobuf --cpp_out=./system ./system/protobuf/*
-	protoc -I./system/protobuf --go_out=./client ./system/protobuf/*
+	protoc -I./protobuf --cpp_out=./system ./protobuf/*
+	protoc -I./protobuf --go_out=./client ./protobuf/*
 
 clean:
-	rm -f system/*.o configuration/*.o scrooge test/*.o check system/*pb*
+	rm -f system/*.o configuration/*.o scrooge test/*.o check system/*.pb* client/proto*.pb*
 
 format:
 	find system -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
