@@ -1,17 +1,17 @@
-#!/bin/sh
+#!/bin/bash
 
 # install packages
-apt-get update
-apt-get upgrade
+apt-get -y update
+apt-get -y upgrade
 echo "updated and upgraded"
-apt-get install autoconf automake libtool curl make g++ unzip
-apt-get install  libboost-all-dev
+apt-get -y install autoconf automake libtool curl make g++ unzip
+apt-get -y install  libboost-all-dev
 apt-get -y install cmake
-apt -y install build-essential
+apt-get -y install build-essential
 apt-get -y install re2c
-apt-get remove libprotobuf-dev
-apt-get install -y clang-format
-apt-get install -y libspdlog-dev
+apt-get -y remove libprotobuf-dev
+apt-get -y install clang-format
+apt-get -y install libspdlog-dev
 echo "basic packages installed"
 
 # ninja install
@@ -50,3 +50,11 @@ sudo make install
 sudo ldconfig
 cd ..
 echo "script is successful!"
+
+# Go 1.19.3 install
+curl -OL https://golang.org/dl/go1.19.3.linux-amd64.tar.gz
+rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.3.linux-amd64.tar.gz
+echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
+source $HOME/.profile
+rm go1.19.3.linux-amd64.tar.gz
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest

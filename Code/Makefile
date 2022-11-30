@@ -49,6 +49,7 @@ scrooge : $(SOURCES_OBJ)
 
 proto: $(PROTO_SOURCES)
 	protoc -I./system/protobuf --cpp_out=./system ./system/protobuf/*
+	protoc -I./system/protobuf --go_out=./client ./system/protobuf/*
 
 clean:
 	rm -f system/*.o configuration/*.o scrooge test/*.o check system/*pb*
