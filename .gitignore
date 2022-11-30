@@ -1,4 +1,5 @@
 ## IGNORE BUILD FILES ##
+Code/client/main
 Code/*.o
 Code/system/*.pb.*
 Code/*/*.o
