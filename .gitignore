@@ -1,4 +1,6 @@
 ## IGNORE BUILD FILES ##
+Code/client/main
+Code/client/scrooge
 Code/*.o
 Code/system/*.pb.*
 Code/*/*.o

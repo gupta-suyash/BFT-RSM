@@ -3,6 +3,7 @@ syntax = "proto3";
 import "google/protobuf/wrappers.proto";
 
 package scrooge;
+option go_package="/scrooge";
 
 // Message to identify a specific RSM cluster
 message ClusterIdentifier {
