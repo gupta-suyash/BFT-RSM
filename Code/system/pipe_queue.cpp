@@ -90,18 +90,21 @@ scrooge::CrossChainMessage PipeQueue::EnqueueStore()
 }
 
 scrooge::CrossChainMessage PipeQueue::DequeueStore(scrooge::CrossChainMessage msg) {
-	scrooge::CrossChainMessage front = store_queue_.front();
+	scrooge::CrossChainMessage front = std::get<0>(store_queue_.front());
 	if(std::get<0>(store_queue_.front()).data().sequence_number() == msg.data().sequence_number()) {
 		store_queue_.pop();
 	}
 	return front; // what exactly should this value do?
 }
 
-scrooge::CrossChainMessage PipeQueue::UpdateStore(scrooge::CrossChainMessage msg, int sequence_id) {
-	for (std::tuple<scrooge::CrossChainMessage, static std::chrono::time_point> entry : store_queue_) {
-		if (std::get<0>(entry).data().sequence_number() == sequence_id) {
-			std::get<1>(entry) = std::chrono::steady_clock::now();
-		}
+scrooge::CrossChainMessage PipeQueue::UpdateStore(scrooge::CrossChainMessage msg, uint64_t sequence_id) {
+	std::queue store_queue_cp = store_queue_;
+	while (!store_queue_cp.empty()) {
+           std::tuple<scrooge::CrossChainMessage, const std::chrono::time_point<std::chrono::steady_clock>> entry = store_queue_cp.front();
+	   //if (std::get<0>(entry).data().sequence_number() == sequence_id) {
+           //   std::get<1>(entry) = std::chrono::steady_clock::now();
+           //}
+	   store_queue_cp.pop();
 	}
 	return msg;
 }
@@ -110,13 +113,16 @@ scrooge::CrossChainMessage PipeQueue::UpdateStore(scrooge::CrossChainMessage msg
  * to be sent. It only has three possible return values: 1 (the wait time for the message has
  * elapsed), 0 (the wait time has not elapsed), -1 (error: sequence id not found)
  */
-int CheckTime(int sequence_id) {
+int PipeQueue::CheckTime(uint64_t sequence_id) {
 	auto timestamp = std::chrono::steady_clock::now();
-	for (std::tuple<scrooge::CrossChainMessage, static std::chrono::time_point> entry : store_queue_) {
+	std::queue store_queue_cp = store_queue_;
+	while (!store_queue_cp.empty()) {
+		std::tuple<scrooge::CrossChainMessage, const std::chrono::time_point<std::chrono::steady_clock>> entry = store_queue_cp.front();
 		if (std::get<0>(entry).data().sequence_number() == sequence_id) {
 			std::chrono::duration<double> curr_duration = timestamp - std::get<1>(entry);
-			return curr_duration.count() >= duration.count() : 1 ? 0;
+			return curr_duration.count() >= duration.count() ? 1 : 0;
 		}
+		store_queue_cp.pop();
 	}
 	return -1;
 }
