@@ -13,14 +13,14 @@ class PipeQueue
 {
   private:
     std::mutex msg_q_mutex;
-    std::chrono::duration<std::chrono::milliseconds> duration;
+    std::chrono::duration<double> duration;
     std::queue<scrooge::CrossChainMessage> msg_queue_;
     std::mutex store_q_mutex;
     std::deque<std::tuple<scrooge::CrossChainMessage, std::chrono::time_point<std::chrono::steady_clock>>> store_deque_;
 
 
   public:
-	PipeQueue(std::chrono::duration<std::chrono::milliseconds>);
+	PipeQueue(double wait_time);
     void Enqueue(scrooge::CrossChainMessage msg);
     scrooge::CrossChainMessage Dequeue();
     scrooge::CrossChainMessage EnqueueStore();

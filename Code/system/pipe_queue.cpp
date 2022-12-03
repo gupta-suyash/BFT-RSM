@@ -1,9 +1,9 @@
 #include "pipe_queue.h"
 #include <cstring>
 
-PipeQueue::PipeQueue(std::chrono::duration<std::chrono::milliseconds> wait_time) 
+PipeQueue::PipeQueue(double wait_time) 
 {
-	duration = wait_time;
+	duration = std::chrono::duration<double>(wait_time);
 }
 
 /* Pushes a message to the queue.
@@ -112,9 +112,10 @@ void PipeQueue::UpdateStore() {
 	while (it != store_deque_.end()) {
 		auto timestamp = std::chrono::steady_clock::now();
 		auto curr_duration = std::chrono::steady_clock::now() - std::get<1>(*it);
-		if (std::chrono::duration_cast<std::chrono::milliseconds>(curr_duration).count() >= duration.count() ? 1 : 0) {
+		if (curr_duration.count() >= duration.count() ? 1 : 0) {
 			// TODO: reassign packet to another node
 			std::get<1>(*it) = timestamp;
+			// TODO: add debugging statement here: SPD_LOG();
 		}
 		it++;
 	}
