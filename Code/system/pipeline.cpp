@@ -267,6 +267,7 @@ void Pipeline::RecvFromOtherRsm()
             sp_qptr->Enqueue(msg);
         }
     }
+	sp_qptr->UpdateStore();
 }
 
 /* This function is used to send messages to the nodes in own RSM.

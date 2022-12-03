@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     SPDLOG_INFO("Done setting up sockets between nodes.");
 
     // Setting up the queue.
-    unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>();
+    unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>(std::chrono::milliseconds(5));
     sp_qptr = sp_queue.get();
     SPDLOG_INFO("Done setting up msg-queue and store-queue between threads.");
 
