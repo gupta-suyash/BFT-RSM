@@ -4,7 +4,7 @@ NNMSG=${PWD}/deps/nng
 BOOST=${PWD}/deps/boost_1_80_0
 SANITIZERS=-fsanitize=address -fsanitize=undefined
 
-.SUFFIXES: .o .cpp .h
+.SUFFIXES: .o .cpp .h .cc
 
 SRC_DIRS = ./system/ 
 DEPS = -I$(NNMSG)/include -I$(BOOST) 
@@ -28,10 +28,6 @@ TEST_SOURCES_OBJ = $(TEST_SOURCES:.cpp=.o)
 
 FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 
-#abc:
-#	echo ${SOURCES}
-#	echo ${SOURCES_OBJ}
-
 .PHONY: all clean format test proto
 all: proto scrooge
 
@@ -39,13 +35,6 @@ scrooge : $(SOURCES_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(SANITIZERS) $(LIBS) 
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} $(SANITIZERS) -o $@ $<
-
-# protobuf: protoc -I=$(PROTO_DIR) --cpp_out=$(SRC_DIRS) $(PROTO_DIR)/crosschainmessage.proto
-
-#runcl : $(OBJS_CL)
-#	$(CC) -static -o $@ $^ $(LDFLAGS) $(LIBS)
-#./obj/%.o: system/%.cpp
-#	$(CC) -c ${CFLAGS} $(INCLUDE) $(LIBS) -o $@ $<
 
 proto: $(PROTO_SOURCES)
 	protoc -I./protobuf --cpp_out=./system ./protobuf/*

@@ -35,7 +35,6 @@ cd build
 echo "build directory creation successful"
 cmake -G Ninja -S ..
 ninja
-ninja test
 ninja install
 cd ..
 cd ..
@@ -45,12 +44,9 @@ tar -xzf ./protobuf-cpp-3.20.2.tar.gz
 echo "untar of protobuf successful"
 cd ./protobuf-3.20.2
 ./configure
-make -j$(nproc)
-make check
-sudo make install
+sudo make install -j
 sudo ldconfig
 cd ..
-echo "script is successful!"
 
 # Go 1.19.3 install
 curl -OL https://golang.org/dl/go1.19.3.linux-amd64.tar.gz
@@ -59,3 +55,5 @@ echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
 source $HOME/.profile
 rm go1.19.3.linux-amd64.tar.gz
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+
+echo "script is successful!"
