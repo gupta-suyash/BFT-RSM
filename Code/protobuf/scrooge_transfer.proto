@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "scrooge_message.proto";
-import "scrooge_networking.proto";
 
 package scrooge;
 option go_package="/scrooge";
@@ -14,8 +13,8 @@ message ScroogeTransfer {
 }
 
 message UnvalidatedCrossChainMessage {
-    // An identifier used to identify the network which this message originated from
-    ClusterIdentifier cluster_identifier = 1;
+    // An unique identifier used to identify this message
+    MessageIdentifier message_identifier = 1;
     // The content and scrooge book keeping logic needed by scrooge for correctness
     CrossChainMessageData data = 2;
      // A proof that the message data is valid and signed off by the entire sending RSM

@@ -20,8 +20,6 @@ message MessageIdentifier {
 message CrossChainMessageData {
     // The data that scrooge intends to transfer from one RSM to another
     bytes message_content = 1;
-    // The id of the node who is sending this message, should match the actual sender id
-    uint64 sender_id = 2;
     // This message is the sequence_number-th message sent from one RSM to the next
     uint64 sequence_number = 3;
 }
