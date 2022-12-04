@@ -1,5 +1,6 @@
 #include "pipe_queue.h"
 #include <cstring>
+#include <cmath>
 
 PipeQueue::PipeQueue(double wait_time) 
 {
@@ -106,19 +107,25 @@ void PipeQueue::DequeueStore(scrooge::CrossChainMessage msg) {
  * to be sent. It only has three possible return values: 1 (the wait time for the message has
  * elapsed), 0 (the wait time has not elapsed), -1 (error: sequence id not found)
  */
-void PipeQueue::UpdateStore() {
+std::vector<scrooge::CrossChainMessage> PipeQueue::UpdateStore() {
 	const std::lock_guard<std::mutex> lock(store_q_mutex);
 	auto it = store_deque_.begin();
+	std::vector<scrooge::CrossChainMessage> msgs = {};
 	while (it != store_deque_.end()) {
-		auto timestamp = std::chrono::steady_clock::now();
-		auto curr_duration = std::chrono::steady_clock::now() - std::get<1>(*it);
-		if (curr_duration.count() >= duration.count() ? 1 : 0) {
-			// TODO: reassign packet to another node
-			std::get<1>(*it) = timestamp;
-			// TODO: add debugging statement here: SPD_LOG();
+		std::chrono::duration<double> curr_duration = std::chrono::steady_clock::now() - std::get<1>(*it);
+		double curr_dur_dbl = curr_duration.count();
+		double dur = duration.count();
+		double mod = std::fmod(curr_dur_dbl,dur);
+		//std::chrono::duration<double> mod = std::chrono::duration_cast<double>(curr_duration % duration);
+		SPDLOG_INFO("Current duration: {} vs. Max: {}, Mod: {}", curr_duration.count(), duration.count(), mod);
+		bool val = std::fmod(mod + std::get<0>(*it).data().sequence_number(), get_nodes_rsm()) == get_node_id();
+		if (mod >= 1 && val) {
+			// TODO: resend packet to another node
+			msgs.push_back(std::get<0>(*it));
 		}
 		it++;
 	}
+	return msgs;
 }
 
 /* The following functions are meant to test the correctness of the msg_queue.

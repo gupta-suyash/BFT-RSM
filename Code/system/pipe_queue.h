@@ -8,6 +8,7 @@
 #include <chrono>
 #include <tuple>
 #include <deque>
+#include <vector>
 
 class PipeQueue
 {
@@ -25,7 +26,7 @@ class PipeQueue
     scrooge::CrossChainMessage Dequeue();
     scrooge::CrossChainMessage EnqueueStore();
     void DequeueStore(scrooge::CrossChainMessage msg);
-    void UpdateStore();
+    std::vector<scrooge::CrossChainMessage> UpdateStore();
 
     // Msg_Queue Testing functions.
     void CallE();

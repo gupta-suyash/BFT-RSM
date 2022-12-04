@@ -36,7 +36,7 @@ void SendThread::Run()
             TestAddBlockToInQueue(bid);
             bid++;
 
-            bool did_send = pipe_ptr->SendToOtherRsm(nid);
+            bool did_send = pipe_ptr->SendToOtherRsm(nid, std::nullopt);
             // Did send to other RSM?
             if (did_send)
             {
