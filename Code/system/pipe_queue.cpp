@@ -4,7 +4,7 @@
 
 PipeQueue::PipeQueue(double wait_time) 
 {
-	duration = std::chrono::duration<double>(wait_time);
+    duration = std::chrono::duration<double>(wait_time);
 }
 
 /* Pushes a message to the queue.
@@ -40,7 +40,7 @@ scrooge::CrossChainMessage PipeQueue::Dequeue()
     {
         msg = msg_queue_.front();
         msg_queue_.pop();
-        cout << "Dequeued: " << msg.data().sequence_number() << endl;
+        //cout << "Dequeued: " << msg.data().sequence_number() << endl;
     }
     else
     {
@@ -117,9 +117,9 @@ std::vector<scrooge::CrossChainMessage> PipeQueue::UpdateStore() {
 		double dur = duration.count();
 		double mod = std::fmod(curr_dur_dbl,dur);
 		//std::chrono::duration<double> mod = std::chrono::duration_cast<double>(curr_duration % duration);
-		SPDLOG_INFO("Current duration: {} vs. Max: {}, Mod: {}", curr_duration.count(), duration.count(), mod);
 		bool val = std::fmod(mod + std::get<0>(*it).data().sequence_number(), get_nodes_rsm()) == get_node_id();
 		if (mod >= 1 && val) {
+			SPDLOG_INFO("Current duration: {} vs. Max: {}, Mod: {}", curr_duration.count(), duration.count(), mod);
 			// TODO: resend packet to another node
 			msgs.push_back(std::get<0>(*it));
 		}

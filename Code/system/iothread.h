@@ -18,6 +18,7 @@ class IOThreads
 class SendThread : public IOThreads
 {
     uint16_t last_sent_; // Id of node from other RSM.
+    uint64_t num_packets = 300;
   public:
     // uint16_t thd_id_; // Thread id.
     // thread thd_;	// Thread.

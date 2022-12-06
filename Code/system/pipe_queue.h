@@ -21,7 +21,7 @@ class PipeQueue
 
 
   public:
-	PipeQueue(double wait_time);
+    PipeQueue(double wait_time);
     void Enqueue(scrooge::CrossChainMessage msg);
     scrooge::CrossChainMessage Dequeue();
     scrooge::CrossChainMessage EnqueueStore();
