@@ -24,41 +24,33 @@ func CreatePipe(pipePath string) error {
 	return syscall.Mkfifo(pipePath, 0777)
 }
 
-// Spawns greenthread to output the data pipePath into pipeData
+// Blocking call to output the data pipePath into pipeData
 // Reads data from the pipe in format [size uint64, bytes []byte] where len(bytes) == size and (pipeData <- bytes)
 // All data is in little endian format
-func OpenPipeReader(pipePath string) (pipeData <-chan []byte, err error) {
+func OpenPipeReader(pipePath string, pipeData chan<- []byte) error {
 	if !doesFileExist(pipePath) {
-		return nil, errors.New("File doesn't exitst")
+		return errors.New("File doesn't exitst")
 	}
+	setupCloseHandler()
 
-	pipeChannel := make(chan []byte, 10)
+	pipe, fileErr := os.OpenFile(pipePath, os.O_RDONLY, 0777)
+	if fileErr != nil {
+		glog.Error("Cannot open pipe for reading:", fileErr)
+	}
+	defer pipe.Close()
 
-	go func(pipeChannel chan<- []byte) {
-		setupCloseHandler()
+	reader := bufio.NewReader(pipe)
 
-		pipe, fileErr := os.OpenFile(pipePath, os.O_RDONLY, 0777)
-		if fileErr != nil {
-			glog.Error("Cannot open pipe for reading:", fileErr)
-		}
-		defer pipe.Close()
+	for {
+		const numSizeBytes uint64 = 64 / 8
 
-		reader := bufio.NewReader(pipe)
+		readSizeBytes := loggedRead(reader, numSizeBytes)
+		readSize := binary.LittleEndian.Uint64(readSizeBytes[:])
 
-		for {
-			const numSizeBytes = 64 / 8
+		readData := loggedRead(reader, readSize)
 
-			readSizeBytes := loggedRead(reader, numSizeBytes)
-			readSize := binary.LittleEndian.Uint64(readSizeBytes[:])
-
-			readData := loggedRead(reader, readSize)
-
-			pipeChannel <- readData
-		}
-
-	}(pipeChannel)
-
-	return pipeChannel, err
+		pipeData <- readData
+	}
 }
 
 // Blocking call that will continously write the data pipeInput into pipePath
