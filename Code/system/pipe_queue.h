@@ -2,12 +2,12 @@
 
 #include "data_comm.h"
 #include "global.h"
+#include <chrono>
+#include <deque>
 #include <iostream>
 #include <mutex>
 #include <thread>
-#include <chrono>
 #include <tuple>
-#include <deque>
 #include <vector>
 
 class PipeQueue
@@ -19,9 +19,8 @@ class PipeQueue
     std::mutex store_q_mutex;
     std::deque<std::tuple<scrooge::CrossChainMessage, std::chrono::time_point<std::chrono::steady_clock>>> store_deque_;
 
-
   public:
-    PipeQueue(double wait_time);
+    PipeQueue(std::chrono::duration<double> wait_time);
     void Enqueue(scrooge::CrossChainMessage msg);
     scrooge::CrossChainMessage Dequeue();
     scrooge::CrossChainMessage EnqueueStore();

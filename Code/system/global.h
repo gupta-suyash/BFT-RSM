@@ -3,6 +3,7 @@
 #include "../configuration/config.h"
 #include "scrooge_message.pb.h"
 #include <boost/lockfree/queue.hpp>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -15,6 +16,7 @@
 #include <spdlog/spdlog.h>
 
 using namespace std;
+using namespace std::chrono_literals;
 
 class Pipeline;
 class PipeQueue;

@@ -25,14 +25,13 @@ int main(int argc, char *argv[])
     constexpr uint64_t kQuorumSize = 1;
     QuorumAcknowledgment quack_obj(kQuorumSize);
 
-    unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
+    const auto pipe_obj{make_unique<Pipeline>()};
     pipe_ptr = pipe_obj.get();
     pipe_ptr->SetSockets();
     SPDLOG_INFO("Done setting up sockets between nodes.");
 
     // Setting up the queue.
-    double wait_time = 5;
-    unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>(wait_time);
+    const auto sp_queue{make_unique<PipeQueue>(5s)};
     sp_qptr = sp_queue.get();
     SPDLOG_INFO("Done setting up msg-queue and store-queue between threads.");
 

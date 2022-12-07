@@ -25,7 +25,7 @@ void SendThread::Run()
     bool flag = true;
     auto start = std::chrono::steady_clock::now();
     uint64_t number_of_packets = 8000;
-    std::vector<double> protocol_times = {}; 
+    std::vector<double> protocol_times = {};
     while (true)
     {
         if (bid < number_of_packets)
@@ -58,13 +58,13 @@ void SendThread::Run()
         auto cid = ack_obj->getAckIterator().value_or(0);
         if (cid < std::numeric_limits<uint64_t>::max() && flag)
         {
-            //cout << "Ack list at: " << cid << endl;
-            if (cid == (number_of_packets-1))
+            // cout << "Ack list at: " << cid << endl;
+            if (cid == (number_of_packets - 1))
             {
                 flag = false;
-		std::chrono::duration<double> time_elapse = std::chrono::steady_clock::now() - start;
-		SPDLOG_INFO("Time elapsed: raw {}", time_elapse.count());
-		//packet_times.push_back(time_elapse.count());
+                std::chrono::duration<double> time_elapse = std::chrono::steady_clock::now() - start;
+                SPDLOG_INFO("Time elapsed: raw {}", time_elapse.count());
+                // packet_times.push_back(time_elapse.count());
             }
         }
     }

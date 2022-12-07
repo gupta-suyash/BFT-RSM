@@ -51,7 +51,7 @@ void Pipeline::ReadIfconfig(string if_path)
  */
 string Pipeline::getIP(uint16_t id)
 {
-    std::cout << "ID: " << id << " IP Addr size: " << ip_addr.size()  << std::endl;
+    std::cout << "ID: " << id << " IP Addr size: " << ip_addr.size() << std::endl;
     return ip_addr[id];
 }
 
@@ -267,10 +267,11 @@ void Pipeline::RecvFromOtherRsm()
             // in the RSM, so enqueue in the queue for sender.
             sp_qptr->Enqueue(msg);
         }
-	std::vector<scrooge::CrossChainMessage> msgs = sp_qptr->UpdateStore();
-	for (size_t i = 0; i < msgs.size(); i++) {
-	    SendToOtherRsm(1, msgs.at(i));
-	}
+        std::vector<scrooge::CrossChainMessage> msgs = sp_qptr->UpdateStore();
+        for (size_t i = 0; i < msgs.size(); i++)
+        {
+            SendToOtherRsm(1, msgs.at(i));
+        }
     }
 }
 

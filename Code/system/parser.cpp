@@ -1,6 +1,6 @@
 #include "global.h"
-#include <vector>
 #include <string>
+#include <vector>
 
 /* Parses commandline options.
  * At present only one option is passed, node id.
@@ -31,23 +31,25 @@ void parser(int argc, char *argv[])
             break;
         }
 
-	// 1 == DEBUG, anything else == INFO
-	/*if (i == 2) {
-	   if (std::stoi(argv[i]) == 1) {
-	     spdlog::set_level(spdlog::level::debug);
-	   } else {
-             spdlog::set_level(spdlog::level::info);
-	   }
-	}*/
-	spdlog::set_level(spdlog::level::info);
-	
-	if (i == 3) {
-	   num_args.push_back(std::stoi(argv[3]));
-	}
+        // 1 == DEBUG, anything else == INFO
+        /*if (i == 2) {
+           if (std::stoi(argv[i]) == 1) {
+             spdlog::set_level(spdlog::level::debug);
+           } else {
+                 spdlog::set_level(spdlog::level::info);
+           }
+        }*/
+        spdlog::set_level(spdlog::level::info);
 
-	if (i == 4) {
-	   num_args.push_back(std::stoi(argv[4]));
-	}
+        if (i == 3)
+        {
+            num_args.push_back(std::stoi(argv[3]));
+        }
+
+        if (i == 4)
+        {
+            num_args.push_back(std::stoi(argv[4]));
+        }
     }
 
     // Set log level
