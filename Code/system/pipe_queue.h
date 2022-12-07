@@ -5,19 +5,28 @@
 #include <iostream>
 #include <mutex>
 #include <thread>
+#include <chrono>
+#include <tuple>
+#include <deque>
+#include <vector>
 
 class PipeQueue
 {
   private:
     std::mutex msg_q_mutex;
+    std::chrono::duration<double> duration;
     std::queue<scrooge::CrossChainMessage> msg_queue_;
     std::mutex store_q_mutex;
-    std::queue<scrooge::CrossChainMessage> store_queue_;
+    std::deque<std::tuple<scrooge::CrossChainMessage, std::chrono::time_point<std::chrono::steady_clock>>> store_deque_;
+
 
   public:
+    PipeQueue(double wait_time);
     void Enqueue(scrooge::CrossChainMessage msg);
     scrooge::CrossChainMessage Dequeue();
     scrooge::CrossChainMessage EnqueueStore();
+    void DequeueStore(scrooge::CrossChainMessage msg);
+    std::vector<scrooge::CrossChainMessage> UpdateStore();
 
     // Msg_Queue Testing functions.
     void CallE();

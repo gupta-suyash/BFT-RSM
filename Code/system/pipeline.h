@@ -44,7 +44,7 @@ class Pipeline
     string GetSendUrl(uint16_t cnt);
     void SetSockets();
 
-    bool SendToOtherRsm(uint16_t nid);
+    bool SendToOtherRsm(uint16_t nid, std::optional<scrooge::CrossChainMessage> resend_msg);
     void RecvFromOtherRsm();
 
     void SendToOwnRsm();

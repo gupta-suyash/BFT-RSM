@@ -1,5 +1,11 @@
 #include "pipe_queue.h"
 #include <cstring>
+#include <cmath>
+
+PipeQueue::PipeQueue(double wait_time) 
+{
+    duration = std::chrono::duration<double>(wait_time);
+}
 
 /* Pushes a message to the queue.
  *
@@ -34,7 +40,7 @@ scrooge::CrossChainMessage PipeQueue::Dequeue()
     {
         msg = msg_queue_.front();
         msg_queue_.pop();
-        cout << "Dequeued: " << msg.data().sequence_number() << endl;
+        //cout << "Dequeued: " << msg.data().sequence_number() << endl;
     }
     else
     {
@@ -71,7 +77,7 @@ scrooge::CrossChainMessage PipeQueue::EnqueueStore()
             // it pushes it to the store_queue.
             // cout << "Will store: " << msg.data().sequence_number() << " :: " << msg.data().message_content() << endl;
 
-            store_queue_.push(msg);
+            store_deque_.push_back(std::make_tuple(msg, std::chrono::steady_clock::now()));
 
             // TODO: Do we need this or this is extra memory alloc.
             msg.mutable_data()->clear_sequence_number();
@@ -85,8 +91,41 @@ scrooge::CrossChainMessage PipeQueue::EnqueueStore()
         // No message in the queue.
         msg.mutable_data()->set_sequence_number(0);
     }
-
     return msg;
+}
+
+void PipeQueue::DequeueStore(scrooge::CrossChainMessage msg) {
+	/*scrooge::CrossChainMessage front = std::get<0>(store_queue_.front());
+	if(std::get<0>(store_queue_.front()).data().sequence_number() == msg.data().sequence_number()) {
+		store_queue_.pop();
+	}
+	return front; */// what exactly should this value do?
+}
+
+
+/** This function is used to check how much time has elapsed since the message was supposed
+ * to be sent. It only has three possible return values: 1 (the wait time for the message has
+ * elapsed), 0 (the wait time has not elapsed), -1 (error: sequence id not found)
+ */
+std::vector<scrooge::CrossChainMessage> PipeQueue::UpdateStore() {
+	const std::lock_guard<std::mutex> lock(store_q_mutex);
+	auto it = store_deque_.begin();
+	std::vector<scrooge::CrossChainMessage> msgs = {};
+	while (it != store_deque_.end()) {
+		std::chrono::duration<double> curr_duration = std::chrono::steady_clock::now() - std::get<1>(*it);
+		double curr_dur_dbl = curr_duration.count();
+		double dur = duration.count();
+		double mod = std::fmod(curr_dur_dbl,dur);
+		//std::chrono::duration<double> mod = std::chrono::duration_cast<double>(curr_duration % duration);
+		bool val = std::fmod(mod + std::get<0>(*it).data().sequence_number(), get_nodes_rsm()) == get_node_id();
+		if (mod >= 1 && val) {
+			SPDLOG_INFO("Current duration: {} vs. Max: {}, Mod: {}", curr_duration.count(), duration.count(), mod);
+			// TODO: resend packet to another node
+			msgs.push_back(std::get<0>(*it));
+		}
+		it++;
+	}
+	return msgs;
 }
 
 /* The following functions are meant to test the correctness of the msg_queue.

@@ -51,6 +51,7 @@ void Pipeline::ReadIfconfig(string if_path)
  */
 string Pipeline::getIP(uint16_t id)
 {
+    std::cout << "ID: " << id << " IP Addr size: " << ip_addr.size()  << std::endl;
     return ip_addr[id];
 }
 
@@ -215,10 +216,10 @@ scrooge::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-bool Pipeline::SendToOtherRsm(uint16_t nid)
+bool Pipeline::SendToOtherRsm(uint16_t nid, std::optional<scrooge::CrossChainMessage> resend_msg)
 {
     // Fetching the block to send, if any.
-    scrooge::CrossChainMessage msg = sp_qptr->EnqueueStore();
+    scrooge::CrossChainMessage msg = resend_msg.has_value() ? resend_msg.value() : sp_qptr->EnqueueStore();
     if (msg.data().sequence_number() == 0)
         return false;
 
@@ -266,6 +267,10 @@ void Pipeline::RecvFromOtherRsm()
             // in the RSM, so enqueue in the queue for sender.
             sp_qptr->Enqueue(msg);
         }
+	std::vector<scrooge::CrossChainMessage> msgs = sp_qptr->UpdateStore();
+	for (size_t i = 0; i < msgs.size(); i++) {
+	    SendToOtherRsm(1, msgs.at(i));
+	}
     }
 }
 

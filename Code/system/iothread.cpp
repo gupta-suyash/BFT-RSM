@@ -23,10 +23,12 @@ void SendThread::Run()
     // TODO: Remove this line.
     uint64_t bid = 1;
     bool flag = true;
-
+    auto start = std::chrono::steady_clock::now();
+    uint64_t number_of_packets = 8000;
+    std::vector<double> protocol_times = {}; 
     while (true)
     {
-        if (bid < 200)
+        if (bid < number_of_packets)
         {
 
             // Send to one node in other rsm.
@@ -36,7 +38,7 @@ void SendThread::Run()
             TestAddBlockToInQueue(bid);
             bid++;
 
-            bool did_send = pipe_ptr->SendToOtherRsm(nid);
+            bool did_send = pipe_ptr->SendToOtherRsm(nid, std::nullopt);
             // Did send to other RSM?
             if (did_send)
             {
@@ -56,10 +58,13 @@ void SendThread::Run()
         auto cid = ack_obj->getAckIterator().value_or(0);
         if (cid < std::numeric_limits<uint64_t>::max() && flag)
         {
-            cout << "Ack list at: " << cid << endl;
-            if (cid == 199)
+            //cout << "Ack list at: " << cid << endl;
+            if (cid == (number_of_packets-1))
             {
                 flag = false;
+		std::chrono::duration<double> time_elapse = std::chrono::steady_clock::now() - start;
+		SPDLOG_INFO("Time elapsed: raw {}", time_elapse.count());
+		//packet_times.push_back(time_elapse.count());
             }
         }
     }
