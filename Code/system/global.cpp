@@ -13,6 +13,7 @@ uint64_t g_rsm_id = 0;
 uint64_t g_max_fail = 1; // MAX_NODES_FAIL;
 uint64_t g_max_fail_other_rsm = 1;
 uint64_t g_number_of_packets = 200;
+uint64_t g_packet_size = 500; //bytes
 uint16_t g_port_num = PORT_NUM;
 
 PipeQueue *sp_qptr;
@@ -168,4 +169,14 @@ uint64_t get_number_of_packets()
 void set_number_of_packets(uint64_t packet_number)
 {
     g_number_of_packets = packet_number;
+}
+
+uint64_t get_packet_size()
+{
+     return g_packet_size;
+}
+
+void set_packet_size(uint64_t packet_size)
+{
+      g_packet_size = packet_size;
 }

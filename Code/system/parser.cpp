@@ -13,7 +13,9 @@
 void parser(int argc, char *argv[])
 {
     std::vector<uint64_t> num_args = {};
+    
     set_number_of_packets(std::stoi(argv[3]));
+
     for (int i = 1; i < argc; i++)
     {
         //if (i == 1 && argv[i][0] == 'n' && argv[i][1] == 'i' && argv[i][2] == 'd')
@@ -43,25 +45,33 @@ void parser(int argc, char *argv[])
 	   continue;
 	}
 	
-	if (i == 3) {
-	   num_args.push_back(std::stoi(argv[3]));
+	if (i == 3) { // Byzantine nodes in this cluster
+	   set_max_nodes_fail(true, std::stoi(argv[3]));
 	   continue;
 	}
 
-	if (i == 4) {
-	   num_args.push_back(std::stoi(argv[4]));
+	if (i == 4) { // Byzantine nodes in the other cluster
+	   set_max_nodes_fail(false, std::stoi(argv[4]));
 	   continue;
 	}
 
-	if (i == 5) {
+	if (i == 5) { // Number of nodes in this cluster
+	   set_num_of_nodes_rsm(true, std::stoi(argv[5]));
 	   continue;
 	}
 
-	if (i == 6) {
+	if (i == 6) { // Number of nodes in the other cluster
+	   set_num_of_nodes_rsm(false, std::stoi(argv[6]));
 	   continue;
 	}
 
-	if (i == 7) {
+	if (i == 7) { // Number of packets
+	   set_number_of_packets(std::stoi(argv[7]));
+	   continue;
+	}
+
+	if (i == 8) { // Packet size
+	   set_packet_size(std::stoi(argv[8]));
 	   continue;
 	}
     }
