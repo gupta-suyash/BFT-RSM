@@ -28,6 +28,7 @@ extern uint64_t g_num_rsm;
 extern uint64_t g_nodes_rsm;
 extern uint64_t g_nodes_other_rsm;
 extern uint64_t g_node_cnt;
+extern uint64_t g_node_other_cnt;
 extern uint64_t g_node_id;
 extern uint64_t g_node_rsm_id;
 extern uint64_t g_rsm_id;       // RSM Id for this node.

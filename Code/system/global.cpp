@@ -2,10 +2,11 @@
 #include "../configuration/config.h"
 
 uint16_t g_thread_cnt = THREAD_CNT;
-uint64_t g_num_rsm = NUM_RSM;
+uint64_t g_num_rsm = 2;
 uint64_t g_nodes_rsm = NODES_RSM;
 uint64_t g_nodes_other_rsm = NODES_RSM;
 uint64_t g_node_cnt = NUM_RSM * NODES_RSM;
+uint64_t g_node_other_cnt = NUM_RSM * NODES_RSM;
 uint64_t g_node_id = 0;
 uint64_t g_node_rsm_id = 0;
 uint64_t g_other_rsm_id; // RSM Id of other RSM.
@@ -55,8 +56,10 @@ void set_num_of_nodes_rsm(bool thisNodeRsm, uint64_t num_nodes_rsm)
 {
     if (thisNodeRsm) {
         g_nodes_rsm = num_nodes_rsm;
+	g_node_cnt = g_nodes_rsm * g_num_rsm;
         return;
     }
+    g_node_other_cnt = num_nodes_rsm * g_num_rsm; 
     g_nodes_other_rsm = num_nodes_rsm;
 
 }

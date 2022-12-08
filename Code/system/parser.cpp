@@ -14,8 +14,6 @@ void parser(int argc, char *argv[])
 {
     std::vector<uint64_t> num_args = {};
     
-    set_number_of_packets(std::stoi(argv[3]));
-
     for (int i = 1; i < argc; i++)
     {
         //if (i == 1 && argv[i][0] == 'n' && argv[i][1] == 'i' && argv[i][2] == 'd')
@@ -75,7 +73,5 @@ void parser(int argc, char *argv[])
 	   continue;
 	}
     }
-
-    // Set log level
-    // TODO: set based on user input
+    std::cout << "COUNT: " << g_node_cnt << std::endl;
 }
