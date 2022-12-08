@@ -2,7 +2,6 @@
 #include "acknowledgement.h"
 #include "connect.h"
 #include "pipeline.h"
-
 #include <limits>
 
 uint16_t SendThread::GetThreadId()
