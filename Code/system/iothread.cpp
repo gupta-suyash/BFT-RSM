@@ -18,7 +18,7 @@ void SendThread::Init(uint16_t thd_id)
 
 void SendThread::Run()
 {
-    // cout << "SndThread: " << GetThreadId() << endl;
+    cout << "SndThread: " << GetThreadId() << endl;
     // TODO: Remove this line.
     uint64_t bid = 1;
     bool flag = true;
@@ -27,7 +27,7 @@ void SendThread::Run()
     std::vector<double> protocol_times = {}; 
     while (true)
     {
-        if (bid < number_of_packets)
+        if (bid < get_number_of_packets())
         {
 
             // Send to one node in other rsm.
@@ -58,7 +58,7 @@ void SendThread::Run()
         if (cid < std::numeric_limits<uint64_t>::max() && flag)
         {
             //cout << "Ack list at: " << cid << endl;
-            if (cid == (number_of_packets-1))
+            if (cid == (get_number_of_packets()-1))
             {
                 flag = false;
 		std::chrono::duration<double> time_elapse = std::chrono::steady_clock::now() - start;

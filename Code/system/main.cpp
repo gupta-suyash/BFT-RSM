@@ -2,6 +2,8 @@
 #include <memory>
 #include <pwd.h>
 #include <string>
+#include <vector>
+#include <map>
 
 #include "acknowledgement.h"
 #include "connect.h"
@@ -13,6 +15,7 @@
 
 using std::filesystem::current_path;
 
+//std::map<uint64_t, std::vector<uint64_t>> network_configuration;
 void parser(int argc, char *argv[]);
 
 int main(int argc, char *argv[])

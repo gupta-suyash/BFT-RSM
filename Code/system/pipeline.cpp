@@ -121,6 +121,7 @@ void Pipeline::SetSockets()
     // Initializing receiver sockets.
     for (uint16_t i = 0; i < g_node_cnt; i++)
     {
+	//std::cout << "Node ID: "
         if (i != get_node_id())
         {
             string url = GetRecvUrl(i);
@@ -181,8 +182,8 @@ scrooge::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
     int rv;
     char *buffer;
     size_t sz;
-    auto sock = recv_sockets_[node_id];
-
+    nng_socket sock = recv_sockets_[node_id];
+    // std::cout << "Sock: " << sock << std::endl;
     // We want the nng_recv to be non-blocking and reduce copies.
     // So, we use the two available bit masks.
     rv = nng_recv(sock, &buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
@@ -193,6 +194,8 @@ scrooge::CrossChainMessage Pipeline::DataRecv(uint16_t node_id)
         if (rv != 8)
         {
             // Silence error EAGAIN while using nonblocking nng functions
+            //std::cout << "Receiving for node_id=" << node_id << " for node="
+	    //	   << get_node_id() << std::endl;
             SPDLOG_ERROR("nng_recv has error value = {}", nng_strerror(rv));
         }
 
@@ -252,6 +255,9 @@ void Pipeline::RecvFromOtherRsm()
     {
         // The id of the sender node.
         uint16_t sendr_id = j + sendr_id_start;
+	/*std::cout << "Receiving data from sendr_id=" << sendr_id << " where get_other_rsm_id()=" << get_other_rsm_id()
+		<< " get_nodes_rsm()=" << get_nodes_rsm() << " j=" << j << " sendr_id_start=" << sendr_id_start
+		<< std::endl;*/
 
         scrooge::CrossChainMessage msg = DataRecv(sendr_id);
         if (msg.data().sequence_number() != 0)

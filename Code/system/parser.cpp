@@ -12,7 +12,6 @@
  */
 void parser(int argc, char *argv[])
 {
-    std::vector<uint64_t> num_args = {};
     
     for (int i = 1; i < argc; i++)
     {
@@ -24,12 +23,12 @@ void parser(int argc, char *argv[])
 
             // As nodes have consecutive id, simple division helps to
             // set the rsm id (rsm to which this node belongs).
-            set_rsm_id((get_node_id() / get_nodes_rsm()));
+            //set_rsm_id((get_node_id() / get_nodes_rsm()));
 
             // The id of each node w.r.t to its rsm (starting from 0).
-            set_node_rsm_id(get_node_id() % get_nodes_rsm());
+            //set_node_rsm_id(get_node_id() % get_nodes_rsm());
 
-            set_other_rsm_id(get_num_of_rsm() - 1 - get_rsm_id());
+            //set_other_rsm_id(get_num_of_rsm() - 1 - get_rsm_id());
 	    continue;
         }
 
@@ -60,6 +59,14 @@ void parser(int argc, char *argv[])
 
 	if (i == 6) { // Number of nodes in the other cluster
 	   set_num_of_nodes_rsm(false, std::stoi(argv[6]));
+	   // As nodes have consecutive id, simple division helps to
+           // set the rsm id (rsm to which this node belongs).
+           set_rsm_id((get_node_id() / get_nodes_rsm()));
+
+           // The id of each node w.r.t to its rsm (starting from 0).
+           set_node_rsm_id(get_node_id() % get_nodes_rsm());
+
+           set_other_rsm_id(get_num_of_rsm() - 1 - get_rsm_id()); 
 	   continue;
 	}
 
