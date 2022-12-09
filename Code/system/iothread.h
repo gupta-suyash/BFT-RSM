@@ -29,8 +29,6 @@ class SendThread : public IOThreads
 
     uint16_t GetLastSent();
     void SetLastSent(uint16_t id);
-
-    void TestAddBlockToInQueue(const uint64_t bid);
 };
 
 class RecvThread : public IOThreads

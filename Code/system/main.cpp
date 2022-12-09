@@ -4,7 +4,6 @@
 #include <string>
 
 #include "acknowledgement.h"
-#include "connect.h"
 #include "global.h"
 #include "iothread.h"
 #include "pipe_queue.h"

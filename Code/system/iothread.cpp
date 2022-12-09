@@ -1,6 +1,5 @@
 #include "iothread.h"
 #include "acknowledgement.h"
-#include "connect.h"
 #include "pipeline.h"
 
 #include <limits>
@@ -19,13 +18,8 @@ void SendThread::Init(uint16_t thd_id)
 
 void SendThread::Run()
 {
-    // cout << "SndThread: " << GetThreadId() << endl;
-    // TODO: Remove this line.
     uint64_t bid = 1;
-    bool flag = true;
-    auto start = std::chrono::steady_clock::now();
     uint64_t number_of_packets = 8000;
-    std::vector<double> protocol_times = {};
     while (true)
     {
         if (bid < number_of_packets)
@@ -34,8 +28,14 @@ void SendThread::Run()
             // Send to one node in other rsm.
             uint16_t nid = GetLastSent();
 
-            // TODO: Next two lines, remove.
-            TestAddBlockToInQueue(bid);
+            // TODO: Get data from ipc
+            scrooge::CrossChainMessage msg;
+            msg.mutable_data()->set_sequence_number(bid);
+            msg.mutable_data()->set_message_content("block");
+            msg.set_ack_count(0);
+
+            in_queue.push(msg);
+
             bid++;
 
             bool did_send = pipe_ptr->SendToOtherRsm(nid, std::nullopt);
@@ -54,19 +54,6 @@ void SendThread::Run()
         // Receiver thread code -- temporary.
         pipe_ptr->RecvFromOtherRsm();
         pipe_ptr->RecvFromOwnRsm();
-
-        auto cid = ack_obj->getAckIterator().value_or(0);
-        if (cid < std::numeric_limits<uint64_t>::max() && flag)
-        {
-            // cout << "Ack list at: " << cid << endl;
-            if (cid == (number_of_packets - 1))
-            {
-                flag = false;
-                std::chrono::duration<double> time_elapse = std::chrono::steady_clock::now() - start;
-                SPDLOG_INFO("Time elapsed: raw {}", time_elapse.count());
-                // packet_times.push_back(time_elapse.count());
-            }
-        }
     }
 }
 
@@ -78,12 +65,6 @@ uint16_t SendThread::GetLastSent()
 void SendThread::SetLastSent(uint16_t id)
 {
     last_sent_ = id;
-}
-
-void SendThread::TestAddBlockToInQueue(const uint64_t bid)
-{
-    const string str = "Tmsg " + to_string(bid);
-    SendBlock(bid, &str[0]);
 }
 
 uint16_t RecvThread::GetThreadId()
