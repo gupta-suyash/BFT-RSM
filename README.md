@@ -9,3 +9,6 @@ How to make code:
 3. make
 
 Note: You only need to run steps 1 and 2 once per new machine
+
+To run the program (assuming only 2 clusters as of right now):
+./scrooge [nodeId] [Log number] [number of Byzantine nodes in cluster A] [number of Byzantine nodes in cluster B] [number of nodes in cluster A] [number of nodes in cluster B] [number of packets] [packet size]
