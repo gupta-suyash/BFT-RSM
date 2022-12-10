@@ -1,35 +1,42 @@
 #pragma once
 
-#include "data_comm.h"
 #include "global.h"
-#include <iostream>
-#include <mutex>
-#include <thread>
+
+#include <algorithm>
 #include <chrono>
-#include <tuple>
-#include <deque>
+#include <mutex>
+#include <utility>
 #include <vector>
+
+namespace pipe_queue
+{
+struct TimestampedMessage
+{
+    scrooge::CrossChainMessage message;
+    // the time this node first was made aware of this message
+    std::chrono::steady_clock::time_point timeReceived;
+    // The time that this node should send this message by if necessary
+    // Nodes do not need to send messages the other network already acknowledges
+    std::optional<std::chrono::steady_clock::time_point> sendTime;
+};
+}; // namespace pipe_queue
 
 class PipeQueue
 {
-  private:
-    std::mutex msg_q_mutex;
-    std::chrono::duration<double> duration;
-    std::queue<scrooge::CrossChainMessage> msg_queue_;
-    std::mutex store_q_mutex;
-    std::deque<std::tuple<scrooge::CrossChainMessage, std::chrono::time_point<std::chrono::steady_clock>>> store_deque_;
-
-
   public:
-    PipeQueue(double wait_time);
-    void Enqueue(scrooge::CrossChainMessage msg);
-    scrooge::CrossChainMessage Dequeue();
-    scrooge::CrossChainMessage EnqueueStore();
-    void DequeueStore(scrooge::CrossChainMessage msg);
-    std::vector<scrooge::CrossChainMessage> UpdateStore();
+    PipeQueue(uint64_t curNodeId, uint64_t ownNetworkSize, uint64_t maxNumSendersPerMsg,
+              std::chrono::steady_clock::time_point::duration waitTime);
 
-    // Msg_Queue Testing functions.
-    void CallE();
-    void CallD();
-    void CallThreads();
+    void addMessage(scrooge::CrossChainMessage &&msg, std::chrono::steady_clock::time_point currentTime);
+    std::vector<scrooge::CrossChainMessage> getReadyMessages(std::chrono::steady_clock::time_point currentTime);
+
+  private:
+    mutable std::mutex mMutex;
+
+    const uint64_t mCurNodeId;
+    const uint64_t mOwnNetworkSize;
+    const uint64_t mMaxNumSendersPerMsg;
+    const std::chrono::steady_clock::time_point::duration mWaitTime;
+
+    std::vector<pipe_queue::TimestampedMessage> mMessages;
 };

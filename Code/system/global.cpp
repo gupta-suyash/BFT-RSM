@@ -14,16 +14,10 @@ uint64_t g_rsm_id = 0;
 uint64_t g_max_fail = 1; // MAX_NODES_FAIL;
 uint64_t g_max_fail_other_rsm = 1;
 uint64_t g_number_of_packets = 200;
-uint64_t g_packet_size = 500; //bytes
+uint64_t g_packet_size = 500; // bytes
 uint16_t g_port_num = PORT_NUM;
 
 PipeQueue *sp_qptr;
-
-// Pointer to pipeline
-Pipeline *pipe_ptr;
-
-// Input queue.
-std::queue<scrooge::CrossChainMessage> in_queue;
 
 // Acknowledgement object.
 Acknowledgment *ack_obj;
@@ -54,14 +48,14 @@ uint64_t get_nodes_other_rsm()
 
 void set_num_of_nodes_rsm(bool thisNodeRsm, uint64_t num_nodes_rsm)
 {
-    if (thisNodeRsm) {
+    if (thisNodeRsm)
+    {
         g_nodes_rsm = num_nodes_rsm;
-	g_node_cnt = g_nodes_rsm * g_num_rsm;
+        g_node_cnt = g_nodes_rsm * g_num_rsm;
         return;
     }
-    g_node_other_cnt = num_nodes_rsm * g_num_rsm; 
+    g_node_other_cnt = num_nodes_rsm * g_num_rsm;
     g_nodes_other_rsm = num_nodes_rsm;
-
 }
 
 /* Get the node's id.
@@ -156,12 +150,12 @@ uint64_t get_max_nodes_fail(bool thisNodeRsm)
 
 void set_max_nodes_fail(bool thisNodeRsm, uint64_t max_nodes_fail)
 {
-    if (thisNodeRsm) {
+    if (thisNodeRsm)
+    {
         g_max_fail = max_nodes_fail;
         return;
     }
     g_max_fail_other_rsm = max_nodes_fail;
-
 }
 
 uint64_t get_number_of_packets()
@@ -176,10 +170,10 @@ void set_number_of_packets(uint64_t packet_number)
 
 uint64_t get_packet_size()
 {
-     return g_packet_size;
+    return g_packet_size;
 }
 
 void set_packet_size(uint64_t packet_size)
 {
-      g_packet_size = packet_size;
+    g_packet_size = packet_size;
 }

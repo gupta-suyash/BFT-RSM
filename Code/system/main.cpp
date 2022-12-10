@@ -2,11 +2,9 @@
 #include <memory>
 #include <pwd.h>
 #include <string>
-#include <vector>
-#include <map>
+#include <thread>
 
 #include "acknowledgement.h"
-#include "connect.h"
 #include "global.h"
 #include "iothread.h"
 #include "pipe_queue.h"
@@ -15,7 +13,6 @@
 
 using std::filesystem::current_path;
 
-//std::map<uint64_t, std::vector<uint64_t>> network_configuration;
 void parser(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
@@ -28,15 +25,13 @@ int main(int argc, char *argv[])
     constexpr uint64_t kQuorumSize = 1;
     QuorumAcknowledgment quack_obj(kQuorumSize);
 
-    unique_ptr<Pipeline> pipe_obj = make_unique<Pipeline>();
-    pipe_ptr = pipe_obj.get();
-    pipe_ptr->SetSockets();
+    const auto pipeline = std::make_shared<Pipeline>();
+    const auto pipeQueue = std::make_shared<PipeQueue>(5s);
+    sp_qptr = pipeQueue.get(); // remove?
+    pipeline->SetSockets();
     SPDLOG_INFO("Done setting up sockets between nodes.");
 
     // Setting up the queue.
-    double wait_time = 5;
-    unique_ptr<PipeQueue> sp_queue = make_unique<PipeQueue>(wait_time);
-    sp_qptr = sp_queue.get();
     SPDLOG_INFO("Done setting up msg-queue and store-queue between threads.");
 
     // The next command is for testing the queue.
@@ -44,18 +39,14 @@ int main(int argc, char *argv[])
 
     SPDLOG_INFO("Done setting up the in-queue for messages from protocol.");
 
-    // Creating and starting Sender IOThreads.
-    unique_ptr<SendThread> snd_obj = make_unique<SendThread>();
-    snd_obj->Init(0);
-    SPDLOG_INFO("Created Sender Thread with ID={} ", snd_obj->GetThreadId());
+    auto sendThread = std::thread(runSendThread, pipeQueue, pipeline);
+    SPDLOG_INFO("Created Sender Thread with ID={} ", sendThread.get_id());
 
-    // Creating and starting Receiver IOThreads.
-    // unique_ptr<RecvThread> rcv_obj = make_unique<RecvThread>();
-    // rcv_obj->Init(1);
-    // cout << "Created Receiver Thread: " << rcv_obj->GetThreadId() << endl;
+    auto receiveThread = std::thread(runReceiveThread, pipeline);
+    SPDLOG_INFO("Created Receiver Thread with ID={} ", receiveThread.get_id());
 
-    snd_obj->thd_.join();
-    // rcv_obj->thd_.join();
+    sendThread.join();
+    receiveThread.join();
 
-    return (1);
+    return 0;
 }
