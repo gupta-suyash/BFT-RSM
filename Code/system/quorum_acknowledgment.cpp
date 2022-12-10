@@ -1,4 +1,4 @@
-#include "quorum_acknowledgement.h"
+#include "quorum_acknowledgment.h"
 
 QuorumAcknowledgment::QuorumAcknowledgment(const uint64_t quorumSize) : kQuorumSize(quorumSize)
 {
@@ -18,8 +18,7 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
 
     const bool isUpdate = curNodeEntry != mNodeToAck.end();
     const bool isUpdateStale = isUpdate && (ackValue <= curNodeEntry->second);
-    const bool isUpdateInvalid = ackValue == 0;
-    if (isUpdateStale || isUpdateInvalid)
+    if (isUpdateStale)
     {
         // The update would decrease or not change the node's current ack value
         return;

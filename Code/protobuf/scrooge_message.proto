@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "google/protobuf/wrappers.proto";
 import "scrooge_networking.proto";
 
 package scrooge;
@@ -30,7 +31,7 @@ message CrossChainMessage {
     CrossChainMessageData data = 1;
      // A proof that the message contents are valid and signed off by the entire sending RSM
     bytes validity_proof = 2;
-    // The sender of this message preports to have seen messages with:
+    // Iff present, the sender of this message preports to have seen messages with:
     // sequence_number in {1,2,..,ack_count} but has not seen `ack_count +1`
-    uint64 ack_count = 3;
+    google.protobuf.UInt64Value ack_count = 3;
 }

@@ -13,7 +13,7 @@ std::optional<std::chrono::steady_clock::time_point> getSendTime(
     const std::chrono::steady_clock::time_point::duration resendWaitTime, const uint64_t curNodeId,
     const uint64_t ownNetworkSize, const uint64_t maxNumSendersPerMsg)
 {
-    const auto trueMod = [](auto v, auto m) { return ((v % m) + m) % m; };
+    const auto trueMod = [](int64_t v, int64_t m) -> uint64_t { return ((v % m) + m) % m; };
     const auto originalSenderId = message.data().sequence_number() % ownNetworkSize;
     const auto nodeDiff = trueMod(curNodeId - originalSenderId, ownNetworkSize);
     if (nodeDiff > maxNumSendersPerMsg)
@@ -56,23 +56,35 @@ void PipeQueue::addMessage(scrooge::CrossChainMessage &&message, std::chrono::st
     std::push_heap(std::begin(mMessages), std::end(mMessages), compareByResend);
 }
 
-/* This function returns all unsent messages that should be sent at the current time
+/* This function returns the most stale unsent message that should be sent at the current time
  */
-std::vector<scrooge::CrossChainMessage> PipeQueue::getReadyMessages(std::chrono::steady_clock::time_point currentTime)
+std::optional<scrooge::CrossChainMessage> PipeQueue::getReadyMessage(std::chrono::steady_clock::time_point currentTime)
 {
     const std::scoped_lock lock{mMutex};
-    std::vector<scrooge::CrossChainMessage> readyMessages{};
-    while (!mMessages.empty())
+    if (mMessages.empty())
     {
-        if (mMessages.front().sendTime > currentTime)
-        {
-            break;
-        }
-
-        std::pop_heap(std::begin(mMessages), std::end(mMessages), compareByResend);
-        readyMessages.push_back(std::move(mMessages.back().message));
-        mMessages.pop_back();
+        return std::nullopt;
     }
 
-    return readyMessages;
+    if (mMessages.front().sendTime > currentTime)
+    {
+        return std::nullopt;
+    }
+
+    std::pop_heap(std::begin(mMessages), std::end(mMessages), compareByResend);
+    const auto readyMessage = std::move(mMessages.back().message);
+    mMessages.pop_back();
+
+    return readyMessage;
+}
+
+std::optional<std::chrono::steady_clock::time_point> PipeQueue::getNextReadyMessageTime() const
+{
+    const std::scoped_lock lock{mMutex};
+    if (mMessages.empty())
+    {
+        return std::nullopt;
+    }
+
+    return mMessages.front().sendTime;
 }

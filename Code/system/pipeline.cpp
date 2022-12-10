@@ -1,6 +1,15 @@
 #include "pipeline.h"
-#include "acknowledgement.h"
+#include "acknowledgment.h"
 #include "pipe_queue.h"
+
+int64_t getLogAck(const scrooge::CrossChainMessage &message)
+{
+    if (!message.has_ack_count())
+    {
+        return -1;
+    }
+    return message.ack_count().value();
+}
 
 Pipeline::Pipeline()
 {
@@ -116,8 +125,6 @@ void Pipeline::SetSockets()
         }
     }
 
-    sleep(1);
-
     // Initializing receiver sockets.
     for (uint64_t i = 0; i < g_node_cnt; i++)
     {
@@ -152,12 +159,10 @@ void Pipeline::DataSend(const scrooge::CrossChainMessage &buf, uint64_t node_id)
     int rv;
     string buffer;
 
-    // Socket to communicate.
-    auto sock = send_sockets_[node_id];
+    auto sock = send_sockets_.at(node_id);
 
     buf.SerializeToString(&buffer);
     size_t sz = buffer.size();
-
     SPDLOG_DEBUG("Sending {} bytes to nodeId {}", sz, node_id);
 
     if ((rv = nng_send(sock, &buffer[0], sz, 0)) != 0)
@@ -198,8 +203,9 @@ std::optional<scrooge::CrossChainMessage> Pipeline::DataRecv(const uint64_t node
     const std::string str_buf{buffer, sz};
     receivedMsg.ParseFromString(str_buf);
 
-    SPDLOG_DEBUG("Received {} bytes from nodeId={}, message = [SequenceId={}, AckId={}, transaction='{}']", sz, node_id,
-                 receivedMsg.data().sequence_number(), receivedMsg.ack_count(), receivedMsg.data().message_content());
+    SPDLOG_DEBUG("Received {} bytes from nodeId={}, message = [SequenceId={}, AckId={}, size='{}']", sz, node_id,
+                 receivedMsg.data().sequence_number(), getLogAck(receivedMsg),
+                 receivedMsg.data().message_content().size());
 
     nng_free(buffer, sz);
     return receivedMsg;
@@ -214,8 +220,8 @@ void Pipeline::SendToOtherRsm(uint64_t receivingNodeId, const scrooge::CrossChai
     // The id of the receiver node in the other RSM.
     uint64_t recvr_id = receivingNodeId + (get_other_rsm_id() * get_nodes_rsm());
 
-    SPDLOG_DEBUG("Sending message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
-                 recvr_id, message.data().sequence_number(), message.ack_count(), message.data().message_content());
+    SPDLOG_DEBUG("Sending message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", recvr_id,
+                 message.data().sequence_number(), getLogAck(message), message.data().message_content().size());
 
     DataSend(message, recvr_id);
 }
@@ -223,11 +229,11 @@ void Pipeline::SendToOtherRsm(uint64_t receivingNodeId, const scrooge::CrossChai
 /* This function is used to receive messages from the other RSM.
  *
  */
-std::vector<scrooge::CrossChainMessage> Pipeline::RecvFromOtherRsm()
+std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
 {
     // Starting id of the other RSM.
     uint64_t sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
-    std::vector<scrooge::CrossChainMessage> newMessages{};
+    std::vector<pipeline::ReceivedCrossChainMessage> newMessages{};
 
     for (uint64_t curNode = 0; curNode < get_nodes_rsm(); curNode++)
     {
@@ -237,13 +243,14 @@ std::vector<scrooge::CrossChainMessage> Pipeline::RecvFromOtherRsm()
         const auto message = DataRecv(sendr_id);
         if (message.has_value())
         {
-            SPDLOG_DEBUG(
-                "Received message from other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
-                sendr_id, message->data().sequence_number(), message->ack_count(), message->data().message_content());
+            SPDLOG_DEBUG("Received message from other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
+                         sendr_id, message->data().sequence_number(), getLogAck(*message),
+                         message->data().message_content().size());
 
             // This message needs to broadcasted to other nodes
             // in the RSM, so enqueue in the queue for sender.
-            newMessages.push_back(std::move(*message));
+            newMessages.push_back(
+                pipeline::ReceivedCrossChainMessage{.message = std::move(*message), .senderId = curNode});
         }
     }
     return newMessages;
@@ -267,8 +274,8 @@ void Pipeline::BroadcastToOwnRsm(const scrooge::CrossChainMessage &message)
 
         DataSend(message, recvr_id);
 
-        SPDLOG_DEBUG("Sent message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
-                     recvr_id, message.data().sequence_number(), message.ack_count(), message.data().message_content());
+        SPDLOG_DEBUG("Sent message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", recvr_id,
+                     message.data().sequence_number(), getLogAck(message), message.data().message_content().size());
     }
 }
 
@@ -291,9 +298,9 @@ vector<scrooge::CrossChainMessage> Pipeline::RecvFromOwnRsm()
         const auto message = DataRecv(sendr_id);
         if (message.has_value())
         {
-            SPDLOG_DEBUG(
-                "Received message from own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, transaction='{}']",
-                sendr_id, message->data().sequence_number(), message->ack_count(), message->data().message_content());
+            SPDLOG_DEBUG("Received message from own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
+                         sendr_id, message->data().sequence_number(), getLogAck(*message),
+                         message->data().message_content().size());
             messages.push_back(std::move(*message));
         }
     }

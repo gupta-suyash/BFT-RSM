@@ -1,12 +1,12 @@
 #include <boost/test/unit_test.hpp>
 
-#include <acknowledgement.h>
+#include <acknowledgment.h>
 #include <array>
 
-namespace acknowledgement_test
+namespace acknowledgment_test
 {
 
-BOOST_AUTO_TEST_SUITE(acknowledgement_test)
+BOOST_AUTO_TEST_SUITE(acknowledgment_test)
 
 BOOST_AUTO_TEST_CASE(test_empty_ack)
 {
@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(test_consecutive_acks)
 {
     constexpr auto kCases = 10000;
     Acknowledgment ack;
-    for (int i = 1; i <= kCases; i++)
+    for (int i = 0; i <= kCases; i++)
     {
         ack.addToAckList(i);
         BOOST_CHECK(ack.getAckIterator() == i);
@@ -42,11 +42,14 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_acks)
     constexpr auto jumpSize = 10;
     Acknowledgment ack;
 
-    for (uint64_t i = 1; i <= jumpSize; i++)
+    for (uint64_t i = jumpSize; i > 0; i--)
     {
         ack.addToAckList(i);
-        BOOST_CHECK(ack.getAckIterator() == i);
+        BOOST_CHECK(ack.getAckIterator() == std::nullopt);
     }
+
+    ack.addToAckList(0);
+    BOOST_CHECK(ack.getAckIterator() == jumpSize);
 
     for (uint64_t i = 2 * jumpSize; i <= cases; i += jumpSize)
     {
@@ -66,4 +69,4 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_acks)
 
 BOOST_AUTO_TEST_SUITE_END()
 
-} // namespace acknowledgement_test
+} // namespace acknowledgment_test

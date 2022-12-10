@@ -1,11 +1,11 @@
 #include <boost/test/unit_test.hpp>
 
-#include <quorum_acknowledgement.h>
+#include <quorum_acknowledgment.h>
 
-namespace quorum_acknowledgement_test
+namespace quorum_acknowledgment_test
 {
 
-BOOST_AUTO_TEST_SUITE(quorum_acknowledgement_test)
+BOOST_AUTO_TEST_SUITE(quorum_acknowledgment_test)
 
 constexpr uint64_t kTestQuorumSize = 50;
 constexpr uint64_t kTestNetworkSize = 3 * kTestQuorumSize + 1;
@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(test_useful_quacks)
         return (nodeOffset * curNodeGenerator) % kTestNetworkSize + 1;
     };
     int64_t curNodeOffset = 0;
-    for (uint64_t initAck = 1; initAck <= 50; initAck++)
+    for (uint64_t initAck = 0; initAck <= 50; initAck++)
     {
         QuorumAcknowledgment quack{kTestQuorumSize};
         for (uint64_t node_offset = 0; node_offset < kTestQuorumSize - 1; node_offset++)
@@ -61,6 +61,30 @@ BOOST_AUTO_TEST_CASE(test_monotonicity)
     {
         quack.updateNodeAck(node, 9);
         BOOST_CHECK(quack.getCurrentQuack() == 10);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_consecutive_quacks)
+{
+    const auto getNode = [&](const auto nodeOffset) {
+        constexpr int64_t curNodeGenerator = 79; // gcd(curNodeGen, kTestNetworkSize) == 1
+        return (nodeOffset * curNodeGenerator) % kTestNetworkSize + 1;
+    };
+    int64_t curNodeOffset = 0;
+    QuorumAcknowledgment quack{kTestQuorumSize};
+    std::optional<uint64_t> prevQuack{};
+    for (uint64_t curAck = 0; curAck <= 50; curAck++)
+    {
+        for (uint64_t node_offset = 0; node_offset < kTestQuorumSize - 1; node_offset++)
+        {
+            const auto currentNode = getNode(curNodeOffset++);
+            quack.updateNodeAck(currentNode, curAck);
+            BOOST_CHECK(quack.getCurrentQuack() == prevQuack);
+        }
+        const auto finalNode = getNode(curNodeOffset++);
+        quack.updateNodeAck(finalNode, curAck);
+        BOOST_CHECK(quack.getCurrentQuack() == curAck);
+        prevQuack = curAck;
     }
 }
 
@@ -98,4 +122,4 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_quacks)
 
 BOOST_AUTO_TEST_SUITE_END()
 
-}; // namespace quorum_acknowledgement_test
+}; // namespace quorum_acknowledgment_test

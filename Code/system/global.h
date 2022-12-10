@@ -1,15 +1,7 @@
 #pragma once
 
 #include "../configuration/config.h"
-#include "scrooge_message.pb.h"
-#include <boost/lockfree/queue.hpp>
 #include <chrono>
-#include <cstring>
-#include <iostream>
-#include <memory>
-#include <queue>
-#include <utility>
-#include <vector>
 
 // Enable all spdlog logging macros for development
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
@@ -17,11 +9,6 @@
 
 using namespace std;
 using namespace std::chrono_literals;
-
-class Pipeline;
-class PipeQueue;
-// class ProtoMessage;
-class Acknowledgment;
 
 // List of global variables and configuration parameters.
 
@@ -40,7 +27,6 @@ extern uint64_t g_max_fail_other_rsm;
 extern uint64_t g_number_of_packets;
 extern uint64_t g_packet_size;
 extern uint16_t g_port_num;
-extern PipeQueue *sp_qptr;
 
 uint64_t get_num_of_rsm();
 
@@ -70,6 +56,3 @@ void set_number_of_packets(uint64_t packet_number);
 
 uint64_t get_packet_size();
 void set_packet_size(uint64_t packet_size);
-
-// Object to access the Acknowledgments.
-extern Acknowledgment *ack_obj;

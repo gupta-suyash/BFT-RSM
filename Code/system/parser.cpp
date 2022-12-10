@@ -1,6 +1,6 @@
-#include "global.h"
+#include "parser.h"
+
 #include <string>
-#include <vector>
 
 /* Parses commandline options.
  *
@@ -62,6 +62,7 @@ void parser(int argc, char *argv[])
         default:
             SPDLOG_ERROR("UNEXPECTED COMMAND LINE ARGUMENT position={}, arg='{}'", i, argv[i]);
         }
-
-        std::cout << "COUNT: " << g_node_cnt << std::endl;
     }
+
+    SPDLOG_INFO("COUNT: {}", g_node_cnt);
+}

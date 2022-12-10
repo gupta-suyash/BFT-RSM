@@ -1,11 +1,11 @@
 #pragma once
 
 #include "global.h"
+#include "scrooge_message.pb.h"
 
 #include <algorithm>
 #include <chrono>
 #include <mutex>
-#include <utility>
 #include <vector>
 
 namespace pipe_queue
@@ -28,7 +28,9 @@ class PipeQueue
               std::chrono::steady_clock::time_point::duration waitTime);
 
     void addMessage(scrooge::CrossChainMessage &&msg, std::chrono::steady_clock::time_point currentTime);
-    std::vector<scrooge::CrossChainMessage> getReadyMessages(std::chrono::steady_clock::time_point currentTime);
+    std::optional<scrooge::CrossChainMessage> getReadyMessage(std::chrono::steady_clock::time_point currentTime);
+
+    std::optional<std::chrono::steady_clock::time_point> getNextReadyMessageTime() const;
 
   private:
     mutable std::mutex mMutex;

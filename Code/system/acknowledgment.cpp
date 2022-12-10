@@ -1,4 +1,4 @@
-#include "acknowledgement.h"
+#include "acknowledgment.h"
 
 /* Adds an stores the new ack value in mAckWindows.
  * Consecutive acks are stored with sliding windows.

@@ -8,7 +8,7 @@
 class Acknowledgment
 {
   public:
-    static constexpr uint64_t kMinimumAckValue = 1;
+    static constexpr uint64_t kMinimumAckValue = 0;
 
     void addToAckList(uint64_t nodeId);
     std::optional<uint64_t> getAckIterator() const;

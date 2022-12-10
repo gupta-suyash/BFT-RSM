@@ -17,11 +17,6 @@ uint64_t g_number_of_packets = 200;
 uint64_t g_packet_size = 500; // bytes
 uint16_t g_port_num = PORT_NUM;
 
-PipeQueue *sp_qptr;
-
-// Acknowledgement object.
-Acknowledgment *ack_obj;
-
 /* Get the total number of RSMs.
  *
  * @return g_num_rsm.
