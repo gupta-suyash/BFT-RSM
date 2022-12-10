@@ -2,41 +2,10 @@
 
 #include "global.h"
 #include "pipe_queue.h"
-#include <thread>
+#include "pipeline.h"
 
-class IOThreads
-{
-  public:
-    uint16_t thd_id_; // Thread id.
-    thread thd_;      // Thread.
-    virtual void Init(uint16_t thd_id) = 0;
-    virtual void Run() = 0;
-    virtual uint16_t GetThreadId() = 0;
-};
+#include <memory>
 
-// Threads that send or receive messages.
-class SendThread : public IOThreads
-{
-    uint16_t last_sent_; // Id of node from other RSM.
-    uint64_t num_packets = 300;
+void runSendThread(std::shared_ptr<PipeQueue> pipeQueue, std::shared_ptr<Pipeline> pipeline);
 
-  public:
-    // uint16_t thd_id_; // Thread id.
-    // thread thd_;	// Thread.
-    void Init(uint16_t thd_id);
-    void Run();
-    uint16_t GetThreadId();
-
-    uint16_t GetLastSent();
-    void SetLastSent(uint16_t id);
-};
-
-class RecvThread : public IOThreads
-{
-  public:
-    // uint16_t thd_id_; // Thread id.
-    // thread thd_;	// Thread.
-    void Init(uint16_t thd_id);
-    void Run();
-    uint16_t GetThreadId();
-};
+void runReceiveThread(std::shared_ptr<Pipeline> pipeline);

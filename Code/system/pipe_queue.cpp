@@ -1,173 +1,74 @@
 #include "pipe_queue.h"
-#include <cmath>
-#include <cstring>
+#include <optional>
 
-PipeQueue::PipeQueue(std::chrono::duration<double> wait_time) : duration(wait_time)
-{
-}
-
-/* Pushes a message to the queue.
+/* Computes the time when curNodeId should resend a message received at receiveTime.
  *
- * @param msg is the message to be queued..
+ * @param resendWaitTime is the amount of time put between each sender's transmission to reduce prevent simultanious
+ * message transmission
+ * @param maxNumSendersPerMsg is the worst case number of nodes who should send each message to ensure delivery,
+ * normally 2f+1 (f bad senders + f bad receivers + 1 good pair -- no overlap between cases)
  */
-void PipeQueue::Enqueue(scrooge::CrossChainMessage msg)
+std::optional<std::chrono::steady_clock::time_point> getSendTime(
+    const scrooge::CrossChainMessage &message, const std::chrono::steady_clock::time_point receiveTime,
+    const std::chrono::steady_clock::time_point::duration resendWaitTime, const uint64_t curNodeId,
+    const uint64_t ownNetworkSize, const uint64_t maxNumSendersPerMsg)
 {
-    // Locking access to queue.
-    msg_q_mutex.lock();
-
-    // Continue trying to push until successful.
-    msg_queue_.push(msg);
-
-    // Unlocking the mutex.
-    msg_q_mutex.unlock();
-}
-
-/* Pops a message from the rear of the queue.
- *
- * @return the popped message.
- */
-scrooge::CrossChainMessage PipeQueue::Dequeue()
-{
-    scrooge::CrossChainMessage msg;
-
-    // Locking access to queue.
-    msg_q_mutex.lock();
-
-    // Popping the message; valid returns the status.
-    // valid = msg_queue_.pop(msg);
-    if (!msg_queue_.empty())
+    const auto trueMod = [](auto v, auto m) { return ((v % m) + m) % m; };
+    const auto originalSenderId = message.data().sequence_number() % ownNetworkSize;
+    const auto nodeDiff = trueMod(curNodeId - originalSenderId, ownNetworkSize);
+    if (nodeDiff > maxNumSendersPerMsg)
     {
-        msg = msg_queue_.front();
-        msg_queue_.pop();
-        // cout << "Dequeued: " << msg.data().sequence_number() << endl;
-    }
-    else
-    {
-        msg.mutable_data()->set_sequence_number(0);
-        ;
+        return std::nullopt;
     }
 
-    // Unlocking the mutex.
-    msg_q_mutex.unlock();
-
-    return msg;
+    return receiveTime + nodeDiff * resendWaitTime;
 }
 
-/* This function is used to dequeue a message received from the protocol running
- * at the node and forward it to the other RSM iff the node is designated to
- * forward this message. Nodes select which message to send based on the mod of
- * block_id and number of nodes in each RSM.
- *
- * @return the block to be forwarded.
- */
-scrooge::CrossChainMessage PipeQueue::EnqueueStore()
+bool compareByResend(const pipe_queue::TimestampedMessage &l, const pipe_queue::TimestampedMessage &r)
 {
-    scrooge::CrossChainMessage msg;
-    // Popping out the message from in_queue to send to other RSM.
-    // valid = in_queue->pop(msg);
+    return l.sendTime > r.sendTime;
+}
 
-    if (!in_queue.empty())
+PipeQueue::PipeQueue(const uint64_t curNodeId, const uint64_t ownNetworkSize, const uint64_t maxNumSendersPerMsg,
+                     const std::chrono::steady_clock::time_point::duration waitTime)
+    : mCurNodeId(curNodeId), mOwnNetworkSize(ownNetworkSize), mMaxNumSendersPerMsg(maxNumSendersPerMsg), mWaitTime(waitTime)
+{
+}
+
+/* This function is used to enqueue a message received from the protocol running
+ * at the node. If this message should be sent by the current node, then it will be stored and can be retreived when this node should send it.
+ * Nodes select which message to send based on the mod of the message's sequence_id and number of nodes in its own RSM.
+ */
+void PipeQueue::addMessage(scrooge::CrossChainMessage &&message, std::chrono::steady_clock::time_point currentTime)
+{
+    const auto sendTime = getSendTime(message, currentTime, mWaitTime, mCurNodeId, mOwnNetworkSize, mMaxNumSendersPerMsg);
+    if (!sendTime.has_value())
     {
-        msg = in_queue.front();
-        in_queue.pop();
-        if (msg.data().sequence_number() % get_nodes_rsm() != get_node_rsm_id())
+        return;
+    }
+
+    const std::scoped_lock lock{mMutex};
+    mMessages.push_back(pipe_queue::TimestampedMessage{.message = std::move(message), .timeReceived = currentTime, .sendTime = sendTime});
+    std::push_heap(std::begin(mMessages), std::end(mMessages), compareByResend);
+}
+
+/* This function returns all unsent messages that should be sent at the current time
+ */
+std::vector<scrooge::CrossChainMessage> PipeQueue::getReadyMessages(std::chrono::steady_clock::time_point currentTime)
+{
+    const std::scoped_lock lock{mMutex};
+    std::vector<scrooge::CrossChainMessage> readyMessages{};
+    while (!mMessages.empty())
+    {
+        if (mMessages.front().sendTime > currentTime)
         {
-            // Any message that is not supposed to be sent by this node,
-            // it pushes it to the store_queue.
-            // cout << "Will store: " << msg.data().sequence_number() << " :: " << msg.data().message_content() << endl;
-
-            store_deque_.push_back(std::make_tuple(msg, std::chrono::steady_clock::now()));
-
-            // TODO: Do we need this or this is extra memory alloc.
-            msg.mutable_data()->clear_sequence_number();
-            msg.clear_ack_count();
-            msg.mutable_data()->clear_message_content();
-            msg.mutable_data()->set_sequence_number(0);
+            break;
         }
+        
+        std::pop_heap(std::begin(mMessages), std::end(mMessages), compareByResend);
+        readyMessages.push_back(std::move(mMessages.back().message));
+        mMessages.pop_back();
     }
-    else
-    {
-        // No message in the queue.
-        msg.mutable_data()->set_sequence_number(0);
-    }
-    return msg;
-}
-
-void PipeQueue::DequeueStore(scrooge::CrossChainMessage msg)
-{
-    /*scrooge::CrossChainMessage front = std::get<0>(store_queue_.front());
-    if(std::get<0>(store_queue_.front()).data().sequence_number() == msg.data().sequence_number()) {
-        store_queue_.pop();
-    }
-    return front; */// what exactly should this value do?
-}
-
-/** This function is used to check how much time has elapsed since the message was supposed
- * to be sent. It only has three possible return values: 1 (the wait time for the message has
- * elapsed), 0 (the wait time has not elapsed), -1 (error: sequence id not found)
- */
-std::vector<scrooge::CrossChainMessage> PipeQueue::UpdateStore()
-{
-    const std::lock_guard<std::mutex> lock(store_q_mutex);
-    auto it = store_deque_.begin();
-    std::vector<scrooge::CrossChainMessage> msgs = {};
-    while (it != store_deque_.end())
-    {
-        std::chrono::duration<double> curr_duration = std::chrono::steady_clock::now() - std::get<1>(*it);
-        double curr_dur_dbl = curr_duration.count();
-        double dur = duration.count();
-        double mod = std::fmod(curr_dur_dbl, dur);
-        // std::chrono::duration<double> mod = std::chrono::duration_cast<double>(curr_duration % duration);
-        bool val = std::fmod(mod + std::get<0>(*it).data().sequence_number(), get_nodes_rsm()) == get_node_id();
-        if (mod >= 1 && val)
-        {
-            SPDLOG_INFO("Current duration: {} vs. Max: {}, Mod: {}", curr_duration.count(), duration.count(), mod);
-            // TODO: resend packet to another node
-            msgs.push_back(std::get<0>(*it));
-        }
-        it++;
-    }
-    return msgs;
-}
-
-/* The following functions are meant to test the correctness of the msg_queue.
- *
- */
-void PipeQueue::CallE()
-{
-    // for(int i=0; i<20; i++) {
-    //	string str = "abc" + to_string(i);
-    //	char *buf = &str[0];
-
-    //	unique_ptr<DataPack> msg = std::make_unique<DataPack>();
-    //	msg->data_len = strlen(buf) + 1;
-    //	msg->buf = new char[msg->data_len];
-    //	memcpy(msg->buf, buf, msg->data_len);
-
-    //	cout << "Enqueue: " << msg->buf << endl;
-
-    //	Enqueue(std::move(msg));
-    //}
-}
-
-void PipeQueue::CallD()
-{
-    // int i=0;
-    // while(i < 20) {
-    //	unique_ptr<DataPack> msg = Dequeue();
-    //	if(msg->data_len != 0) {
-    //		cout << "Dequeue done: " << msg->buf << endl;
-    //		i++;
-    //	}
-    //}
-}
-
-void PipeQueue::CallThreads()
-{
-    cout << "Calling threads " << endl;
-    thread ot = thread(&PipeQueue::CallD, this);
-    thread it = thread(&PipeQueue::CallE, this);
-
-    ot.join();
-    it.join();
+    
+    return readyMessages;
 }

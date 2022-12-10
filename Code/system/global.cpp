@@ -15,12 +15,6 @@ uint16_t g_port_num = PORT_NUM;
 
 PipeQueue *sp_qptr;
 
-// Pointer to pipeline
-Pipeline *pipe_ptr;
-
-// Input queue.
-std::queue<scrooge::CrossChainMessage> in_queue;
-
 // Acknowledgement object.
 Acknowledgment *ack_obj;
 
