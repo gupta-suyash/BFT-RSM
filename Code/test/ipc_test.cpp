@@ -6,6 +6,8 @@
 namespace ipc_test
 {
 
+BOOST_AUTO_TEST_SUITE(ipc_test)
+
 BOOST_AUTO_TEST_CASE(test_ipc)
 {
     const auto pipe = "/tmp/ipctest";
@@ -46,5 +48,7 @@ BOOST_AUTO_TEST_CASE(test_ipc)
     reader.join();
     writer.join();
 }
+
+BOOST_AUTO_TEST_SUITE_END()
 
 }; // namespace ipc_test
