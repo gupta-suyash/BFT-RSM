@@ -46,19 +46,20 @@ echo "untar of protobuf successful"
 cd ./protobuf-3.20.2
 ./configure
 make -j$(nproc)
-sudo make install -j
-sudo ldconfig
+make install -j
+ldconfig
 cd ..
 
 # Go 1.19.3 install
 curl -OL https://golang.org/dl/go1.19.3.linux-amd64.tar.gz
-rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.3.linux-amd64.tar.gz
+rm -rf /usr/local/go
+tar -C /usr/local -xzf go1.19.3.linux-amd64.tar.gz
 echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
 echo "export GOPATH=$HOME/go" >> $HOME/.profile
 echo "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin" >> $HOME/.profile
 source $HOME/.profile
+
 rm go1.19.3.linux-amd64.tar.gz
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
 # Insatall go protoc extension
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest

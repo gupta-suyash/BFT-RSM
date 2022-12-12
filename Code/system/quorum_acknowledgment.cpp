@@ -35,6 +35,12 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
             // Don't store empty entries
             mAckToNodeCount.erase(oldAckValue);
         }
+
+        // Decrement the old number of acks in the quorum
+        if (!mQuorumAck.has_value() || mQuorumAck <= oldAckValue)
+        {
+            mNumNodesInCurQuorum--;
+        }
     }
 
     // Update data structures
@@ -42,7 +48,7 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
     mAckToNodeCount[ackValue]++;
 
     // Update mNumNodesInCurQuorum
-    if (!mQuorumAck.has_value() || mQuorumAck < ackValue)
+    if (!mQuorumAck.has_value() || mQuorumAck <= ackValue)
     {
         mNumNodesInCurQuorum++;
     }
@@ -57,8 +63,8 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
 
         if (mQuorumAck.has_value())
         {
-            // Next lowest ack is the new quorum ack
-            mQuorumAck = std::next(mAckToNodeCount.find(*mQuorumAck))->first;
+            const auto oldVal = *mQuorumAck;
+            mQuorumAck = mAckToNodeCount.upper_bound(oldVal)->first;
         }
         else
         {

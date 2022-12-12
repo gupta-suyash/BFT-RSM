@@ -1,10 +1,13 @@
 #pragma once
 
-#include <filesystem>
-#include <fstream>
+#include <atomic>
+#include <memory>
+#include <mutex>
 #include <string>
-#include <unordered_map>
+#include <thread>
 #include <vector>
+
+#include <boost/lockfree/spsc_queue.hpp>
 
 #include "nng/nng.h"
 #include <nng/protocol/pipeline0/pull.h>
@@ -14,8 +17,6 @@
 
 #include "scrooge_message.pb.h"
 
-using std::filesystem::current_path;
-
 namespace pipeline
 {
 struct ReceivedCrossChainMessage
@@ -23,31 +24,54 @@ struct ReceivedCrossChainMessage
     scrooge::CrossChainMessage message;
     uint64_t senderId;
 };
+
+struct SendMessageRequest
+{
+    std::chrono::steady_clock::time_point kRequestCreationTime{};
+    uint64_t destinationNodeId{};
+    bool isDestinationForeign{};
+    std::shared_ptr<scrooge::CrossChainMessage> sharedMessage;
+};
+
+using SendMessageRequestQueue = boost::lockfree::spsc_queue<SendMessageRequest>;
 }; // namespace pipeline
 
 class Pipeline
 {
-    std::vector<string> ip_addr; // url addresses of own RSM.
-
-    std::unordered_map<uint64_t, nng_socket> send_sockets_;
-    std::unordered_map<uint64_t, nng_socket> recv_sockets_;
-
   public:
-    Pipeline();
-    string GetPath();
-    void ReadIfconfig(string if_path);
-    string getIP(uint64_t id);
+    Pipeline(std::vector<std::string> &&ownNetworkUrls, std::vector<std::string> &&otherNetworkUrls,
+             NodeConfiguration ownConfiguration);
+    ~Pipeline();
 
-    string GetRecvUrl(uint64_t cnt);
-    string GetSendUrl(uint64_t cnt);
-    void SetSockets();
+    void startPipeline();
 
-    void SendToOtherRsm(uint64_t receivingNodeId, const scrooge::CrossChainMessage &message);
+    void SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage &&message);
     std::vector<pipeline::ReceivedCrossChainMessage> RecvFromOtherRsm();
 
-    void BroadcastToOwnRsm(const scrooge::CrossChainMessage &message);
+    void BroadcastToOwnRsm(scrooge::CrossChainMessage &&message);
     vector<scrooge::CrossChainMessage> RecvFromOwnRsm();
 
-    void DataSend(const scrooge::CrossChainMessage &buf, uint64_t node_id);
-    std::optional<scrooge::CrossChainMessage> DataRecv(uint64_t node_id);
+  private:
+    void runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets,
+                       std::unique_ptr<std::vector<nng_socket>> localSendSockets);
+    void SetSockets();
+
+    uint64_t getSendPort(uint64_t receiverId, bool isForeign);
+    uint64_t getReceivePort(uint64_t senderId, bool isForeign);
+
+    static constexpr uint64_t kMinimumPortNumber = 7000;
+    mutable std::mutex mMutex;
+
+    const NodeConfiguration kOwnConfiguration;
+    const std::vector<std::string> kOwnNetworkUrls;
+    const std::vector<std::string> kOtherNetworkUrls;
+    // send sockets owned by sending thread
+    // look in Pipeline::runSendThread
+    std::vector<nng_socket> mLocalReceiveSockets;
+    std::vector<nng_socket> mForeignReceiveSockets;
+
+    std::thread messageSendThread{};
+    std::atomic_bool mIsThreadRunning{};
+    std::atomic_bool mShouldThreadStop{};
+    pipeline::SendMessageRequestQueue mMessageRequests{1024};
 };

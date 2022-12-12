@@ -24,8 +24,6 @@ void AcknowledgmentTracker::updateNodeData(const uint64_t nodeId, const uint64_t
     bool isByzantine = storedNodeData.acknowledgmentValue > acknowledgmentValue;
     if (isByzantine)
     {
-        SPDLOG_CRITICAL("Going under byzantine attack, node {} ack value changed from {} down to {}", nodeId,
-                        storedNodeData.acknowledgmentValue, acknowledgmentValue);
         // ignore, treat as if the node was crashed
         return;
     }

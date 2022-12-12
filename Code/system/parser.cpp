@@ -1,6 +1,13 @@
 #include "parser.h"
 
+#include <fstream>
 #include <string>
+
+void usage()
+{
+    SPDLOG_INFO("Run as ./scrooge use_debug_logs_bool node_id local_num_nodes foreign_num_nodes local_max_nodes_fail foreign_max_nodes_fail  own_network_id num_packets packet_size");
+    exit(1);
+}
 
 /* Parses commandline options.
  *
@@ -8,61 +15,70 @@
  * all the nodes belonging to one RSM have consecutive ids.
  *
  */
-void parser(int argc, char *argv[])
+NodeConfiguration parser(int argc, char *argv[])
 {
-    for (int i = 1; i < argc; i++)
+    constexpr auto kNumArgs = 3 + 1;
+    if (argc != kNumArgs)
     {
-        switch (i)
-        {
-        case 1:
-            set_node_id(stoi(argv[1]));
-            break;
-        case 2:
-            if ("1"s == argv[2])
-            {
-                spdlog::set_level(spdlog::level::debug);
-            }
-            else
-            {
-                spdlog::set_level(spdlog::level::info);
-            }
-            break;
-        case 3:
-            // Byzantine nodes in this cluster
-            set_max_nodes_fail(true, std::stoi(argv[3]));
-            break;
-        case 4:
-            // Byzantine nodes in the other cluster
-            set_max_nodes_fail(false, std::stoi(argv[4]));
-            break;
-        case 5:
-            // Number of nodes in this cluster
-            set_num_of_nodes_rsm(true, std::stoi(argv[5]));
-            break;
-        case 6:
-            // Number of nodes in the other cluster
-            set_num_of_nodes_rsm(false, std::stoi(argv[6]));
-            // As nodes have consecutive id, simple division helps to
-            // set the rsm id (rsm to which this node belongs).
-            set_rsm_id((get_node_id() / get_nodes_rsm()));
-
-            // The id of each node w.r.t to its rsm (starting from 0).
-            set_node_rsm_id(get_node_id() % get_nodes_rsm());
-
-            set_other_rsm_id(get_num_of_rsm() - 1 - get_rsm_id());
-            break;
-        case 7:
-            // Number of packets
-            set_number_of_packets(std::stoi(argv[7]));
-            break;
-        case 8:
-            // Packet size
-            set_packet_size(std::stoi(argv[8]));
-            break;
-        default:
-            SPDLOG_ERROR("UNEXPECTED COMMAND LINE ARGUMENT position={}, arg='{}'", i, argv[i]);
-        }
+        // we should really use an existing parser like boost::program_options
+        SPDLOG_CRITICAL("EXPECTED {} ARGS, RECEIVED {}", kNumArgs - 1, argc - 1);
+        usage();
     }
 
-    SPDLOG_INFO("COUNT: {}", g_node_cnt);
+    const bool useDebugLogs = "1"s == argv[1];
+    if (useDebugLogs)
+    {
+        spdlog::set_level(spdlog::level::debug);
+    }
+    else
+    {
+        spdlog::set_level(spdlog::level::info);
+    }
+
+    try {
+        const auto ownNodeId = std::stoull(argv[2]);
+        const auto ownNetworkSize = 7;
+        const auto otherNetworkSize = 7;
+        const auto ownNetworkMaxNodesFail = 1;
+        const auto otherNetworkMaxNodesFail = 1;
+        const auto ownNetworkId = std::stoi(argv[3]);
+        const auto numPackets = 0;
+        const auto packetSize = 1;
+        set_packet_size(packetSize);
+        set_number_of_packets(numPackets);
+        set_rsm_id(ownNetworkId);
+        set_other_rsm_id(1 - ownNetworkId);
+
+        return NodeConfiguration{.kOwnNetworkSize = ownNetworkSize,
+                                .kOtherNetworkSize = otherNetworkSize,
+                                .kOwnMaxNumFailedNodes = ownNetworkMaxNodesFail,
+                                .kOtherMaxNumFailedNodes = otherNetworkMaxNodesFail,
+                                .kNodeId = ownNodeId};
+    } 
+    catch (...)
+    {
+        SPDLOG_CRITICAL("Cannot parse integer command line arguments");
+        usage();
+        return NodeConfiguration{};
+    }
+}
+
+std::vector<std::string> parseNetworkUrls(const std::filesystem::path &networkConfigPath)
+{
+    auto input = std::ifstream{networkConfigPath};
+    if (!input)
+    {
+        SPDLOG_CRITICAL("Error opening file {} for reading", networkConfigPath.c_str());
+        exit(1);
+    }
+
+    std::string ipAddress;
+    std::vector<std::string> ipAddresses{""};
+
+    while (std::getline(input, ipAddresses.back()))
+    {
+        ipAddresses.emplace_back("");
+    }
+    ipAddresses.pop_back();
+    return ipAddresses;
 }

@@ -43,12 +43,12 @@ bool createPipe(const std::string &path)
  * @param messageReads is a queue where all messages read will be enqueued
  * @param exit is a bool to tell the thread to exit (if it is true the thread will return)
  */
-void startPipeReader(const std::string &path, boost::lockfree::spsc_queue<std::vector<uint8_t>> *const messageReads,
-                     const std::atomic_bool &exit)
+void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> messageReads,
+                     std::shared_ptr<std::atomic_bool> exit)
 {
     std::ifstream pipe{path};
 
-    while (not exit)
+    while (not exit->load())
     {
         uint64_t readSize{};
         pipe.read(reinterpret_cast<char *>(&readSize), sizeof(readSize));
@@ -57,7 +57,7 @@ void startPipeReader(const std::string &path, boost::lockfree::spsc_queue<std::v
 
         while (!messageReads->push(std::move(message)))
         {
-            if (exit)
+            if (exit->load())
             {
                 SPDLOG_INFO("Reader of pipe '{}' is exiting", path);
                 return;
@@ -75,17 +75,17 @@ void startPipeReader(const std::string &path, boost::lockfree::spsc_queue<std::v
  * @param messageWrites is the
  * @param exit is a bool to tell the thread to exit (if it is true the thread will return)
  */
-void startPipeWriter(const std::string &path, boost::lockfree::spsc_queue<std::vector<uint8_t>> *const messageWrites,
-                     const std::atomic_bool &exit)
+void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> messageWrites,
+                     std::shared_ptr<std::atomic_bool> exit)
 {
     std::ofstream pipe{path};
 
-    while (not exit)
+    while (not exit->load())
     {
         std::vector<uint8_t> message{};
         while (!messageWrites->pop(message))
         {
-            if (exit)
+            if (exit->load())
             {
                 SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
                 return;

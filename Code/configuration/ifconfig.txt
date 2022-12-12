@@ -1,4 +1,0 @@
-ms1342.utah.cloudlab.us
-ms1312.utah.cloudlab.us
-ms1335.utah.cloudlab.us
-ms1323.utah.cloudlab.us

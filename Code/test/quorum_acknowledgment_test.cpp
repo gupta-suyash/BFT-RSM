@@ -64,6 +64,42 @@ BOOST_AUTO_TEST_CASE(test_monotonicity)
     }
 }
 
+BOOST_AUTO_TEST_CASE(test_repeated_quacks)
+{
+    QuorumAcknowledgment quack{kTestQuorumSize};
+    constexpr auto kNumTrials = 1000;
+    constexpr auto kStuckQuack = 10;
+
+    for (uint64_t node = 1; node < kTestQuorumSize; node++)
+    {
+        quack.updateNodeAck(node, kStuckQuack);
+        BOOST_CHECK(quack.getCurrentQuack() == std::nullopt);
+    }
+
+    quack.updateNodeAck(kTestQuorumSize, kStuckQuack);
+    BOOST_CHECK(quack.getCurrentQuack() == kStuckQuack);
+
+    for (uint64_t trial = 1; trial <= kNumTrials; trial++)
+    {
+        quack.updateNodeAck(kTestQuorumSize, kStuckQuack);
+        for (uint64_t node = 1; node <= kTestNetworkSize; node++)
+        {
+            quack.updateNodeAck(node, kStuckQuack);
+            BOOST_CHECK(quack.getCurrentQuack() == kStuckQuack);
+        }
+    }
+
+    for (uint64_t trial = 1; trial <= kNumTrials; trial++)
+    {
+        quack.updateNodeAck(kTestQuorumSize, kStuckQuack);
+        for (uint64_t node = kTestQuorumSize; node < kTestQuorumSize; node++)
+        {
+            quack.updateNodeAck(node, kStuckQuack + 1);
+            BOOST_CHECK(quack.getCurrentQuack() == kStuckQuack);
+        }
+    }
+}
+
 BOOST_AUTO_TEST_CASE(test_consecutive_quacks)
 {
     const auto getNode = [&](const auto nodeOffset) {

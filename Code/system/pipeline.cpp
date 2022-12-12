@@ -1,6 +1,8 @@
 #include "pipeline.h"
 #include "acknowledgment.h"
-#include "pipe_queue.h"
+
+#include <chrono>
+#include <list>
 
 int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
@@ -11,219 +13,293 @@ int64_t getLogAck(const scrooge::CrossChainMessage &message)
     return message.ack_count().value();
 }
 
-Pipeline::Pipeline()
+nng_socket openReceiveSocket(const std::string &url)
 {
-    string ifconfig_path = GetPath();
-    ReadIfconfig(ifconfig_path);
-}
+    constexpr auto kResultOpenSuccessful = 0;
 
-/* Generates the path to ifconfig.txt.
- *
- * @return the path to ifconfig.txt.
- */
-string Pipeline::GetPath()
-{
-    filesystem::path p = current_path(); // Path of rundb location.
-
-    // At present, we assume ifconfig.txt is located at this path.
-    string if_path = p.string() + "/configuration/ifconfig.txt";
-    SPDLOG_INFO("IfConfigPath = {}", if_path);
-    return if_path;
-}
-
-/* Collects all the ip addresses in the vector ip_addr.
- *
- * @param if_path is the vector of ip addresses.
- */
-void Pipeline::ReadIfconfig(string if_path)
-{
-    std::ifstream fin{if_path};
-    if (!fin)
+    nng_socket socket;
+    const auto openResult = nng_pull0_open(&socket);
+    const bool cannotOpenSocket = kResultOpenSuccessful != openResult;
+    if (cannotOpenSocket)
     {
-        SPDLOG_CRITICAL("Error opening file for reading");
+        SPDLOG_CRITICAL("Cannot open socket for receiving on URL {} ERROR: {}", url, nng_strerror(openResult));
         exit(1);
     }
 
-    // Line by line fetching each IP address and storing them in vector.
-    string ips;
-    while (getline(fin, ips))
+    // Asynchronous wait for someone to listen to this socket.
+    const auto nngDialResult = nng_listen(socket, url.c_str(), nullptr, 0);
+    SPDLOG_INFO("NNG listen for URL = '{}' has return value {} ", url, nng_strerror(nngDialResult));
+
+    return socket;
+}
+
+nng_socket openSendSocket(const std::string &url)
+{
+    constexpr auto kResultOpenSuccessful = 0;
+
+    nng_socket socket;
+    const auto openResult = nng_push0_open(&socket);
+
+    const bool cannotOpenSocket = kResultOpenSuccessful != openResult;
+    if (cannotOpenSocket)
     {
-        ip_addr.push_back(ips);
-        SPDLOG_INFO("IP = {}", ips);
-    }
-}
-
-/* Returns the required IP address from the vector ip_addr.
- *
- * @param id is the required IP.
- * @return the IP address.
- */
-string Pipeline::getIP(uint64_t id)
-{
-    SPDLOG_INFO("ID: {} IP Addr Size: {}", id, ip_addr.size());
-    return ip_addr[id];
-}
-
-/* Returns the connection URL for receiver threads.
- *
- * @param cnt is the Id the sender node.
- * @return the url.
- */
-string Pipeline::GetRecvUrl(uint64_t cnt)
-{
-    uint64_t port_id = get_port_num() + (get_node_id() * get_nodes_rsm()) + cnt;
-    string url = "tcp://" + getIP(get_node_id()) + ":" + to_string(port_id);
-    return url;
-}
-
-/* Returns the connection URL for the sender threads.
- *
- * @param cnt is the Id of the receiver node.
- * @return the url.
- */
-string Pipeline::GetSendUrl(uint64_t cnt)
-{
-    uint64_t port_id = get_port_num() + (cnt * get_nodes_rsm()) + get_node_id();
-    string url = "tcp://" + getIP(cnt) + ":" + to_string(port_id);
-    return url;
-}
-
-void fatal(const char *func, int rv)
-{
-    SPDLOG_CRITICAL("Fatal '{}' {}", func, nng_strerror(rv));
-    exit(1);
-}
-
-/* This function is used to just create sockets to other nodes.
- * For each node, we add two sockets: one send_socket and other recv_socket.
- *
- */
-void Pipeline::SetSockets()
-{
-    int rv;
-
-    // Initializing sender sockets.
-    for (uint64_t i = 0; i < g_node_cnt; i++)
-    {
-        if (i != get_node_id())
-        {
-            string url = GetSendUrl(i);
-            const char *curl = url.c_str();
-            SPDLOG_INFO("Generated URL for sending to nodeId = {} as '{}'", i, url);
-
-            nng_socket sock;
-
-            // Attempt to open the socket; fatal if fails.
-            if ((rv = nng_push0_open(&sock)) != 0)
-            {
-                fatal("nng_push0_open", rv);
-            }
-
-            // Asynchronous wait for someone to listen to this socket.
-            nng_dial(sock, curl, NULL, NNG_FLAG_NONBLOCK);
-            send_sockets_.insert({i, sock});
-        }
+        SPDLOG_CRITICAL("Cannot open socket for sending on URL {} ERROR: {}", url, nng_strerror(openResult));
+        exit(1);
     }
 
-    // Initializing receiver sockets.
-    for (uint64_t i = 0; i < g_node_cnt; i++)
-    {
-        // std::cout << "Node ID: "
-        if (i != get_node_id())
-        {
-            string url = GetRecvUrl(i);
-            const char *curl = url.c_str();
-            SPDLOG_INFO("Generated URL for receiving from nodeId = {} as '{}'", i, url);
+    // Asynchronous wait for someone to listen to this socket.
+    const auto nngDialResult = nng_dial(socket, url.c_str(), nullptr, NNG_FLAG_NONBLOCK);
+    SPDLOG_INFO("NNG dial for URL = '{}' has return value {} ", url, nng_strerror(nngDialResult));
 
-            nng_socket sock;
-            // Attempt to open the socket; fatal if fails.
-            if ((rv = nng_pull0_open(&sock)) != 0)
-            {
-                fatal("nng_pull0_open", rv);
-            }
-
-            // Wait for someone to dial up a socket.
-            nng_listen(sock, curl, NULL, 0);
-            recv_sockets_.insert({i, sock});
-        }
-    }
+    return socket;
 }
 
 /* Sending data to nodes of other RSM.
  *
  * @param buf is the outgoing message of protobuf type.
- * @param nid is the destination node id.
+ * @param socket is the nng_socket to put the data into
  */
-void Pipeline::DataSend(const scrooge::CrossChainMessage &buf, uint64_t node_id)
+int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
 {
-    int rv;
     string buffer;
-
-    auto sock = send_sockets_.at(node_id);
-
     buf.SerializeToString(&buffer);
-    size_t sz = buffer.size();
-    SPDLOG_DEBUG("Sending {} bytes to nodeId {}", sz, node_id);
 
-    if ((rv = nng_send(sock, &buffer[0], sz, 0)) != 0)
+    const auto bufferSize = buffer.size();
+    const auto sendReturnValue = nng_send(socket, const_cast<char *>(buffer.c_str()), bufferSize, NNG_FLAG_NONBLOCK);
+
+    const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN;
+    if (isActualError)
     {
-        SPDLOG_CRITICAL("NNG_SEND ERROR when sending to node {}, error = {}", node_id, nng_strerror(rv));
+        SPDLOG_CRITICAL("nng_send has error value = {}", nng_strerror(sendReturnValue));
     }
+
+    return sendReturnValue;
 }
 
 /* Receving data from nodes of other RSM.
  *
- * @param nid is the sender node id.
- * @return the protobuf.
+ * @param socket is the nng_socket to check for data on.
+ * @return the protobuf if data for one was contained in the socket.
  */
-std::optional<scrooge::CrossChainMessage> Pipeline::DataRecv(const uint64_t node_id)
+std::optional<scrooge::CrossChainMessage> receiveMessage(const nng_socket &socket)
 {
-    int rv;
     char *buffer;
-    size_t sz;
-    const auto &sock = recv_sockets_.at(node_id);
+    size_t bufferSize;
 
-    // We want the nng_recv to be non-blocking and reduce copies.
-    // So, we use the two available bit masks.
-    rv = nng_recv(sock, &buffer, &sz, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+    const auto receiveReturnValue = nng_recv(socket, &buffer, &bufferSize, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
 
-    // nng_recv is non-blocking, if there is no data, return value is non-zero.
-    if (rv != 0)
+    if (receiveReturnValue != 0)
     {
-        if (rv != 8)
+        if (receiveReturnValue != nng_errno_enum::NNG_EAGAIN)
         {
-            // Silence error EAGAIN while using nonblocking nng functions
-            SPDLOG_CRITICAL("nng_recv has error value = {}", nng_strerror(rv));
+            SPDLOG_CRITICAL("nng_recv has error value = {}", nng_strerror(receiveReturnValue));
         }
 
         return std::nullopt;
     }
 
     scrooge::CrossChainMessage receivedMsg;
-    const std::string str_buf{buffer, sz};
-    receivedMsg.ParseFromString(str_buf);
+    receivedMsg.ParseFromArray(buffer, bufferSize);
 
-    SPDLOG_DEBUG("Received {} bytes from nodeId={}, message = [SequenceId={}, AckId={}, size='{}']", sz, node_id,
-                 receivedMsg.data().sequence_number(), getLogAck(receivedMsg),
-                 receivedMsg.data().message_content().size());
+    nng_free(buffer, bufferSize);
 
-    nng_free(buffer, sz);
     return receivedMsg;
+}
+
+Pipeline::Pipeline(std::vector<std::string> &&ownNetworkUrls, std::vector<std::string> &&otherNetworkUrls,
+                   NodeConfiguration ownConfiguration)
+    : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(std::move(ownNetworkUrls)),
+      kOtherNetworkUrls(std::move(otherNetworkUrls))
+{
+}
+
+Pipeline::~Pipeline()
+{
+    const std::scoped_lock lock{mMutex};
+    if (not mIsThreadRunning)
+    {
+        mShouldThreadStop = true;
+        messageSendThread.join();
+        mIsThreadRunning = false;
+    }
+}
+
+/* Returns the port the current node will use to receive from senderId
+ * Current port strategy is that all nodes will listen to local traffic from node i on port `kMinimumPortNumber + i`
+ * All nodes will also listen to foreign traffic from node j on port `kMinimumPortNumber + kSizeOfOwnNetwork + j`
+ */
+uint64_t Pipeline::getReceivePort(uint64_t senderId, bool isForeign)
+{
+    if (isForeign)
+    {
+        return kMinimumPortNumber + kOwnConfiguration.kOwnNetworkSize + senderId;
+    }
+    return kMinimumPortNumber + senderId;
+}
+
+/* Returns the port the current node will use to send to receiverId
+ * Current port strategy is that Node i will listen to traffic from local node i on port `kMinimumPortNumber + i`
+ * Node i will listen to traffic from a forign node j on port `kMinimumPortNumber + kSizeOfOwnNetwork + j`
+ */
+uint64_t Pipeline::getSendPort(uint64_t receiverId, bool isForeign)
+{
+    if (isForeign)
+    {
+        return kMinimumPortNumber + kOwnConfiguration.kOtherNetworkSize + kOwnConfiguration.kNodeId;
+    }
+    return kMinimumPortNumber + kOwnConfiguration.kNodeId;
+}
+
+void Pipeline::startPipeline()
+{
+    const std::scoped_lock lock{mMutex};
+    if (mIsThreadRunning)
+    {
+        return;
+    }
+
+    const auto &kOwnUrl = kOwnNetworkUrls.at(kOwnConfiguration.kNodeId);
+    auto foreignSendSockets = std::make_unique<std::vector<nng_socket>>();
+    auto localSendSockets = std::make_unique<std::vector<nng_socket>>();
+
+    SPDLOG_INFO("Configuring local sockets");
+    for (size_t localNodeId = 0; localNodeId < kOwnNetworkUrls.size(); localNodeId++)
+    {
+        if (kOwnConfiguration.kNodeId == localNodeId)
+        {
+            localSendSockets->emplace_back();
+            mLocalReceiveSockets.emplace_back();
+            continue;
+        }
+
+        const auto &localUrl = kOwnNetworkUrls.at(localNodeId);
+        const auto sendingPort = getSendPort(localNodeId, false);
+        const auto receivingPort = getReceivePort(localNodeId, false);
+
+        auto sendingUrl = "tcp://" + localUrl + ":" + std::to_string(sendingPort);
+        auto receivingUrl = "tcp://" + kOwnUrl + ":" + std::to_string(receivingPort);
+
+        localSendSockets->emplace_back(openSendSocket(sendingUrl));
+        mLocalReceiveSockets.emplace_back(openReceiveSocket(receivingUrl));
+    }
+
+    SPDLOG_INFO("Configuring foreign sockets");
+    for (size_t foreignNodeId = 0; foreignNodeId < kOtherNetworkUrls.size(); foreignNodeId++)
+    {
+        const auto &foreignUrl = kOtherNetworkUrls.at(foreignNodeId);
+        const auto sendingPort = getSendPort(foreignNodeId, true);
+        const auto receivingPort = getReceivePort(foreignNodeId, true);
+
+        auto sendingUrl = "tcp://" + foreignUrl + ":" + std::to_string(sendingPort);
+        auto receivingUrl = "tcp://" + kOwnUrl + ":" + std::to_string(receivingPort);
+
+        foreignSendSockets->emplace_back(openSendSocket(sendingUrl));
+        mForeignReceiveSockets.emplace_back(openReceiveSocket(receivingUrl));
+    }
+
+    messageSendThread =
+        std::thread(&Pipeline::runSendThread, this, std::move(foreignSendSockets), std::move(localSendSockets));
+    mIsThreadRunning = true;
+}
+
+void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets,
+                             std::unique_ptr<std::vector<nng_socket>> localSendSockets)
+{
+    constexpr auto kPollPeriod = 1us;
+    constexpr auto kMaxMessageRetryTime = 60s;
+
+    // probably suboptimal but has fast removal
+    std::list<pipeline::SendMessageRequest> messageRequests;
+
+    SPDLOG_INFO("Pipeline Sending Thread Starting");
+
+    while (not mShouldThreadStop)
+    {
+        const auto curTime = std::chrono::steady_clock::now();
+
+        pipeline::SendMessageRequest newMessageRequest;
+        while (mMessageRequests.pop(newMessageRequest))
+        {
+            messageRequests.emplace_back(std::move(newMessageRequest));
+        }
+
+        for (auto it = std::begin(messageRequests); it != std::end(messageRequests);)
+        {
+            const auto &[kRequestCreationTime, destinationNodeId, isDestinationForeign, message] = *it;
+
+            const bool isRequestStale = kMaxMessageRetryTime < curTime - kRequestCreationTime;
+            if (isRequestStale)
+            {
+                // remove the current element and increment it
+                SPDLOG_CRITICAL("SEND REQUEST IS STALE, DELETING foreignRSM={}", isDestinationForeign);
+                it = messageRequests.erase(it);
+                continue;
+            }
+
+            const auto socket = [&]() {
+                if (it->isDestinationForeign)
+                {
+                    return foreignSendSockets->at(it->destinationNodeId);
+                }
+                return localSendSockets->at(it->destinationNodeId);
+            }();
+
+            // send the data
+            const auto sendMessageResult = sendMessage(socket, *message);
+
+            const bool isSendSuccessful = sendMessageResult == 0;
+            if (isSendSuccessful)
+            {
+                // remove the current element and increment it
+                SPDLOG_DEBUG("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
+                     message->data().sequence_number(), getLogAck(*message), message->data().message_content().size());
+                it = messageRequests.erase(it);
+                continue;
+            }
+
+            const auto isRealError = !isSendSuccessful && sendMessageResult != nng_errno_enum::NNG_EAGAIN;
+            if (isRealError)
+            {
+                SPDLOG_CRITICAL("NNG_SEND error when sending from node {} to {} Error: {}", kOwnConfiguration.kNodeId,
+                                destinationNodeId, nng_strerror(sendMessageResult));
+            }
+
+            // increment to the next element, return to this later
+            it++;
+        }
+
+        std::this_thread::sleep_for(kPollPeriod);
+    }
+    SPDLOG_INFO("Pipeline Sending Thread Exiting");
 }
 
 /* This function is used to send message to a specific node in other RSM.
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-void Pipeline::SendToOtherRsm(uint64_t receivingNodeId, const scrooge::CrossChainMessage &message)
+void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChainMessage &&message)
 {
-    // The id of the receiver node in the other RSM.
-    uint64_t recvr_id = receivingNodeId + (get_other_rsm_id() * get_nodes_rsm());
+    constexpr auto kSleepTime = 1us;
 
-    SPDLOG_DEBUG("Sending message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", recvr_id,
-                 message.data().sequence_number(), getLogAck(message), message.data().message_content().size());
+    const std::scoped_lock lock{mMutex};
 
-    DataSend(message, recvr_id);
+    SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
+                 receivingNodeId, message.data().sequence_number(), getLogAck(message),
+                 message.data().message_content().size());
+
+    // Fix probably make this a variant
+    const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
+
+    auto sendMessageRequest =
+        pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+                                     .destinationNodeId = receivingNodeId,
+                                     .isDestinationForeign = true,
+                                     .sharedMessage = sharedMessage};
+
+    while (not mMessageRequests.push(std::move(sendMessageRequest)))
+    {
+        std::this_thread::sleep_for(kSleepTime);
+    }
 }
 
 /* This function is used to receive messages from the other RSM.
@@ -231,26 +307,25 @@ void Pipeline::SendToOtherRsm(uint64_t receivingNodeId, const scrooge::CrossChai
  */
 std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
 {
-    // Starting id of the other RSM.
-    uint64_t sendr_id_start = get_other_rsm_id() * get_nodes_rsm();
     std::vector<pipeline::ReceivedCrossChainMessage> newMessages{};
 
-    for (uint64_t curNode = 0; curNode < get_nodes_rsm(); curNode++)
-    {
-        // The id of the sender node.
-        uint64_t sendr_id = curNode + sendr_id_start;
 
-        const auto message = DataRecv(sendr_id);
+    const std::scoped_lock lock{mMutex};
+
+    for (uint64_t senderId = 0; senderId < mForeignReceiveSockets.size(); senderId++)
+    {
+        const auto &senderSocket = mForeignReceiveSockets.at(senderId);
+        auto message = receiveMessage(senderSocket);
         if (message.has_value())
         {
             SPDLOG_DEBUG("Received message from other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
-                         sendr_id, message->data().sequence_number(), getLogAck(*message),
+                         senderId, message->data().sequence_number(), getLogAck(*message),
                          message->data().message_content().size());
 
             // This message needs to broadcasted to other nodes
             // in the RSM, so enqueue in the queue for sender.
-            newMessages.push_back(
-                pipeline::ReceivedCrossChainMessage{.message = std::move(*message), .senderId = curNode});
+            newMessages.emplace_back(
+                pipeline::ReceivedCrossChainMessage{.message = std::move(*message), .senderId = senderId});
         }
     }
     return newMessages;
@@ -259,23 +334,37 @@ std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
 /* This function is used to send messages to the nodes in own RSM.
  *
  */
-void Pipeline::BroadcastToOwnRsm(const scrooge::CrossChainMessage &message)
+void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 {
-    // Starting node id of RSM.
-    uint64_t rsm_id_start = get_rsm_id() * get_nodes_rsm();
+    constexpr auto kSleepTime = 1us;
 
-    for (uint64_t curNode = 0; curNode < get_nodes_rsm(); curNode++)
+    const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
+
+    const std::scoped_lock lock{mMutex};
+
+    for (uint64_t receiverId = 0; receiverId < kOwnConfiguration.kOwnNetworkSize; receiverId++)
     {
-        // The id of the receiver node.
-        uint64_t recvr_id = curNode + rsm_id_start;
-
-        if (recvr_id == get_node_id())
+        if (kOwnConfiguration.kNodeId == receiverId)
+        {
             continue;
+        }
 
-        DataSend(message, recvr_id);
-
-        SPDLOG_DEBUG("Sent message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", recvr_id,
+        SPDLOG_DEBUG("Queued message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", receiverId,
                      message.data().sequence_number(), getLogAck(message), message.data().message_content().size());
+
+        // CRITICAL DESIGN ISSUE
+        // WE NEED TO MAKE N REQUESTS, ALL WITH A NEW PROTO....
+        // THIS WILL BE A BOTTLENECK
+        auto sendMessageRequest =
+            pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+                                         .destinationNodeId = receiverId,
+                                         .isDestinationForeign = false,
+                                         .sharedMessage = sharedMessage};
+
+        while (not mMessageRequests.push(std::move(sendMessageRequest)))
+        {
+            std::this_thread::sleep_for(kSleepTime);
+        }
     }
 }
 
@@ -285,23 +374,26 @@ void Pipeline::BroadcastToOwnRsm(const scrooge::CrossChainMessage &message)
 vector<scrooge::CrossChainMessage> Pipeline::RecvFromOwnRsm()
 {
     std::vector<scrooge::CrossChainMessage> messages{};
-    uint64_t rsm_id_start = get_rsm_id() * get_nodes_rsm();
 
-    for (uint64_t curNode = 0; curNode < get_nodes_rsm(); curNode++)
+    const std::scoped_lock lock{mMutex};
+
+    for (uint64_t senderId = 0; senderId < mLocalReceiveSockets.size(); senderId++)
     {
-        // The id of the sender node.
-        uint64_t sendr_id = curNode + rsm_id_start;
-
-        if (sendr_id == get_node_id())
+        if (kOwnConfiguration.kNodeId == senderId)
+        {
             continue;
+        }
 
-        const auto message = DataRecv(sendr_id);
+        const auto &senderSocket = mLocalReceiveSockets.at(senderId);
+
+        auto message = receiveMessage(senderSocket);
         if (message.has_value())
         {
             SPDLOG_DEBUG("Received message from own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
-                         sendr_id, message->data().sequence_number(), getLogAck(*message),
+                         senderId, message->data().sequence_number(), getLogAck(*message),
                          message->data().message_content().size());
-            messages.push_back(std::move(*message));
+
+            messages.emplace_back(std::move(*message));
         }
     }
 
