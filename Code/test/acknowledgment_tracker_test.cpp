@@ -6,7 +6,6 @@ namespace acknowledgment_tracker_test
 {
 using namespace std::chrono_literals;
 const std::chrono::steady_clock::time_point kTestStartTime{1'000'000s};
-const std::chrono::steady_clock::time_point kInvalidTime{kTestStartTime - 1s};
 
 BOOST_AUTO_TEST_SUITE(acknowledgment_tracker_test)
 
@@ -88,7 +87,7 @@ BOOST_AUTO_TEST_CASE(test_aggregate_updates)
     constexpr uint64_t kNumUpdates = 10;
     constexpr auto stuckAmt = [](uint64_t nodeId) {
         const auto lowBits = nodeId & 0b1111;
-        return 100 - lowBits;
+        return 200 - lowBits;
     };
 
     AcknowledgmentTracker tracker{};

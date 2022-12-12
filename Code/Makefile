@@ -1,5 +1,5 @@
-CC=g++
-CFLAGS=-Wall -g -std=c++17
+CC=clang++
+CFLAGS=-Wall -g -std=c++20 -O3
 NNMSG=${PWD}/deps/nng
 BOOST=${PWD}/deps/boost_1_80_0
 SANITIZERS=-fsanitize=address -fsanitize=undefined

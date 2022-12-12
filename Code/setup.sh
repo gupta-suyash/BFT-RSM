@@ -4,7 +4,7 @@
 apt-get -y update
 apt-get -y upgrade
 echo "updated and upgraded"
-apt-get -y install autoconf automake libtool curl make g++ unzip
+apt-get -y install autoconf automake libtool curl make g++ clang unzip
 apt-get -y install  libboost-all-dev
 apt-get -y install cmake
 apt-get -y install build-essential
