@@ -1,6 +1,5 @@
 #include "pipeline.h"
 #include "acknowledgment.h"
-#include "pipe_queue.h"
 
 int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {

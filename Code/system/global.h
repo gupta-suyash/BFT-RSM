@@ -28,6 +28,14 @@ extern uint64_t g_number_of_packets;
 extern uint64_t g_packet_size;
 extern uint16_t g_port_num;
 
+struct NodeConfiguration {
+    const uint64_t kOwnNetworkSize;
+    const uint64_t kOtherNetworkSize;
+    const uint64_t kOwnMaxNumFailedNodes;
+    const uint64_t kOtherMaxNumFailedNodes;
+    const uint64_t kNodeId;
+};
+
 uint64_t get_num_of_rsm();
 
 uint64_t get_nodes_rsm();

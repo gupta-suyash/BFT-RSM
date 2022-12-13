@@ -2,4 +2,4 @@
 
 #include "global.h"
 
-void parser(int argc, char *argv[]);
+NodeConfiguration parser(int argc,  char *argv[]);

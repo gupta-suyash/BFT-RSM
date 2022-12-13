@@ -8,8 +8,18 @@
  * all the nodes belonging to one RSM have consecutive ids.
  *
  */
-void parser(int argc, char *argv[])
+NodeConfiguration parser(int argc, char * argv[])
 {
+    constexpr auto kNumArgs = 8 + 1;
+    if (argc != kNumArgs)
+    {
+        // we should really use an existing parser like boost::program_options
+        SPDLOG_CRITICAL("EXPECTED {} ARGS, RECEIVED {}", kNumArgs - 1, argc - 1);
+
+        SPDLOG_INFO("Run as ./scrooge node_id use_debug_bool local_max_nodes_fail foreign_max_nodes_fail local_num_nodes foreign_num_nodes num_packets packet_size");
+        exit(1);
+    }
+
     for (int i = 1; i < argc; i++)
     {
         switch (i)
@@ -65,4 +75,12 @@ void parser(int argc, char *argv[])
     }
 
     SPDLOG_INFO("COUNT: {}", g_node_cnt);
+
+    return NodeConfiguration{
+        .kOwnNetworkSize = get_nodes_rsm(),
+        .kOtherNetworkSize = get_nodes_other_rsm(),
+        .kOwnMaxNumFailedNodes = get_max_nodes_fail(true),
+        .kOtherMaxNumFailedNodes = get_max_nodes_fail(false),
+        .kNodeId = get_node_id()
+    };
 }
