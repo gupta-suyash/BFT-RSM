@@ -1,5 +1,6 @@
 #include "parser.h"
 
+#include <fstream>
 #include <string>
 
 /* Parses commandline options.
@@ -83,4 +84,24 @@ NodeConfiguration parser(int argc, char * argv[])
         .kOtherMaxNumFailedNodes = get_max_nodes_fail(false),
         .kNodeId = get_node_id()
     };
+}
+
+std::vector<std::string> parseNetworkIps(const std::filesystem::path& networkConfigPath)
+{
+    auto input = std::ifstream{networkConfigPath};
+    if (!input)
+    {
+        SPDLOG_CRITICAL("Error opening file {} for reading", networkConfigPath.c_str());
+        exit(1);
+    }
+
+    std::string ipAddress;
+    std::vector<std::string> ipAddresses{""};
+
+    while (std::getline(input, ipAddresses.back()))
+    {
+        ipAddresses.emplace_back("");
+    }
+    ipAddresses.pop_back();
+    return ipAddresses;
 }

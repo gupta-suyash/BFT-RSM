@@ -1,7 +1,14 @@
 #include "global.h"
-#include "../configuration/config.h"
 
-uint16_t g_thread_cnt = THREAD_CNT;
+// Total number of RSMs.
+#define NUM_RSM 2
+// Number of nodes in each RSM.
+#define NODES_RSM 2
+// Maximum of nodes that can fail in a RSM.
+#define MAX_NODES_FAIL 1
+// TCP Port Number.
+#define PORT_NUM 7000
+
 uint64_t g_num_rsm = 2;
 uint64_t g_nodes_rsm = NODES_RSM;
 uint64_t g_nodes_other_rsm = NODES_RSM;

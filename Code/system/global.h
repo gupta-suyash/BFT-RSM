@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../configuration/config.h"
 #include <chrono>
 
 // Enable all spdlog logging macros for development
@@ -12,8 +11,6 @@ using namespace std::chrono_literals;
 
 // List of global variables and configuration parameters.
 
-extern uint16_t g_thread_cnt;
-extern uint64_t g_num_rsm;
 extern uint64_t g_nodes_rsm;
 extern uint64_t g_nodes_other_rsm;
 extern uint64_t g_node_cnt;
