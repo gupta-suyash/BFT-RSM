@@ -28,16 +28,6 @@ void blockingPush(iothread::MessageQueue &queue, T &&message, std::chrono::durat
     }
 }
 
-scrooge::CrossChainMessage blockingPop(iothread::MessageQueue &queue, std::chrono::duration<double> pollPeriod)
-{
-    scrooge::CrossChainMessage msg;
-    while (not queue.pop(msg))
-    {
-        std::this_thread::sleep_for(pollPeriod);
-    }
-    return msg;
-}
-
 // Returns the node that should be sent a message from a given sender
 uint64_t getMessageDestinationId(uint64_t sequenceNumber, uint64_t senderId, uint64_t numNodesInOwnNetwork,
                                  uint64_t numNodesInOtherNetwork)
@@ -46,7 +36,7 @@ uint64_t getMessageDestinationId(uint64_t sequenceNumber, uint64_t senderId, uin
     const auto originalSenderId = sequenceNumber % numNodesInOwnNetwork;
     const auto resendNum = trueMod(senderId - originalSenderId, numNodesInOwnNetwork);
 
-    return (msgRound + resendNum + sequenceNumber) % numNodesInOtherNetwork;
+    return (originalSenderId + msgRound + resendNum) % numNodesInOtherNetwork;
 }
 
 bool isMessageValid(const scrooge::CrossChainMessage &message)
@@ -95,7 +85,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
 
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
-    std::optional<int64_t> maxSentSequenceNum{std::nullopt};
     auto resendMessageMap = std::map<uint64_t, scrooge::CrossChainMessage>{};
 
     while (true)
@@ -116,7 +105,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                     getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
                 pipeline->SendToOtherRsm(receiverNode, std::move(newMessage));
-                maxSentSequenceNum = std::max<int64_t>(maxSentSequenceNum.value_or(-1), sequenceNumber);
                 continue;
             }
 
@@ -172,11 +160,24 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
     std::optional<uint64_t> lastAckCount;
     while (true)
     {
-        // kinda sucks, no overlap of sending and receiving data ... could probably make 2x faster
-        // in golang this would be like one line :(
         const auto curTime = std::chrono::steady_clock::now();
         const auto newDomesticMessages = pipeline->RecvFromOwnRsm();
         auto newForeignMessages = pipeline->RecvFromOtherRsm();
+
+        for (const auto &domesticMessage : newDomesticMessages)
+        {
+            if (isMessageValid(domesticMessage))
+            {
+                acknowledgment->addToAckList(domesticMessage.data().sequence_number());
+            }
+        }
+
+        const auto newAckCount = acknowledgment->getAckIterator();
+        if (lastAckCount != newAckCount)
+        {
+            SPDLOG_INFO("Node Ack Count Now at {}", newAckCount.value_or(0));
+            lastAckCount = newAckCount;
+        }
 
         for (auto &receivedForeignMessage : newForeignMessages)
         {
@@ -196,19 +197,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
             pipeline->BroadcastToOwnRsm(std::move(foreignMessage));
         }
-
-        for (const auto &domesticMessage : newDomesticMessages)
-        {
-            // Only good for updating the ack value -- could add a sleep for 'signature verification'
-            acknowledgment->addToAckList(domesticMessage.data().sequence_number());
-        }
-
-        const auto newAckCount = acknowledgment->getAckIterator();
-        if (lastAckCount != newAckCount)
-        {
-            SPDLOG_INFO("Node Ack Count Now at {}", newAckCount.value_or(0));
-            lastAckCount = newAckCount;
-        }
+        
         std::this_thread::sleep_for(kPollTime);
     }
 }

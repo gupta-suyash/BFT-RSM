@@ -162,12 +162,14 @@ void Pipeline::startPipeline()
     auto foreignSendSockets = std::make_unique<std::vector<nng_socket>>();
     auto localSendSockets = std::make_unique<std::vector<nng_socket>>();
 
+    SPDLOG_INFO("Configuring local sockets");
     for (size_t localNodeId = 0; localNodeId < kOwnNetworkUrls.size(); localNodeId++)
     {
         if (kOwnConfiguration.kNodeId == localNodeId)
         {
             localSendSockets->emplace_back();
             mLocalReceiveSockets.emplace_back();
+            continue;
         }
 
         const auto &localUrl = kOwnNetworkUrls.at(localNodeId);
@@ -181,6 +183,7 @@ void Pipeline::startPipeline()
         mLocalReceiveSockets.emplace_back(openReceiveSocket(receivingUrl));
     }
 
+    SPDLOG_INFO("Configuring foreign sockets");
     for (size_t foreignNodeId = 0; foreignNodeId < kOtherNetworkUrls.size(); foreignNodeId++)
     {
         const auto &foreignUrl = kOtherNetworkUrls.at(foreignNodeId);
@@ -247,7 +250,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             if (isSendSuccessful)
             {
                 // remove the current element and increment it
-                SPDLOG_INFO("Successfully sent message to RSM is_local={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
+                SPDLOG_INFO("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
                      message.data().sequence_number(), getLogAck(message), message.data().message_content().size());
                 it = messageRequests.erase(it);
                 continue;
@@ -277,17 +280,19 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 {
     constexpr auto kSleepTime = 1us;
 
-    SPDLOG_DEBUG("Sending message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
+    const std::scoped_lock lock{mMutex};
+
+    SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
                  message.data().message_content().size());
 
-    const auto sendMessageRequest =
+    auto sendMessageRequest =
         pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
                                      .destinationNodeId = receivingNodeId,
                                      .isDestinationForeign = true,
                                      .message = std::move(message)};
 
-    while (not mMessageRequests.push(sendMessageRequest))
+    while (not mMessageRequests.push(std::move(sendMessageRequest)))
     {
         std::this_thread::sleep_for(kSleepTime);
     }
@@ -299,6 +304,9 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
 {
     std::vector<pipeline::ReceivedCrossChainMessage> newMessages{};
+
+
+    const std::scoped_lock lock{mMutex};
 
     for (uint64_t senderId = 0; senderId < mForeignReceiveSockets.size(); senderId++)
     {
@@ -326,6 +334,8 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 {
     constexpr auto kSleepTime = 1us;
 
+    const std::scoped_lock lock{mMutex};
+
     for (uint64_t receiverId = 0; receiverId < kOwnConfiguration.kOwnNetworkSize; receiverId++)
     {
         if (kOwnConfiguration.kNodeId == receiverId)
@@ -336,13 +346,16 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
         SPDLOG_DEBUG("Queued message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", receiverId,
                      message.data().sequence_number(), getLogAck(message), message.data().message_content().size());
 
-        const auto sendMessageRequest =
+        // CRITICAL DESIGN ISSUE
+        // WE NEED TO MAKE N REQUESTS, ALL WITH A NEW PROTO....
+        // THIS WILL BE A BOTTLENECK
+        auto sendMessageRequest =
             pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
                                          .destinationNodeId = receiverId,
                                          .isDestinationForeign = false,
-                                         .message = std::move(message)};
+                                         .message = message};
 
-        while (not mMessageRequests.push(sendMessageRequest))
+        while (not mMessageRequests.push(std::move(sendMessageRequest)))
         {
             std::this_thread::sleep_for(kSleepTime);
         }
@@ -355,6 +368,8 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 vector<scrooge::CrossChainMessage> Pipeline::RecvFromOwnRsm()
 {
     std::vector<scrooge::CrossChainMessage> messages{};
+
+    const std::scoped_lock lock{mMutex};
 
     for (uint64_t senderId = 0; senderId < mLocalReceiveSockets.size(); senderId++)
     {
