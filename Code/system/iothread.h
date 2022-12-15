@@ -10,17 +10,19 @@
 
 #include <boost/lockfree/spsc_queue.hpp>
 
-namespace iothread {
+namespace iothread
+{
 using MessageQueue = boost::lockfree::spsc_queue<scrooge::CrossChainMessage>;
 }; // namespace iothread
 
-void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput);
+void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration);
 
 void runRelayIPCMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput);
 
-void runSendThread(std::shared_ptr<iothread::MessageQueue> messageInput,
-                   std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
-                   std::shared_ptr<AcknowledgmentTracker> ackTracker, std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
+void runSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
+                   std::shared_ptr<Acknowledgment> acknowledgment, std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                   std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runReceiveThread(std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
-                      std::shared_ptr<AcknowledgmentTracker> ackTracker, std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
+                      std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                      std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);

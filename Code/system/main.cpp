@@ -16,36 +16,43 @@ int main(int argc, char *argv[])
 {
     // Parsing the command line args.
     const auto kNodeConfiguration = parser(argc, argv);
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId] =
+        kNodeConfiguration;
     const auto kWorkingDir = std::filesystem::current_path();
-    const auto kNetworkZeroConfigPath = kWorkingDir / "configuration/ifconfig0.txt";
-    const auto kNetworkOneConfigPath = kWorkingDir / "configuration/ifconfig1.txt";
+    const auto kNetworkZeroConfigPath = kWorkingDir / "configuration/network0urls.txt";
+    const auto kNetworkOneConfigPath = kWorkingDir / "configuration/network1urls.txt";
 
-    auto ownNetworkUrls = parseNetworkIps(get_rsm_id()? kNetworkOneConfigPath : kNetworkZeroConfigPath);
-    auto otherNetworkUrls = parseNetworkIps(get_other_rsm_id()? kNetworkOneConfigPath : kNetworkZeroConfigPath);
+    SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
+                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}",
+                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, get_rsm_id());
+
+    auto ownNetworkUrls = parseNetworkUrls(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
+    auto otherNetworkUrls = parseNetworkUrls(get_other_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
 
     const auto kQuorumSize = kNodeConfiguration.kOtherNetworkSize + 1;
     const auto kMessageBufferSize = 100;
 
     const auto acknowledgment = std::make_shared<Acknowledgment>();
-    const auto pipeline = std::make_shared<Pipeline>(std::move(ownNetworkUrls), std::move(otherNetworkUrls), kNodeConfiguration);
+    const auto pipeline =
+        std::make_shared<Pipeline>(std::move(ownNetworkUrls), std::move(otherNetworkUrls), kNodeConfiguration);
     const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
     const auto ackTracker = std::make_shared<AcknowledgmentTracker>();
     const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
-
-    const auto ips = parseNetworkIps("/proj/ove-PG0/reggie/BFT-RSM/Code/configuration/ifconfig.txt");
 
     pipeline->startPipeline();
     SPDLOG_INFO("Done setting up sockets between nodes.");
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
-    auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer);
+    auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
     SPDLOG_INFO("Created Generate FAKE MESSAGE for testing thread with ID={}",
                 kThreadHasher(messageRelayThread.get_id()));
 
-    auto sendThread = std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+    auto sendThread =
+        std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Sender Thread with ID={} ", kThreadHasher(sendThread.get_id()));
 
-    auto receiveThread = std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+    auto receiveThread =
+        std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ", kThreadHasher(receiveThread.get_id()));
 
     messageRelayThread.join();

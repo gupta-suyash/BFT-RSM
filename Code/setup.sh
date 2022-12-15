@@ -58,7 +58,6 @@ echo "export GOPATH=$HOME/go" >> $HOME/.profile
 echo "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin" >> $HOME/.profile
 source $HOME/.profile
 rm go1.19.3.linux-amd64.tar.gz
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
 # Insatall go protoc extension
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest

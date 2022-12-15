@@ -8,7 +8,8 @@
 #include <vector>
 
 #include <boost/lockfree/spsc_queue.hpp>
-namespace ipc {
+namespace ipc
+{
 using DataChannel = boost::lockfree::spsc_queue<std::vector<uint8_t>>;
 }; // namespace ipc
 

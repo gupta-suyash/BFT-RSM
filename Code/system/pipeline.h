@@ -27,10 +27,10 @@ struct ReceivedCrossChainMessage
 
 struct SendMessageRequest
 {
-  std::chrono::steady_clock::time_point kRequestCreationTime{};
-  uint64_t destinationNodeId{};
-  bool isDestinationForeign{};
-  scrooge::CrossChainMessage message;
+    std::chrono::steady_clock::time_point kRequestCreationTime{};
+    uint64_t destinationNodeId{};
+    bool isDestinationForeign{};
+    scrooge::CrossChainMessage message;
 };
 
 using SendMessageRequestQueue = boost::lockfree::spsc_queue<SendMessageRequest>;
@@ -39,21 +39,21 @@ using SendMessageRequestQueue = boost::lockfree::spsc_queue<SendMessageRequest>;
 class Pipeline
 {
   public:
-    Pipeline(std::vector<std::string>&& ownNetworkUrls, std::vector<std::string>&& otherNetworkUrls, NodeConfiguration ownConfiguration);
+    Pipeline(std::vector<std::string> &&ownNetworkUrls, std::vector<std::string> &&otherNetworkUrls,
+             NodeConfiguration ownConfiguration);
     ~Pipeline();
 
     void startPipeline();
 
-    void SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage&& message);
+    void SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage &&message);
     std::vector<pipeline::ReceivedCrossChainMessage> RecvFromOtherRsm();
 
     void BroadcastToOwnRsm(scrooge::CrossChainMessage &&message);
     vector<scrooge::CrossChainMessage> RecvFromOwnRsm();
 
-    
-
   private:
-    void runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets, std::unique_ptr<std::vector<nng_socket>> localSendSockets);
+    void runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets,
+                       std::unique_ptr<std::vector<nng_socket>> localSendSockets);
     void SetSockets();
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);

@@ -11,21 +11,13 @@ using namespace std::chrono_literals;
 
 // List of global variables and configuration parameters.
 
-extern uint64_t g_nodes_rsm;
-extern uint64_t g_nodes_other_rsm;
-extern uint64_t g_node_cnt;
-extern uint64_t g_node_other_cnt;
-extern uint64_t g_node_id;
-extern uint64_t g_node_rsm_id;
 extern uint64_t g_rsm_id;       // RSM Id for this node.
 extern uint64_t g_other_rsm_id; // RSM Id of other RSM.
-extern uint64_t g_max_fail_rsm;
-extern uint64_t g_max_fail_other_rsm;
 extern uint64_t g_number_of_packets;
 extern uint64_t g_packet_size;
-extern uint16_t g_port_num;
 
-struct NodeConfiguration {
+struct NodeConfiguration
+{
     const uint64_t kOwnNetworkSize;
     const uint64_t kOtherNetworkSize;
     const uint64_t kOwnMaxNumFailedNodes;
@@ -33,25 +25,11 @@ struct NodeConfiguration {
     const uint64_t kNodeId;
 };
 
-uint64_t get_num_of_rsm();
-
-uint64_t get_nodes_rsm();
-uint64_t get_nodes_other_rsm();
-void set_num_of_nodes_rsm(bool thisNodeRsm, uint64_t num_nodes_rsm);
-
-uint64_t get_node_id();
-void set_node_id(uint64_t nid);
-
 uint64_t get_rsm_id();
 void set_rsm_id(uint64_t rsm_id);
 
 uint64_t get_other_rsm_id();
 void set_other_rsm_id(uint64_t rsm_id);
-
-uint64_t get_node_rsm_id();
-void set_node_rsm_id(uint64_t nid);
-
-uint16_t get_port_num();
 
 uint64_t get_max_nodes_fail(bool thisNodeRsm);
 void set_max_nodes_fail(bool thisNodeRsm, uint64_t max_nodes_fail);

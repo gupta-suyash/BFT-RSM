@@ -1,0 +1,4 @@
+ms0804.utah.cloudlab.us
+amd124.utah.cloudlab.us
+ms0812.utah.cloudlab.us
+ms0803.utah.cloudlab.us

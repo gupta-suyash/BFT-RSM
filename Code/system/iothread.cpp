@@ -7,7 +7,6 @@
 
 #include <map>
 
-
 uint64_t trueMod(int64_t value, int64_t modulus)
 {
     const auto remainder = (value % modulus);
@@ -20,8 +19,8 @@ uint64_t trueMod(int64_t value, int64_t modulus)
     return remainder;
 }
 
-template<typename T>
-void blockingPush(iothread::MessageQueue& queue, T&& message, std::chrono::duration<double> pollPeriod)
+template <typename T>
+void blockingPush(iothread::MessageQueue &queue, T &&message, std::chrono::duration<double> pollPeriod)
 {
     while (not queue.push(std::forward<T>(message)))
     {
@@ -29,7 +28,7 @@ void blockingPush(iothread::MessageQueue& queue, T&& message, std::chrono::durat
     }
 }
 
-scrooge::CrossChainMessage blockingPop(iothread::MessageQueue& queue, std::chrono::duration<double> pollPeriod)
+scrooge::CrossChainMessage blockingPop(iothread::MessageQueue &queue, std::chrono::duration<double> pollPeriod)
 {
     scrooge::CrossChainMessage msg;
     while (not queue.pop(msg))
@@ -50,18 +49,18 @@ uint64_t getMessageDestinationId(uint64_t sequenceNumber, uint64_t senderId, uin
     return (msgRound + resendNum + sequenceNumber) % numNodesInOtherNetwork;
 }
 
-bool isMessageValid(const scrooge::CrossChainMessage& message)
+bool isMessageValid(const scrooge::CrossChainMessage &message)
 {
     // no signature checking currently
     return true;
 }
 
 // Generates fake messages of a given size for throughput testing
-void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput)
+void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration)
 {
     const auto kNumMessages = get_number_of_packets();
     const auto kMessageSize = get_packet_size();
-    const auto kSignatureSize = (get_max_nodes_fail(true) + 1) * 512;
+    const auto kSignatureSize = (configuration.kOwnMaxNumFailedNodes + 1) * 512;
 
     for (uint64_t curSequenceNumber = 0; curSequenceNumber < kNumMessages; curSequenceNumber++)
     {
@@ -78,18 +77,21 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
 }
 
 // Relays messages to be sent over ipc
-void runRelayIPCMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput, const NodeConfiguration configuration)
+void runRelayIPCMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
+                              const NodeConfiguration configuration)
 {
     // not implemented
 }
 
-void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
-                   const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
-                   const std::shared_ptr<AcknowledgmentTracker> ackTracker, const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
+                   const std::shared_ptr<Acknowledgment> acknowledgment,
+                   const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                   const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     constexpr auto kSleepTime = 1us;
     const auto kResendWaitPeriod = 5s;
-    const auto& [kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId] = configuration;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId] =
+        configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
 
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
@@ -113,11 +115,10 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
                 const auto receiverNode =
                     getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
-                pipeline->SendToOtherRsm(receiverNode, newMessage);
+                pipeline->SendToOtherRsm(receiverNode, std::move(newMessage));
                 maxSentSequenceNum = std::max<int64_t>(maxSentSequenceNum.value_or(-1), sequenceNumber);
                 continue;
             }
-
 
             const auto numPreviousSenders = trueMod(kNodeId - originalSenderId, kOwnNetworkSize);
             const bool shouldThisNodeAlsoSend = (numPreviousSenders + 1) <= kMaxMessageSends;
@@ -136,7 +137,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
         const auto numQuackRepeats = ackTracker->getAggregateRepeatedAckCount(curQuack.value());
         for (auto it = std::begin(resendMessageMap); it != std::end(resendMessageMap); it = resendMessageMap.erase(it))
         {
-            const auto& [sequenceNumber, message] = *it;
+            auto &[sequenceNumber, message] = *it;
 
             const bool isMessageAlreadyReceived = sequenceNumber < curQuack.value();
             if (isMessageAlreadyReceived)
@@ -150,13 +151,13 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
             const bool isReadyForResend = numStaleAcksForSending < numQuackRepeats;
             if (!isReadyForResend)
             {
-                break; // exit and re-evaluate later
+                break; // exit and re-evaluate later, map is sorted so early exiting is ok
             }
 
             // resend this message, delete after.
             const auto receiverNode =
                 getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
-            pipeline->SendToOtherRsm(receiverNode, message);
+            pipeline->SendToOtherRsm(receiverNode, std::move(message));
         }
 
         std::this_thread::sleep_for(kSleepTime);
@@ -164,7 +165,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
 }
 
 void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
-                      const std::shared_ptr<AcknowledgmentTracker> ackTracker, const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+                      const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                      const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     constexpr auto kPollTime = 1us;
     std::optional<uint64_t> lastAckCount;
@@ -173,13 +175,12 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
         // kinda sucks, no overlap of sending and receiving data ... could probably make 2x faster
         // in golang this would be like one line :(
         const auto curTime = std::chrono::steady_clock::now();
-        const auto newForeignMessages = pipeline->RecvFromOtherRsm();
         const auto newDomesticMessages = pipeline->RecvFromOwnRsm();
+        auto newForeignMessages = pipeline->RecvFromOtherRsm();
 
-        for (const auto &receivedForeignMessage : newForeignMessages)
+        for (auto &receivedForeignMessage : newForeignMessages)
         {
-            const auto &[foreignMessage, senderId] = receivedForeignMessage;
-            pipeline->BroadcastToOwnRsm(foreignMessage);
+            auto &[foreignMessage, senderId] = receivedForeignMessage;
 
             if (isMessageValid(foreignMessage))
             {
@@ -192,6 +193,8 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 quorumAck->updateNodeAck(senderId, foreignAckCount);
                 ackTracker->updateNodeData(senderId, foreignAckCount, curTime);
             }
+
+            pipeline->BroadcastToOwnRsm(std::move(foreignMessage));
         }
 
         for (const auto &domesticMessage : newDomesticMessages)
