@@ -1,0 +1,22 @@
+\section{System Model and Goals}
+A deployment of Scrooge involves a library package which can be integrated into any distributed system node with minimal changes. The anticipated infrastructure of the distributed systems would be scaled to many thousands of nodes which can enter and leave the network freely. Every node can represent in the system either by the actual, physical machine the node runs on or more abstract notions of representation, like stake in a proof of stake distributed system. The goal of Scrooge is to allow for one distributed system to send message $m_i$ to the other distributed system. To do this, Scrooge has three major phases: startup, sending, and receiving. The 'startup' phase follows a series of simple steps:
+\begin{enumerate}
+    \item When a node is added to the distributed system, the protocol library starts the initialize phase by taking in relevant network information and the number of node partitions.
+	\item The network information will inform the creation of sending and receiving threads, as well as what nodes to set up as receivers. [NOTE: The exact mechanics of selecting nodes to receive in an opposite cluster is TBD].
+	\item The number of node partitions is used to determine how many "nodes" this machine represents. This is mainly to deal with proof-of-stake systems where participation in the network is determined by the amount of "stake" you have in the system rather than by the number of machines you have.
+\end{enumerate}
+Once the startup phase is done, the protocol becomes invoked again both when it is sending and receiving messages. 
+[FINISH SENDING PHASE]
+[FINISH RECEIVING PHASE]
+
+\subsection{Threat model}
+We must ensure that the connection between nodes that are communicating is secure. The safety property is assured since any and all messages that are sent must be signed by at least 2f+1 replicas via the consensus protocol. As part of the safety property, the consensus protocol will be responsible for including a flag in all its messages that indicates if the message should be sent to an exterior distributed system. We make no synchrony assumptions about the network, and thus the protocol runs asynchronously. We also place few limits on the behaviour of malicious nodes: nodes may drop, reorder, resend, and forge packets as well as collude with other malicious nodes in either distributed system. Malicious nodes may not impersonate honest nodes, and nodes are either malicious or honest when they first join the network, and maintain that status throughout the duration of the system. We do not adopt an adaptive adversary model for this system. The exact identity of the senders will be revealed via IP address when they send packets to the opposing distributed system. 
+
+\subsection{Security Properties}
+There are two key security properties we aim to uphold through our system:
+\begin{enumerate}
+    \item Robustness: This protects against malicious nodes who try to inject malformed or bad content into the consensus protocols. This could be in the form of forging messages or cross-cluster collusion. We protect against this by encouraging both protocols to have an open standard where they define markers they will put in signed messages that indicate whether a message can be sent outside of the distributed system.
+	\item Liveness: Our protocol makes progress under most network configuration and reachability configurations (more information below). The protocol holds the property of being self-stabilizing, since we need at most 2f+1 rounds of message retransmission in order to successfully transmit a message. The bound on how long each message transmission will take will be dictated by whichever distributed system is the slowest, in addition to our timeout heuristic for message retransmission (more information below). 
+\end{enumerate}
+[NETWORK CONFIGURATION/REACHABILITY/SETUP]
+Note that as this system is not specific to any particular type of distributed system, we do not cover incentives or other such application-specific features in this paper.n
