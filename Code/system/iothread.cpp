@@ -52,7 +52,7 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
     const auto kMessageSize = get_packet_size();
     const auto kSignatureSize = (configuration.kOwnMaxNumFailedNodes + 1) * 512;
 
-    for (uint64_t curSequenceNumber = 0; curSequenceNumber < kNumMessages; curSequenceNumber++)
+    for (uint64_t curSequenceNumber = 0; true; curSequenceNumber++)
     {
         scrooge::CrossChainMessage fakeMessage;
 
