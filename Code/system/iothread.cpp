@@ -160,9 +160,11 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
     const auto kStartTime = std::chrono::steady_clock::now();
 
     std::optional<uint64_t> lastAckCount;
+    std::optional<uint64_t> lastQuackCount;
     while (true)
     {
         const auto curTime = std::chrono::steady_clock::now();
+        const double timeElapsed = std::chrono::duration<double>(curTime - kStartTime).count();
         const auto newDomesticMessages = pipeline->RecvFromOwnRsm();
         auto newForeignMessages = pipeline->RecvFromOtherRsm();
 
@@ -174,15 +176,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
             }
         }
 
-        const auto newAckCount = acknowledgment->getAckIterator();
-        if (lastAckCount != newAckCount)
-        {
-            const auto ackCount = newAckCount.value_or(0);
-            const double timeElapsed = std::chrono::duration<double>(curTime - kStartTime).count();
-            const auto ackCountRate = ackCount / timeElapsed;
-            SPDLOG_INFO("Node Ack Count Now at {} Ack rate = {}", ackCount, ackCountRate);
-            lastAckCount = newAckCount;
-        }
+
 
         for (auto &receivedForeignMessage : newForeignMessages)
         {
@@ -202,7 +196,26 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
             pipeline->BroadcastToOwnRsm(std::move(foreignMessage));
         }
-        
+
+        const auto newAckCount = acknowledgment->getAckIterator();
+        if (lastAckCount != newAckCount)
+        {
+            // This is the node's local view of what it has received from the other network
+            const auto ackCount = newAckCount.value_or(0);
+            const auto ackCountRate = ackCount / timeElapsed;
+            SPDLOG_INFO("Node Ack Count now at {} Ack rate = {} /s", ackCount, ackCountRate);
+            lastAckCount = newAckCount;
+        }
+
+        const auto newQuackCount = quorumAck->getCurrentQuack();
+        if (lastQuackCount != newQuackCount)
+        {
+            // This is the node's idea of what the other cluster's received has from its cluster
+            const auto quackCount = newQuackCount.value_or(0);
+            const auto quackCountRate = quackCount / timeElapsed;
+            SPDLOG_INFO("Node Quack Count now at {} Quack rate: {} /s", quackCount, quackCountRate);
+            lastQuackCount = quackCount;
+        }
         std::this_thread::sleep_for(kPollTime);
     }
 }
