@@ -250,7 +250,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             if (isSendSuccessful)
             {
                 // remove the current element and increment it
-                SPDLOG_INFO("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
+                SPDLOG_DEBUG("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
                      message.data().sequence_number(), getLogAck(message), message.data().message_content().size());
                 it = messageRequests.erase(it);
                 continue;
