@@ -3,6 +3,12 @@
 #include <fstream>
 #include <string>
 
+void usage()
+{
+    SPDLOG_INFO("Run as ./scrooge use_debug_logs_bool node_id local_num_nodes foreign_num_nodes local_max_nodes_fail foreign_max_nodes_fail  own_network_id num_packets packet_size");
+    exit(1);
+}
+
 /* Parses commandline options.
  *
  * We assume that the node id's are consecutive numbers, starting from 0, such that
@@ -16,9 +22,7 @@ NodeConfiguration parser(int argc, char *argv[])
     {
         // we should really use an existing parser like boost::program_options
         SPDLOG_CRITICAL("EXPECTED {} ARGS, RECEIVED {}", kNumArgs - 1, argc - 1);
-
-        SPDLOG_INFO("Run as ./scrooge use_debug_logs_bool node_id local_num_nodes foreign_num_nodes local_max_nodes_fail foreign_max_nodes_fail  own_network_id num_packets packet_size");
-        exit(1);
+        usage();
     }
 
     const bool useDebugLogs = "1"s == argv[1];
@@ -31,14 +35,21 @@ NodeConfiguration parser(int argc, char *argv[])
         spdlog::set_level(spdlog::level::info);
     }
 
-    const auto ownNodeId = std::stoull(argv[2]);
-    const auto ownNetworkSize = std::stoull(argv[3]);
-    const auto otherNetworkSize = std::stoull(argv[4]);
-    const auto ownNetworkMaxNodesFail = std::stoull(argv[5]);
-    const auto otherNetworkMaxNodesFail = std::stoull(argv[6]);
-    const auto ownNetworkId = std::stoi(argv[7]);
-    const auto numPackets = std::stoll(argv[8]);
-    const auto packetSize = std::stoi(argv[9]);
+    try {
+        const auto ownNodeId = std::stoull(argv[2]);
+        const auto ownNetworkSize = std::stoull(argv[3]);
+        const auto otherNetworkSize = std::stoull(argv[4]);
+        const auto ownNetworkMaxNodesFail = std::stoull(argv[5]);
+        const auto otherNetworkMaxNodesFail = std::stoull(argv[6]);
+        const auto ownNetworkId = std::stoi(argv[7]);
+        const auto numPackets = std::stoll(argv[8]);
+        const auto packetSize = std::stoi(argv[9]);
+    } 
+    catch (...)
+    {
+        SPDLOG_CRITICAL("Cannot parse integer command line arguments");
+        usage();
+    }
 
     set_packet_size(packetSize);
     set_number_of_packets(numPackets);

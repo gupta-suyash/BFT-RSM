@@ -157,6 +157,8 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     constexpr auto kPollTime = 1us;
+    const auto kStartTime = std::chrono::steady_clock::now();
+
     std::optional<uint64_t> lastAckCount;
     while (true)
     {
@@ -175,7 +177,10 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
         const auto newAckCount = acknowledgment->getAckIterator();
         if (lastAckCount != newAckCount)
         {
-            SPDLOG_INFO("Node Ack Count Now at {}", newAckCount.value_or(0));
+            const auto ackCount = newAckCount.value_or(0);
+            const double timeElapsed = std::chrono::duration<double>(curTime - kStartTime).count();
+            const auto ackCountRate = ackCount / timeElapsed;
+            SPDLOG_INFO("Node Ack Count Now at {} Ack rate = {}", ackCount, ackCountRate);
             lastAckCount = newAckCount;
         }
 
