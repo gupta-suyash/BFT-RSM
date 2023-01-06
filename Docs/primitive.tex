@@ -1,0 +1,36 @@
+\section{\CCCFull{}}
+In this section, we present the \CCCFull{} (\CCC{}) primitive, which aims to solve basic agreement 
+problem between two \RSM{s}.
+Every instance of \CCC{} has a {\em source} \RSM{} and a {\em destination} \RSM{}.
+In each instance of \CCC{}, a designated {\em sender} replica at the source \RSM{} 
+broadcasts a message $m$ to replicas at the destination \RSM{} ({\em receivers}).
+If the sender is honest, then every honest receiver delivers $m$.
+If the sender is faulty, then the primitive ensures that every honest replica at the  
+destination \RSM{} delivers the same message.
+
+The following four properties characterize the \CCC{} primitive: 
+{\em validity} is a liveness property, whereas 
+{\em no duplication}, {\em integrity}, and {\em consistency} are safety properties.
+
+\begin{description}
+\item[\bf Validity.]
+If an honest sender sends a message $m$, then eventually an honest receiver delivers $m$.
+
+\item[\bf No duplication.] 
+No message is delivered more than once.
+
+\item[\bf Integrity.]
+If an honest replica at the destination \RSM{} delivers a message $m$ from a sender 
+and sender is honest, 
+then $m$ was sent by the sender and committed at the source \RSM{}.
+
+\item[\bf Consistency.]
+If one honest replica at the destination \RSM{} delivers a message $m$ and another 
+honest replica at the destination \RSM{} delivers a message $m'$, then $m = m'$. 
+\end{description}
+
+Existing literature includes several protocols that implement \CCC{} primitive. 
+However, these protocols either yield low throughput or require some trusted entity 
+that cannot be compromised.
+Our novel \Scrooge{} protocol is devoid of these challenges, and 
+in the upcoming sections, we illustrate how \Scrooge{} efficiently implements the \CCC{} primitive.

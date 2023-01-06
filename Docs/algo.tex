@@ -1,157 +1,267 @@
 \section{\Shadow{} Protocol}
 \label{s:algo}
+We now describe our \Scrooge{} protocol that aims to efficiently implement the \CCC{} primitive.
+Prior works attempt to implement the \CCC{} primitive in following ways:
+(1) deploying trusted hardware and infrastructure,
+(2) employing zero knowledge proofs, and
+(3) concurrently sending multiple copies of each message.
+The key challenge with the use of trusted hardware is that they 
+are expected to remain honest, which makes them a sink for all attacks.
+Solutions based on zero knowledge proofs 
+are not only computationally expensive to generate, but also  and have high latencies.
+
+Alternatively, each \RSM{} can create and send multiple copies of each message, 
+but this design requires deciding which replica(s) in the \RSM{} will send the message to 
+which replica(s) in the receiver \RSM{}.
+Some \RSM{}-to-\RSM{} communication protocols opt for the hands-off {\em all-to-all} communication 
+where every replica in the sending \RSM{} sends a copy of the message to every replica in the receiving \RSM{}.
+Other protocols attempt to communicate only linear number of messages, but they 
+fall back to the all-to-all communication for recovery from Byzantine attacks.
+Moreover, these solutions expect a synchronous network.
+
+\Scrooge{} does not face any of these challenges as it guarantees reliable delivery of the message 
+with a constant number of copies and no trusted hardware.
+To do so, \Scrooge{} supports both {\em unidirectional} and {\em bidirectional} communication.
+Bidirectional communication helps to conserve bandwidth by piggybacking acknowledgments along with the messages; 
+both the \RSM{s} can send/receive messages at the same time.
+
+%Specifically, \Scrooge{} provides the following \RSM{}-to-\RSM{} communication properties.
+%\begin{enumerate}[wide]
+%	\item \textbf{Basic Data Transfer:} \Scrooge{} provides a ``push'' functionality, which guarantees that any message, which a replica of the 
+%sending \RSM{} wants to send will be eventually sent to a receiver.
+%	\item \textbf{Message Reliability:} Any message dropped or delayed by Byzantine replicas is eventually received by honest replicas.
+%To achieve this property, we acknowledge receipt of each message.
+%	\item {\bf Flow Control:} \Scrooge{} ensures that a message is only re-send if and only if a sufficient number of honest replicas 
+%have implicitly acknowledged its non-receipt.
+%\end{enumerate}
+
+{\bf Message Format.}
+\Scrooge{} expects each honest replica to send only transactions (or blocks of transactions) 
+committed at its \RSM{}. 
+Each such committed block of transactions (say $m$) is assigned a unique sequence number (say $\Seqn$), and 
+a {\em quorum} of \RSM{} replicas agree to order $m$ at $\Seqn$.
+In the case of \BFT{} and \PoS{} systems, the agreement by a quorum of replicas is represented through 
+the digital signatures of each replica in the quorum. 
+We use the notation $\SignMessage{m, \Seqn}{\Qusign{i}}$ to represent a committed block of transactions where
+$\Qusign{i}$ is a set of digital signatures (\DS{}) on $\langle m, \Seqn \rangle$ by a quorum of replicas 
+of the $i$-th \RSM{}.
+For \BFT{} and \PoS{} systems, we assume the quorum size, $\abs{\Qusign{i}}$ to be at least $2\f{i}+1$ 
+while $\abs{\Qusign{i}} = \f{i} + 1$ for \CFT{} systems.
+%Finally, we do not make any assumption on the content of $m$; 
+%\Scrooge{} does not verify the state change on executing $m$ at the receiver \RSM{}.
+%We assume that the Byzantine replicas can neither impersonate honest replicas, nor subvert cryptographic constructs.
 
 
 
-
-
-\begin{definition}\label{def:scrooge}
-{\bf \Scrooge{}:}
-An \RSM{}-to-\RSM{} asynchronous communication protocol that enables reliable message delivery with a constant 
-number of message copies.
-\end{definition}
-
-\begin{definition}
-{\bf Communication Abstraction:}
-\Scrooge{} guarantees reliable communication of a message between two \RSM{s} if each \RSM{} includes at least $\n{} \ge 3\f{}+1$ 
-replicas;
-\Scrooge{} does not guarantee reliable communication between two replicas.
-\end{definition}
-
-
-\Scrooge{} provides the following \RSM{}-to-\RSM{} communication properties.
-\begin{enumerate}[wide,nosep]
-	\item \textbf{Basic Data Transfer:} \Scrooge{} provides a ``push'' functionality, which guarantees that any message, which a replica of the 
-sending \RSM{} wants to send will be eventually sent to a receiver.
-	\item \textbf{Message Reliability:} Any message dropped or delayed by Byzantine replicas is eventually received by honest replicas.
-To achieve this property, we acknowledge receipt of each message.
-	\item {\bf Flow Control:} \Scrooge{} ensures that a message is only re-send if and only if a sufficient number of honest replicas 
-have implicitly acknowledged its non-receipt.
-\end{enumerate}
-
-
-
-
-
-To facilitate reliable \RSM{}-to-\RSM{} communication using the \Scrooge{} protocol, 
-we require each replica to maintain several lists and maps, which
-help to track the messages communicated across \RSM{s}.
-Each message communicated using \Scrooge{} has two parts: 
-(1) transaction part, which is the actual message committed at the \RSM{}, and 
-(2) acknowledgment part, which is an acknowledgement for messages from the receiver \RSM{}. 
+{\bf Data Structures.} 
+To lay down \Scrooge{} protocol, in the remaining section, we assume that \RSM{s} $\SMR{i}$ and $\SMR{j}$ have access to a 
+steady stream of committed messages that they want to communicate.
+%Each message communicated using \Scrooge{} has two parts: 
+%(1) {\em data}, which represents client data, transaction or contract, and 
+%(2) {\em sequence number}, which represents the order at which data was committed.
 Let $\SSet{i}$ be the set of all messages to be sent by $i$-th \RSM{} $\SMR{i}$, such that:
 \begin{equation*}
 \SSet{i} = \{\SignMessage{m, 1}{\Qusign{i}},  \SignMessage{m, 2}{\Qusign{i}}, ... , \SignMessage{m, \Seqn}{\Qusign{i}}, ... \} 
 \end{equation*}
-%Here, $m', m''$ are committed by \RSM{} $\SMR{j}$, $j \neq i$. 
-Each $l$-th replica $\Replica{i}{l}$ in \RSM{} $\SMR{i}$ maintains following:
+%Here, $\SignMessage{m, \Seqn}{\Qusign{i}}$ represents data $m$ committed at sequence number $\Seqn$ by a quorum of replicas in \RSM{} $\SMR{i}$.
+For the sake of explanation, we assume that all the sequence numbers are monotonically increasing and 
+there is no gap in the ordered list of sequence numbers.
+
+In Section~\ref{s:prelim}, we stated that each replica in \RSM{} $\SMR{i}$ is assigned two identifiers:
+\RSM{} identifier and share identifier.
+If all the replicas have equal share, then $\n{i} = \ts{i}$ and both the identifiers are same.
+We use these identifiers to determine which replica should send which message.
+To do so, we require each replica to maintain several data-structures, which we define next.
+Assume, $l$-th replica $\Replica{i}{l}$ of \RSM{} $\SMR{i}$ has share $\share{l}$ and 
+$\SID{l}$ and $\SID{l-1}$ be the share identifiers of replicas $\Replica{i}{l}$ and $\Replica{i}{(l-1)}$.
 
 \begin{itemize}[wide]
-\item $\Sbuf{l} = \{\SignMessage{m, k}{\Qusign{i}} ~|~ k ~\equiv l \pmod{n_i} ~\wedge ~\SignMessage{m, k}{\Qusign{i}} \in \SSet{i} \}$, the set of messages to be sent $\Replica{i}{l}$.
+\item $\Sbuf{l} = \{\SignMessage{m, k}{\Qusign{i}} ~|~ k ~\equiv q \pmod{t_i} ~\wedge ~q \in (\SID{l-1}, \SID{l}] ~\wedge  ~\SignMessage{m, k}{\Qusign{i}} \in \SSet{i} \}$, the set of messages to be sent by $\Replica{i}{l}$, maintained as a queue.
 
 \item $\Hbuf{l} = \SSet{i} - \Sbuf{l}$, the remaining set of messages.
 
 \item $\Rbuf{l} = \{\SignMessage{m, k}{\Qusign{j}} ~|~ j \neq i ~\wedge ~\SignMessage{m, k}{\Qusign{j}} \in \SSet{j} \}$, the messages received from \RSM{} $\SMR{j}$.
 
-\item $\SAck{l} = \{\Ack{k} ~|~ \SignMessage{m, k}{\Qusign{j}} \in \Rbuf{l} \}$, the acknowledgments for received messages.
+\item $\SAck{l} = \{\Ack{k} ~|~ \SignMessage{m, k}{\Qusign{j}} \in \Rbuf{l} \}$, the acknowledgments for messages received from \RSM{} $\SMR{j}$.
 
 \end{itemize}
 %
-Additionally, we assume that each replica in \RSM{} $\SMR{i}$ 
-counts the number of acknowledgments it has received for 
-each message in the set $\SSet{i}$ from the replicas in \RSM{} $\SMR{j}$.
-It maintains the map $\RAck{l}{}$ for this purpose. 
+We also require each replica in \RSM{} $\SMR{i}$ to count the number of acknowledgments it has received for 
+each message in the set $\SSet{i}$ from the replicas in \RSM{} $\SMR{j}$. 
+It maintains a map $\RAck{l}{}$ for this purpose. 
+The following example illustrates the use of data-structures $\Sbuf{}$ and $\Hbuf{}$ in practice.
 
-
-{\bf Setup.}
-Definition~\ref{def:scrooge} states that \Scrooge{} provides an \RSM{}-to-\RSM{} asynchronous communication.
-This implies that \Scrooge{} supports {\em bi-directional} communication where both the \RSM{s} can send/receive 
-messages at the same time.
-This property allows us to conserve the bandwidth by piggybacking acknowledgments along with the messages.
-For the rest of this section, we assume that \RSM{s} $\SMR{i}$ and $\SMR{j}$ want to communicate a 
-steady stream of committed messages.
-Further, \Scrooge{} requires each message that an \RSM{} plans to communicate has 
-a monotonically increasing sequence number (say $\Seqn \ge 1$), and there are no gaps in these sequence numbers.
-
-
-%Our \Shadow{} protocol expects that each replica in a cluster has a {\em sending buffer} (\Sbuf{}) and 
-%a {\em receiving buffer} (\Rbuf{}) of finite sizes. 
-%\Sbuf{} stores all the messages that a replica plans to send to the other cluster, while $\Rbuf{}$ 
-%includes the messages from the other cluster. 
-%We visualize $\Sbuf{}$ as a {\em queue} where new messages are added at the {\em rear} and 
-%messages are removed from the {\em front}.
-%Additionally, each message stored in $\Sbuf{}$ has an associated {\em counter}. 
-%As the aim of our protocol is to reduce the number of messages communicated across the clusters, 
-%so in the normal-case (failure-free) we require each replica to send a distinct message.
-%We do this by dividing the messages to be sent between the replicas based on their sequence numbers ($k \mod \ID{} = 0$).
-%Each replica can use this simple function to find out the messages it is expected to send and it stores them 
-%in $\Sbuf{}$.
-%The remaining messages (to be sent by other replicas) are stored in a {\em holding buffer} (\Hbuf{}) and 
-%we also require a counter to be associated with each message in $\Hbuf{}$. 
 
 \begin{example}\label{ex:rep-send}
-Assume cluster $\Cluster{X}$ has $4$ replicas ($\Replica{\Cluster{X}}{1}$, $\Replica{\Cluster{X}}{2}$, $\Replica{\Cluster{X}}{3}$, and $\Replica{\Cluster{X}}{4}$), 
-and 
-cluster $\Cluster{Y}$ has $4$ replicas ($\Replica{\Cluster{Y}}{1}$, $\Replica{\Cluster{Y}}{2}$, $\Replica{\Cluster{Y}}{3}$, and $\Replica{\Cluster{Y}}{4}$).
-Say the replicas of $\Cluster{X}$ plan to send a series of ordered messages, starting with sequence number $1$. 
-For $\Replica{\Cluster{X}}{1}$: $\Sbuf{1,5,9,...}$ and $\Hbuf{2,3,4,6,7,8,...}$. 
-For $\Replica{\Cluster{X}}{2}$: $\Sbuf{2,6,10,...}$ and $\Hbuf{1,3,4,5,7,8,...}$.
-For $\Replica{\Cluster{X}}{3}$: $\Sbuf{3,7,11,...}$ and $\Hbuf{1,2,4,5,6,8,...}$.
+Assume two \RSM{s} $\SMR{i}$ and $\SMR{j}$ have $4$ replicas each: 
+$\Replica{i}{1}$, $\Replica{i}{2}$, $\Replica{i}{3}$, and $\Replica{i}{4}$ at $\SMR{i}$, and 
+$\Replica{j}{1}$, $\Replica{j}{2}$, $\Replica{j}{3}$, and $\Replica{j}{4}$ at $\SMR{j}$.
+Say the replicas of \RSM{} $\SMR{i}$ plan to send a series of ordered messages, starting with sequence number $1$. 
+So, the data-structures $\Sbuf{}$ and $\Hbuf{}$ for each replica in $\SMR{i}$ looks as follows:
+$\Sbuf{1} = \{1,5,9,...\}$ and $\Hbuf{1} = \{2,3,4,6,7,8,...\}$, 
+$\Sbuf{2} = \{2,6,10,...\}$ and $\Hbuf{2} = \{1,3,4,5,7,8,...\}$, 
+$\Sbuf{3} = \{3,7,11,...\}$ and $\Hbuf{3} = \{1,2,4,5,6,8,...\}$, and
+$\Sbuf{4} = \{4,8,12,...\}$ and $\Hbuf{4} = \{1,2,3,5,6,7,...\}$.
+\end{example}
+
+
+
+\subsection{Civil Case Protocol}
+Next, we present the \Scrooge{} protocol in the good case (when there are no failures).
+
+
+\begin{itemize}[wide]
+\item {\bf Sharewise Scheduler.}
+Our \Scrooge{} protocol ensures that the $l$-th replica $\Replica{i}{l}$ of the $i$-th \RSM{} $\SMR{i}$ sends 
+each message in its $\Sbuf{l}$ to exactly one replica of the \RSM{} $\SMR{j}$.
+To identify the correct receiver, we design a novel protocol, Sharewise Scheduler (\SWS{}), which 
+is built on top of the Completely Fair Scheduler (\CFS{})~\cite{cfs} algorithm.
+\CFS{} inserts various tasks, on the basis of their execution time, into a Red-Black Tree (\RBT) and 
+schedules the task with the least execution time for processing.
+
+Rather than using an \RBT{}, our \SWS{} protocol requires each replica of the sending \RSM{} to 
+maintain a sorted list ($\SList$) of replicas of the receiving \RSM{}.
+Specifically, each replica $\Replica{i}{l}$ of the sending \RSM{} $\SMR{i}$ 
+calls the function {\bf sws} (in Figure~\ref{func:sws}) to determine its 
+list of receivers ($\DList$) in \RSM{} $\SMR{j}$.
+Depending on the shares of senders and receivers, 
+a sender may be responsible for communication with multiple receivers and vice versa.
+Notice that each sender replica $\Replica{i}{l}$ needs to call the function {\bf sws} only once per epoch. 
+
+
+%The replicas are sorted on the value of their shares; 
+%if two replicas have equal shares, then order the replicas on basis of their identifiers.
+%Each replica $\Replica{i}{l}$ of the sending \RSM{} $\SMR{i}$ scans the list $\SList$
+%and independently identifies the correct receiver for every replica in $\SMR{i}$.
+%The first replica $\Replica{i}{l}$ ($l=0$) of $\SMR{i}$ selects from $\SList$ the replica with the smallest share. 
+%Let $\Replica{j}{r}$ be the selected replica and $\share{l}$ and $\share{r}$ be the shares of $\Replica{i}{l}$ and $\Replica{j}{r}$, respectively. 
+%If $\share{l} \ge \share{r}$, replica $\Replica{i}{l}$ dequeues $\share{r}$ messages from its $\Sbuf{l}$,
+%sends these messages to $\Replica{j}{r}$, 
+%removes $\Replica{j}{r}$ from $\SList{}$,
+%temporarily reduces $\share{l}$ by $\share{r}$, and appends $\Replica{j}{r}$ to $\SList{}$ with the 
+%updated share of $\Replica{j}{r}$ being the sum of total share $\ts{i}$ and $\share{r}$.
+%Next, replica $\Replica{i}{l}$ selects the next replica in the sorted list and continues this process until 
+%$\share{l}$ is equal to zero.
+%If $\share{l} < \share{r}$, replica $\Replica{i}{l}$ dequeues $\share{l}$ messages from its $\Sbuf{l}$, 
+%sends these messages to $\Replica{j}{r}$, and temporarily reduces the share $\share{r}$ by $\share{l}$ and sets $\share{l} = 0$.
+%Once the share of replica $l=0$ is zero, we continue this process for the replica $l=1$ on the updated list. 
+
+%To identify the correct destination, we design a pairwise round-robin algorithm; 
+%$\Replica{i}{l}$ sends the message to replica $\Replica{j}{r}$ of \RSM{} $\SMR{j}$, 
+%where $r$ represents the communication round and $r = (l+r) \bmod \n{j} ~\wedge ~r \in [1,\n{j}]$.
+%Specifically, in each communication round, each replica $\Replica{i}{l}$ 
+%sends a message to a replica of the other \RSM{}; the destination replica varies per round.
+%A key advantage of switching destination is to prevent honest replicas to be stuck with byzantine replicas.
+
+
+\begin{figure}[t]
+    \begin{myprotocol}
+	\INITIAL{Initialization:}{\newline
+	{%\color{orange}
+	// $\SMR{i} :=$ \RSM{} of the replica calling this function.\newline
+	// $\SMR{j} :=$ Receiver \RSM{}.
+	}}
+	\vspace{1mm}
+
+	\FUNC{sws}{caller's identifier: $a$}
+		\STATE $\SList :=$ Sorted list of replicas of $\SMR{j}$ on the basis of shares.
+		\FOR{$l$ : $1$ to $\n{i}$}
+			\STATE $\share{l} :=$ share of replica $\Replica{i}{l}$.
+			\WHILE{$\share{l} \ne 0$} 
+				\STATE $\Replica{j}{r} :=$ replica with the smallest share in $\SList$.
+				\STATE $\share{r} :=$ share of replica $\Replica{j}{r}$.
+				\IF{$\share{l} > \share{r}$}
+					\STATE $\share{l} := \share{l} - \share{r}$.
+					\STATE Remove $\Replica{j}{r}$ from $\SList$.
+				\ELSE
+					\STATE $\share{r} := \share{r} - \share{l}$.
+					\STATE Update $\share{r}$ of $\Replica{j}{r}$ in $\SList$.
+				\ENDIF
+
+				\IF{$a = l$}
+					\STATE Append $\Replica{j}{r}$ to list $\DList$.
+				\ENDIF
+			\ENDWHILE
+		\ENDFOR
+		\STATE {\bf return} $\DList$.
+	\ENDFUNC
+	\SPACE
+
+	\FUNC{transmit}{caller's identifier: $l$, list: $\DList$}
+		\FOR{$r$ : replicas in $\DList$}
+			\STATE $\Replica{j}{r} :=$ receiver replica with share $\share{r}$.
+			\IF{$\share{r} > \share{l}$}
+				\STATE Extract $\share{l}$ messages from $\Sbuf{l}$.
+			\ELSE
+				\STATE Extract $\share{r}$ messages from $\Sbuf{l}$.
+			\ENDIF
+			\STATE Send extracted messages to $\Replica{j}{r}$.
+		\ENDFOR
+	\ENDFUNC
+    \end{myprotocol}
+    \caption{Sharewise Scheduler protocol to identify the message receivers for each caller.}
+    \label{func:sws}
+\end{figure}
+
+
+ 
+
+\item {\bf Transmit.}
+On calling the function \SWS{}, each replica $\Replica{i}{l}$ receives a list of replicas ($\DList$) it needs 
+to send messages.
+\Scrooge{} requires $\Replica{i}{l}$ to send each replica in $\DList$ a unique message from its $\Sbuf{l}$.
+To determine which messages from $\Replica{i}{l} $ each replica in $\DList$ receives, $\Replica{i}{l}$ calls the function 
+{\bf transmit} in Figure~\ref{func:sws}.
+In this function, we use the extracted messages to refer to messages with the least sequence number.
+
+\begin{example}
+Say the call to function $\SWS{}$ by replica $\Replica{i}{l}$ with share $\share{l} = 3$ returned 
+$\DList{} = \{\Replica{j}{r}, \Replica{j}{s} \}$, such that $\share{r} = 2$ and $\share{s} = 3$.
+Assume $\Sbuf{l} = \{ \SignMessage{m,k}{\Qusign{i}}, \SignMessage{m',k'}{\Qusign{i}}, \SignMessage{m^\circ,k^\circ}{\Qusign{i}}, \SignMessage{m^{\star},k^{\star}}{\Qusign{i}},... \}$, 
+such that $k < k' < k^\circ < k^\star$.
+After sending every three messages from $\Sbuf{l}$, $\Replica{i}{l}$ loops back to $\DList$.
+Specifically, $\Replica{i}{l}$ extracts $\SignMessage{m,k}{\Qusign{i}}$ and $\SignMessage{m',k'}{\Qusign{i}}$ and sends to $\Replica{j}{r}$, 
+extracts $\SignMessage{m^\circ,k^\circ}{\Qusign{i}}$ and sends to $\Replica{j}{s}$, and cycles back to $\Replica{j}{r}$
+and sends it $\SignMessage{m^{\star},k^{\star}}{\Qusign{i}}$.
+As a result, in each cycle $\Replica{i}{l}$ sends $\Replica{j}{s}$ only one message even though $\share{s} = 3$.
+
 \end{example}
 
 
 
 
-\begin{itemize}[wide]
-\item {\bf Transmit.}
-When the $l$-th replica $\Replica{i}{l}$ of the $i$-th \RSM{} $\SMR{i}$ has 
-at least one message in its $\Sbuf{l}$, 
-it extracts the message with least sequence number; 
-say message $\SignMessage{m, k}{\Qusign{i}}$ where no other message in $\Sbuf{l}$ has a sequence number larger than $\Seqn$.
-Next, replica $\Replica{i}{l}$ searches $\SAck{l}$ to search for the longest contiguous set of acknowledgments starting from $1$. 
-Assume $\Ack{1}, \Ack{2}, ... , \Ack{k'}$ is one such set.
-If this is the case, then $\Replica{i}{l}$ appends acknowledgment $\Ack{k'}$ to message $\SignMessage{m, k}{\Qusign{i}}$ and 
-sends this to a replica in the $j$-th \RSM{} $\SMR{j}$.
-
 
 \item {\bf Cumulative Acknowledgments.}
+If the two \RSM{s} are participating in bidirectional communication streams,  
+it is possible that $\Replica{i}{l}$ may have received messages from some replicas in \RSM{} $\SMR{j}$.
+We require $\Replica{i}{l}$ to acknowledge each message it received from \RSM{} $\SMR{j}$. 
 To conserve bandwidth, instead of sending an acknowledgment for each received message, 
-\Scrooge{} creates and sends cumulative acknowledgments. 
-This requires each replica to search in its list $\SAck{l}$ for the longest contiguous set of acknowledgments. 
+\Scrooge{} requires $\Replica{i}{l}$ to create cumulative acknowledgments and {\em piggyback} them with 
+the outgoing messages.
+
+Prior to sending a message,
+each replica searches its list $\SAck{l}$ for the longest contiguous set of acknowledgments.
 The last acknowledgment of this contiguous list is considered as the cumulative acknowledgment for all the 
 messages in this list. 
-
-%We require each replica to send a cumulative acknowledgment with every outgoing message 
-%even if it implies resending the same acknowledgment (in the case no new messages have been received).
-
-\item {\bf Pairwise Round-Robin.}
-Our \Scrooge{} protocol requires each replica $\Replica{i}{l}$ of \RSM{} $\SMR{i}$ to send the message
-$\SignMessage{m, k}{\Qusign{i}}$ and acknowledgment $\Ack{k'}$ to exactly one replica of the \RSM{} $\SMR{j}$.
-To identify the correct destination, we design a pairwise round-robin algorithm; 
-$\Replica{i}{l}$ sends the message to replica $\Replica{j}{r}$ of \RSM{} $\SMR{j}$, 
-where $r$ represents the communication round and $r = (l+r) \bmod \n{j} ~\wedge ~r \in [1,\n{j}]$.
-Specifically, in each communication round, each replica $\Replica{i}{l}$ 
-sends a message to a replica of the other \RSM{}; the destination replica varies per round.
-A key advantage of switching destination is to prevent honest replicas to be stuck with byzantine replicas.
+Assume $\Ack{1}, \Ack{2}, ... , \Ack{k'}$ is one such longest contiguous set of acknowledgments.
+If this is the case, then $\Replica{i}{l}$ appends acknowledgment $\Ack{k'}$ to the outgoing message.
 
 
-%Note: $i$ and $j$ may have different values.
-%We do this because $\Replica{\Cluster{X}}{i}$ loops over the set of replicas in cluster $\Cluster{Y}$ and sends 
-%distinct messages to each of them.
-%In the case of Example~\ref{ex:rep-send}, 
-%$\Replica{\Cluster{X}}{1}$ sends the message with sequence $1$ to $\Replica{\Cluster{Y}}{1}$, $5$ to $\Replica{\Cluster{Y}}{2}$, 
-%$9$ to $\Replica{\Cluster{Y}}{3}$, $13$ to $\Replica{\Cluster{Y}}{4}$, $17$ to $\Replica{\Cluster{Y}}{1}$, and so on. 
+ 
 
 
 \item {\bf \em Receipt.}
 When the $r$-th replica $\Replica{j}{r}$ of the $j$-th \RSM{} receives the 
 message $\SignMessage{m, k}{\Qusign{i}}$ and acknowledgment $\Ack{k'}$ from replica $\Replica{i}{l}$ of \RSM{} $\SMR{i}$,
 it broadcasts the message and acknowledgment to all the replicas in its \RSM{}.
-Next, replica $\Replica{j}{r}$ updates the data-structure $\RAck{r}{}$ as follows:
+Replica $\Replica{j}{r}$ also uses the piggybacked cumulative acknowledgment $\Ack{k'}$ to determine the fate of the 
+messages sent by its \RSM{} $\SMR{j}$ to replicas of \RSM{} $\SMR{i}$.
+Specifically, replica $\Replica{j}{r}$ updates the data-structure $\RAck{r}{}$ as follows:
 for all the values $u \in [1,k']$, increment $\RAck{r}{u}$ by one.
 If any $\RAck{r}{u}$ reaches the count $\f{j}+1$, it marks the message $\SignMessage{m, u}{\Qusign{j}}$ 
 as {\em delivered}.
-Further, we keep track of the last message acknowledged by a quorum of replicas (one with highest sequence number till now) in the variable $\highest{}$.
+We require replica $\Replica{j}{r}$ to keep track of the last delivered message  (one with highest sequence number till now)
+in a variable $\highest{}$.
 
 %Say the sequence number for $m$ be $l$.
 %If $\Replica{\Cluster{X}}{i}$ has received all the messages with sequence number less than $l$ from cluster $\Cluster{Y}$, 

@@ -1,33 +1,43 @@
 \section{Failures}
-\Scrooge{} permits up to $\f{}$ in each cluster to act byzantine.
-These replicas may decide to delay or avoid sending a message. 
-Further, \Scrooge{} guarantees message delivery between two \RSM{s} in an 
-{\em asynchronous} network if the messages are eventually delivered.
-However, in a practical setting, we permit replicas to set timers that help them to quickly make progress.
-To allow our \Scrooge{} protocol to handle byzantine attacks, 
-we need to make minimal changes to the protocol stated in Section~\ref{s:algo}.
+As \Scrooge{} aims to implement \CCC{} primitive, it needs to permit replicas in either \RSM{s} 
+to act faulty: crash-fail or Byzantine attack; 
+Byzantine replicas may decide to delay or avoid sending a message. 
+Although each \RSM{} can run a consensus protocol 
+of its choice, it needs to determine the bound $\f{}$ (number of replicas that can act faulty) 
+such that the chosen $\f{}$ does not violate the {\em integrity} property of the \CCC{} primitive.
+In other words, an honest replica only sends a committed message. 
 
-In each \RSM{}, as any of the $\f{}$ replicas out of $\n{}$ may act byzantine, 
-so it is possible that a sending replica, receiving replica or both could be byzantine. 
-In such a case, the honest replicas of the receiving \RSM{} may not receive one or more messages, 
-which would prevent the longest contiguous acknowledgment set from increasing.
-As a result, the replicas of the receiving \RSM{}  
-would continue sending the same cumulative acknowledgement.
-To detect this attack, \Scrooge{} require honest replicas of the sending \RSM{} to 
-track cumulative acknowledgments and trigger a new pair of replicas to {\em re-send} the impacted message.
-Further, to reduce communication among replicas, we require each replica to independently 
-detect this attack and to proceed with its resolution.
-Specifically, we expect each honest replica to run the following steps.
+%Notice that either of the communicating \RSM{s} could be synchronous or partially synchronous.
+%Despite this, \Scrooge{} makes no synchrony assumptions and only 
+%expects that the messages are eventually delivered.
+%However, in a practical setting, we permit replicas to set timers that help them to quickly make progress.
+%To allow our \Scrooge{} protocol to handle byzantine attacks, 
+%we need to make minimal changes to the protocol stated in Section~\ref{s:algo}.
+
+\Scrooge{} does not make any assumption on the behavior of Byzantine replicas; 
+Byzantine replicas will try to ensure that the honest replicas do not receive one or more messages.
+Such an attack could  prevent the longest contiguous acknowledgment set from increasing and 
+would force the honest receivers to piggyback the same cumulative acknowledgement.
+\Scrooge{} ensures that such an attack is eventually detected.
+We require honest replicas of the sender \RSM{} to track the cumulative acknowledgments  
+from the replicas of receiver \RSM{}
+and on detection of duplicate cumulative acknowledgments, 
+trigger a new pair of replicas to {\em re-send} the missing message.
+This detection process requires no additional communication among replicas, and 
+thus, no bandwidth wastage.
+Next, we explain these steps for failure detection and recovery.
 
 
 \begin{itemize}[wide]
 \item {\bf \em Decide.}
+Each replica of an \RSM{} tracks every message sent by its \RSM{} (messages in both $\Sbuf{}$ and $\Hbuf{}$).
 At the $l$-th replica $\Replica{i}{l}$ of \RSM{} $\SMR{i}$, assume $\highest{}$ is the sequence number of the 
-last acknowledged message by $\f{j}+1$ replicas of \RSM{} $\SMR{j}$.
-This message can be acknowledged by at most $\n{j}$ replicas of \RSM{} $\SMR{j}$.
+longest cumulative acknowledgment sent by $\f{j}+1$ replicas of \RSM{} $\SMR{j}$.
+Notice that this message can be acknowledged by at most $\n{j}$ replicas of \RSM{} $\SMR{j}$.
 Let us represent this set of acknowledging replicas as $\RAS{}$, where $\abs{\RAS} \le \n{j}$.
 % 
-If the replica $\Replica{i}{l}$ receives {\em one more} acknowledgement message for the $\highest{}$ 
+To determine if a message is not delivered, $\Replica{i}{l}$ needs to wait for a duplicate set of cumulative acknowledgments.
+As a result, if the replica $\Replica{i}{l}$ receives {\em an additional} acknowledgement message for the $\highest{}$ 
 message from at least $\f{j}+1$ replicas in set $\RAS{}$, then $\Replica{i}{l}$ assumes that the subsequent message with the 
 sequence number $\highest + 1$ did not get successfully delivered.
 
@@ -35,14 +45,24 @@ sequence number $\highest + 1$ did not get successfully delivered.
 
 \item {\bf \em Switch.}
 If the replica $\Replica{i}{l}$ discovers additional set of acknowledgments, it does the following tasks:
-(1) It discovers the pair of replica responsible for communicating this message; this task can be deterministically determined by each replica.
-Say $b$-th replica ($b \neq l$) of \RSM{} $\SMR{i}$ was supposed to send the message to $c$-th replica of \RSM{} $\SMR{j}$.
-(2) If $l = (b+1) \bmod \n{i}$, then the replica $\Replica{i}{l}$ decides to send the message with sequence number $\highest+1$ 
-to replica $\Replica{j}{c'}$ of \RSM{} $\SMR{j}$, where $c' = (c+1) \bmod \n{j}$.
+(1) It discovers the sender for the missing message. 
+Let $c$-th replica $\Replica{i}{c}$ be the sender.
+This task can be done by simply calculating $\Sbuf{}$ for other replicas in the \RSM{}.
+(2) It discovers the receiver for the missing message (the receiver replica from the other \RSM{}).
+Let $d$-th replica $\Replica{j}{d}$ be the receiver.
+This task can be done through call to \SWS{} function assuming the identity of the original sender ($\Replica{i}{c}$).
+(3) Temporarily decrement by the share values of the original sender and receiver replicas. 
+If the share value of sender $\Replica{i}{c}$ becomes zero, then $(c+1)$-th replica is the next sender of missing message.
+If the share value of receiver $\Replica{j}{d}$ becomes zero, then remove $\Replica{j}{d}$ from list $\SList$ and rerun 
+the function \SWS{}.
+
+%Say $b$-th replica ($b \neq l$) of \RSM{} $\SMR{i}$ was supposed to send the message to $c$-th replica of \RSM{} $\SMR{j}$.
+%(2) If $l = (b+1) \bmod \n{i}$, then the replica $\Replica{i}{l}$ decides to send the message with sequence number $\highest+1$ 
+%to replica $\Replica{j}{c'}$ of \RSM{} $\SMR{j}$, where $c' = (c+1) \bmod \n{j}$.
 
 
 \item {\bf Tracking.}
-In the case, $l \neq (b+1) \bmod \n{i}$, replica $\Replica{i}{l}$ continues tracking if the message 
+In the case, replica $\Replica{i}{l}$ is not the next sender, it continues tracking if the message 
 $\highest+1$ is delivered or not.
 This step is necessary as the subsequent pair of communicating replicas could have a byzantine party. 
 As at most $\f{i}+\f{j}$ communicating pairs could be byzantine, so $\Replica{i}{l}$ 
