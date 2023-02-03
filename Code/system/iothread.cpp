@@ -3,6 +3,7 @@
 #include "scrooge_message.pb.h"
 
 #include <chrono>
+#include <unordered_map>
 #include <thread>
 
 #include <map>
@@ -99,6 +100,10 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
     auto resendMessageMap = std::map<uint64_t, scrooge::CrossChainMessage>{};
 
+    auto messageSendTimes = std::map<uint64_t, std::chrono::steady_clock::time_point>{}; // only stores messages this node was first sender of
+    double totalLatency{};
+    long latencyMetrics{};
+
     while (true)
     {
         // Send and store new messages
@@ -119,6 +124,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 setAckValue(&newMessage, *acknowledgment);
 
                 pipeline->SendToOtherRsm(receiverNode, std::move(newMessage));
+                messageSendTimes[sequenceNumber] = std::chrono::steady_clock::now();
                 continue;
             }
 
@@ -135,6 +141,18 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         {
             continue; // Wait for messages before resending
             // TODO Bug, if message 0 is not sent, nobody will resend
+        }
+
+        while (messageSendTimes.size() > 0 && messageSendTimes.begin()->first <= curQuack.value())
+        {
+            const auto& [messageId, sendTime] = *messageSendTimes.begin();
+            const auto receiveTimeIsh = std::chrono::steady_clock::now(); // off by maybe a ms
+            const auto newLatency = std::chrono::duration<double>(receiveTimeIsh - sendTime);
+            totalLatency += newLatency.count(); // seconds
+            latencyMetrics++;
+
+            SPDLOG_INFO("Latency for message {} was {}s, average latency {}s #Measurements = {}", messageId, newLatency.count(), totalLatency / latencyMetrics, latencyMetrics);
+            messageSendTimes.erase(messageSendTimes.begin());
         }
 
         const auto numQuackRepeats = ackTracker->getAggregateRepeatedAckCount(curQuack.value());
