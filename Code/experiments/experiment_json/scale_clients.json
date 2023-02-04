@@ -1,0 +1,98 @@
+{
+  "experiment_independent_vars": {
+     "username": "murray22",
+     "experiment_name": "scale_clients",
+     "project_dir": "/proj/ove-PG0/murray/Scrooge/Code/experiments/results/scale_clients/",
+     "src_dir": "/proj/ove-PG0/murray/Scrooge/",
+     "experiments_dir": "",
+     "network_dir": "/proj/ove-PG0/murray/Scrooge/Code/configuration/",
+     "local_setup_script": "/proj/ove-PG0/murray/Scrooge/Code/setup_local.sh",
+     "remote_setup_script": "/proj/ove-PG0/murray/Scrooge/Code/setup_remote.sh",
+     "local_compile_script": "/proj/ove-PG0/murray/Scrooge/Code/build.sh",
+     "replication_protocol": "scrooge",
+     "client_regions": ["US"],
+     "ip_list": ["128.110.216.114", "128.110.216.135", "128.110.216.128", "128.110.216.111"],
+     "servers": {
+       "server_zero": {
+         "name": "ms0413",
+	 "ip": "128.110.216.114"
+       },
+       "server_one": { 
+         "name": "ms0434",
+	 "ip": "128.110.216.135"
+       },
+       "server_two": {
+         "name": "ms0427",
+	 "ip": "128.110.216.128"
+       },
+       "server_three": {
+	 "name": "ms0410",
+         "ip": "128.110.216.111"
+       }
+     }
+  },
+  "client_scaling_experiment": {
+    "scrooge_args": {
+      "server_0": {
+	"ip": "128.110.216.114",
+        "use_debug_logs_bool": 0,
+	"node_id": 0,
+	"group_id": 0,
+	"local_num_nodes": 2,
+	"foreign_num_nodes": 2,
+	"local_max_nodes_fail": 0,
+	"foreign_max_nodes_fail": 0,
+	"own_network_id": 0,
+	"num_packets": 1000,
+	"packet_size": 100
+      },
+      "server_1": {
+	"ip": "128.110.216.135",
+	"use_debug_logs_bool": 0,
+	"node_id": 1,
+	"group_id": 0,
+	"local_num_nodes": 2,
+	"foreign_num_nodes": 2,
+	"local_max_nodes_fail": 0,
+	"foreign_max_nodes_fail": 0,
+	"own_network_id": 1,
+	"num_packets": 1000,
+	"packet_size": 100
+      },
+      "server_2": {
+	"ip": "128.110.216.128",
+	"use_debug_logs_bool": 0,
+	"node_id": 2,
+	"group_id": 1,
+	"local_num_nodes": 2,
+	"foreign_num_nodes": 2,
+	"local_max_nodes_fail": 0,
+	"foreign_max_nodes_fail": 0,
+	"own_network_id": 0,
+	"num_packets": 1000,
+	"packet_size": 100
+      },
+      "server_3": {
+	"ip": "128.110.216.111",
+	"use_debug_logs_bool": 0,
+	"node_id": 3,
+	"group_id": 1,
+	"local_num_nodes": 2,
+	"foreign_num_nodes": 2,
+	"local_max_nodes_fail": 0,
+	"foreign_max_nodes_fail": 0,
+	"own_network_id": 1,
+	"num_packets": 1000,
+	"packet_size": 100
+      }
+    },
+    "num_replicas": "4",
+    "scaling_factor": "1",
+    "scaling_op": "add",
+    "nb_rounds": 3,
+    "nb_groups": [2, 2, 2],
+    "num_replicas_per_group": [2, 2, 2],
+    "num_byzantine_replicas": [0, 0, 0],
+    "simulate_latency": 0
+  }
+}

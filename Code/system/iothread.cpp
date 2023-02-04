@@ -1,7 +1,7 @@
 #include "iothread.h"
 
 #include "scrooge_message.pb.h"
-
+#include "statisticstracker.cpp"
 #include <chrono>
 #include <thread>
 
@@ -90,6 +90,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    SPDLOG_INFO("Start of io send thread");
+    StatisticsInterpreter stats;
     constexpr auto kSleepTime = 1us;
     const auto kResendWaitPeriod = 5s;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId] =
@@ -98,13 +100,14 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
     auto resendMessageMap = std::map<uint64_t, scrooge::CrossChainMessage>{};
-
+    size_t num_packets = 0;
     while (true)
     {
         // Send and store new messages
         // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
         // TODO Implement multithreaded sending to parallelize sending messages (or does this matter w sockets?)
         scrooge::CrossChainMessage newMessage;
+	num_packets += 1;
         while (messageInput->pop(newMessage))
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
@@ -117,7 +120,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                     getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
                 setAckValue(&newMessage, *acknowledgment);
-
+		stats.startTimer(sequenceNumber);
                 pipeline->SendToOtherRsm(receiverNode, std::move(newMessage));
                 continue;
             }
@@ -136,6 +139,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             continue; // Wait for messages before resending
             // TODO Bug, if message 0 is not sent, nobody will resend
         }
+	stats.endTimer(newMessage.data().sequence_number());
 
         const auto numQuackRepeats = ackTracker->getAggregateRepeatedAckCount(curQuack.value());
         for (auto it = std::begin(resendMessageMap); it != std::end(resendMessageMap); it = resendMessageMap.erase(it))
@@ -145,6 +149,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             const bool isMessageAlreadyReceived = sequenceNumber < curQuack.value();
             if (isMessageAlreadyReceived)
             {
+		stats.endTimer(sequenceNumber);
                 continue; // delete this message
             }
 
@@ -162,10 +167,15 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
                 setAckValue(&message, *acknowledgment);
+		stats.endTimer(sequenceNumber);
 
             pipeline->SendToOtherRsm(receiverNode, std::move(message));
         }
-
+	if (num_packets == g_number_of_packets) {
+		stats.printOutAllResults();
+		SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+	}
+	stats.printOutAllResults();
         std::this_thread::sleep_for(kSleepTime);
     }
 }

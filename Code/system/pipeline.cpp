@@ -1,4 +1,5 @@
 #include "pipeline.h"
+#include "statisticstracker.cpp"
 #include "acknowledgment.h"
 
 #include <chrono>
@@ -157,7 +158,7 @@ void Pipeline::startPipeline()
     {
         return;
     }
-
+    SPDLOG_INFO("About to start Configuring local socket");
     const auto &kOwnUrl = kOwnNetworkUrls.at(kOwnConfiguration.kNodeId);
     auto foreignSendSockets = std::make_unique<std::vector<nng_socket>>();
     auto localSendSockets = std::make_unique<std::vector<nng_socket>>();
@@ -212,7 +213,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
     std::list<pipeline::SendMessageRequest> messageRequests;
 
     SPDLOG_INFO("Pipeline Sending Thread Starting");
-
+    StatisticsInterpreter stats;
     while (not mShouldThreadStop)
     {
         const auto curTime = std::chrono::steady_clock::now();
@@ -246,16 +247,22 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
 
             // send the data
             const auto sendMessageResult = sendMessage(socket, *message);
+	    //stats.startTimer(message->data().sequence_number());
 
             const bool isSendSuccessful = sendMessageResult == 0;
             if (isSendSuccessful)
             {
                 // remove the current element and increment it
-                SPDLOG_DEBUG("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
+                SPDLOG_CRITICAL("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
                      message->data().sequence_number(), getLogAck(*message), message->data().message_content().size());
                 it = messageRequests.erase(it);
+		//stats.endTimer(message->data().sequence_number());
                 continue;
             }
+
+	    if (message->data().sequence_number() > g_number_of_packets) {
+		    //stats.printOutAllResults();	    
+	    }
 
             const auto isRealError = !isSendSuccessful && sendMessageResult != nng_errno_enum::NNG_EAGAIN;
             if (isRealError)

@@ -17,7 +17,7 @@ void usage()
  */
 NodeConfiguration parser(int argc, char *argv[])
 {
-    constexpr auto kNumArgs = 3 + 1;
+    constexpr auto kNumArgs = 9 + 1;
     if (argc != kNumArgs)
     {
         // we should really use an existing parser like boost::program_options
@@ -37,13 +37,13 @@ NodeConfiguration parser(int argc, char *argv[])
 
     try {
         const auto ownNodeId = std::stoull(argv[2]);
-        const auto ownNetworkSize = 7;
-        const auto otherNetworkSize = 7;
-        const auto ownNetworkMaxNodesFail = 1;
-        const auto otherNetworkMaxNodesFail = 1;
-        const auto ownNetworkId = std::stoi(argv[3]);
-        const auto numPackets = 0;
-        const auto packetSize = 1;
+        const auto ownNetworkSize = std::stoull(argv[3]);
+        const auto otherNetworkSize = std::stoull(argv[4]);
+        const auto ownNetworkMaxNodesFail = std::stoull(argv[5]);
+        const auto otherNetworkMaxNodesFail = std::stoull(argv[6]);
+        const auto ownNetworkId = std::stoull(argv[7]);
+        const auto numPackets = std::stoi(argv[8]);
+        const auto packetSize = std::stoi(argv[9]);
         set_packet_size(packetSize);
         set_number_of_packets(numPackets);
         set_rsm_id(ownNetworkId);
@@ -53,7 +53,7 @@ NodeConfiguration parser(int argc, char *argv[])
                                 .kOtherNetworkSize = otherNetworkSize,
                                 .kOwnMaxNumFailedNodes = ownNetworkMaxNodesFail,
                                 .kOtherMaxNumFailedNodes = otherNetworkMaxNodesFail,
-                                .kNodeId = ownNodeId};
+                                .kNodeId = ownNetworkId};
     } 
     catch (...)
     {

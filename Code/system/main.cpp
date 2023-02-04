@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 
     const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedNodes + 1;
     const auto kMessageBufferSize = 2048;
-
+    SPDLOG_INFO("Before ack");
     const auto acknowledgment = std::make_shared<Acknowledgment>();
     const auto pipeline =
         std::make_shared<Pipeline>(std::move(ownNetworkUrls), std::move(otherNetworkUrls), kNodeConfiguration);

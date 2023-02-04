@@ -21,6 +21,12 @@ Docs/*.out
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
+# IGNORE EXPERIMENT PYTHON ##
+Code/experiments/experiment_scripts/__pycache__/*
+Code/experiments/experiment_scripts/util/__pycache__/*
+Code/experiments/experiment_scripts/.nfs*
+Code/experiments/results/*
+
 # Local History for Visual Studio Code
 .history/
 

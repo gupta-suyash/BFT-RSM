@@ -15,33 +15,20 @@ apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
 echo "basic packages installed"
-
-# ninja install
 sudo apt-get -y install ninja-build
-#git clone https://github.com/ninja-build/ninja
-#echo "attempt to clone ninja successful"
-#cd ninja
-#cmake -Bbuild-cmake
-#cmake --build build-cmake
-#cd ..
-#echo $PWD
 echo "built ninja"
 
 # nng installation
-tar -xzf ./nng-1.5.2.tar.gz
 echo "untar of nng successful"
 cd ./nng-1.5.2
-mkdir build
 cd build
-echo "build directory creation successful"
-cmake -G Ninja -S ..
+#cmake -G Ninja -S ..
 ninja
 ninja install
 cd ..
 cd ..
 
 # protobuf installation
-tar -xzf ./protobuf-cpp-3.20.2.tar.gz
 echo "untar of protobuf successful"
 cd ./protobuf-3.20.2
 ./configure
@@ -50,18 +37,17 @@ make install -j
 ldconfig
 cd ..
 
-# Go 1.19.3 install
-curl -OL https://golang.org/dl/go1.19.3.linux-amd64.tar.gz
-rm -rf /usr/local/go
-tar -C /usr/local -xzf go1.19.3.linux-amd64.tar.gz
+# Go 1.19.5 install
+rm -rf /usr/local/go 
+tar -C /usr/local -xzf go1.20.linux-arm64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+go version
 echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
 echo "export GOPATH=$HOME/go" >> $HOME/.profile
 echo "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin" >> $HOME/.profile
 source $HOME/.profile
 
-rm go1.19.3.linux-amd64.tar.gz
-
 # Insatall go protoc extension
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
-echo "script is successful!"
+echo "Script is successful!"
