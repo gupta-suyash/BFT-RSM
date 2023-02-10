@@ -51,12 +51,11 @@ ldconfig
 cd ..
 
 # Go 1.19.3 install
-curl -OL https://golang.org/dl/go1.19.3.linux-amd64.tar.gz
+curl -OL https://golang.org/dl/go1.19.3.linux-amd64.tar.gz #may need to switch to https://golang.org/dl/go1.19.3.linux-arm64.tar.gz
 rm -rf /usr/local/go
 tar -C /usr/local -xzf go1.19.3.linux-amd64.tar.gz
-echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
-echo "export GOPATH=$HOME/go" >> $HOME/.profile
-echo "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin" >> $HOME/.profile
+echo "export GOPATH=\$HOME/go" >> $HOME/.profile
+echo "export PATH=\$PATH:\$GOPATH/bin" >> $HOME/.profile
 source $HOME/.profile
 
 rm go1.19.3.linux-amd64.tar.gz
