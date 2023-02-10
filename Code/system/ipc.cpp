@@ -41,30 +41,45 @@ bool createPipe(const std::string &path)
  *
  * @param path is the path to a pipe to be read from
  * @param messageReads is a queue where all messages read will be enqueued
- * @param exit is a bool to tell the thread to exit (if it is true the thread will return)
+ * @param exit is a bool to tell the thread to exit (it will be set to true if the thread should or has returned)
  */
 void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> messageReads,
                      std::shared_ptr<std::atomic_bool> exit)
 {
-    std::ifstream pipe{path};
+    std::ifstream pipe{path, std::ios_base::binary};
 
     while (not exit->load())
     {
         uint64_t readSize{};
         pipe.read(reinterpret_cast<char *>(&readSize), sizeof(readSize));
+
+        if (pipe.fail())
+        {
+            SPDLOG_INFO("Attempted to read new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
+            break;
+        }
+
         std::vector<uint8_t> message(readSize);
         pipe.read(reinterpret_cast<char *>(message.data()), message.size());
+
+        if (pipe.fail())
+        {
+            SPDLOG_CRITICAL("ATTEMPTED TO READ {} BYTES, AND READ FAILED", readSize, message.size());
+            break;
+        }
 
         while (!messageReads->push(std::move(message)))
         {
             if (exit->load())
             {
                 SPDLOG_INFO("Reader of pipe '{}' is exiting", path);
+                *exit = true;
                 return;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds{10});
         }
     }
+    *exit = true;
     SPDLOG_INFO("Reader of pipe '{}' is exiting", path);
 }
 
@@ -73,12 +88,12 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
  *
  * @param path is the path to where the pipe should be created
  * @param messageWrites is the
- * @param exit is a bool to tell the thread to exit (if it is true the thread will return)
+ * @param exit is a bool to tell the thread to exit (it will be set to true if the thread should or has returned)
  */
 void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> messageWrites,
                      std::shared_ptr<std::atomic_bool> exit)
 {
-    std::ofstream pipe{path};
+    std::ofstream pipe{path, std::ios_base::binary};
 
     while (not exit->load())
     {
@@ -88,6 +103,7 @@ void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> message
             if (exit->load())
             {
                 SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
+                *exit = true;
                 return;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds{10});
@@ -95,8 +111,21 @@ void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> message
 
         uint64_t writeSize = message.size();
         pipe.write(reinterpret_cast<char *>(&writeSize), sizeof(writeSize));
+        if (pipe.fail())
+        {
+            SPDLOG_INFO("Attempted to write new message tot pipe but failed. EOF_Reached? = {}", pipe.eof());
+            break;
+        }
+
         pipe.write(reinterpret_cast<char *>(message.data()), message.size());
+        if (pipe.fail())
+        {
+            SPDLOG_INFO("Attempted to write new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
+            break;
+        }
         pipe.flush();
     }
+
+    *exit = true;
     SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
 }

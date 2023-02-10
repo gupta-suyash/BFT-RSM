@@ -17,7 +17,7 @@ using MessageQueue = boost::lockfree::spsc_queue<scrooge::CrossChainMessage>;
 
 void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration);
 
-void runRelayIPCMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput);
+void runRelayIPCRequestThread(std::shared_ptr<iothread::MessageQueue> messageOutput);
 
 void runSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
                    std::shared_ptr<Acknowledgment> acknowledgment, std::shared_ptr<AcknowledgmentTracker> ackTracker,

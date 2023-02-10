@@ -251,8 +251,10 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             if (isSendSuccessful)
             {
                 // remove the current element and increment it
-                SPDLOG_DEBUG("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
-                     message->data().sequence_number(), getLogAck(*message), message->data().message_content().size());
+                SPDLOG_DEBUG("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, "
+                             "AckId={}, size='{}']",
+                             isDestinationForeign, destinationNodeId, message->data().sequence_number(),
+                             getLogAck(*message), message->data().message_content().size());
                 it = messageRequests.erase(it);
                 continue;
             }
@@ -290,11 +292,10 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
     // Fix probably make this a variant
     const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
 
-    auto sendMessageRequest =
-        pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
-                                     .destinationNodeId = receivingNodeId,
-                                     .isDestinationForeign = true,
-                                     .sharedMessage = sharedMessage};
+    auto sendMessageRequest = pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+                                                           .destinationNodeId = receivingNodeId,
+                                                           .isDestinationForeign = true,
+                                                           .sharedMessage = sharedMessage};
 
     while (not mMessageRequests.push(std::move(sendMessageRequest)))
     {
@@ -308,7 +309,6 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
 {
     std::vector<pipeline::ReceivedCrossChainMessage> newMessages{};
-
 
     const std::scoped_lock lock{mMutex};
 
@@ -349,17 +349,17 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
             continue;
         }
 
-        SPDLOG_DEBUG("Queued message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", receiverId,
-                     message.data().sequence_number(), getLogAck(message), message.data().message_content().size());
+        SPDLOG_DEBUG("Queued message to own RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
+                     receiverId, message.data().sequence_number(), getLogAck(message),
+                     message.data().message_content().size());
 
         // CRITICAL DESIGN ISSUE
         // WE NEED TO MAKE N REQUESTS, ALL WITH A NEW PROTO....
         // THIS WILL BE A BOTTLENECK
-        auto sendMessageRequest =
-            pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
-                                         .destinationNodeId = receiverId,
-                                         .isDestinationForeign = false,
-                                         .sharedMessage = sharedMessage};
+        auto sendMessageRequest = pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+                                                               .destinationNodeId = receiverId,
+                                                               .isDestinationForeign = false,
+                                                               .sharedMessage = sharedMessage};
 
         while (not mMessageRequests.push(std::move(sendMessageRequest)))
         {
