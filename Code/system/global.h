@@ -1,7 +1,7 @@
 #pragma once
 
 #include <chrono>
-
+#include <string>
 // Enable all spdlog logging macros for development
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include <spdlog/spdlog.h>
@@ -23,6 +23,7 @@ struct NodeConfiguration
     const uint64_t kOwnMaxNumFailedNodes;
     const uint64_t kOtherMaxNumFailedNodes;
     const uint64_t kNodeId;
+    const std::string kLogPath;
 };
 
 uint64_t get_rsm_id();

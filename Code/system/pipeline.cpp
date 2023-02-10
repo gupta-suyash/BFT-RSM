@@ -67,7 +67,7 @@ int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
 
     const auto bufferSize = buffer.size();
     const auto sendReturnValue = nng_send(socket, const_cast<char *>(buffer.c_str()), bufferSize, NNG_FLAG_NONBLOCK);
-
+    SPDLOG_CRITICAL("Send Return Value: {}", sendReturnValue);
     const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN;
     if (isActualError)
     {
@@ -163,7 +163,7 @@ void Pipeline::startPipeline()
     auto foreignSendSockets = std::make_unique<std::vector<nng_socket>>();
     auto localSendSockets = std::make_unique<std::vector<nng_socket>>();
 
-    SPDLOG_INFO("Configuring local sockets");
+    SPDLOG_INFO("Configuring local sockets: {}", kOwnUrl);
     for (size_t localNodeId = 0; localNodeId < kOwnNetworkUrls.size(); localNodeId++)
     {
         if (kOwnConfiguration.kNodeId == localNodeId)
@@ -244,21 +244,24 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                 }
                 return localSendSockets->at(it->destinationNodeId);
             }();
+	    SPDLOG_CRITICAL("Continue 2");
 
             // send the data
             const auto sendMessageResult = sendMessage(socket, *message);
 	    //stats.startTimer(message->data().sequence_number());
-
+	    SPDLOG_CRITICAL("Continue 2.5");
             const bool isSendSuccessful = sendMessageResult == 0;
             if (isSendSuccessful)
             {
                 // remove the current element and increment it
                 SPDLOG_CRITICAL("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
-                     message->data().sequence_number(), getLogAck(*message), message->data().message_content().size());
+                     0/*message->data().sequence_number()*/, /*getLogAck(*message)*/0, message->data().message_content().size());
                 it = messageRequests.erase(it);
+		SPDLOG_CRITICAL("Continue");
 		//stats.endTimer(message->data().sequence_number());
                 continue;
             }
+	    SPDLOG_CRITICAL("Continue 3");
 
 	    if (message->data().sequence_number() > g_number_of_packets) {
 		    //stats.printOutAllResults();	    

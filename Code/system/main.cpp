@@ -4,7 +4,7 @@
 #include "parser.h"
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
-
+#include <fstream>
 #include <chrono>
 #include <filesystem>
 #include <functional>
@@ -12,6 +12,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
@@ -22,8 +23,14 @@ int main(int argc, char *argv[])
 
     // Parsing the command line args.
     const auto kNodeConfiguration = parser(argc, argv);
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId] =
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath] =
         kNodeConfiguration;
+    
+    // Set all output output to go to a file
+    SPDLOG_INFO("K Log Path: {}", kLogPath);
+    std::ofstream cout(kLogPath);
+    std::cout<< "HIIIII" << std::endl;
+
     const auto kWorkingDir = std::filesystem::current_path();
     const auto kNetworkZeroConfigPath = kWorkingDir / "configuration/network0urls.txt";
     const auto kNetworkOneConfigPath = kWorkingDir / "configuration/network1urls.txt";
@@ -37,6 +44,7 @@ int main(int argc, char *argv[])
 
     const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedNodes + 1;
     const auto kMessageBufferSize = 2048;
+    
     SPDLOG_INFO("Before ack");
     const auto acknowledgment = std::make_shared<Acknowledgment>();
     const auto pipeline =
@@ -47,7 +55,7 @@ int main(int argc, char *argv[])
 
     pipeline->startPipeline();
     SPDLOG_INFO("Done setting up sockets between nodes.");
-
+    
     const auto kThreadHasher = std::hash<std::thread::id>{};
     auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
     SPDLOG_INFO("Created Generate FAKE MESSAGE for testing thread with ID={}",

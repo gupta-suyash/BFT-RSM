@@ -94,7 +94,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     StatisticsInterpreter stats;
     constexpr auto kSleepTime = 1us;
     const auto kResendWaitPeriod = 5s;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId] =
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath] =
         configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
 
