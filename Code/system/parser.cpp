@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <string>
+#include <jsoncpp/json/json.h>
 
 void usage()
 {
@@ -25,7 +26,16 @@ NodeConfiguration parser(int argc, char *argv[])
         usage();
     }
 
-    const bool useDebugLogs = "1"s == argv[1];
+
+   /* std::string pathToConfig = argv[1];*/
+    std::string pathToConfig = "/proj/ove-PG0/murray/Scrooge/Code/experiments/experiment_json/scale_clients.json";
+    std::ifstream configFile(pathToConfig, std::ifstream::binary);
+    Json::Value config;
+    configFile >> config;
+    // Test print statement
+    //SPDLOG_CRITICAL("Here is the entire json object: {}", config);
+
+   const bool useDebugLogs = std::stoull(argv[1]);  
     if (useDebugLogs)
     {
         spdlog::set_level(spdlog::level::debug);
@@ -37,7 +47,7 @@ NodeConfiguration parser(int argc, char *argv[])
 
     try {
 	// ID the node has within the group it is in, e.g. it could be node 0, 1 etc.
-        const auto ownNodeId = std::stoull(argv[2]);
+        const auto ownNodeId = std::stoull(config["client_scaling_experiment"]["scrooge_args"][argv[2]]["node_id"].asString());//std::stoull(argv[2]);
 	// ID of the group the node is in
 	const auto ownNetworkId = std::stoull(argv[3]);
 	// Size of the network the node is in
@@ -65,7 +75,6 @@ NodeConfiguration parser(int argc, char *argv[])
         set_number_of_packets(numPackets);
         set_rsm_id(ownNetworkId);
         set_other_rsm_id(1 - ownNetworkId);
-
         return NodeConfiguration{.kOwnNetworkSize = ownNetworkSize,
                                 .kOtherNetworkSize = otherNetworkSize,
                                 .kOwnMaxNumFailedNodes = ownNetworkMaxNodesFail,

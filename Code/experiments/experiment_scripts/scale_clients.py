@@ -62,6 +62,7 @@ class Scrooge_Args:
     own_network_id = 0
     num_packets = 0
     packet_size = 0
+    log_path = 0
 
 class Scaling_Client_Exp:
     num_replicas = 0
@@ -207,6 +208,7 @@ def run(configJson):
                 # Need to collect the scrooge start commands
                 scrooge_commands = []
                 for i in range(0, int(scaling_clients_exp.num_replicas)):
+                     #cmd = "/proj/ove-PG0/murray/Scrooge/Code/scrooge " + configJson + " " server_str
                      print("Replica: ", i)
                      scrooge = Scrooge_Args()
                      server_str = "server_" + str(i)
@@ -220,6 +222,7 @@ def run(configJson):
                      scrooge.own_network_id = config["client_scaling_experiment"]["scrooge_args"][server_str]["own_network_id"]
                      scrooge.num_packets = config["client_scaling_experiment"]["scrooge_args"][server_str]["num_packets"]
                      scrooge.packet_size = config["client_scaling_experiment"]["scrooge_args"][server_str]["packet_size"]
+                     scrooge.log_path = config["client_scaling_experiment"]["scrooge_args"][server_str]["log_path"]
                      if scrooge.group_id >= len(clusters):
                          clusters.append([])
                          clusters[scrooge.group_id].append(config["client_scaling_experiment"]["scrooge_args"][server_str]["ip"]);
@@ -227,13 +230,14 @@ def run(configJson):
                          clusters[scrooge.group_id].append(config["client_scaling_experiment"]["scrooge_args"][server_str]["ip"]);
                      cmd = "/proj/ove-PG0/murray/Scrooge/Code/scrooge " + str(scrooge.use_debug_logs_bool) + " "\
                              + str(scrooge.node_id) + " "\
+                             + str(scrooge.group_id) +" "\
                              + str(scrooge.local_num_nodes) + " "\
                              + str(scrooge.foreign_num_nodes) + " "\
                              + str(scrooge.local_max_nodes_fail) + " "\
                              + str(scrooge.foreign_max_nodes_fail) + " "\
-                             + str(scrooge.own_network_id) + " "\
                              + str(scrooge.num_packets) + " "\
-                             + str(scrooge.packet_size)
+                             + str(scrooge.packet_size) + " "\
+                             + scrooge.log_path
                      print("Print: ", cmd)
                      # cmd = "echo 'hello'"
                      scrooge_commands.append(cmd)

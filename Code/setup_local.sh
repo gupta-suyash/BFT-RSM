@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# install performance packages
+apt install valgrind
+apt install htop
+apt install nload
+
 # install packages
 apt-get -y update
 apt-get -y upgrade
@@ -14,10 +19,11 @@ apt-get -y remove --auto-remove golang-goprotobuf-dev
 apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
+apt-get install libjsoncpp-dev
 echo "basic packages installed"
 
 # ninja install
-sudo apt-get -y install ninja-build
+apt-get -y install ninja-build
 echo "built ninja"
 
 # nng installation
@@ -44,9 +50,9 @@ ldconfig
 cd ..
 
 # Go 1.19.5 install
-wget https://go.dev/dl/go1.20.linux-arm64.tar.gz
+wget https://go.dev/dl/go1.20.linux-amd64.tar.gz
 rm -rf /usr/local/go
-tar -C /usr/local -xzf go1.20.linux-arm64.tar.gz
+tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
 echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile

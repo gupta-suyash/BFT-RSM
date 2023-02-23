@@ -1,5 +1,5 @@
 CC=clang++
-CFLAGS=-Wall -g -std=c++20 -O3
+CFLAGS=-Wall -g -std=c++20 -O3 -pg
 NNMSG=${PWD}/deps/nng
 BOOST=${PWD}/deps/boost_1_80_0
 SANITIZERS=-fsanitize=address -fsanitize=undefined
@@ -14,7 +14,7 @@ PROTO_DIR = ./protobuf/
 CFLAGS += $(DEPS)
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
-LIBS = -lnng -lanl -ldl -lprotobuf -lpthread
+LIBS = -lnng -lanl -ldl -lprotobuf -lpthread -ljsoncpp -pg -g
 
 PROTO_SOURCES = $(wildcard ./protobuf/*.proto)
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
@@ -32,9 +32,9 @@ FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 all: scrooge
 
 scrooge : $(SOURCES_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS) $(SANITIZERS) $(LIBS) 
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) 
 %.o : %.cpp
-	$(CC) -c ${CFLAGS} $(SANITIZERS) -o $@ $<
+	$(CC) -c ${CFLAGS} -o $@ $<
 
 proto: $(PROTO_SOURCES)
 	protoc -I./protobuf --cpp_out=./system ./protobuf/*

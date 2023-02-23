@@ -67,7 +67,7 @@ int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
 
     const auto bufferSize = buffer.size();
     const auto sendReturnValue = nng_send(socket, const_cast<char *>(buffer.c_str()), bufferSize, NNG_FLAG_NONBLOCK);
-    SPDLOG_CRITICAL("Send Return Value: {}", sendReturnValue);
+    //SPDLOG_CRITICAL("Send Return Value: {}", sendReturnValue);
     const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN;
     if (isActualError)
     {
@@ -158,7 +158,6 @@ void Pipeline::startPipeline()
     {
         return;
     }
-    SPDLOG_INFO("About to start Configuring local socket");
     const auto &kOwnUrl = kOwnNetworkUrls.at(kOwnConfiguration.kNodeId);
     auto foreignSendSockets = std::make_unique<std::vector<nng_socket>>();
     auto localSendSockets = std::make_unique<std::vector<nng_socket>>();
@@ -207,13 +206,13 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                              std::unique_ptr<std::vector<nng_socket>> localSendSockets)
 {
     constexpr auto kPollPeriod = 1us;
-    constexpr auto kMaxMessageRetryTime = 60s;
+    constexpr auto kMaxMessageRetryTime = 1000000000000s;
 
     // probably suboptimal but has fast removal
     std::list<pipeline::SendMessageRequest> messageRequests;
 
     SPDLOG_INFO("Pipeline Sending Thread Starting");
-    StatisticsInterpreter stats;
+    //StatisticsInterpreter stats;
     while (not mShouldThreadStop)
     {
         const auto curTime = std::chrono::steady_clock::now();
@@ -244,24 +243,23 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                 }
                 return localSendSockets->at(it->destinationNodeId);
             }();
-	    SPDLOG_CRITICAL("Continue 2");
+	    //SPDLOG_CRITICAL("Continue 2");
 
             // send the data
             const auto sendMessageResult = sendMessage(socket, *message);
 	    //stats.startTimer(message->data().sequence_number());
-	    SPDLOG_CRITICAL("Continue 2.5");
+	    //SPDLOG_CRITICAL("Continue 2.5");
             const bool isSendSuccessful = sendMessageResult == 0;
             if (isSendSuccessful)
             {
                 // remove the current element and increment it
-                SPDLOG_CRITICAL("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
-                     0/*message->data().sequence_number()*/, /*getLogAck(*message)*/0, message->data().message_content().size());
+                SPDLOG_DEBUG("Successfully sent message to RSM is_foreign={}: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']", isDestinationForeign, destinationNodeId,
+                     message->data().sequence_number(), getLogAck(*message), message->data().message_content().size());
                 it = messageRequests.erase(it);
-		SPDLOG_CRITICAL("Continue");
 		//stats.endTimer(message->data().sequence_number());
                 continue;
             }
-	    SPDLOG_CRITICAL("Continue 3");
+	    //SPDLOG_CRITICAL("Continue 3");
 
 	    if (message->data().sequence_number() > g_number_of_packets) {
 		    //stats.printOutAllResults();	    
@@ -278,7 +276,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             it++;
         }
 
-        std::this_thread::sleep_for(kPollPeriod);
+        //std::this_thread::sleep_for(kPollPeriod);
     }
     SPDLOG_INFO("Pipeline Sending Thread Exiting");
 }
@@ -308,7 +306,7 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 
     while (not mMessageRequests.push(std::move(sendMessageRequest)))
     {
-        std::this_thread::sleep_for(kSleepTime);
+        //std::this_thread::sleep_for(kSleepTime);
     }
 }
 
@@ -373,7 +371,7 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 
         while (not mMessageRequests.push(std::move(sendMessageRequest)))
         {
-            std::this_thread::sleep_for(kSleepTime);
+            //std::this_thread::sleep_for(kSleepTime);
         }
     }
 }

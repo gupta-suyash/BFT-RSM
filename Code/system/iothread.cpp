@@ -24,7 +24,7 @@ void blockingPush(iothread::MessageQueue &queue, T &&message, std::chrono::durat
 {
     while (not queue.push(std::forward<T>(message)))
     {
-        std::this_thread::sleep_for(pollPeriod);
+        //std::this_thread::sleep_for(pollPeriod);
     }
 }
 
@@ -63,7 +63,7 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
         fakeMessage.set_validity_proof(std::string(kSignatureSize, 'X'));
 
         blockingPush(*messageOutput, std::move(fakeMessage), 100us);
-        std::this_thread::sleep_for(300us); // configure for network
+        //std::this_thread::sleep_for(150us); // configure for network
     }
 }
 
@@ -91,7 +91,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_INFO("Start of io send thread");
-    StatisticsInterpreter stats;
+    //StatisticsInterpreter stats;
     constexpr auto kSleepTime = 1us;
     const auto kResendWaitPeriod = 5s;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath] =
@@ -120,7 +120,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                     getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
                 setAckValue(&newMessage, *acknowledgment);
-		stats.startTimer(sequenceNumber);
+		//stats.startTimer(sequenceNumber);
                 pipeline->SendToOtherRsm(receiverNode, std::move(newMessage));
                 continue;
             }
@@ -139,7 +139,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             continue; // Wait for messages before resending
             // TODO Bug, if message 0 is not sent, nobody will resend
         }
-	stats.endTimer(newMessage.data().sequence_number());
+	//stats.endTimer(newMessage.data().sequence_number());
 
         const auto numQuackRepeats = ackTracker->getAggregateRepeatedAckCount(curQuack.value());
         for (auto it = std::begin(resendMessageMap); it != std::end(resendMessageMap); it = resendMessageMap.erase(it))
@@ -149,7 +149,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             const bool isMessageAlreadyReceived = sequenceNumber < curQuack.value();
             if (isMessageAlreadyReceived)
             {
-		stats.endTimer(sequenceNumber);
+		//stats.endTimer(sequenceNumber);
                 continue; // delete this message
             }
 
@@ -167,16 +167,16 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
                 setAckValue(&message, *acknowledgment);
-		stats.endTimer(sequenceNumber);
+		//stats.endTimer(sequenceNumber);
 
             pipeline->SendToOtherRsm(receiverNode, std::move(message));
         }
 	if (num_packets == g_number_of_packets) {
-		stats.printOutAllResults();
+		//stats.printOutAllResults();
 		SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
 	}
-	stats.printOutAllResults();
-        std::this_thread::sleep_for(kSleepTime);
+	//stats.printOutAllResults();
+        //std::this_thread::sleep_for(kSleepTime);
     }
 }
 
@@ -236,6 +236,6 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
             SPDLOG_INFO("Node Ack Count now at {} Ack rate = {} /s Quack count {} rate = {}", ackCount, ackCountRate, quackCount, quackCountRate);
             lastAckCount = newAckCount;
         }
-        std::this_thread::sleep_for(kPollTime);
+        //std::this_thread::sleep_for(kPollTime);
     }
 }

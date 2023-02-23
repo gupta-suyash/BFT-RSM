@@ -14,6 +14,7 @@ apt-get -y remove --auto-remove golang-goprotobuf-dev
 apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
+apt-get install libjsoncpp-dev
 echo "basic packages installed"
 sudo apt-get -y install ninja-build
 echo "built ninja"
