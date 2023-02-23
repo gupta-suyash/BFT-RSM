@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     auto otherNetworkUrls = parseNetworkUrls(get_other_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
 
     const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedNodes + 1;
-    constexpr auto kMessageBufferSize = 2048;
+    constexpr auto kMessageBufferSize = 8192;
 
     const auto acknowledgment = std::make_shared<Acknowledgment>();
     const auto pipeline =
@@ -45,8 +45,8 @@ int main(int argc, char *argv[])
     SPDLOG_INFO("Done setting up sockets between nodes.");
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
-    // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-    auto messageRelayThread = std::thread(runRelayIPCRequestThread, messageBuffer);
+    auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+    // auto messageRelayThread = std::thread(runRelayIPCRequestThread, messageBuffer);
     SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
     auto sendThread =

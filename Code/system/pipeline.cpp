@@ -212,11 +212,11 @@ void Pipeline::startPipeline()
 void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets,
                              std::unique_ptr<std::vector<nng_socket>> localSendSockets)
 {
-    constexpr auto kPollPeriod = 1us;
+    constexpr auto kPollPeriod = 1ns;
     constexpr auto kMaxMessageRetryTime = 60s;
 
     // probably suboptimal but has fast removal
-    std::list<pipeline::SendMessageRequest> messageRequests;
+    std::vector<pipeline::SendMessageRequest> messageRequests;
 
     SPDLOG_INFO("Pipeline Sending Thread Starting");
 
@@ -239,7 +239,9 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             {
                 // remove the current element and increment it
                 SPDLOG_CRITICAL("SEND REQUEST IS STALE, DELETING foreignRSM={}", isDestinationForeign);
-                it = messageRequests.erase(it);
+                *it = messageRequests.back();
+                messageRequests.pop_back();
+                it--;
                 continue;
             }
 
@@ -288,7 +290,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
  */
 void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChainMessage &&message)
 {
-    constexpr auto kSleepTime = 1us;
+    constexpr auto kSleepTime = 1ns;
 
     const std::scoped_lock lock{mMutex};
 
@@ -317,7 +319,7 @@ std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
 {
     std::vector<pipeline::ReceivedCrossChainMessage> newMessages{};
 
-    const std::scoped_lock lock{mMutex};
+    //const std::scoped_lock lock{mMutex};
 
     for (uint64_t senderId = 0; senderId < mForeignReceiveSockets.size(); senderId++)
     {
@@ -382,7 +384,7 @@ vector<scrooge::CrossChainMessage> Pipeline::RecvFromOwnRsm()
 {
     std::vector<scrooge::CrossChainMessage> messages{};
 
-    const std::scoped_lock lock{mMutex};
+    //const std::scoped_lock lock{mMutex};
 
     for (uint64_t senderId = 0; senderId < mLocalReceiveSockets.size(); senderId++)
     {

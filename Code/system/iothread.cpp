@@ -52,20 +52,19 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
 {
     const auto kNumMessages = get_number_of_packets();
     const auto kMessageSize = get_packet_size();
-    const auto kSignatureSize = (configuration.kOwnMaxNumFailedNodes + 1) * 512;
 
     for (uint64_t curSequenceNumber = 0; curSequenceNumber < kNumMessages; curSequenceNumber++)
     {
         scrooge::CrossChainMessage fakeMessage;
 
         scrooge::CrossChainMessageData *const fakeData = fakeMessage.mutable_data();
-        fakeData->set_message_content(std::string(kMessageSize, 'L'));
+        fakeData->set_message_content(std::string(kMessageSize / 2, 'L'));
         fakeData->set_sequence_number(curSequenceNumber);
 
-        fakeMessage.set_validity_proof(std::string(kSignatureSize, 'X'));
+        fakeMessage.set_validity_proof(std::string(kMessageSize / 2, 'X'));
 
         blockingPush(*messageOutput, std::move(fakeMessage), 100us);
-        std::this_thread::sleep_for(300us); // configure for network
+        std::this_thread::sleep_for(10us); // configure for network
     }
 }
 
@@ -82,7 +81,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
 
     while (true)
     {
-        constexpr auto kPollPeriod = 10us;
+        constexpr auto kPollPeriod = 50ns;
 
         std::vector<uint8_t> messageBytes;
         while (not readMessages->pop(messageBytes))
@@ -148,7 +147,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    constexpr auto kSleepTime = 1us;
+    constexpr auto kSleepTime = 1ns;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId] =
         configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
@@ -231,7 +230,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                       const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    constexpr auto kPollTime = 1us;
+    constexpr auto kPollTime = 1ns;
     const auto kStartTime = std::chrono::steady_clock::now();
 
     std::optional<uint64_t> lastAckCount;

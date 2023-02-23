@@ -38,14 +38,14 @@ NodeConfiguration parser(int argc, char *argv[])
 
     try
     {
-        const auto ownNodeId = std::stoull(argv[2]);
-        const auto ownNetworkSize = 4;
-        const auto otherNetworkSize = 4;
-        const auto ownNetworkMaxNodesFail = 1;
-        const auto otherNetworkMaxNodesFail = 1;
-        const auto ownNetworkId = std::stoi(argv[3]);
-        const auto numPackets = 100;
-        const auto packetSize = 1;
+        const auto ownNodeId = std::stoull(argv[3]);
+        const auto ownNetworkSize = 2;
+        const auto otherNetworkSize = 2;
+        const auto ownNetworkMaxNodesFail = 0;
+        const auto otherNetworkMaxNodesFail = 0;
+        const auto ownNetworkId = std::stoi(argv[2]);
+        const auto numPackets = 10'000'00'000;
+        const auto packetSize = 50'000;
         set_packet_size(packetSize);
         set_number_of_packets(numPackets);
         set_rsm_id(ownNetworkId);
