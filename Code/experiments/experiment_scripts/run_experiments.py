@@ -10,7 +10,7 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
         setup(sys.argv[1]) 
-        run(sys.argv[1]) # FINISH UPDATING
+        run(sys.argv[1], sys.argv[2]) # FINISH UPDATING
 
 
 if __name__ == "__main__":

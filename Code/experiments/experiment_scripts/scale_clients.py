@@ -161,7 +161,7 @@ def generateNetwork(clusters, networkConfigDir):
                 f.write("\n")
 
 # Runs the actual experiment
-def run(configJson):
+def run(configJson, experimentName):
     # Load local arguments
     cloudlab = Cloudlab_Experiment()
     config = loadJsonFile(configJson)
@@ -212,32 +212,12 @@ def run(configJson):
                      print("Replica: ", i)
                      scrooge = Scrooge_Args()
                      server_str = "server_" + str(i)
-                     scrooge.use_debug_logs_bool = config["client_scaling_experiment"]["scrooge_args"][server_str]["use_debug_logs_bool"]
-                     scrooge.node_id = config["client_scaling_experiment"]["scrooge_args"][server_str]["node_id"]
-                     scrooge.group_id = config["client_scaling_experiment"]["scrooge_args"][server_str]["group_id"]
-                     scrooge.local_num_nodes = config["client_scaling_experiment"]["scrooge_args"][server_str]["local_num_nodes"]
-                     scrooge.foreign_num_nodes = config["client_scaling_experiment"]["scrooge_args"][server_str]["foreign_num_nodes"]
-                     scrooge.local_max_nodes_fail = config["client_scaling_experiment"]["scrooge_args"][server_str]["local_max_nodes_fail"]
-                     scrooge.foreign_max_nodes_fail = config["client_scaling_experiment"]["scrooge_args"][server_str]["foreign_max_nodes_fail"]
-                     scrooge.own_network_id = config["client_scaling_experiment"]["scrooge_args"][server_str]["own_network_id"]
-                     scrooge.num_packets = config["client_scaling_experiment"]["scrooge_args"][server_str]["num_packets"]
-                     scrooge.packet_size = config["client_scaling_experiment"]["scrooge_args"][server_str]["packet_size"]
-                     scrooge.log_path = config["client_scaling_experiment"]["scrooge_args"][server_str]["log_path"]
                      if scrooge.group_id >= len(clusters):
                          clusters.append([])
                          clusters[scrooge.group_id].append(config["client_scaling_experiment"]["scrooge_args"][server_str]["ip"]);
                      else:
                          clusters[scrooge.group_id].append(config["client_scaling_experiment"]["scrooge_args"][server_str]["ip"]);
-                     cmd = "/proj/ove-PG0/murray/Scrooge/Code/scrooge " + str(scrooge.use_debug_logs_bool) + " "\
-                             + str(scrooge.node_id) + " "\
-                             + str(scrooge.group_id) +" "\
-                             + str(scrooge.local_num_nodes) + " "\
-                             + str(scrooge.foreign_num_nodes) + " "\
-                             + str(scrooge.local_max_nodes_fail) + " "\
-                             + str(scrooge.foreign_max_nodes_fail) + " "\
-                             + str(scrooge.num_packets) + " "\
-                             + str(scrooge.packet_size) + " "\
-                             + scrooge.log_path
+                     cmd = "/proj/ove-PG0/murray/Scrooge/Code/scrooge " + configJson + " " + experimentName + " " + server_str
                      print("Print: ", cmd)
                      # cmd = "echo 'hello'"
                      scrooge_commands.append(cmd)
