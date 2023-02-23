@@ -21,8 +21,6 @@ apt-get -y install clang-format
 apt-get -y install libspdlog-dev
 apt-get install libjsoncpp-dev
 echo "basic packages installed"
-
-# ninja install
 apt-get -y install ninja-build
 echo "built ninja"
 
