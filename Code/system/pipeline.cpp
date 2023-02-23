@@ -4,7 +4,7 @@
 #include <chrono>
 #include <list>
 
-int64_t getLogAck(const scrooge::CrossChainMessage &message)
+static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
     if (!message.has_ack_count())
     {
@@ -13,7 +13,7 @@ int64_t getLogAck(const scrooge::CrossChainMessage &message)
     return message.ack_count().value();
 }
 
-nng_socket openReceiveSocket(const std::string &url)
+static nng_socket openReceiveSocket(const std::string &url)
 {
     constexpr auto kResultOpenSuccessful = 0;
 
@@ -33,7 +33,7 @@ nng_socket openReceiveSocket(const std::string &url)
     return socket;
 }
 
-nng_socket openSendSocket(const std::string &url)
+static nng_socket openSendSocket(const std::string &url)
 {
     constexpr auto kResultOpenSuccessful = 0;
 
@@ -59,7 +59,7 @@ nng_socket openSendSocket(const std::string &url)
  * @param buf is the outgoing message of protobuf type.
  * @param socket is the nng_socket to put the data into
  */
-int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
+static int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
 {
     string buffer;
     buf.SerializeToString(&buffer);
@@ -81,7 +81,7 @@ int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
  * @param socket is the nng_socket to check for data on.
  * @return the protobuf if data for one was contained in the socket.
  */
-std::optional<scrooge::CrossChainMessage> receiveMessage(const nng_socket &socket)
+static std::optional<scrooge::CrossChainMessage> receiveMessage(const nng_socket &socket)
 {
     char *buffer;
     size_t bufferSize;
@@ -115,13 +115,8 @@ Pipeline::Pipeline(std::vector<std::string> &&ownNetworkUrls, std::vector<std::s
 
 Pipeline::~Pipeline()
 {
-    const std::scoped_lock lock{mMutex};
-    if (not mIsThreadRunning)
-    {
-        mShouldThreadStop = true;
-        messageSendThread.join();
-        mIsThreadRunning = false;
-    }
+    mMessageRequests.close();
+    messageSendThread.join();
 }
 
 /* Returns the port the current node will use to receive from senderId
@@ -157,6 +152,7 @@ void Pipeline::startPipeline()
     {
         return;
     }
+    mIsThreadRunning = true;
 
     const auto &kOwnUrl = kOwnNetworkUrls.at(kOwnConfiguration.kNodeId);
     auto foreignSendSockets = std::make_unique<std::vector<nng_socket>>();
@@ -199,12 +195,12 @@ void Pipeline::startPipeline()
 
     messageSendThread =
         std::thread(&Pipeline::runSendThread, this, std::move(foreignSendSockets), std::move(localSendSockets));
-    mIsThreadRunning = true;
 }
 
 void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets,
                              std::unique_ptr<std::vector<nng_socket>> localSendSockets)
 {
+    using namespace boost::fibers;
     constexpr auto kPollPeriod = 1us;
     constexpr auto kMaxMessageRetryTime = 60s;
 
@@ -213,12 +209,12 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
 
     SPDLOG_INFO("Pipeline Sending Thread Starting");
 
-    while (not mShouldThreadStop)
+    while (mMessageRequests.is_closed())
     {
         const auto curTime = std::chrono::steady_clock::now();
-
+    
         pipeline::SendMessageRequest newMessageRequest;
-        while (mMessageRequests.pop(newMessageRequest))
+        while (mMessageRequests.try_pop(newMessageRequest) == channel_op_status::success)
         {
             messageRequests.emplace_back(std::move(newMessageRequest));
         }
@@ -278,10 +274,11 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
 /* This function is used to send message to a specific node in other RSM.
  *
  * @param nid is the identifier of the node in the other RSM.
+ * @return if the pipeline was able to process enqueue the request
  */
-void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChainMessage &&message)
+bool Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChainMessage &&message)
 {
-    constexpr auto kSleepTime = 1us;
+    using namespace boost::fibers;
 
     const std::scoped_lock lock{mMutex};
 
@@ -297,10 +294,7 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
                                                            .isDestinationForeign = true,
                                                            .sharedMessage = sharedMessage};
 
-    while (not mMessageRequests.push(std::move(sendMessageRequest)))
-    {
-        std::this_thread::sleep_for(kSleepTime);
-    }
+    return mMessageRequests.push(std::move(sendMessageRequest)) != channel_op_status::closed;
 }
 
 /* This function is used to receive messages from the other RSM.
@@ -334,9 +328,9 @@ std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
 /* This function is used to send messages to the nodes in own RSM.
  *
  */
-void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
+bool Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 {
-    constexpr auto kSleepTime = 1us;
+    using namespace boost::fibers;
 
     const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
 
@@ -361,11 +355,13 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
                                                                .isDestinationForeign = false,
                                                                .sharedMessage = sharedMessage};
 
-        while (not mMessageRequests.push(std::move(sendMessageRequest)))
+        const bool isPipelineClosed = mMessageRequests.push(std::move(sendMessageRequest)) == channel_op_status::closed;
+        if (isPipelineClosed)
         {
-            std::this_thread::sleep_for(kSleepTime);
+            return false;
         }
     }
+    return true;
 }
 
 /* This function is used to receive messages from the nodes in own RSM.

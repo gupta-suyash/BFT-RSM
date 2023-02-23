@@ -8,11 +8,11 @@
 
 #include <memory>
 
-#include <boost/lockfree/spsc_queue.hpp>
+#include <boost/fiber/buffered_channel.hpp>
 
 namespace iothread
 {
-using MessageQueue = boost::lockfree::spsc_queue<scrooge::CrossChainMessage>;
+using MessageQueue = boost::fibers::buffered_channel<scrooge::CrossChainMessage>;
 }; // namespace iothread
 
 void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration);

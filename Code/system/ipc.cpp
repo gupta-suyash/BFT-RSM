@@ -41,14 +41,13 @@ bool createPipe(const std::string &path)
  *
  * @param path is the path to a pipe to be read from
  * @param messageReads is a queue where all messages read will be enqueued
- * @param exit is a bool to tell the thread to exit (it will be set to true if the thread should or has returned)
  */
-void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> messageReads,
-                     std::shared_ptr<std::atomic_bool> exit)
+void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> messageReads)
 {
+    using namespace boost::fibers;
     std::ifstream pipe{path, std::ios_base::binary};
 
-    while (not exit->load())
+    while (true)
     {
         uint64_t readSize{};
         pipe.read(reinterpret_cast<char *>(&readSize), sizeof(readSize));
@@ -56,7 +55,8 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
         if (pipe.fail())
         {
             SPDLOG_INFO("Attempted to read new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
-            break;
+            messageReads->close();
+            return;
         }
 
         std::vector<uint8_t> message(readSize);
@@ -65,67 +65,50 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
         if (pipe.fail())
         {
             SPDLOG_CRITICAL("ATTEMPTED TO READ {} BYTES, AND READ FAILED", readSize, message.size());
-            break;
+            messageReads->close();
+            return;
         }
 
-        while (!messageReads->push(std::move(message)))
+        const bool isChannelClosed = messageReads->push(std::move(message)) == channel_op_status::closed;
+        if (isChannelClosed)
         {
-            if (exit->load())
-            {
-                SPDLOG_INFO("Reader of pipe '{}' is exiting", path);
-                *exit = true;
-                return;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds{10});
+            break;
         }
     }
-    *exit = true;
-    SPDLOG_INFO("Reader of pipe '{}' is exiting", path);
+    SPDLOG_INFO("Reader of pipe '{}' is exiting, channel was closed", path);
 }
 
 /* Takes over the current thread to write to a pipe located at path
  * This method will write all data in the form {uint64_t size, uint8_t[size] message}
  *
  * @param path is the path to where the pipe should be created
- * @param messageWrites is the
- * @param exit is a bool to tell the thread to exit (it will be set to true if the thread should or has returned)
+ * @param messageWrites is the channel which gets messages for this function to write to path
  */
-void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> messageWrites,
-                     std::shared_ptr<std::atomic_bool> exit)
+void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> messageWrites)
 {
+    using namespace boost::fibers;
     std::ofstream pipe{path, std::ios_base::binary};
 
-    while (not exit->load())
+    std::vector<uint8_t> message{};
+    while (messageWrites->pop(message) != channel_op_status::closed)
     {
-        std::vector<uint8_t> message{};
-        while (!messageWrites->pop(message))
-        {
-            if (exit->load())
-            {
-                SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
-                *exit = true;
-                return;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds{10});
-        }
-
         uint64_t writeSize = message.size();
         pipe.write(reinterpret_cast<char *>(&writeSize), sizeof(writeSize));
         if (pipe.fail())
         {
-            SPDLOG_INFO("Attempted to write new message tot pipe but failed. EOF_Reached? = {}", pipe.eof());
-            break;
+            SPDLOG_INFO("Attempted to write new message to pipe but failed. EOF_Reached? = {}", pipe.eof());
+            messageWrites->close();
+            return;
         }
 
         pipe.write(reinterpret_cast<char *>(message.data()), message.size());
         if (pipe.fail())
         {
-            SPDLOG_INFO("Attempted to write new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
-            break;
+            SPDLOG_INFO("Attempted to write new message to pipe but failed. EOF_Reached? = {}", pipe.eof());
+            messageWrites->close();
+            return;
         }
         pipe.flush();
     }
-
-    *exit = true;
-    SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
+    SPDLOG_INFO("Writer of pipe '{}' is exiting, channel was closed", path);
 }

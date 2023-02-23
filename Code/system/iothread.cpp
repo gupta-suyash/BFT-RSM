@@ -20,15 +20,6 @@ uint64_t trueMod(int64_t value, int64_t modulus)
     return remainder;
 }
 
-template <typename T>
-void blockingPush(iothread::MessageQueue &queue, T &&message, std::chrono::duration<double> pollPeriod)
-{
-    while (not queue.push(std::forward<T>(message)))
-    {
-        std::this_thread::sleep_for(pollPeriod);
-    }
-}
-
 // Returns the node that should be sent a message from a given sender
 uint64_t getMessageDestinationId(uint64_t sequenceNumber, uint64_t senderId, uint64_t numNodesInOwnNetwork,
                                  uint64_t numNodesInOtherNetwork)
@@ -50,6 +41,7 @@ bool isMessageValid(const scrooge::CrossChainMessage &message)
 void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
                               const NodeConfiguration configuration)
 {
+    using namespace boost::fibers;
     const auto kNumMessages = get_number_of_packets();
     const auto kMessageSize = get_packet_size();
     const auto kSignatureSize = (configuration.kOwnMaxNumFailedNodes + 1) * 512;
@@ -64,46 +56,35 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
 
         fakeMessage.set_validity_proof(std::string(kSignatureSize, 'X'));
 
-        blockingPush(*messageOutput, std::move(fakeMessage), 100us);
-        std::this_thread::sleep_for(300us); // configure for network
+        const bool isChannelClosed = messageOutput->push(std::move(fakeMessage)) == channel_op_status::closed;
+        if (isChannelClosed)
+        {
+            SPDLOG_ERROR("Cannot export new messages, channel is closed. RunGenerateMessageThread exiting after sending {} messages", curSequenceNumber);
+            return;
+        }
     }
+    SPDLOG_INFO("RunGenerateMessageThread exiting after sending {} messages", kNumMessages);
 }
 
 // Relays messages to be sent over ipc
 void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput)
 {
-    const auto kNumMessages = get_number_of_packets();
+    using namespace boost::fibers;
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     const auto readMessages = std::make_shared<ipc::DataChannel>(10);
-    const auto exitReader = std::make_shared<std::atomic_bool>();
 
     createPipe(kScroogeInputPath);
-    auto reader = std::thread(startPipeReader, kScroogeInputPath, readMessages, exitReader);
+    auto reader = std::thread(startPipeReader, kScroogeInputPath, readMessages);
 
-    while (true)
+    std::vector<uint8_t> messageBytes;
+    scrooge::ScroogeRequest newRequest;
+    while (readMessages->pop(messageBytes) != channel_op_status::closed)
     {
-        constexpr auto kPollPeriod = 10us;
-
-        std::vector<uint8_t> messageBytes;
-        while (not readMessages->pop(messageBytes))
-        {
-            if (*exitReader)
-            {
-                break;
-            }
-            std::this_thread::sleep_for(kPollPeriod);
-        }
-        if (*exitReader)
-        {
-            break;
-        }
-
-        scrooge::ScroogeRequest newRequest;
 
         const auto isParseSuccessful = newRequest.ParseFromArray(messageBytes.data(), messageBytes.size());
         if (not isParseSuccessful)
         {
-            SPDLOG_ERROR("FAILED TO READ MESSAGE");
+            SPDLOG_CRITICAL("FAILED TO READ MESSAGE, size={}, data='{}'", messageBytes.size(), messageBytes.data());
             continue;
         }
 
@@ -117,7 +98,11 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             *newMessage.mutable_data() = newMessageRequest.content();
             *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
 
-            blockingPush(*messageOutput, std::move(newMessage), kPollPeriod);
+            const auto isChannelClosed = messageOutput->push(std::move(newMessage)) == channel_op_status::closed;
+            if (isChannelClosed)
+            {
+                SPDLOG_INFO("runRelayIPCRequestThread cannot relay message, channels is closed. Continuing execution...");
+            }
             break;
         }
         default: {
@@ -125,10 +110,8 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
         }
         }
 
-        std::this_thread::sleep_for(kPollPeriod);
     }
-    SPDLOG_INFO("Relay IPC Message Thread Exiting");
-    *exitReader = true;
+    SPDLOG_INFO("RunRelayIPCRequestThread exiting, readMessage channel was closed");
     reader.join();
 }
 
@@ -148,6 +131,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    using namespace boost::fibers;
     constexpr auto kSleepTime = 1us;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId] =
         configuration;
@@ -162,7 +146,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
         // TODO Implement multithreaded sending to parallelize sending messages (or does this matter w sockets?)
         scrooge::CrossChainMessage newMessage;
-        while (messageInput->pop(newMessage))
+        while (messageInput->try_pop(newMessage) == channel_op_status::success)
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
             const auto originalSenderId = sequenceNumber % kOwnNetworkSize;

@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-#include <boost/lockfree/spsc_queue.hpp>
+#include <boost/fiber/buffered_channel.hpp>
 
 #include "nng/nng.h"
 #include <nng/protocol/pipeline0/pull.h>
@@ -32,8 +32,6 @@ struct SendMessageRequest
     bool isDestinationForeign{};
     std::shared_ptr<scrooge::CrossChainMessage> sharedMessage;
 };
-
-using SendMessageRequestQueue = boost::lockfree::spsc_queue<SendMessageRequest>;
 }; // namespace pipeline
 
 class Pipeline
@@ -45,10 +43,10 @@ class Pipeline
 
     void startPipeline();
 
-    void SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage &&message);
+    bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage &&message);
     std::vector<pipeline::ReceivedCrossChainMessage> RecvFromOtherRsm();
 
-    void BroadcastToOwnRsm(scrooge::CrossChainMessage &&message);
+    bool BroadcastToOwnRsm(scrooge::CrossChainMessage &&message);
     vector<scrooge::CrossChainMessage> RecvFromOwnRsm();
 
   private:
@@ -71,7 +69,6 @@ class Pipeline
     std::vector<nng_socket> mForeignReceiveSockets;
 
     std::thread messageSendThread{};
-    std::atomic_bool mIsThreadRunning{};
-    std::atomic_bool mShouldThreadStop{};
-    pipeline::SendMessageRequestQueue mMessageRequests{1024};
+    bool mIsThreadRunning{};
+    boost::fibers::buffered_channel<pipeline::SendMessageRequest> mMessageRequests{1024};
 };

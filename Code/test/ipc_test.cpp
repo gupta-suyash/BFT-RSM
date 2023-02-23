@@ -13,13 +13,11 @@ BOOST_AUTO_TEST_CASE(test_ipc)
     const auto pipe = "/tmp/ipctest";
     const auto readMessages = std::make_shared<ipc::DataChannel>(1);
     const auto writeMessages = std::make_shared<ipc::DataChannel>(1);
-    const auto exitReader = std::make_shared<std::atomic_bool>();
-    const auto exitWriter = std::make_shared<std::atomic_bool>();
 
     createPipe(pipe);
 
-    auto reader = std::thread(startPipeReader, pipe, readMessages, exitReader);
-    auto writer = std::thread(startPipeWriter, pipe, writeMessages, exitWriter);
+    auto reader = std::thread(startPipeReader, pipe, readMessages);
+    auto writer = std::thread(startPipeWriter, pipe, writeMessages);
 
     for (auto test = 0; test < (1 << 8); test++)
     {
