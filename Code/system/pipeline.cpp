@@ -28,6 +28,13 @@ nng_socket openReceiveSocket(const std::string &url)
 
     // Asynchronous wait for someone to listen to this socket.
     const auto nngDialResult = nng_listen(socket, url.c_str(), nullptr, 0);
+
+    if (nngDialResult != 0)
+    {
+        SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR LISTENING. URL = '{}' Return value {}", url, nng_strerror(nngDialResult));
+        exit(1);
+    }
+
     SPDLOG_INFO("NNG listen for URL = '{}' has return value {} ", url, nng_strerror(nngDialResult));
 
     return socket;
