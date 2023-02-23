@@ -16,7 +16,7 @@ extern uint64_t g_other_rsm_id; // RSM Id of other RSM.
 extern uint64_t g_number_of_packets;
 extern uint64_t g_packet_size;
 
-const std::string jsonArgsIndex = "scrooge_args";
+const std::string argsIndex = "scrooge_args";
 
 struct NodeConfiguration
 {
