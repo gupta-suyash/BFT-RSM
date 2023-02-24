@@ -1,7 +1,8 @@
 #include "parser.h"
-
+#include <string>
 #include <fstream>
 #include <string>
+#include <jsoncpp/json/json.h>
 
 void usage()
 {
@@ -26,7 +27,15 @@ NodeConfiguration parser(int argc, char *argv[])
         usage();
     }
 
-    const bool useDebugLogs = "1"s == argv[1];
+
+    std::string pathToConfig = argv[1]; //"/proj/ove-PG0/murray/Scrooge/Code/experiments/experiment_json/scale_clients.json";
+    std::ifstream configFile(pathToConfig, std::ifstream::binary);
+    Json::Value config;
+    configFile >> config;
+    // Test print statement
+    //SPDLOG_CRITICAL("Here is the entire json object: {}", config);
+
+   const bool useDebugLogs = std::stoull(config[argv[2]][argsIndex][argv[3]]["use_debug_logs_bool"].asString());  
     if (useDebugLogs)
     {
         spdlog::set_level(spdlog::level::debug);
@@ -36,27 +45,43 @@ NodeConfiguration parser(int argc, char *argv[])
         spdlog::set_level(spdlog::level::info);
     }
 
-    try
-    {
-        const auto ownNodeId = std::stoull(argv[3]);
-        const auto ownNetworkSize = 2;
-        const auto otherNetworkSize = 2;
-        const auto ownNetworkMaxNodesFail = 0;
-        const auto otherNetworkMaxNodesFail = 0;
-        const auto ownNetworkId = std::stoi(argv[2]);
-        const auto numPackets = 10'000'00'000;
-        const auto packetSize = 50'000;
-        set_packet_size(packetSize);
+    try {
+	// ID the node has within the group it is in, e.g. it could be node 0, 1 etc.
+        const auto ownNodeId = std::stoull(config[argv[2]][argsIndex][argv[3]]["node_id"].asString());//std::stoull(argv[2]);
+	// ID of the group the node is in
+	const auto ownNetworkId = std::stoull(config[argv[2]][argsIndex][argv[3]]["own_network_id"].asString());
+	// Size of the network the node is in
+        const auto ownNetworkSize = std::stoull(config[argv[2]][argsIndex][argv[3]]["local_num_nodes"].asString());
+	// Size of the network the node is not in
+        const auto otherNetworkSize = std::stoull(config[argv[2]][argsIndex][argv[3]]["foreign_num_nodes"].asString());
+	// Maximum number of nodes allowed to fail in this node's network
+        const auto ownNetworkMaxNodesFail = std::stoull(config[argv[2]][argsIndex][argv[3]]["local_max_nodes_fail"].asString());
+	// Maximum number of nodes allowed to fail in other network that this node is not a member of
+        const auto otherNetworkMaxNodesFail = std::stoull(config[argv[2]][argsIndex][argv[3]]["foreign_max_nodes_fail"].asString());
+        // Number of packets to send
+	const auto numPackets = std::stoi(config[argv[2]][argsIndex][argv[3]]["num_packets"].asString());
+	// Size of the packets to send
+        const auto packetSize = std::stoi(config[argv[2]][argsIndex][argv[3]]["packet_size"].asString());
+	// Path to the directory where logfiles should be written to
+	const auto logDir = config[argv[2]][argsIndex][argv[3]]["log_path"].asString();
+	std::string log_prefix = "log_";
+	std::string txt_suffix = ".txt";
+        const auto logPath = logDir + log_prefix + std::to_string(ownNodeId) + txt_suffix;
+	SPDLOG_INFO("Log Path: {}", logPath);
+//	auto logger = spdlog::basic_logger_mt("basic_logger", logPath);
+//	spdlog::set_default_logger(logger);
+	
+	set_packet_size(packetSize);
         set_number_of_packets(numPackets);
         set_rsm_id(ownNetworkId);
         set_other_rsm_id(1 - ownNetworkId);
-
         return NodeConfiguration{.kOwnNetworkSize = ownNetworkSize,
-                                 .kOtherNetworkSize = otherNetworkSize,
-                                 .kOwnMaxNumFailedNodes = ownNetworkMaxNodesFail,
-                                 .kOtherMaxNumFailedNodes = otherNetworkMaxNodesFail,
-                                 .kNodeId = ownNodeId};
-    }
+                                .kOtherNetworkSize = otherNetworkSize,
+                                .kOwnMaxNumFailedNodes = ownNetworkMaxNodesFail,
+                                .kOtherMaxNumFailedNodes = otherNetworkMaxNodesFail,
+                                .kNodeId = ownNodeId,
+	                        .kLogPath = logPath};
+    } 
     catch (...)
     {
         SPDLOG_CRITICAL("Cannot parse integer command line arguments");
