@@ -27,6 +27,9 @@ Code/experiments/experiment_scripts/util/__pycache__/*
 Code/experiments/experiment_scripts/.nfs*
 Code/experiments/results/*
 
+# Configuration file
+Code/configuration/*
+
 # Local History for Visual Studio Code
 .history/
 
