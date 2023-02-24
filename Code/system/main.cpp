@@ -16,36 +16,26 @@
 
 int main(int argc, char *argv[])
 {
-    const auto curTime = std::chrono::steady_clock::now();
-    const auto roundedTime = std::chrono::duration_cast<std::chrono::seconds>(curTime.time_since_epoch()) + 1s;
-    const auto startTime = std::chrono::steady_clock::time_point(roundedTime);
-    std::this_thread::sleep_until(startTime);
-
     // Parsing the command line args.
-    const auto kNodeConfiguration = parser(argc, argv);
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath] =
-        kNodeConfiguration;
-    
-    // Set all output output to go to a file
-    SPDLOG_INFO("K Log Path: {}", kLogPath);
-    std::ofstream cout(kLogPath);
-    std::cout<< "HIIIII" << std::endl;
-
     const auto kWorkingDir = std::filesystem::current_path();
     const auto kNetworkZeroConfigPath = kWorkingDir / "configuration/network0urls.txt";
     const auto kNetworkOneConfigPath = kWorkingDir / "configuration/network1urls.txt";
 
+    const auto kNodeConfiguration = parser(argc, argv);
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath] =
+        kNodeConfiguration;
+
     SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
-                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}",
-                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, get_rsm_id());
+                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, kLogPath= {}, g_rsm_id = {}",
+                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
+                get_rsm_id());
 
     auto ownNetworkUrls = parseNetworkUrls(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
     auto otherNetworkUrls = parseNetworkUrls(get_other_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
 
     const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedNodes + 1;
-    const auto kMessageBufferSize = 2048;
-    
-    SPDLOG_INFO("Before ack");
+    constexpr auto kMessageBufferSize = 8192;
+
     const auto acknowledgment = std::make_shared<Acknowledgment>();
     const auto pipeline =
         std::make_shared<Pipeline>(std::move(ownNetworkUrls), std::move(otherNetworkUrls), kNodeConfiguration);
@@ -58,8 +48,8 @@ int main(int argc, char *argv[])
     
     const auto kThreadHasher = std::hash<std::thread::id>{};
     auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-    SPDLOG_INFO("Created Generate FAKE MESSAGE for testing thread with ID={}",
-                kThreadHasher(messageRelayThread.get_id()));
+    // auto messageRelayThread = std::thread(runRelayIPCRequestThread, messageBuffer);
+    SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
     auto sendThread =
         std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);

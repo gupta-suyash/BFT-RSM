@@ -6,7 +6,8 @@
 
 void usage()
 {
-    SPDLOG_INFO("Run as ./scrooge use_debug_logs_bool node_id local_num_nodes foreign_num_nodes local_max_nodes_fail foreign_max_nodes_fail  own_network_id num_packets packet_size");
+    SPDLOG_INFO("Run as ./scrooge use_debug_logs_bool node_id local_num_nodes foreign_num_nodes local_max_nodes_fail "
+                "foreign_max_nodes_fail  own_network_id num_packets packet_size");
     exit(1);
 }
 

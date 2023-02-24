@@ -73,5 +73,5 @@ class Pipeline
     std::thread messageSendThread{};
     std::atomic_bool mIsThreadRunning{};
     std::atomic_bool mShouldThreadStop{};
-    pipeline::SendMessageRequestQueue mMessageRequests{1024};
+    pipeline::SendMessageRequestQueue mMessageRequests{8196};
 };
