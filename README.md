@@ -10,5 +10,4 @@ How to make code:
 
 Note: You only need to run steps 1 and 2 once per new machine
 
-To run the program (assuming only 2 clusters as of right now):
-./scrooge [nodeId] [Log number] [number of Byzantine nodes in cluster A] [number of Byzantine nodes in cluster B] [number of nodes in cluster A] [number of nodes in cluster B] [number of packets] [packet size]
+To run the program (assuming only 2 clusters as of right now): ./scrooge /proj/ove-PG0/murray/Scrooge/Code/experiments/experiment_json/scale_clients.json client_scaling_experiment server_# where # = the number of the machine
