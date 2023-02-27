@@ -2,12 +2,7 @@
 
 #include "ipc.h"
 #include "scrooge_message.pb.h"
-<<<<<<< HEAD
-#include "statisticstracker.cpp"
-=======
 #include "scrooge_request.pb.h"
-
->>>>>>> main
 #include <chrono>
 #include <map>
 #include <thread>
@@ -151,7 +146,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-<<<<<<< HEAD
     SPDLOG_INFO("Start of io send thread");
     //StatisticsInterpreter stats;
     constexpr auto kSleepTime = 1ns;
@@ -228,12 +222,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             const auto receiverNode =
                 getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
-<<<<<<< HEAD
-                setAckValue(&message, *acknowledgment);
-		//stats.endTimer(sequenceNumber);
-=======
             setAckValue(&message, *acknowledgment);
->>>>>>> main
 
             pipeline->SendToOtherRsm(receiverNode, std::move(message));
         }
