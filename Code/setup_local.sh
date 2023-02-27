@@ -20,6 +20,9 @@ apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
 apt-get install libjsoncpp-dev
+pip install numpy
+pip install matplotlib
+pip install seaborn
 echo "basic packages installed"
 apt-get -y install ninja-build
 echo "built ninja"

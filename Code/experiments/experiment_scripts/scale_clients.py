@@ -91,7 +91,7 @@ def compileCode(localCompileFile):
 # Function that setups up appropriate folders on the
 # correct machines, and sends the jars. It assumes
 # that the appropriate VMs/machines have already started
-def setup(configJson):
+def setup(configJson, needSetup):
     print("Setup")
     cloudlab = Cloudlab_Experiment()
     config = loadJsonFile(configJson)
@@ -117,7 +117,8 @@ def setup(configJson):
     ip_list = config['experiment_independent_vars']['ip_list']
     print(ip_list)
     # Run function to install all appropriate packages on servers
-    # TODO setupServers(cloudlab.local_setup_script, cloudlab.remote_setup_script, ip_list)
+    if needSetup:
+        setupServers(cloudlab.local_setup_script, cloudlab.remote_setup_script, ip_list)
     # Compile the program once on the local machine
     compileCode(config['experiment_independent_vars']['local_compile_script'])
     # The experiment folder is generated with the following path:
