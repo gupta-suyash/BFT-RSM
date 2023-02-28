@@ -1,9 +1,10 @@
 #include "global.h"
 
-uint64_t g_other_rsm_id; // RSM Id of other RSM.
-uint64_t g_rsm_id = 0;
-uint64_t g_number_of_packets = 200;
-uint64_t g_packet_size = 500; // bytes
+// List of global variables and configuration parameters.
+static uint64_t g_rsm_id{};       // RSM Id for this node.
+static uint64_t g_other_rsm_id{}; // RSM Id of other RSM.
+static uint64_t g_number_of_packets{};
+static uint64_t g_packet_size{};
 
 /* Get the id of the RSM this node belongs.
  *

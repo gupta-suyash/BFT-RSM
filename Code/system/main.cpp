@@ -4,11 +4,8 @@
 #include "parser.h"
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
-#include <chrono>
 #include <filesystem>
-#include <fstream>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
@@ -26,9 +23,9 @@ int main(int argc, char *argv[])
                  kLogPath] = kNodeConfiguration;
 
     SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
-                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, kLogPath= {}, g_rsm_id = {}",
-                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
-                get_rsm_id());
+                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {},  kLogPath= '{}'",
+                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
+                get_rsm_id(), kLogPath);
 
     auto ownNetworkUrls = parseNetworkUrls(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
     auto otherNetworkUrls = parseNetworkUrls(get_other_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);

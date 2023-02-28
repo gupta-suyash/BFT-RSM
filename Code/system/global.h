@@ -1,20 +1,12 @@
 #pragma once
 
 #include <chrono>
-#include <string>
 // Enable all spdlog logging macros for development
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include <spdlog/spdlog.h>
 
 using namespace std;
 using namespace std::chrono_literals;
-
-// List of global variables and configuration parameters.
-
-extern uint64_t g_rsm_id;       // RSM Id for this node.
-extern uint64_t g_other_rsm_id; // RSM Id of other RSM.
-extern uint64_t g_number_of_packets;
-extern uint64_t g_packet_size;
 
 struct NodeConfiguration
 {

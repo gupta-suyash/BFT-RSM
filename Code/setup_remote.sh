@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# install performance packages 
-apt install valgrind 
-apt install htop 
-apt install nload 
+# install performance packages
+apt install valgrind
+apt install htop
+apt install nload
 
 # install packages
 apt-get -y update
@@ -20,7 +20,7 @@ apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
 apt-get install libjsoncpp-dev
-pip install numpy                                                                                                                                                   pip install matplotlib                                                                                                                                              pip install seaborn 
+pip install numpy                                                                                                                                                   pip install matplotlib                                                                                                                                              pip install seaborn
 echo "basic packages installed"
 sudo apt-get -y install ninja-build
 echo "built ninja"
@@ -45,7 +45,7 @@ ldconfig
 cd ..
 
 # Go 1.19.5 install
-rm -rf /usr/local/go 
+rm -rf /usr/local/go
 tar -C /usr/local -xzf go1.20.linux-arm64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
