@@ -1,6 +1,6 @@
 #include "pipeline.h"
-#include "statisticstracker.cpp"
 #include "acknowledgment.h"
+#include "statisticstracker.cpp"
 
 #include <chrono>
 #include <list>
@@ -32,7 +32,8 @@ nng_socket openReceiveSocket(const std::string &url)
 
     if (nngDialResult != 0)
     {
-        SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR LISTENING. URL = '{}' Return value {}", url, nng_strerror(nngDialResult));
+        SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR LISTENING. URL = '{}' Return value {}", url,
+                        nng_strerror(nngDialResult));
         exit(1);
     }
 
@@ -74,7 +75,7 @@ int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
 
     const auto bufferSize = buffer.size();
     const auto sendReturnValue = nng_send(socket, const_cast<char *>(buffer.c_str()), bufferSize, NNG_FLAG_NONBLOCK);
-    //SPDLOG_CRITICAL("Send Return Value: {}", sendReturnValue);
+    // SPDLOG_CRITICAL("Send Return Value: {}", sendReturnValue);
     const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN;
     if (isActualError)
     {
@@ -219,7 +220,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
     std::vector<pipeline::SendMessageRequest> messageRequests;
 
     SPDLOG_INFO("Pipeline Sending Thread Starting");
-    //StatisticsInterpreter stats;
+    // StatisticsInterpreter stats;
     while (not mShouldThreadStop)
     {
         const auto curTime = std::chrono::steady_clock::now();
@@ -252,12 +253,12 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                 }
                 return localSendSockets->at(it->destinationNodeId);
             }();
-	    //SPDLOG_CRITICAL("Continue 2");
+            // SPDLOG_CRITICAL("Continue 2");
 
             // send the data
             const auto sendMessageResult = sendMessage(socket, *message);
-	    //stats.startTimer(message->data().sequence_number());
-	    //SPDLOG_CRITICAL("Continue 2.5");
+            // stats.startTimer(message->data().sequence_number());
+            // SPDLOG_CRITICAL("Continue 2.5");
             const bool isSendSuccessful = sendMessageResult == 0;
             if (isSendSuccessful)
             {
@@ -267,14 +268,15 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                              isDestinationForeign, destinationNodeId, message->data().sequence_number(),
                              getLogAck(*message), message->data().message_content().size());
                 it = messageRequests.erase(it);
-		//stats.endTimer(message->data().sequence_number());
+                // stats.endTimer(message->data().sequence_number());
                 continue;
             }
-	    //SPDLOG_CRITICAL("Continue 3");
+            // SPDLOG_CRITICAL("Continue 3");
 
-	    if (message->data().sequence_number() > g_number_of_packets) {
-		    //stats.printOutAllResults();	    
-	    }
+            if (message->data().sequence_number() > g_number_of_packets)
+            {
+                // stats.printOutAllResults();
+            }
 
             const auto isRealError = !isSendSuccessful && sendMessageResult != nng_errno_enum::NNG_EAGAIN;
             if (isRealError)
@@ -287,7 +289,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             it++;
         }
 
-        //std::this_thread::sleep_for(kPollPeriod);
+        // std::this_thread::sleep_for(kPollPeriod);
     }
     SPDLOG_INFO("Pipeline Sending Thread Exiting");
 }
@@ -316,7 +318,7 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 
     while (not mMessageRequests.push(std::move(sendMessageRequest)))
     {
-        //std::this_thread::sleep_for(kSleepTime);
+        // std::this_thread::sleep_for(kSleepTime);
     }
 }
 
@@ -327,7 +329,7 @@ std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
 {
     std::vector<pipeline::ReceivedCrossChainMessage> newMessages{};
 
-    //const std::scoped_lock lock{mMutex};
+    // const std::scoped_lock lock{mMutex};
 
     for (uint64_t senderId = 0; senderId < mForeignReceiveSockets.size(); senderId++)
     {
@@ -380,7 +382,7 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 
         while (not mMessageRequests.push(std::move(sendMessageRequest)))
         {
-            //std::this_thread::sleep_for(kSleepTime);
+            // std::this_thread::sleep_for(kSleepTime);
         }
     }
 }
@@ -392,7 +394,7 @@ vector<scrooge::CrossChainMessage> Pipeline::RecvFromOwnRsm()
 {
     std::vector<scrooge::CrossChainMessage> messages{};
 
-    //const std::scoped_lock lock{mMutex};
+    // const std::scoped_lock lock{mMutex};
 
     for (uint64_t senderId = 0; senderId < mLocalReceiveSockets.size(); senderId++)
     {

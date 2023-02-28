@@ -4,15 +4,15 @@
 #include "parser.h"
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
-#include <fstream>
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
 #include <unordered_map>
-#include <iostream>
 
 int main(int argc, char *argv[])
 {
@@ -22,8 +22,8 @@ int main(int argc, char *argv[])
     const auto kNetworkOneConfigPath = kWorkingDir / "configuration/network1urls.txt";
 
     const auto kNodeConfiguration = parser(argc, argv);
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath] =
-        kNodeConfiguration;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
+                 kLogPath] = kNodeConfiguration;
 
     SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
                 "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, kLogPath= {}, g_rsm_id = {}",
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
     pipeline->startPipeline();
     SPDLOG_INFO("Done setting up sockets between nodes.");
-    
+
     const auto kThreadHasher = std::hash<std::thread::id>{};
     auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
     // auto messageRelayThread = std::thread(runRelayIPCRequestThread, messageBuffer);
