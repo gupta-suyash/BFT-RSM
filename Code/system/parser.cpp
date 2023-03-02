@@ -17,7 +17,7 @@ void usage()
  */
 NodeConfiguration parser(int argc, char *argv[])
 {
-    constexpr auto kNumArgs = 3 + 1;
+    constexpr auto kNumArgs = 4 + 1;
     if (argc != kNumArgs)
     {
         // we should really use an existing parser like boost::program_options
@@ -28,6 +28,7 @@ NodeConfiguration parser(int argc, char *argv[])
     const auto kPathToConfig = argv[1];
     const auto kExperimentName = argv[2];
     const auto kConfigId = argv[3];
+    const auto kPersonalId = argv[4];
 
     std::ifstream configFile(kPathToConfig, std::ifstream::binary);
     Json::Value config;

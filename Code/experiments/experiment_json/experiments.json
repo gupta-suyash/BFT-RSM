@@ -1,0 +1,39 @@
+{
+  "experiment_independent_vars": {
+     "project_dir": "/proj/ove-PG0/murray/Scrooge/Code/experiments/results/scale_clients/",
+     "src_dir": "/proj/ove-PG0/murray/Scrooge/Code/",
+     "network_dir": "/proj/ove-PG0/murray/Scrooge/Code/configuration/",
+     "local_setup_script": "/proj/ove-PG0/murray/Scrooge/Code/setup_local.sh",
+     "remote_setup_script": "/proj/ove-PG0/murray/Scrooge/Code/setup_remote.sh",
+     "local_compile_script": "/proj/ove-PG0/murray/Scrooge/Code/build.sh",
+     "replication_protocol": "scrooge",
+     "client_regions": ["US"]
+  },
+  "increase_packet_size": {
+    "experiment_name": "increase_packet_size",
+    "nb_rounds": 3,
+    "simulate_latency": 0,
+    "duration": 2,
+    "scrooge_args": {
+      "general": {
+	"use_debug_logs_bool": 0,
+	"log_path": "/proj/ove-PG0/murray/Scrooge/Code/experiments/results/",
+	"max_num_packets": 10000	
+      },
+      "cluster_0": {
+        "local_num_nodes": [2, 2, 2],
+	"foreign_num_nodes": [2, 2, 2],
+	"local_max_nodes_fail": [0, 0, 0],
+	"foreign_max_nodes_fail": [0, 0, 0],
+	"packet_size": [100000, 500000, 750000, 1000000] 
+      },
+      "cluster_1": {
+	"local_num_nodes": [2, 2, 2],
+	"foreign_num_nodes": [2, 2, 2],
+	"local_max_nodes_fail": [0, 0, 0],
+	"foreign_max_nodes_fail": [0, 0, 0],
+	"packet_size": [100000, 500000, 750000, 1000000]
+      }
+    }
+  }
+}

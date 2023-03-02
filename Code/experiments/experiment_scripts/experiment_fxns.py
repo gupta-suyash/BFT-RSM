@@ -91,7 +91,7 @@ def compileCode(localCompileFile):
 # Function that setups up appropriate folders on the
 # correct machines, and sends the jars. It assumes
 # that the appropriate VMs/machines have already started
-def setup(configJson, needSetup):
+def setup(configJson, experimentName):
     print("Setup")
     cloudlab = Cloudlab_Experiment()
     config = loadJsonFile(configJson)
@@ -100,29 +100,18 @@ def setup(configJson, needSetup):
         return
 ##### LOADING CONFIG FILE ####
     # Username for ssh-ing.
-    cloudlab.user = config['experiment_independent_vars']['username']
     # Name of the experiment that will be run
-    cloudlab.experiment_name = config['experiment_independent_vars']['experiment_name']
+    cloudlab.experiment_name = experimentName
     # Experiment results dir on the machine
     cloudlab.project_dir = config['experiment_independent_vars']['project_dir']
-    # Project dir on the remote machine
-    #remoteProjectDir = config['remoteprojectdir']
     # Source directory on the local machine (for compilation)
     cloudlab.src_dir = config['experiment_independent_vars']['src_dir']
     # Path to setup script
     cloudlab.local_setup_script = config['experiment_independent_vars']['local_setup_script']
     # Path to setup script for remote machines
     cloudlab.remote_setup_script = config['experiment_independent_vars']['remote_setup_script']
-    # List of IPs for every machine in the cluster
-    ip_list = config['experiment_independent_vars']['ip_list']
-    print(ip_list)
-    # Run function to install all appropriate packages on servers
-    if needSetup:
-        setupServers(cloudlab.local_setup_script, cloudlab.remote_setup_script, ip_list)
     # Compile the program once on the local machine
-    compileCode(config['experiment_independent_vars']['local_compile_script'])
-    # The experiment folder is generated with the following path:
-    # results/experimentName/Date
+    # TODO compileCode(config['experiment_independent_vars']['local_compile_script'])
     # The date is used to distinguish multiple runs of the same experiment
     expFolder = cloudlab.project_dir + cloudlab.experiment_name
     expDir =  expFolder + "/" + datetime.datetime.now().strftime("%Y:%m:%d:%H:%M") + "/"
@@ -130,14 +119,6 @@ def setup(configJson, needSetup):
 
 #### GENERATING EXP DIRECTORY ON ALL MACHINES ####
     print("Creating Experiment directory")
-    """
-    clientIpList = list()
-    for c in properties['clients']:
-        clientIpList.append(c)
-    for c in clientIpList:
-        print c
-        mkdirRemote(c, remotePath, clientKeyName)
-    """
     executeCommand("mkdir -p " + expDir)
 
     # Create file with git hash
@@ -149,16 +130,39 @@ def setup(configJson, needSetup):
         f.write(gitHash)
 
 # Generate Network files
-def generateNetwork(clusters, networkConfigDir):
-    for i in range(0, len(clusters)):
+def generateNetwork(networkConfigDir, cluster0sz, cluster1sz):
+    host_file = open('/etc/hosts', 'r')
+    Lines = host_file.readlines()
+    count = -1
+    clusterZero = []
+    clusterOne = []
+    hostDict = {}
+    ip_list = []
+    for line in Lines:
+        count += 1
+        if count == 0:
+            continue
+        arr = line.split(" ")
+        ip = arr[0].split('\t')
+        node_idx_arr = arr[len(arr) - 1].strip().split('node')
+        hostDict[int(node_idx_arr[len(node_idx_arr) - 1])] = ip[0]
+        # ip_list.push(ip[0])
+    print("Dictionary ", hostDict)
+    # TODO Figure out partition of hosts in the network 
+    # for hosts in host
+    offset = 0
+    for i in range(0, 2):
         filename = "network" + str(i) + "urls.txt"
         executeCommand("rm " + networkConfigDir + filename)
         executeCommand("touch " + networkConfigDir + filename);
         with open(networkConfigDir + filename, 'w') as f:
-            print(clusters[i])
-            for j in range(0, len(clusters[i])):
-                print(clusters[i][j])
-                f.write(clusters[i][j])
+            if i == 0:
+                sz = cluster0sz
+            else:
+                sz = cluster1sz
+                offset = cluster0sz
+            for j in range(0, sz):
+                f.write(hostDict[j + offset])
                 f.write("\n")
 
 # Runs the actual experiment
@@ -167,30 +171,21 @@ def run(configJson, experimentName):
     cloudlab = Cloudlab_Experiment()
     config = loadJsonFile(configJson)
     # Name of the experiment that will be run
-    cloudlab.experiment_name = config['experiment_independent_vars']['experiment_name']
+    cloudlab.experiment_name = experimentName
     # Experiment results dir on the machine
     cloudlab.project_dir = config['experiment_independent_vars']['project_dir']
     # Source directory on the local machine (for compilation)
     cloudlab.src_dir = config['experiment_independent_vars']['src_dir']
-    #logFolders = properties['log_folder']
 
     # The nbclients field is a list that contains a list of client counts.
     # Ex, if this is listed: [1,2,4,8], the framework will run the experiment
     # 4 times: one with 1 clients, then with two, then four, then 8. The
     # format for collecting the data will be remoteExpDir/clientcount.
-    scaling_clients_exp = Scaling_Client_Exp()
-    scaling_clients_exp.nb_rounds = int(config["client_scaling_experiment"]['nb_rounds'])
-    scaling_clients_exp.num_replicas = int(config["client_scaling_experiment"]['num_replicas'])
-    scaling_clients_exp.scaling_factor = int(config["client_scaling_experiment"]['scaling_factor'])
-    print("Replicas: ", scaling_clients_exp.num_replicas)
     # If true, simulate latency with tc
     try:
         simulateLatency = int(config["client_scaling_experiment"]['simulate_latency'])
     except:
         simulateLatency = 0
-
-    # Create connections for everyone
-    ip_list = config['experiment_independent_vars']['ip_list']
 
     # Setup latency on appropriate hosts if simulated
     if (simulateLatency):
@@ -198,52 +193,39 @@ def run(configJson, experimentName):
 
     first = True
     dataLoaded = False
+    increase_packet_size = Scaling_Client_Exp()
+    increase_packet_size.nb_rounds = int(config[experimentName]['nb_rounds'])
     # Run for each round, nbRepetitions time.
-    for i in range(0, scaling_clients_exp.nb_rounds):
+    for i in range(0, increase_packet_size.nb_rounds):
         time.sleep(10)
-        for it in range(0, scaling_clients_exp.nb_rounds):
-            time.sleep(10)
-            try:
-                print("Running Round: " + str(i) + " Iter " + str(it))
-                clusters = []
-                # Need to collect the scrooge start commands
-                scrooge_commands = []
-                for i in range(0, int(scaling_clients_exp.num_replicas)):
-                     #cmd = "/proj/ove-PG0/murray/Scrooge/Code/scrooge " + configJson + " " server_str
-                     print("Replica: ", i)
-                     scrooge = Scrooge_Args()
-                     server_str = "server_" + str(i)
-                     if scrooge.group_id >= len(clusters):
-                         clusters.append([])
-                         clusters[scrooge.group_id].append(config["client_scaling_experiment"]["scrooge_args"][server_str]["ip"]);
-                     else:
-                         clusters[scrooge.group_id].append(config["client_scaling_experiment"]["scrooge_args"][server_str]["ip"]);
-                     cmd = "/proj/ove-PG0/murray/Scrooge/Code/scrooge " + configJson + " " + experimentName + " " + server_str
-                     print("Print: ", cmd)
-                     # cmd = "echo 'hello'"
-                     scrooge_commands.append(cmd)
-                print("Execute command now")
-                print("Cluster: ", clusters)
-                generateNetwork(clusters, config['experiment_independent_vars']['network_dir'])
-                executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
-            except Exception as e:
-                print(e)
+        try:
+            # Need to collect the scrooge start commands
+            scrooge_commands = []
+            clusterZerosz = int(config[experimentName]['scrooge_args']['cluster_0']['local_num_nodes'][i])
+            clusterOnesz = int(config[experimentName]['scrooge_args']['cluster_1']['local_num_nodes'][i])
+            ip_list = generateNetwork(config['experiment_independent_vars']['network_dir'], clusterZerosz, clusterOnesz)
+            scrooge_exec = "/proj/ove-PG0/murray/Scrooge/Code/scrooge "
+            groupId = 0
+            nodeId = 0
+            for i in range(0, clusterZerosz + clusterOnesz):
+                cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId)
+                nodeId += 1
+                if nodeId == clusterZerosz:
+                    nodeId = 0
+                    groupId = 1
+                scrooge_commands.append(cmd)
+            print(scrooge_commands)
+            print("Execute command now")
+            executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
+        except Exception as e:
+            print(e)
+
+##################################### NOT UPDATED YET ###################################################
+
 
 # Cleanup: kills ongoing processes and removes old data
 # directory
-def cleanup(configJson, ecFile="ec2.json"):
-    properties = loadPropertyFile(propertyFile)
-    ecProperties = loadPropertyFile(ecFile)
-    if not properties or not ecProperties:
-        print("Empty property file, failing")
-        return
-    user = properties['username']
-
-    print("Killing processes")
-    clientIpList = list()
-    for c in properties['clients']:
-        clientIpList.append(c)
-
+def cleanup(configJson, ip_list):
     for c in clientIpList:
         try:
             print("Killing " + str(c))
@@ -251,27 +233,9 @@ def cleanup(configJson, ecFile="ec2.json"):
         except Exception  as e:
             print(e)
 
-    print("Removing old experiments")
-    remoteFolder= properties['experiment_dir'] + '/'+ experimentName
-    for c in clientIpList:
-        rmdirRemoteIfExists(c,remoteFolder, clientKeyName)
-    #if (deleteTable): deleteDynamoTables(propertyFile)
-
-
 # TODO Collects the data for the experiment
 def collectData(propertyFile, ecFile, localFolder, remoteFolder):
     print("Collect Data")
-
-    properties = loadPropertyFile(propertyFile)
-    ecProperties = loadPropertyFile(ecFile)
-    if not properties or not ecProperties:
-        print("Empty property file, failing")
-        return
-    clientIpList = list()
-
-    for c in properties['clients']:
-        clientIpList.append(c)
-    getDirectory(localFolder, clientIpList,remoteFolder, clientKeyName)
 
 # Computes experiment results and outputs all results in results.dat
 # For each round in an experiment run the "generateData" method as a separate
