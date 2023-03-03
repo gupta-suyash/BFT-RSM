@@ -29,6 +29,7 @@ NodeConfiguration parser(int argc, char *argv[])
     const auto kExperimentName = argv[2];
     const auto kConfigId = argv[3];
     const auto kPersonalId = argv[4];
+    const auto kRoundNb = argv[5];
 
     std::ifstream configFile(kPathToConfig, std::ifstream::binary);
     Json::Value config;
@@ -42,16 +43,18 @@ NodeConfiguration parser(int argc, char *argv[])
     }
 
     const auto kScroogeParams = config[kExperimentName]["scrooge_args"];
-    const auto kOwnParams = kScroogeParams[kConfigId];
+    std::string cluster = "cluster_"s + kConfigId;
+    const auto kOwnParams = kScroogeParams[cluster];
+    const auto kGeneralParams = kScroogeParams["general"];
 
-    if (config.isNull() || kScroogeParams.isNull() || kOwnParams.isNull())
+    if (config.isNull() || kScroogeParams.isNull() || kOwnParams.isNull() || kGeneralParams.isNull())
     {
-        SPDLOG_CRITICAL("Invalid config found at path {}, configIsNull={}, scroogeParamsIsNull={}, ownParamsIsNull={}",
-                        kPathToConfig, config.isNull(), kScroogeParams.isNull(), kOwnParams.isNull());
+        SPDLOG_CRITICAL("Invalid config found at path {}, configIsNull={}, scroogeParamsIsNull={}, ownParamsIsNull={}, generalParamsIsNull = {}",
+                        kPathToConfig, config.isNull(), kScroogeParams.isNull(), kOwnParams.isNull(), kGeneralParams.isNull());
         usage();
     }
 
-    const bool useDebugLogs = kOwnParams["use_debug_logs_bool"].asBool();
+    const bool useDebugLogs = kGeneralParams["use_debug_logs_bool"].asBool();
     if (useDebugLogs)
     {
         spdlog::set_level(spdlog::level::debug);
@@ -63,22 +66,22 @@ NodeConfiguration parser(int argc, char *argv[])
 
     try
     {
+	
+        const auto ownNodeId = stoull(kPersonalId);
 
-        const auto ownNodeId = kOwnParams["node_id"].asUInt64();
+        const auto ownNetworkId = stoull(kConfigId);
 
-        const auto ownNetworkId = kOwnParams["own_network_id"].asUInt64();
+        const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
 
-        const auto ownNetworkSize = kOwnParams["local_num_nodes"].asUInt64();
+        const auto otherNetworkSize = kOwnParams["foreign_num_nodes"][kRoundNb].asUInt64();
 
-        const auto otherNetworkSize = kOwnParams["foreign_num_nodes"].asUInt64();
+        const auto ownNetworkMaxNodesFail = kOwnParams["local_max_nodes_fail"][kRoundNb].asUInt64();
 
-        const auto ownNetworkMaxNodesFail = kOwnParams["local_max_nodes_fail"].asUInt64();
+        const auto otherNetworkMaxNodesFail = kOwnParams["foreign_max_nodes_fail"][kRoundNb].asUInt64();
 
-        const auto otherNetworkMaxNodesFail = kOwnParams["foreign_max_nodes_fail"].asUInt64();
+        const auto numPackets = kOwnParams["num_packets"][kRoundNb].asUInt64();
 
-        const auto numPackets = kOwnParams["num_packets"].asUInt64();
-
-        const auto packetSize = kOwnParams["packet_size"].asUInt64();
+        const auto packetSize = kOwnParams["packet_size"][kRoundNb].asUInt64();
 
         const auto logDir = kOwnParams["log_path"].asString();
         const auto logPath = logDir + "log_"s + std::to_string(ownNodeId) + ".txt"s;

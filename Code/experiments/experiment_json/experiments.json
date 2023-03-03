@@ -25,6 +25,7 @@
 	"foreign_num_nodes": [2, 2, 2],
 	"local_max_nodes_fail": [0, 0, 0],
 	"foreign_max_nodes_fail": [0, 0, 0],
+	"num_packets": [1000, 1000, 1000, 1000],
 	"packet_size": [100000, 500000, 750000, 1000000] 
       },
       "cluster_1": {
@@ -32,6 +33,7 @@
 	"foreign_num_nodes": [2, 2, 2],
 	"local_max_nodes_fail": [0, 0, 0],
 	"foreign_max_nodes_fail": [0, 0, 0],
+	"num_packets": [1000, 1000, 1000, 1000],
 	"packet_size": [100000, 500000, 750000, 1000000]
       }
     }
