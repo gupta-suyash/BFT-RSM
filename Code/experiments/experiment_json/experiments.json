@@ -9,6 +9,35 @@
      "replication_protocol": "scrooge",
      "client_regions": ["US"]
   },
+  "increase_packet_size_nb_one": {
+    "experiment_name": "increase_packet_size",
+    "nb_rounds": 1,
+    "simulate_latency": 0,
+    "duration": 2,
+    "scrooge_args": {
+      "general": {
+	"use_debug_logs_bool": 0,
+	"log_path": "/proj/ove-PG0/murray/Scrooge/Code/experiments/results/",
+	"max_num_packets": 10000	
+      },
+      "cluster_0": {
+        "local_num_nodes": [2],
+	"foreign_num_nodes": [2],
+	"local_max_nodes_fail": [0],
+	"foreign_max_nodes_fail": [0],
+	"num_packets": [1000],
+	"packet_size": [100000] 
+      },
+      "cluster_1": {
+	"local_num_nodes": [2],
+	"foreign_num_nodes": [2],
+	"local_max_nodes_fail": [0],
+	"foreign_max_nodes_fail": [0],
+	"num_packets": [1000],
+	"packet_size": [100000]
+      }
+    }
+  },
   "increase_packet_size": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 3,

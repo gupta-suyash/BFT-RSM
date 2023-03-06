@@ -1,14 +1,12 @@
 #!/bin/bash
 
-# install performance packages
-apt install valgrind
-apt install htop
-apt install nload
-
 # install packages
 apt-get -y update
 apt-get -y upgrade
 echo "updated and upgraded"
+apt install valgrind
+apt install htop
+apt install nload
 apt-get -y install autoconf automake libtool curl make g++ clang unzip
 apt-get -y install  libboost-all-dev
 apt-get -y install cmake
@@ -45,15 +43,16 @@ tar -xzf /proj/ove-PG0/murray/Scrooge/Code/protobuf-cpp-3.20.2.tar.gz
 echo "untar of protobuf successful"
 cd ./protobuf-3.20.2
 ./configure
+make clean
 make -j$(nproc)
 make install -j
 ldconfig
 cd ..
 
 # Go 1.20 install
-wget https://go.dev/dl/go1.20.linux-arm64.tar.gz
-rm -rf /usr/local/go
-tar -C /usr/local -xzf go1.20.linux-arm64.tar.gz
+sudo wget https://go.dev/dl/go1.20.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
 echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile

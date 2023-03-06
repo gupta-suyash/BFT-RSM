@@ -2,6 +2,7 @@
 #include <fstream>
 #include <jsoncpp/json/json.h>
 #include <string>
+#include <iostream>
 
 void usage()
 {
@@ -17,7 +18,7 @@ void usage()
  */
 NodeConfiguration parser(int argc, char *argv[])
 {
-    constexpr auto kNumArgs = 4 + 1;
+    constexpr auto kNumArgs = 5 + 1;
     if (argc != kNumArgs)
     {
         // we should really use an existing parser like boost::program_options
@@ -29,7 +30,7 @@ NodeConfiguration parser(int argc, char *argv[])
     const auto kExperimentName = argv[2];
     const auto kConfigId = argv[3];
     const auto kPersonalId = argv[4];
-    const auto kRoundNb = argv[5];
+    const Json::ArrayIndex kRoundNb = stoull(argv[5]);
 
     std::ifstream configFile(kPathToConfig, std::ifstream::binary);
     Json::Value config;
@@ -66,25 +67,25 @@ NodeConfiguration parser(int argc, char *argv[])
 
     try
     {
-	
         const auto ownNodeId = stoull(kPersonalId);
 
         const auto ownNetworkId = stoull(kConfigId);
-
-        const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
-
-        const auto otherNetworkSize = kOwnParams["foreign_num_nodes"][kRoundNb].asUInt64();
+        
+	const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
+        
+	const auto otherNetworkSize = kOwnParams["foreign_num_nodes"][kRoundNb].asUInt64();
 
         const auto ownNetworkMaxNodesFail = kOwnParams["local_max_nodes_fail"][kRoundNb].asUInt64();
 
         const auto otherNetworkMaxNodesFail = kOwnParams["foreign_max_nodes_fail"][kRoundNb].asUInt64();
-
-        const auto numPackets = kOwnParams["num_packets"][kRoundNb].asUInt64();
+        
+	const auto numPackets = kOwnParams["num_packets"][kRoundNb].asUInt64();
 
         const auto packetSize = kOwnParams["packet_size"][kRoundNb].asUInt64();
 
         const auto logDir = kOwnParams["log_path"].asString();
-        const auto logPath = logDir + "log_"s + std::to_string(ownNodeId) + ".txt"s;
+        
+	const auto logPath = logDir + "log_"s + std::to_string(ownNodeId) + ".txt"s;
         SPDLOG_INFO("Log Path: {}", logPath);
         //	auto logger = spdlog::basic_logger_mt("basic_logger", logPath);
         //	spdlog::set_default_logger(logger);
@@ -99,6 +100,14 @@ NodeConfiguration parser(int argc, char *argv[])
                                  .kOtherMaxNumFailedNodes = otherNetworkMaxNodesFail,
                                  .kNodeId = ownNodeId,
                                  .kLogPath = logPath};
+    }
+    catch (const std::runtime_error& re)
+    {
+	std::cerr << "Runtime error: " << re.what() << std::endl;
+    }
+    catch (const std::exception& ex)
+    {
+	    std::cerr << "Error occurred: " << ex.what() << std::endl;
     }
     catch (...)
     {

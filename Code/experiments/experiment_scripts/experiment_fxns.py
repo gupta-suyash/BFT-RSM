@@ -111,7 +111,7 @@ def setup(configJson, experimentName):
     # Path to setup script for remote machines
     cloudlab.remote_setup_script = config['experiment_independent_vars']['remote_setup_script']
     # Compile the program once on the local machine
-    # TODO compileCode(config['experiment_independent_vars']['local_compile_script'])
+    compileCode(config['experiment_independent_vars']['local_compile_script'])
     # The date is used to distinguish multiple runs of the same experiment
     expFolder = cloudlab.project_dir + cloudlab.experiment_name
     expDir =  expFolder + "/" + datetime.datetime.now().strftime("%Y:%m:%d:%H:%M") + "/"
@@ -144,9 +144,11 @@ def generateNetwork(networkConfigDir, cluster0sz, cluster1sz):
             continue
         arr = line.split(" ")
         ip = arr[0].split('\t')
+        print(arr)
         node_idx_arr = arr[len(arr) - 1].strip().split('node')
+        print(node_idx_arr)
         hostDict[int(node_idx_arr[len(node_idx_arr) - 1])] = ip[0]
-        # ip_list.push(ip[0])
+        ip_list.append(ip[0])
     print("Dictionary ", hostDict)
     # TODO Figure out partition of hosts in the network 
     # for hosts in host
@@ -164,6 +166,7 @@ def generateNetwork(networkConfigDir, cluster0sz, cluster1sz):
             for j in range(0, sz):
                 f.write(hostDict[j + offset])
                 f.write("\n")
+    return ip_list
 
 # Runs the actual experiment
 def run(configJson, experimentName):
@@ -182,8 +185,9 @@ def run(configJson, experimentName):
     # 4 times: one with 1 clients, then with two, then four, then 8. The
     # format for collecting the data will be remoteExpDir/clientcount.
     # If true, simulate latency with tc
+    simulateLatency = 0
     try:
-        simulateLatency = int(config["client_scaling_experiment"]['simulate_latency'])
+        simulateLatency = int(config[experimentName]['simulate_latency'])
     except:
         simulateLatency = 0
 
@@ -196,6 +200,7 @@ def run(configJson, experimentName):
     increase_packet_size = Scaling_Client_Exp()
     increase_packet_size.nb_rounds = int(config[experimentName]['nb_rounds'])
     # Run for each round, nbRepetitions time.
+    
     for i in range(0, increase_packet_size.nb_rounds):
         time.sleep(10)
         try:
@@ -207,8 +212,8 @@ def run(configJson, experimentName):
             scrooge_exec = "/proj/ove-PG0/murray/Scrooge/Code/scrooge "
             groupId = 0
             nodeId = 0
-            for i in range(0, clusterZerosz + clusterOnesz):
-                cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId)
+            for j in range(0, clusterZerosz + clusterOnesz):
+                cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
@@ -219,137 +224,3 @@ def run(configJson, experimentName):
             executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
         except Exception as e:
             print(e)
-
-##################################### NOT UPDATED YET ###################################################
-
-
-# Cleanup: kills ongoing processes and removes old data
-# directory
-def cleanup(configJson, ip_list):
-    for c in clientIpList:
-        try:
-            print("Killing " + str(c))
-            executeRemoteCommandNoCheck(c, "ps -ef | grep java | grep -v grep | grep -v bash | awk '{print \$2}' | xargs -r kill -9", clientKeyName)
-        except Exception  as e:
-            print(e)
-
-# TODO Collects the data for the experiment
-def collectData(propertyFile, ecFile, localFolder, remoteFolder):
-    print("Collect Data")
-
-# Computes experiment results and outputs all results in results.dat
-# For each round in an experiment run the "generateData" method as a separate
-# thread TODO
-def calculateParallel(propertyFile, localExpDir):
-    properties = loadPropertyFile(propertyFile)
-    if not properties:
-        print("Empty property file, failing")
-        return
-    nbRounds = len(properties['nbclients'])
-    experimentName = properties['experimentname']
-    if (not localExpDir):
-        localProjectDir = properties['localprojectdir']
-        expDir = properties['experiment_dir']
-        localExpDir = localProjectDir + "/" + expDir
-    threads = list()
-    fileHandler = open(localExpDir + "/results.dat", "w+")
-    for it in range (0, nbRepetitions):
-        time = int(properties['exp_length'])
-        manager = multiprocessing.Manager()
-        results = manager.dict()
-        for i in range(0, nbRounds):
-            try:
-                nbClients = int(properties['nbclients'][i])
-                folderName = localExpDir + "/" + str(nbClients) + "_" + str(it) + "/" + str(nbClients) + "_" + str(it)
-                executeCommand("rm -f " + folderName + "/clients.dat")
-                fileList = dirList(folderName, False,'dat')
-                folderName = folderName + "/clients"
-                combineFiles(fileList, folderName + ".dat")
-                t = multiprocessing.Process(target=generateData,args=(results,folderName +".dat", nbClients, time))
-                threads.append(t)
-            except:
-                print("No File " + folderName)
-
-        executingThreads = list()
-        while (len(threads)>0):
-            for c in range(0,2):
-                try:
-                    t = threads.pop(0)
-                except:
-                    break
-                print("Remaining Tasks " + str(len(threads)))
-                executingThreads.append(t)
-            for t in executingThreads:
-                t.start()
-            for t in executingThreads:
-                t.join()
-            print("Finished Processing Batch")
-            executingThreads = list()
-        sortedKeys = sorted(results.keys())
-        for key in sortedKeys:
-            fileHandler.write(results[key])
-        fileHandler.flush()
-    fileHandler.close()
-
-
-# Generates data using the math functions available in math_util
-# Expects latency to be in the third column of the output file
-def generateData(results,folderName, clients, time):
-    print("Generating Data for " + folderName)
-    result = str(clients) + " "
-    result+= str(computeMean(folderName,2)) + " "
-    result+= str(computeMin(folderName,2)) + " "
-    result+= str(computeMax(folderName,2)) + " "
-    result+= str(computeVar(folderName,2)) + " "
-    result+= str(computeStd(folderName,2)) + " "
-    result+= str(computePercentile(folderName,2,50)) + " "
-    result+= str(computePercentile(folderName,2,75)) + " "
-    result+= str(computePercentile(folderName,2,90)) + " "
-    result+= str(computePercentile(folderName,2,95)) + " "
-    result+= str(computePercentile(folderName,2,99)) + " "
-    result+= str(computeThroughput(folderName,2,time)) + " \n"
-    results[clients]=result
-
-
-# Plots a throughput-latency graph. This graph assumes the
-# data format in calculate() function
-# Pass in as argument: a list of tuple (dataName, label)
-# and the output to which this should be generated
-def plotThroughputLatency(dataFileNames, outputFileName, title = None):
-    x_axis = "Throughput(Trx/s)"
-    y_axis = "Latency(ms)"
-    if (not title):
-        title = "Throughput-Latency Graph"
-    data = list()
-    for x in dataFileNames:
-        data.append((x[0], x[1], 11, 1))
-    plotLine(title, x_axis,y_axis, outputFileName, data, False, xrightlim=200000, yrightlim=5)
-
-
-# Plots a throughput. This graph assumes the
-# data format in calculate() function
-# Pass in as argument: a list of tuple (dataName, label)
-# and the output to which this should be generated
-def plotThroughput(dataFileNames, outputFileName, title = None):
-    x_axis = "Clients"
-    y_axis = "Throughput (trx/s)"
-    if (not title):
-        title = "ThroughputGraph"
-    data = list()
-    for x in dataFileNames:
-        data.append((x[0], x[1], 0, 11))
-    plotLine(title, x_axis,y_axis, outputFileName, data, False, xrightlim=300, yrightlim=200000)
-
-# Plots a throughput. This graph assumes the
-# data format in calculate() function
-# Pass in as argument: a list of tuple (dataName, label)
-# and the output to which this should be generated
-def plotLatency(dataFileNames, outputFileName, title = None):
-    x_axis = "Clients"
-    y_axis = "Latency(ms)"
-    if (not title):
-        title = "LatencyGraph"
-    data = list()
-    for x in dataFileNames:
-        data.append((x[0], x[1], 0, 1))
-    plotLine(title, x_axis,y_axis, outputFileName, data, False, xrightlim=300, yrightlim=5)
