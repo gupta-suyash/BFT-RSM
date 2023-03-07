@@ -1,5 +1,14 @@
 #!/bin/bash
 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
+# install performance packages
+apt install valgrind
+apt install htop
+apt install nload
 # install packages
 apt-get -y update
 apt-get -y upgrade

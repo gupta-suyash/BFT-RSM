@@ -32,7 +32,7 @@ FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 all: scrooge
 
 scrooge : $(SOURCES_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) 
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} -o $@ $<
 

@@ -1,6 +1,5 @@
 #include "pipeline.h"
 #include "acknowledgment.h"
-#include "statisticstracker.cpp"
 
 #include <chrono>
 #include <list>
@@ -75,7 +74,6 @@ int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
 
     const auto bufferSize = buffer.size();
     const auto sendReturnValue = nng_send(socket, const_cast<char *>(buffer.c_str()), bufferSize, NNG_FLAG_NONBLOCK);
-    // SPDLOG_CRITICAL("Send Return Value: {}", sendReturnValue);
     const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN;
     if (isActualError)
     {
@@ -220,7 +218,6 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
     std::vector<pipeline::SendMessageRequest> messageRequests;
 
     SPDLOG_INFO("Pipeline Sending Thread Starting");
-    // StatisticsInterpreter stats;
     while (not mShouldThreadStop)
     {
         const auto curTime = std::chrono::steady_clock::now();
@@ -253,12 +250,10 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                 }
                 return localSendSockets->at(it->destinationNodeId);
             }();
-            // SPDLOG_CRITICAL("Continue 2");
 
             // send the data
             const auto sendMessageResult = sendMessage(socket, *message);
             // stats.startTimer(message->data().sequence_number());
-            // SPDLOG_CRITICAL("Continue 2.5");
             const bool isSendSuccessful = sendMessageResult == 0;
             if (isSendSuccessful)
             {
@@ -271,9 +266,8 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                 // stats.endTimer(message->data().sequence_number());
                 continue;
             }
-            // SPDLOG_CRITICAL("Continue 3");
 
-            if (message->data().sequence_number() > g_number_of_packets)
+            if (message->data().sequence_number() > get_number_of_packets())
             {
                 // stats.printOutAllResults();
             }

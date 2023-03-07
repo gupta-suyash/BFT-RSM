@@ -1,31 +1,37 @@
 #!/bin/bash
-#if [ "$EUID" -ne 0 ]
-#  then echo "Please run as root"
-#  exit
-#fi
+
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
+# install performance packages
+apt install valgrind
+apt install htop
+apt install nload
+
 
 # install packages
-sudo apt-get -y update
-sudo apt-get -y upgrade
-sudo apt install valgrind
-sudo apt install htop
-sudo apt install nload
+apt-get -y update
+apt-get -y upgrade
+apt install valgrind
+apt install htop
+apt install nload
 echo "updated and upgraded"
-sudo apt-get -y install autoconf automake libtool curl make g++ clang unzip
-sudo apt-get -y install  libboost-all-dev
-sudo apt-get -y install cmake
-sudo apt-get -y install build-essential
-sudo apt-get -y install re2c
-sudo apt-get -y remove --auto-remove libprotobuf-dev
-sudo apt-get -y remove --auto-remove golang-goprotobuf-dev
-sudo apt-get -y remove --auto-remove protobuf-compiler
-sudo apt-get -y install clang-format
-sudo apt-get -y install libspdlog-dev
-sudo apt-get install libjsoncpp-dev
-sudo apt -y install python3-pip
+apt-get -y install autoconf automake libtool curl make g++ clang unzip
+apt-get -y install  libboost-all-dev
+apt-get -y install cmake
+apt-get -y install build-essential
+apt-get -y install re2c
+apt-get -y remove --auto-remove libprotobuf-dev
+apt-get -y remove --auto-remove golang-goprotobuf-dev
+apt-get -y remove --auto-remove protobuf-compiler
+apt-get -y install clang-format
+apt-get -y install libspdlog-dev
+apt-get install libjsoncpp-dev
 pip install numpy
 pip install matplotlib
-pip install seaborn 
+pip install seaborn
 echo "basic packages installed"
 sudo apt-get -y install ninja-build
 echo "built ninja"
@@ -50,8 +56,8 @@ sudo ldconfig
 cd ..
 
 # Go 1.19.5 install
-sudo rm -rf /usr/local/go 
-sudo tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
+rm -rf /usr/local/go
+tar -C /usr/local -xzf go1.20.linux-arm64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
 echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
