@@ -36,7 +36,8 @@ import multiprocessing
 import subprocess
 
 # Include all utility scripts
-sys.path.append("/proj/ove-PG0/murray/Scrooge/Code/experiments/experiment_scripts/util/")
+setup_dir = os.path.realpath(os.path.dirname(__file__))
+sys.path.append(setup_dir + "/util/")
 from ssh_util import *
 from json_util import *
 from math_util import *
