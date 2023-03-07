@@ -12,9 +12,8 @@ import random
 import multiprocessing
 import subprocess
 
-setup_dir = os.path.realpath(os.path.dirname(__file__))
-
 # Include all utility scripts
+setup_dir = os.path.realpath(os.path.dirname(__file__))
 sys.path.append(setup_dir + "/util/")
 from ssh_util import *
 from json_util import *
