@@ -10,9 +10,13 @@ apt install valgrind
 apt install htop
 apt install nload
 
+
 # install packages
 apt-get -y update
 apt-get -y upgrade
+apt install valgrind
+apt install htop
+apt install nload
 echo "updated and upgraded"
 apt-get -y install autoconf automake libtool curl make g++ clang unzip
 apt-get -y install  libboost-all-dev
@@ -25,7 +29,9 @@ apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
 apt-get install libjsoncpp-dev
-pip install numpy                                                                                                                                                   pip install matplotlib                                                                                                                                              pip install seaborn
+pip install numpy
+pip install matplotlib
+pip install seaborn
 echo "basic packages installed"
 sudo apt-get -y install ninja-build
 echo "built ninja"
@@ -35,18 +41,18 @@ echo "untar of nng successful"
 cd ./nng-1.5.2
 cd build
 #cmake -G Ninja -S ..
-ninja
-ninja install
+sudo ninja
+sudo ninja install
 cd ..
 cd ..
 
 # protobuf installation
 echo "untar of protobuf successful"
 cd ./protobuf-3.20.2
-./configure
-make -j$(nproc)
-make install -j
-ldconfig
+sudo ./configure
+sudo make -j$(nproc)
+sudo make install -j
+sudo ldconfig
 cd ..
 
 # Go 1.19.5 install

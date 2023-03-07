@@ -16,6 +16,7 @@ struct NodeConfiguration
     const uint64_t kOtherMaxNumFailedNodes;
     const uint64_t kNodeId;
     const std::string kLogPath;
+    const std::string kWorkingDir;
 };
 
 uint64_t get_rsm_id();
