@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Written: Natacha Crooks ncrooks@cs.utexas.edu 2017
 # Edited: Micah Murray m_murray@berekely.edu 2023
 
