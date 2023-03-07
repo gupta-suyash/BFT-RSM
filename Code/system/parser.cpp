@@ -42,7 +42,6 @@ NodeConfiguration parser(int argc, char *argv[])
     {
         SPDLOG_CRITICAL("Could not find config at path {}", kPathToConfig);
     }
-
     const auto kScroogeParams = config[kExperimentName]["scrooge_args"];
     std::string cluster = "cluster_"s + kConfigId;
     const auto kOwnParams = kScroogeParams[cluster];
@@ -67,6 +66,8 @@ NodeConfiguration parser(int argc, char *argv[])
 
     try
     {
+	const auto workingDir = config["experiment_independent_vars"]["network_dir"].asString();
+
         const auto ownNodeId = stoull(kPersonalId);
 
         const auto ownNetworkId = stoull(kConfigId);
@@ -86,7 +87,7 @@ NodeConfiguration parser(int argc, char *argv[])
         const auto logDir = kOwnParams["log_path"].asString();
         
 	const auto logPath = logDir + "log_"s + std::to_string(ownNodeId) + ".txt"s;
-        SPDLOG_INFO("Log Path: {}", logPath);
+        SPDLOG_INFO("Working directory: {}", workingDir);
         //	auto logger = spdlog::basic_logger_mt("basic_logger", logPath);
         //	spdlog::set_default_logger(logger);
 
@@ -99,7 +100,8 @@ NodeConfiguration parser(int argc, char *argv[])
                                  .kOwnMaxNumFailedNodes = ownNetworkMaxNodesFail,
                                  .kOtherMaxNumFailedNodes = otherNetworkMaxNodesFail,
                                  .kNodeId = ownNodeId,
-                                 .kLogPath = logPath};
+                                 .kLogPath = logPath,
+				 .kWorkingDir = workingDir};
     }
     catch (const std::runtime_error& re)
     {

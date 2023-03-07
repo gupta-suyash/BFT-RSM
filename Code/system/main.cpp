@@ -17,14 +17,15 @@
 int main(int argc, char *argv[])
 {
     // Parsing the command line args.
-    const auto kWorkingDir = std::filesystem::current_path();
-    const auto kNetworkZeroConfigPath = kWorkingDir / "configuration/network0urls.txt";
-    const auto kNetworkOneConfigPath = kWorkingDir / "configuration/network1urls.txt";
+    //const auto kWorkingDir = std::filesystem::current_path();
+    //const auto kNetworkZeroConfigPath = kWorkingDir / "configuration/network0urls.txt";
+    //const auto kNetworkOneConfigPath = kWorkingDir / "configuration/network1urls.txt";
 
     const auto kNodeConfiguration = parser(argc, argv);
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                 kLogPath] = kNodeConfiguration;
-
+                 kLogPath, kWorkingDir] = kNodeConfiguration;
+    const auto kNetworkZeroConfigPath = kWorkingDir + "network0urls.txt"s;
+    const auto kNetworkOneConfigPath = kWorkingDir + "network1urls.txt"s;
     SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
                 "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, kLogPath= {}, g_rsm_id = {}",
                 kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,

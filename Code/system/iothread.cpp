@@ -151,7 +151,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     constexpr auto kSleepTime = 1ns;
     const auto kResendWaitPeriod = 5s;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                 kLogPath] = configuration;
+                 kLogPath, kWorkingDir] = configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
 
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
