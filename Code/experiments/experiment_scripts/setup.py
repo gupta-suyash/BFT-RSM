@@ -11,16 +11,18 @@ import random
 import multiprocessing
 import subprocess
 
+setup_dir = os.path.realpath(os.path.dirname(__file__))
+
 # Include all utility scripts
-sys.path.append("/proj/ove-PG0/murray/Scrooge/Code/experiments/experiment_scripts/util/")
+sys.path.append(setup_dir + "/util/")
 from ssh_util import *
 from json_util import *
 
 def main():
     if len(sys.argv) != 2:
-        sys.stderr.write('Usage: python3 %s <config_file>\n' % sys.argv[0])
+        sys.stderr.write(f'Usage: python3 {sys.argv[0]} <config_file>\n')
         sys.exit(1)
-    print("Arg: %s", sys.argv[1])
+    print(f'Arg: {sys.argv[1]}')
     setup(sys.argv[1])
 
 # Updates property file with the IP addresses obtained from setupEC2
@@ -46,21 +48,11 @@ def setup(configJson):
     # Path to setup script for remote machines
     remoteSetupFile = config['experiment_independent_vars']['remote_setup_script']
     # List of IPs for every machine in the cluster
-    ip_list = get_ips()
+    ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
     print(ip_list)
     # Run function to install all appropriate packages on servers
     subprocess.call(localSetupFile)
     executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
-
-def get_ips():
-    host_file = open('/etc/hosts', 'r')
-    ip_list = []
-    Lines = host_file.readlines()
-    for line in Lines:
-        arr = line.split(" ")
-        ip = arr[0].split('\t')
-        ip_list.append(ip[0])
-    return ["10.10.1.2"]
 
 if __name__ == "__main__":
     main()
