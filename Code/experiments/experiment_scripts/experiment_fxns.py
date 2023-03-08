@@ -166,6 +166,7 @@ def generateNetwork(networkConfigDir, cluster0sz, cluster1sz):
             for j in range(0, sz):
                 f.write(hostDict[j + offset])
                 f.write("\n")
+    ip_list = ['hp179.utah.cloudlab.us', 'hp186.utah.cloudlab.us', 'hp178.utah.cloudlab.us', 'hp193.utah.cloudlab.us']
     return ip_list
 
 # Runs the actual experiment

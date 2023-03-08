@@ -283,7 +283,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             it++;
         }
 
-        // std::this_thread::sleep_for(kPollPeriod);
+        std::this_thread::sleep_for(kPollPeriod);
     }
     SPDLOG_INFO("Pipeline Sending Thread Exiting");
 }
@@ -312,7 +312,7 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 
     while (not mMessageRequests.push(std::move(sendMessageRequest)))
     {
-        // std::this_thread::sleep_for(kSleepTime);
+        std::this_thread::sleep_for(kSleepTime);
     }
 }
 
@@ -400,7 +400,7 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 
         while (not mMessageRequests.push(std::move(sendMessageRequest)))
         {
-            // std::this_thread::sleep_for(kSleepTime);
+            std::this_thread::sleep_for(kSleepTime);
         }
     }
 }

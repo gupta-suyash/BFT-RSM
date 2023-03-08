@@ -26,7 +26,7 @@ void blockingPush(iothread::MessageQueue &queue, T &&message, std::chrono::durat
 {
     while (not queue.push(std::forward<T>(message)))
     {
-        // std::this_thread::sleep_for(pollPeriod);
+        std::this_thread::sleep_for(pollPeriod);
     }
 }
 
@@ -150,7 +150,7 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
                    	   const std::shared_ptr<QuorumAcknowledgment> quorumAck, 
 			   const NodeConfiguration configuration)
 {
-    SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
+    SPDLOG_INFO("All to All Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
                  kLogPath, kWorkingDir] = configuration;
@@ -170,7 +170,7 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
 	    pipeline->SendToAllOtherRsm(kOtherNetworkSize, std::move(newMessage));
         }
         // stats.endTimer(newMessage.data().sequence_number());
-        // std::this_thread::sleep_for(kSleepTime);
+        std::this_thread::sleep_for(kSleepTime);
     }
     SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
 }
@@ -182,7 +182,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
                    	   const std::shared_ptr<QuorumAcknowledgment> quorumAck, 
 			   const NodeConfiguration configuration)
 {
-    SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
+    SPDLOG_INFO("One to One Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
     const auto kResendWaitPeriod = 5s;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
@@ -226,7 +226,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
+    SPDLOG_INFO("Send Thread starting with TID = {}, {}", gettid(), get_number_of_packets());
     constexpr auto kSleepTime = 1ns;
     const auto kResendWaitPeriod = 5s;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
@@ -307,7 +307,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             pipeline->SendToOtherRsm(receiverNode, std::move(message));
         }
 
-        // std::this_thread::sleep_for(kSleepTime);
+        std::this_thread::sleep_for(kSleepTime);
     }
 
     // stats.printOutAllResults();
@@ -369,6 +369,6 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
             //            quackCount, quackCountRate);
             lastAckCount = newAckCount;
         }
-        // std::this_thread::sleep_for(kPollTime);
+        std::this_thread::sleep_for(kPollTime);
     }
 }
