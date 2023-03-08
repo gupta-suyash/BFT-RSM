@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
     //if () {
-    auto sendThread = std::thread(runSendThread, 
+    auto sendThread = std::thread(runOneToOneSendThread, 
 				      messageBuffer, 
 				      pipeline, 
 				      acknowledgment, 
