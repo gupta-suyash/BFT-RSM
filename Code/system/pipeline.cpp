@@ -316,6 +316,30 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
     }
 }
 
+/* This function is used to send message to a specific node in other RSM.
+ *
+ * @param nid is the identifier of the node in the other RSM.
+ */
+void Pipeline::SendToAllOtherRsm(const uint64_t numOtherNodes, scrooge::CrossChainMessage &&message)
+{
+    constexpr auto kSleepTime = 1ns;
+
+    const std::scoped_lock lock{mMutex};
+
+    for (size_t i = 0; i < numOtherNodes; i++) {
+//	SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
+   //             receivingNodeId, message.data().sequence_number(), getLogAck(message),
+   //              message.data().message_content().size());
+	const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
+	auto sendMessageRequest = pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+                                                           .destinationNodeId = i,
+                                                           .isDestinationForeign = true,
+                                                           .sharedMessage = sharedMessage};
+    	while (not mMessageRequests.push(std::move(sendMessageRequest))) {
+	}
+    }
+}
+
 /* This function is used to receive messages from the other RSM.
  *
  */
