@@ -49,10 +49,19 @@ int main(int argc, char *argv[])
     // auto messageRelayThread = std::thread(runRelayIPCRequestThread, messageBuffer);
     SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
-    auto sendThread =
-        std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
-    SPDLOG_INFO("Created Sender Thread with ID={} ", kThreadHasher(sendThread.get_id()));
+    //if () {
+    auto sendThread = std::thread(runSendThread, 
+				      messageBuffer, 
+				      pipeline, 
+				      acknowledgment, 
+				      ackTracker, 
+				      quorumAck, 
+				      kNodeConfiguration);
+    /*	SPDLOG_INFO("Created Sender Thread with ID={} ", kThreadHasher(sendThread.get_id()));
+    } else if () {
+    } else {
 
+    }*/
     auto receiveThread =
         std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ", kThreadHasher(receiveThread.get_id()));

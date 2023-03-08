@@ -51,6 +51,8 @@ class Pipeline
     void BroadcastToOwnRsm(scrooge::CrossChainMessage &&message);
     vector<scrooge::CrossChainMessage> RecvFromOwnRsm();
 
+    void SendToAllOtherRsm(const uint64_t numOtherNodess, scrooge::CrossChainMessage &&message);
+
   private:
     void runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets,
                        std::unique_ptr<std::vector<nng_socket>> localSendSockets);

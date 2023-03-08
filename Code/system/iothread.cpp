@@ -143,6 +143,38 @@ void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment
     message->mutable_ack_count()->set_value(curAck.value());
 }
 
+void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, 
+			   const std::shared_ptr<Pipeline> pipeline,
+                   	   const std::shared_ptr<Acknowledgment> acknowledgment,
+                   	   const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                   	   const std::shared_ptr<QuorumAcknowledgment> quorumAck, 
+			   const NodeConfiguration configuration)
+{
+    SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
+    constexpr auto kSleepTime = 1ns;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
+                 kLogPath, kWorkingDir] = configuration;
+
+    // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
+    size_t num_packets = 0;
+    while (num_packets < get_number_of_packets())
+    {
+        // Send and store new messages
+        // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
+        // TODO Implement multithreaded sending to parallelize sending messages (or does this matter w sockets?)
+        scrooge::CrossChainMessage newMessage;
+        while (messageInput->pop(newMessage))
+        {
+            num_packets += 1;
+            const auto sequenceNumber = newMessage.data().sequence_number();
+	    pipeline->SendToAllOtherRsm(kOtherNetworkSize, std::move(newMessage));
+        }
+        // stats.endTimer(newMessage.data().sequence_number());
+        // std::this_thread::sleep_for(kSleepTime);
+    }
+    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+}
+
 void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
                    const std::shared_ptr<Acknowledgment> acknowledgment,
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
