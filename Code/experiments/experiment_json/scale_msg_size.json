@@ -1,0 +1,50 @@
+{
+  "experiment_independent_vars": {
+    "experiment_type": "scale_msg_size",
+    "experiment_name": "scrooge_scale",
+    "local_compile_script": "/proj/ove-PG0/reggie/BFT-RSM/Code/build.sh",
+    "compiled_executable_path": "/proj/ove-PG0/reggie/BFT-RSM/Code/scrooge",
+    "results_dir": "/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/"
+  },
+  "experiment_vars": {
+    "static_configuration": {
+      "transfer_method": "scrooge",
+      "network_zero_size": 2,
+      "network_one_size": 2,
+      "use_debug_logs_bool": 0,
+      "local_max_nodes_fail": 0,
+      "foreign_max_nodes_fail": 0,
+      "num_packets": 100000
+    },
+    "variable_configuration": [
+      {
+        "packet_size": 1e2,
+        "simulated_latency": 0
+      },
+      {
+        "packet_size": 1e3,
+        "simulated_latency": 0
+      },
+      {
+        "packet_size": 1e4,
+        "simulated_latency": 0
+      },
+      {
+        "packet_size": 1e5,
+        "simulated_latency": 0
+      },
+      {
+        "packet_size": 1e6,
+        "simulated_latency": 0
+      },
+      {
+        "packet_size": 1e7,
+        "simulated_latency": 0
+      },
+      {
+        "packet_size": 1e8,
+        "simulated_latency": 0
+      }
+    ]
+  }
+}

@@ -48,11 +48,13 @@ def setup(configJson):
     # Path to setup script for remote machines
     remoteSetupFile = config['experiment_independent_vars']['remote_setup_script']
     # List of IPs for every machine in the cluster
-    ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
-    print(ip_list)
+    url_list = config['experiment_independent_vars']['network_zero'] + config['experiment_independent_vars']['netowrk_one']
+    wan_url_list = [x['wan_url'] for x  in ip_list]
+
+    print(wan_ip_list)
     # Run function to install all appropriate packages on servers
     subprocess.call(localSetupFile)
-    executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
+    executeSequenceBlockingRemoteCommand(wan_ip_list, remoteSetupFile)
 
 if __name__ == "__main__":
     main()
