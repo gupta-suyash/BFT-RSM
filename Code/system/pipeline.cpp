@@ -214,7 +214,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
     constexpr auto kPollPeriod = 1ns;
     constexpr auto kMaxMessageRetryTime = 60s;
 
-    // probably suboptimal but has fast removal
+    // unordered for fast removal
     std::vector<pipeline::SendMessageRequest> messageRequests;
 
     SPDLOG_INFO("Pipeline Sending Thread Starting");
@@ -237,7 +237,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             {
                 // remove the current element and increment it
                 SPDLOG_CRITICAL("SEND REQUEST IS STALE, DELETING foreignRSM={}", isDestinationForeign);
-                *it = messageRequests.back();
+                *it = std::move(messageRequests.back());
                 messageRequests.pop_back();
                 continue;
             }
@@ -311,7 +311,7 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 
     while (not mMessageRequests.push(std::move(sendMessageRequest)))
     {
-        // std::this_thread::sleep_for(kSleepTime);
+        std::this_thread::sleep_for(kSleepTime);
     }
 }
 
@@ -325,17 +325,21 @@ void Pipeline::SendToAllOtherRsm(const uint64_t numOtherNodes, scrooge::CrossCha
 
     const std::scoped_lock lock{mMutex};
 
-    for (size_t i = 0; i < numOtherNodes; i++) {
-//	SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
-   //             receivingNodeId, message.data().sequence_number(), getLogAck(message),
-   //              message.data().message_content().size());
-	const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
-	auto sendMessageRequest = pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
-                                                           .destinationNodeId = i,
-                                                           .isDestinationForeign = true,
-                                                           .sharedMessage = sharedMessage};
-    	while (not mMessageRequests.push(std::move(sendMessageRequest))) {
-	}
+    for (size_t i = 0; i < numOtherNodes; i++)
+    {
+        //	SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={},
+        // size='{}']",
+        //             receivingNodeId, message.data().sequence_number(), getLogAck(message),
+        //              message.data().message_content().size());
+        const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
+        auto sendMessageRequest = pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+                                                               .destinationNodeId = i,
+                                                               .isDestinationForeign = true,
+                                                               .sharedMessage = sharedMessage};
+        while (not mMessageRequests.push(std::move(sendMessageRequest)))
+        {
+            std::this_thread::sleep_for(kSleepTime);
+        }
     }
 }
 

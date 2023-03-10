@@ -4,7 +4,6 @@
 #include <atomic>
 #include <mutex>
 
-
 #include <boost/icl/interval_set.hpp>
 
 class Acknowledgment

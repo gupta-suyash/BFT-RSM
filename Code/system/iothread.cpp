@@ -143,17 +143,16 @@ void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment
     message->mutable_ack_count()->set_value(curAck.value());
 }
 
-void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, 
-			   const std::shared_ptr<Pipeline> pipeline,
-                   	   const std::shared_ptr<Acknowledgment> acknowledgment,
-                   	   const std::shared_ptr<AcknowledgmentTracker> ackTracker,
-                   	   const std::shared_ptr<QuorumAcknowledgment> quorumAck, 
-			   const NodeConfiguration configuration)
+void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
+                           const std::shared_ptr<Pipeline> pipeline,
+                           const std::shared_ptr<Acknowledgment> acknowledgment,
+                           const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                 kLogPath, kWorkingDir] = configuration;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
+                 kWorkingDir] = configuration;
 
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
     size_t num_packets = 0;
@@ -167,7 +166,7 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
         {
             num_packets += 1;
             const auto sequenceNumber = newMessage.data().sequence_number();
-	    pipeline->SendToAllOtherRsm(kOtherNetworkSize, std::move(newMessage));
+            pipeline->SendToAllOtherRsm(kOtherNetworkSize, std::move(newMessage));
         }
         // stats.endTimer(newMessage.data().sequence_number());
         // std::this_thread::sleep_for(kSleepTime);
@@ -175,18 +174,17 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
     SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
 }
 
-void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, 
-		           const std::shared_ptr<Pipeline> pipeline,
+void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
+                           const std::shared_ptr<Pipeline> pipeline,
                            const std::shared_ptr<Acknowledgment> acknowledgment,
-                   	   const std::shared_ptr<AcknowledgmentTracker> ackTracker,
-                   	   const std::shared_ptr<QuorumAcknowledgment> quorumAck, 
-			   const NodeConfiguration configuration)
+                           const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
     const auto kResendWaitPeriod = 5s;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                 kLogPath, kWorkingDir] = configuration;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
+                 kWorkingDir] = configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
 
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
@@ -229,8 +227,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
     const auto kResendWaitPeriod = 5s;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                 kLogPath, kWorkingDir] = configuration;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
+                 kWorkingDir] = configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
 
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
@@ -277,7 +275,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         }
         // stats.endTimer(newMessage.data().sequence_number());
 
-        const auto numQuackRepeats = ackTracker->getAggregateRepeatedAckCount(curQuack.value());
+        const auto numQuackRepeats = 0; // ackTracker->getAggregateRepeatedAckCount(curQuack.value());
         for (auto it = std::begin(resendMessageMap); it != std::end(resendMessageMap); it = resendMessageMap.erase(it))
         {
             auto &[sequenceNumber, message] = *it;
@@ -307,7 +305,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             pipeline->SendToOtherRsm(receiverNode, std::move(message));
         }
 
-        // std::this_thread::sleep_for(kSleepTime);
+        std::this_thread::sleep_for(kSleepTime);
     }
 
     // stats.printOutAllResults();
@@ -350,7 +348,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
             {
                 const auto foreignAckCount = foreignMessage.ack_count().value();
                 quorumAck->updateNodeAck(senderId, foreignAckCount);
-                ackTracker->updateNodeData(senderId, foreignAckCount, curTime);
+                // ackTracker->updateNodeData(senderId, foreignAckCount, curTime);
             }
 
             pipeline->BroadcastToOwnRsm(std::move(foreignMessage));
@@ -365,10 +363,10 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
             const auto ackCountRate = ackCount / timeElapsed;
             const auto quackCount = newQuackCount.value_or(-1);
             const auto quackCountRate = quackCount / timeElapsed;
-            //SPDLOG_INFO("Node Ack Count now at {} Ack rate = {} /s Quack count {} rate = {}", ackCount, ackCountRate,
+            // SPDLOG_INFO("Node Ack Count now at {} Ack rate = {} /s Quack count {} rate = {}", ackCount, ackCountRate,
             //            quackCount, quackCountRate);
             lastAckCount = newAckCount;
         }
-        // std::this_thread::sleep_for(kPollTime);
+        std::this_thread::sleep_for(kPollTime);
     }
 }

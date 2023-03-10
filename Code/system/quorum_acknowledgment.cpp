@@ -79,8 +79,7 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
 
 uint64_t QuorumAcknowledgment::getNodesAtAck(uint64_t ack) const
 {
-    assert(false && "reorganize code to be safe");
-    std::scoped_lock lock{mMutex};
+    // std::scoped_lock lock{mMutex};
 
     const auto ackToNodeCountIt = mAckToNodeCount.find(ack);
     if (std::cend(mAckToNodeCount) == ackToNodeCountIt)

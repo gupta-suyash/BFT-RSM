@@ -16,10 +16,10 @@ class QuorumAcknowledgment
     QuorumAcknowledgment(uint64_t quorumSize);
     void updateNodeAck(uint64_t nodeId, uint64_t ackValue);
     std::optional<uint64_t> getNodeAck(uint64_t nodeId) const;
-    uint64_t getNodesAtAck(uint64_t ack) const;
     std::optional<uint64_t> getCurrentQuack() const;
 
   private:
+    uint64_t getNodesAtAck(uint64_t ack) const;
     mutable std::recursive_mutex mMutex;
     // Number of nodes to accept a message
     const uint64_t kQuorumSize{};
