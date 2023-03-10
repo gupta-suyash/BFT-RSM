@@ -4,8 +4,8 @@
 ############################################
 
 import json
-import os
 import subprocess
+import sys
 from pprint import pprint
 
 ## Returns property file as
@@ -38,8 +38,6 @@ def printPropertyFile(jsonFileName):
 
 ## Get GIT Revision Hash
 def getGitHash(projectpath):
-    currentdir = os.getcwd();
-    os.chdir(projectpath)
-    hash = subprocess.check_output(['git', 'rev-parse', 'HEAD'])
-    os.chdir(currentdir)
+    bash_output = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=projectpath)
+    hash = bash_output.decode(sys.stdout.encoding).strip()
     return hash

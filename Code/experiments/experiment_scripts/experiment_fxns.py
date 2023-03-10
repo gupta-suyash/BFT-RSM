@@ -27,7 +27,6 @@
 # TODO remove redundant pieces of code (some duplication). Move to an object datastructure
 
 import os
-import os.path
 import sys
 import datetime
 import time
@@ -126,9 +125,9 @@ def setup(configJson, experimentName):
     executeCommand("cp " + configJson + " " + cloudlab.project_dir)
     gitHash = getGitHash(cloudlab.src_dir)
     print("Saving Git Hash " + str(gitHash))
-    executeCommand("touch " + expDir + "/git.txt")
+    executeCommand("touch " + os.path.join(expDir, "git.txt"))
     with open(expDir + "/git.txt", 'ab') as f:
-        f.write(gitHash)
+        f.write(gitHash.encode())
 
 # Generate Network files
 def generateNetwork(networkConfigDir, cluster0sz, cluster1sz):
@@ -196,8 +195,6 @@ def run(configJson, experimentName):
     if (simulateLatency):
         print("Simulating a " + str(simulateLatency) + " ms")
 
-    first = True
-    dataLoaded = False
     increase_packet_size = Scaling_Client_Exp()
     increase_packet_size.nb_rounds = int(config[experimentName]['nb_rounds'])
     # Run for each round, nbRepetitions time.
@@ -209,8 +206,8 @@ def run(configJson, experimentName):
             scrooge_commands = []
             clusterZerosz = int(config[experimentName]['scrooge_args']['cluster_0']['local_num_nodes'][i])
             clusterOnesz = int(config[experimentName]['scrooge_args']['cluster_1']['local_num_nodes'][i])
-            ip_list = generateNetwork(config['experiment_independent_vars']['network_dir'], clusterZerosz, clusterOnesz)
-            scrooge_exec = "/proj/ove-PG0/murray/Scrooge/Code/scrooge "
+            ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
+            scrooge_exec = "/proj/ove-PG0/reggie/BFT-RSM/Code/scrooge "
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
@@ -222,6 +219,7 @@ def run(configJson, experimentName):
                 scrooge_commands.append(cmd)
             print(scrooge_commands)
             print("Execute command now")
+            #import pdb; pdb.set_trace()
             executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
         except Exception as e:
             print(e)

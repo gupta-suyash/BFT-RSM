@@ -5,6 +5,9 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
+# replace with your directory
+cd /proj/ove-PG0/reggie/BFT-RSM/Code
+
 # install performance packages
 apt install valgrind
 apt install htop
@@ -47,6 +50,7 @@ cd ..
 cd ..
 
 # protobuf installation
+cd /proj/ove-PG0/reggie/BFT-RSM/Code
 echo "untar of protobuf successful"
 cd ./protobuf-3.20.2
 sudo ./configure

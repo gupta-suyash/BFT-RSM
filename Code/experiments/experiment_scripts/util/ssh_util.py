@@ -128,8 +128,8 @@ def executeParallelBlockingRemoteCommand(hosts, command, key=None):
                   key + " " + h + " '" + command + "'"
         t = threading.Thread(target=executeCommand, args=(cmd,))
         thread_list.append(t)
-        for t in thread_list:
-            t.start()
+    for t in thread_list:
+        t.start()
     for t in thread_list:
         t.join()
 

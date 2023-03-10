@@ -46,7 +46,7 @@ def setup(configJson):
     # Path to setup script
     localSetupFile = config['experiment_independent_vars']['local_setup_script']
     # Path to setup script for remote machines
-    remoteSetupFile = config['experiment_independent_vars']['remote_setup_script']
+    remoteSetupFile = "sudo " + config['experiment_independent_vars']['remote_setup_script']
     # List of IPs for every machine in the cluster
     ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
     print(ip_list)
