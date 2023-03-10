@@ -17,7 +17,7 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
     // std::scoped_lock lock{mMutex}; removed for performance
 
     const auto curNodeEntry = mNodeToAck.find(nodeId);
-    const auto curQuorumAck = mQuorumAck.load(std::memory_order::relaxed);
+    const auto curQuorumAck = mQuorumAck.load(std::memory_order_relaxed);
 
     const bool isUpdate = curNodeEntry != mNodeToAck.end();
     const bool isUpdateStale = isUpdate && (ackValue <= curNodeEntry->second);
@@ -66,13 +66,13 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
 
         if (curQuorumAck.has_value())
         {
-            const auto oldVal = *mQuorumAck;
-            mQuorumAck.store(mAckToNodeCount.upper_bound(oldVal)->first, std::memory_order::release);
+            const auto oldVal = *curQuorumAck;
+            mQuorumAck.store(mAckToNodeCount.upper_bound(oldVal)->first, std::memory_order_release);
         }
         else
         {
             // Lowest ack is the new quorum ack
-            mQuorumAck.store(std::cbegin(mAckToNodeCount)->first, std::memory_order::release);
+            mQuorumAck.store(std::cbegin(mAckToNodeCount)->first, std::memory_order_release);
         }
     }
 }
@@ -110,5 +110,5 @@ std::optional<uint64_t> QuorumAcknowledgment::getNodeAck(const uint64_t nodeId) 
 std::optional<uint64_t> QuorumAcknowledgment::getCurrentQuack() const
 {
     // std::scoped_lock lock{mMutex}; removed for performance
-    return mQuorumAck.load(std::memory_order::acquire);
+    return mQuorumAck.load(std::memory_order_acquire);
 }

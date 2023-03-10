@@ -1,5 +1,5 @@
 CC=clang++
-CFLAGS=-Wall -g -std=c++20 -O3 -pg
+CFLAGS=-Wall -g -std=c++20 -O3
 NNMSG=${PWD}/deps/nng
 BOOST=${PWD}/deps/boost_1_80_0
 SANITIZERS=-fsanitize=address -fsanitize=undefined
@@ -14,7 +14,7 @@ PROTO_DIR = ./protobuf/
 CFLAGS += $(DEPS)
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
-LIBS = -lnng -lanl -ldl -lprotobuf -lpthread -ljsoncpp -pg -g
+LIBS = -lnng -lanl -ldl -lprotobuf -lpthread -ljsoncpp -latomic
 
 PROTO_SOURCES = $(wildcard ./protobuf/*.proto)
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
