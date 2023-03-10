@@ -1,5 +1,5 @@
 #!/bin/bash
 
-make clean
-make proto
+#make clean
+#make pr/oto
 make scrooge -j

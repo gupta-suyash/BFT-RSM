@@ -2,7 +2,7 @@
 
 #include <chrono>
 // Enable all spdlog logging macros for development
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO
 #include <spdlog/spdlog.h>
 
 using namespace std;

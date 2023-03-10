@@ -122,12 +122,13 @@ def setup(configJson, experimentName):
     executeCommand("mkdir -p " + expDir)
 
     # Create file with git hash
-    executeCommand("cp " + configJson + " " + cloudlab.project_dir)
+    executeCommand("cp " + configJson + " " + os.path.join(expDir, "experiment_json.txt"))
     gitHash = getGitHash(cloudlab.src_dir)
     print("Saving Git Hash " + str(gitHash))
     executeCommand("touch " + os.path.join(expDir, "git.txt"))
     with open(expDir + "/git.txt", 'ab') as f:
         f.write(gitHash.encode())
+    return expDir
 
 # Generate Network files
 def generateNetwork(networkConfigDir, cluster0sz, cluster1sz):
@@ -169,7 +170,7 @@ def generateNetwork(networkConfigDir, cluster0sz, cluster1sz):
     return ip_list
 
 # Runs the actual experiment
-def run(configJson, experimentName):
+def run(configJson, experimentName, expDir):
     # Load local arguments
     cloudlab = Cloudlab_Experiment()
     config = loadJsonFile(configJson)
@@ -199,19 +200,20 @@ def run(configJson, experimentName):
     increase_packet_size.nb_rounds = int(config[experimentName]['nb_rounds'])
     # Run for each round, nbRepetitions time.
     
-    for i in range(0, increase_packet_size.nb_rounds):
-        time.sleep(10)
+    for i in range(6, increase_packet_size.nb_rounds):
         try:
             # Need to collect the scrooge start commands
             scrooge_commands = []
             clusterZerosz = int(config[experimentName]['scrooge_args']['cluster_0']['local_num_nodes'][i])
             clusterOnesz = int(config[experimentName]['scrooge_args']['cluster_1']['local_num_nodes'][i])
-            ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
+            cluster_zero = config['experiment_independent_vars']['clusterZeroIps']
+            cluster_one = config['experiment_independent_vars']['clusterOneIps']
+            ip_list =  cluster_zero + cluster_one
             scrooge_exec = "/proj/ove-PG0/reggie/BFT-RSM/Code/scrooge "
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
-                cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
+                cmd = 'sudo ' + scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
@@ -221,5 +223,13 @@ def run(configJson, experimentName):
             print("Execute command now")
             #import pdb; pdb.set_trace()
             executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
+            for node_id, ip in enumerate(cluster_zero):
+                cluster_id = 0
+                file_name = f'log_{cluster_id}_{node_id}'
+                executeCommand(f'scp {ip}:/tmp/{file_name}.yaml {expDir}{file_name}_{i}.yaml')
+            for node_id, ip in enumerate(cluster_one):
+                cluster_id = 1
+                file_name = f'log_{cluster_id}_{node_id}'
+                executeCommand(f'scp {ip}:/tmp/{file_name}.yaml {expDir}{file_name}_{i}.yaml')
         except Exception as e:
             print(e)

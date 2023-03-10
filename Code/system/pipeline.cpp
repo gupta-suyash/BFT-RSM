@@ -122,12 +122,19 @@ Pipeline::Pipeline(std::vector<std::string> &&ownNetworkUrls, std::vector<std::s
 
 Pipeline::~Pipeline()
 {
-    const std::scoped_lock lock{mMutex};
-    if (not mIsThreadRunning)
+    mShouldThreadStop = true;
+    messageSendThread.join();
+    mIsThreadRunning = false;
+    // NNG says to wait before closing
+    // https://nng.nanomsg.org/man/tip/nng_close.3.html
+    std::this_thread::sleep_for(5s);
+    for (auto socket : mLocalReceiveSockets)
     {
-        mShouldThreadStop = true;
-        messageSendThread.join();
-        mIsThreadRunning = false;
+        nng_close(socket);
+    }
+    for (auto socket : mForeignReceiveSockets)
+    {
+        nng_close(socket);
     }
 }
 
@@ -212,13 +219,13 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                              std::unique_ptr<std::vector<nng_socket>> localSendSockets)
 {
     constexpr auto kPollPeriod = 1ns;
-    constexpr auto kMaxMessageRetryTime = 60s;
+    constexpr auto kMaxMessageRetryTime = 120s;
 
     // unordered for fast removal
-    std::vector<pipeline::SendMessageRequest> messageRequests;
+    std::list<pipeline::SendMessageRequest> messageRequests;
 
     SPDLOG_INFO("Pipeline Sending Thread Starting");
-    while (not mShouldThreadStop)
+    while (not mShouldThreadStop || not messageRequests.empty())
     {
         const auto curTime = std::chrono::steady_clock::now();
 
@@ -236,9 +243,8 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             if (isRequestStale)
             {
                 // remove the current element and increment it
-                SPDLOG_CRITICAL("SEND REQUEST IS STALE, DELETING foreignRSM={}", isDestinationForeign);
-                *it = std::move(messageRequests.back());
-                messageRequests.pop_back();
+                //SPDLOG_CRITICAL("SEND REQUEST IS STALE, DELETING foreignRSM={}", isDestinationForeign);
+                it = messageRequests.erase(it);
                 continue;
             }
 
@@ -266,11 +272,6 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                 continue;
             }
 
-            if (message->data().sequence_number() > get_number_of_packets())
-            {
-                // stats.printOutAllResults();
-            }
-
             const auto isRealError = !isSendSuccessful && sendMessageResult != nng_errno_enum::NNG_EAGAIN;
             if (isRealError)
             {
@@ -282,8 +283,9 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
             it++;
         }
 
-        // std::this_thread::sleep_for(kPollPeriod);
+        std::this_thread::sleep_for(kPollPeriod);
     }
+
     SPDLOG_INFO("Pipeline Sending Thread Exiting");
 }
 
@@ -322,8 +324,6 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 void Pipeline::SendToAllOtherRsm(const uint64_t numOtherNodes, scrooge::CrossChainMessage &&message)
 {
     constexpr auto kSleepTime = 1ns;
-
-    const std::scoped_lock lock{mMutex};
 
     for (size_t i = 0; i < numOtherNodes; i++)
     {
@@ -376,7 +376,7 @@ std::vector<pipeline::ReceivedCrossChainMessage> Pipeline::RecvFromOtherRsm()
  */
 void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 {
-    constexpr auto kSleepTime = 1us;
+    constexpr auto kSleepTime = 1ns;
 
     const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
 
@@ -403,7 +403,7 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 
         while (not mMessageRequests.push(std::move(sendMessageRequest)))
         {
-            // std::this_thread::sleep_for(kSleepTime);
+            std::this_thread::sleep_for(kSleepTime);
         }
     }
 }

@@ -88,7 +88,7 @@ NodeConfiguration parser(int argc, char *argv[])
 
         const auto logDir = kOwnParams["log_path"].asString();
 
-        const auto logPath = logDir + "log_"s + std::to_string(ownNodeId) + ".txt"s;
+        const auto logPath = logDir + "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
         SPDLOG_INFO("Network directory: {}", workingDir);
 
         set_packet_size(packetSize);

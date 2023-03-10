@@ -5,8 +5,10 @@
 #include "scrooge_request.pb.h"
 
 #include <chrono>
+#include <fstream>
 #include <map>
 #include <sys/types.h>
+#include <stdio.h>
 #include <thread>
 
 uint64_t trueMod(int64_t value, int64_t modulus)
@@ -26,7 +28,7 @@ void blockingPush(iothread::MessageQueue &queue, T &&message, std::chrono::durat
 {
     while (not queue.push(std::forward<T>(message)))
     {
-        // std::this_thread::sleep_for(pollPeriod);
+        std::this_thread::sleep_for(pollPeriod);
     }
 }
 
@@ -153,25 +155,20 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
     constexpr auto kSleepTime = 1ns;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
                  kWorkingDir] = configuration;
+    const auto kTotalMessageSends = get_number_of_packets();
 
-    // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
     size_t num_packets = 0;
-    while (num_packets < get_number_of_packets())
+    while (num_packets < kTotalMessageSends)
     {
-        // Send and store new messages
-        // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
-        // TODO Implement multithreaded sending to parallelize sending messages (or does this matter w sockets?)
         scrooge::CrossChainMessage newMessage;
         while (messageInput->pop(newMessage))
         {
             num_packets += 1;
-            const auto sequenceNumber = newMessage.data().sequence_number();
             pipeline->SendToAllOtherRsm(kOtherNetworkSize, std::move(newMessage));
         }
-        // stats.endTimer(newMessage.data().sequence_number());
-        // std::this_thread::sleep_for(kSleepTime);
     }
-    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+
+    SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
 void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
@@ -182,15 +179,13 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    const auto kResendWaitPeriod = 5s;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
                  kWorkingDir] = configuration;
-    const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
 
-    // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
+    const auto kTotalMessageSends = get_number_of_packets();
     size_t num_packets = 0;
 
-    while (num_packets < get_number_of_packets())
+    while (num_packets < kTotalMessageSends)
     {
         // Send and store new messages
         // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
@@ -199,24 +194,11 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
         while (messageInput->pop(newMessage))
         {
             num_packets += 1;
-            const auto sequenceNumber = newMessage.data().sequence_number();
-            const auto originalSenderId = sequenceNumber % kOwnNetworkSize;
-
-            if (originalSenderId == kNodeId)
-            {
-                // sendMessageBuffer.emplace_back(std::move(newMessage));
-                const auto receiverNode =
-                    getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
-
-                // stats.startTimer(sequenceNumber);
-                pipeline->SendToOtherRsm(kNodeId, std::move(newMessage));
-                continue;
-            }
+            pipeline->SendToOtherRsm((num_packets & 1) ^ kNodeId, std::move(newMessage));
         }
     }
 
-    // stats.printOutAllResults();
-    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+    SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
 void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
@@ -230,16 +212,15 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
                  kWorkingDir] = configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
+    const auto kMaxSequenceNumber = get_number_of_packets() - 1; // doesn't work since we don't send empty messages for being done
+    std::optional<uint64_t> curQuack;
 
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
     auto resendMessageMap = std::map<uint64_t, scrooge::CrossChainMessage>{};
     size_t num_packets = 0;
 
-    while (num_packets < get_number_of_packets())
+    while (num_packets < get_number_of_packets()) // technically wrong -- send blank messages on quit to remedy this
     {
-        // Send and store new messages
-        // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
-        // TODO Implement multithreaded sending to parallelize sending messages (or does this matter w sockets?)
         scrooge::CrossChainMessage newMessage;
         while (messageInput->pop(newMessage))
         {
@@ -254,7 +235,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                     getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
                 setAckValue(&newMessage, *acknowledgment);
-                // stats.startTimer(sequenceNumber);
                 pipeline->SendToOtherRsm(receiverNode, std::move(newMessage));
                 continue;
             }
@@ -267,13 +247,12 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             }
         }
 
-        const auto curQuack = quorumAck->getCurrentQuack();
+        curQuack = quorumAck->getCurrentQuack();
         if (!curQuack.has_value())
         {
             continue; // Wait for messages before resending
             // TODO Bug, if message 0 is not sent, nobody will resend
         }
-        // stats.endTimer(newMessage.data().sequence_number());
 
         const auto numQuackRepeats = 0; // ackTracker->getAggregateRepeatedAckCount(curQuack.value());
         for (auto it = std::begin(resendMessageMap); it != std::end(resendMessageMap); it = resendMessageMap.erase(it))
@@ -283,7 +262,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             const bool isMessageAlreadyReceived = sequenceNumber < curQuack.value();
             if (isMessageAlreadyReceived)
             {
-                // stats.endTimer(sequenceNumber);
                 continue; // delete this message
             }
 
@@ -308,8 +286,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         std::this_thread::sleep_for(kSleepTime);
     }
 
-    // stats.printOutAllResults();
-    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+    SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
 void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
@@ -318,12 +295,17 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 {
     constexpr auto kPollTime = 1ns;
     const auto kStartTime = std::chrono::steady_clock::now();
+    const auto kMaxSequenceNumber = get_number_of_packets() - 50000;
+
+    const auto kWarmupTime = 5s;
+    std::chrono::duration<long double> totalLatency, totalTime;
+    uint64_t timedMessages{};
 
     std::optional<uint64_t> lastAckCount;
-    while (true)
+    while (lastAckCount < kMaxSequenceNumber)
     {
         const auto curTime = std::chrono::steady_clock::now();
-        const double timeElapsed = std::chrono::duration<double>(curTime - kStartTime).count();
+        const auto timeElapsed = std::chrono::duration<double>(curTime - kStartTime);
         const auto newDomesticMessages = pipeline->RecvFromOwnRsm();
         auto newForeignMessages = pipeline->RecvFromOtherRsm();
 
@@ -356,17 +338,91 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
         const auto newAckCount = acknowledgment->getAckIterator();
         const auto newQuackCount = quorumAck->getCurrentQuack();
-        if (lastAckCount != newAckCount)
+        lastAckCount = newAckCount;
+        if (timeElapsed > kWarmupTime)
         {
-            // This is the node's local view of what it has received from the other network
-            const auto ackCount = newAckCount.value_or(-1);
-            const auto ackCountRate = ackCount / timeElapsed;
-            const auto quackCount = newQuackCount.value_or(-1);
-            const auto quackCountRate = quackCount / timeElapsed;
-            // SPDLOG_INFO("Node Ack Count now at {} Ack rate = {} /s Quack count {} rate = {}", ackCount, ackCountRate,
-            //            quackCount, quackCountRate);
-            lastAckCount = newAckCount;
+            // should check if new messages are in the ack but ignored since currently no resends
+            const auto newMessages = newDomesticMessages.size() + newForeignMessages.size();
+            timedMessages += newMessages;
+            totalLatency += (timeElapsed - kWarmupTime) * newMessages;
         }
         std::this_thread::sleep_for(kPollTime);
     }
+    SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
+
+    totalTime = std::chrono::steady_clock::now() - kStartTime - kWarmupTime;
+
+    const double totalThroughput = timedMessages / totalTime.count();
+    const double averageLatency = totalLatency.count() / timedMessages;
+
+    remove(configuration.kLogPath.c_str());
+    std::ofstream file{configuration.kLogPath, std::ios_base::binary};
+
+    if (!file.is_open())
+    {
+        SPDLOG_CRITICAL("COULD NOT SAVE TO FILE");
+    }
+
+    file << "all_honest: " << 1 << '\n';
+    file << "cluster_size: " << configuration.kOtherNetworkSize + configuration.kOwnNetworkSize << '\n';
+    file << "message_size: " << get_packet_size() << '\n';
+    file << "total_throughput: " << totalThroughput << '\n';
+    file << "average_latency: " << averageLatency << '\n';
+    file << "timed_messages: " << timedMessages << '\n';
+    file << "transfer_strategy: " << "scrooge" << '\n';
+    file.close();
+}
+
+void naiveReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
+                      const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                      const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+{
+    constexpr auto kPollTime = 1ns;
+    const auto kStartTime = std::chrono::steady_clock::now();
+    const auto kTotalMessages = get_number_of_packets() - 50000;
+
+    const auto kWarmupTime = 5s;
+    std::chrono::duration<long double> totalLatency, totalTime;
+    uint64_t timedMessages{};
+    uint64_t numMessagesReceived{};
+
+    while (numMessagesReceived < kTotalMessages)
+    {
+        const auto curTime = std::chrono::steady_clock::now();
+        const auto timeElapsed = std::chrono::duration<double>(curTime - kStartTime);
+        const auto newForeignMessages = pipeline->RecvFromOtherRsm();
+        numMessagesReceived += newForeignMessages.size();
+
+        if (timeElapsed > kWarmupTime)
+        {
+            // should check if new messages are in the ack but ignored since currently no resends
+            const auto newMessages = newForeignMessages.size();
+            timedMessages += newMessages;
+            totalLatency += (timeElapsed - kWarmupTime) * newMessages;
+        }
+        std::this_thread::sleep_for(kPollTime);
+    }
+    SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
+
+    totalTime = std::chrono::steady_clock::now() - kStartTime - kWarmupTime;
+
+    const double totalThroughput = (timedMessages) / totalTime.count();
+    const double averageLatency = totalLatency.count() / (timedMessages);
+
+    remove(configuration.kLogPath.c_str());
+    std::ofstream file{configuration.kLogPath, std::ios_base::binary};
+
+    if (!file.is_open())
+    {
+        SPDLOG_CRITICAL("COULD NOT SAVE TO FILE");
+    }
+
+    file << "all_honest: " << 1 << '\n';
+    file << "cluster_size: " << configuration.kOtherNetworkSize + configuration.kOwnNetworkSize << '\n';
+    file << "message_size: " << get_packet_size() << '\n';
+    file << "total_throughput: " << totalThroughput << '\n';
+    file << "average_latency: " << averageLatency << '\n';
+    file << "timed_messages: " << timedMessages << '\n';
+    file << "transfer_strategy: " << "one-to-one:RoundRobin" << '\n';
+    file.close();
 }

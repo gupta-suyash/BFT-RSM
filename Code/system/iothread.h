@@ -23,6 +23,22 @@ void runSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::sh
                    std::shared_ptr<Acknowledgment> acknowledgment, std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
+void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
+                           const std::shared_ptr<Pipeline> pipeline,
+                           const std::shared_ptr<Acknowledgment> acknowledgment,
+                           const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration);
+
+void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
+                           const std::shared_ptr<Pipeline> pipeline,
+                           const std::shared_ptr<Acknowledgment> acknowledgment,
+                           const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration);
+
 void runReceiveThread(std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
                       std::shared_ptr<AcknowledgmentTracker> ackTracker,
                       std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
+
+void naiveReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
+                      const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                      const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration);
