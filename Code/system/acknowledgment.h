@@ -1,9 +1,11 @@
 #pragma once
 
-#include <boost/icl/interval_set.hpp>
+#include "global.h"
+#include <atomic>
 #include <mutex>
 
-#include "global.h"
+
+#include <boost/icl/interval_set.hpp>
 
 class Acknowledgment
 {
@@ -16,6 +18,6 @@ class Acknowledgment
   private:
     mutable std::mutex mMutex;
 
-    std::optional<uint64_t> mAckValue{std::nullopt};
+    std::atomic<std::optional<uint64_t>> mAckValue{std::nullopt};
     boost::icl::interval_set<uint64_t> mAckWindows;
 };

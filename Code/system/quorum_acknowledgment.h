@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <mutex>
 #include <unordered_map>
@@ -30,7 +31,7 @@ class QuorumAcknowledgment
     // mQuorumAck
     //     = argmax_i {kQuorumSize >= mAckToNodeCount[i] + mAckToNodeCount[i+1] + ... + mAckToNodeCount[inf]}
     // This represents the current acknowledged value of the entire quorum
-    std::optional<uint64_t> mQuorumAck{std::nullopt};
+    std::atomic<std::optional<uint64_t>> mQuorumAck{std::nullopt};
 
     uint64_t mNumNodesInCurQuorum = 0;
 };

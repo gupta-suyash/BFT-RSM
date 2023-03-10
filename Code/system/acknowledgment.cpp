@@ -8,7 +8,7 @@
 void Acknowledgment::addToAckList(const uint64_t nodeId)
 {
     // Need to lock accesses to ackValue as it used by multiple threads
-    std::scoped_lock lock{mMutex};
+    // std::scoped_lock lock{mMutex}; removed for performance
 
     mAckWindows.add(nodeId);
 
@@ -16,7 +16,7 @@ void Acknowledgment::addToAckList(const uint64_t nodeId)
 
     if (minimumAckWindow->lower() <= kMinimumAckValue)
     {
-        mAckValue = minimumAckWindow->upper();
+        mAckValue.store(minimumAckWindow->upper(), std::memory_order::release);
     }
 }
 
@@ -26,7 +26,5 @@ void Acknowledgment::addToAckList(const uint64_t nodeId)
  */
 std::optional<uint64_t> Acknowledgment::getAckIterator() const
 {
-    // Need to lock accesses to ackValue as it used by multiple threads
-    std::scoped_lock lock{mMutex};
-    return mAckValue;
+    return mAckValue.load(std::memory_order::acquire);
 }
