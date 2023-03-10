@@ -219,7 +219,7 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                              std::unique_ptr<std::vector<nng_socket>> localSendSockets)
 {
     constexpr auto kPollPeriod = 1ns;
-    constexpr auto kMaxMessageRetryTime = 120s;
+    constexpr auto kMaxMessageRetryTime = 20s;
 
     // unordered for fast removal
     std::list<pipeline::SendMessageRequest> messageRequests;
@@ -230,7 +230,13 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
         const auto curTime = std::chrono::steady_clock::now();
 
         pipeline::SendMessageRequest newMessageRequest;
-        while (mMessageRequests.pop(newMessageRequest))
+
+        for (int i=0; i < 2048 && mMessageRequestsLocal.pop(newMessageRequest); i++)
+        {
+            messageRequests.emplace_back(std::move(newMessageRequest));
+        }
+
+        for (int i=0; i < 2048 && mMessageRequestsForeign.pop(newMessageRequest); i++)
         {
             messageRequests.emplace_back(std::move(newMessageRequest));
         }
@@ -297,8 +303,6 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 {
     constexpr auto kSleepTime = 1ns;
 
-    const std::scoped_lock lock{mMutex};
-
     SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
                  message.data().message_content().size());
@@ -311,7 +315,7 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
                                                            .isDestinationForeign = true,
                                                            .sharedMessage = sharedMessage};
 
-    while (not mMessageRequests.push(std::move(sendMessageRequest)))
+    while (not mMessageRequestsForeign.push(std::move(sendMessageRequest)))
     {
         std::this_thread::sleep_for(kSleepTime);
     }
@@ -336,7 +340,7 @@ void Pipeline::SendToAllOtherRsm(const uint64_t numOtherNodes, scrooge::CrossCha
                                                                .destinationNodeId = i,
                                                                .isDestinationForeign = true,
                                                                .sharedMessage = sharedMessage};
-        while (not mMessageRequests.push(std::move(sendMessageRequest)))
+        while (not mMessageRequestsForeign.push(std::move(sendMessageRequest)))
         {
             std::this_thread::sleep_for(kSleepTime);
         }
@@ -380,7 +384,7 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 
     const auto sharedMessage = std::make_shared<scrooge::CrossChainMessage>(std::move(message));
 
-    const std::scoped_lock lock{mMutex};
+    // const std::scoped_lock lock{mMutex};
 
     for (uint64_t receiverId = 0; receiverId < kOwnConfiguration.kOwnNetworkSize; receiverId++)
     {
@@ -401,7 +405,7 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
                                                                .isDestinationForeign = false,
                                                                .sharedMessage = sharedMessage};
 
-        while (not mMessageRequests.push(std::move(sendMessageRequest)))
+        while (not mMessageRequestsLocal.push(std::move(sendMessageRequest)))
         {
             std::this_thread::sleep_for(kSleepTime);
         }
