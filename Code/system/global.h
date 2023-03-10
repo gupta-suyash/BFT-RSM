@@ -1,8 +1,9 @@
 #pragma once
 
+//#define NDEBUG
 #include <chrono>
 // Enable all spdlog logging macros for development
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_CRITICAL
 #include <spdlog/spdlog.h>
 
 using namespace std;
@@ -19,6 +20,11 @@ struct NodeConfiguration
     const std::string kWorkingDir;
 };
 
+void set_test_start(std::chrono::steady_clock::time_point startTime);
+std::chrono::duration<double> get_test_duration();
+bool is_test_over();
+bool is_test_recording();
+
 uint64_t get_rsm_id();
 void set_rsm_id(uint64_t rsm_id);
 
@@ -33,3 +39,7 @@ void set_number_of_packets(uint64_t packet_number);
 
 uint64_t get_packet_size();
 void set_packet_size(uint64_t packet_size);
+
+// Will set the current thread to be bound to a unique CPU
+// Will terminate program with error msg if there are not enough CPUs or if operation fails
+void bindThreadToCpu(int cpu);

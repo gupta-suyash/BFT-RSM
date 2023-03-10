@@ -1,13 +1,15 @@
 #pragma once
 
 #include <atomic>
+#include <bitset>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
 
-#include <boost/lockfree/spsc_queue.hpp>
+#include "readerwritercircularbuffer.h"
+
+#include <boost/circular_buffer.hpp>
 
 #include "nng/nng.h"
 #include <nng/protocol/pipeline0/pull.h>
@@ -21,19 +23,31 @@ namespace pipeline
 {
 struct ReceivedCrossChainMessage
 {
-    scrooge::CrossChainMessage message;
-    uint64_t senderId;
+    scrooge::CrossChainMessage message{};
+    uint64_t senderId{};
+};
+
+struct nng_message
+{
+    size_t dataSize{};
+    char *data{}; // free with nng_free()
+};
+
+struct foreign_nng_message
+{
+    nng_message message{};
+    uint64_t senderId{};
 };
 
 struct SendMessageRequest
 {
+    using DestinationSet = std::bitset<64>;
     std::chrono::steady_clock::time_point kRequestCreationTime{};
-    uint64_t destinationNodeId{};
-    bool isDestinationForeign{};
-    std::shared_ptr<scrooge::CrossChainMessage> sharedMessage;
+    DestinationSet destinationNodes{};
+    std::string messageData;
 };
 
-using SendMessageRequestQueue = boost::lockfree::spsc_queue<SendMessageRequest>;
+template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
 }; // namespace pipeline
 
 class Pipeline
@@ -45,35 +59,41 @@ class Pipeline
 
     void startPipeline();
 
-    void SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage &&message);
-    std::vector<pipeline::ReceivedCrossChainMessage> RecvFromOtherRsm();
+    void SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage &message);
 
-    void BroadcastToOwnRsm(scrooge::CrossChainMessage &&message);
-    std::vector<scrooge::CrossChainMessage> RecvFromOwnRsm();
+    void BroadcastToOwnRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &in);
 
-    void SendToAllOtherRsm(const uint64_t numOtherNodess, scrooge::CrossChainMessage &&message);
+    void RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &out);
+    void RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out);
+
+    void SendToAllOtherRsm(scrooge::CrossChainMessage &message);
 
   private:
-    void runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets,
-                       std::unique_ptr<std::vector<nng_socket>> localSendSockets);
-    void SetSockets();
+    void runForeignSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets);
+    void runLocalSendThread(std::unique_ptr<std::vector<nng_socket>> localSendSockets);
+    void runForeignReceiveThread(std::unique_ptr<std::vector<nng_socket>> foreignReceiveSockets);
+    void runLocalReceiveThread(std::unique_ptr<std::vector<nng_socket>> localReceiveSockets);
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
 
     static constexpr uint64_t kMinimumPortNumber = 7000;
-    mutable std::mutex mMutex;
+    static constexpr uint64_t kBatchSize = 750000;
 
     const NodeConfiguration kOwnConfiguration;
     const std::vector<std::string> kOwnNetworkUrls;
     const std::vector<std::string> kOtherNetworkUrls;
-    // send sockets owned by sending thread
-    // look in Pipeline::runSendThread
-    std::vector<nng_socket> mLocalReceiveSockets;
-    std::vector<nng_socket> mForeignReceiveSockets;
+    // send/receive sockets owned by sending/receiving thread
+    // look in Pipeline::runSendThread and Pipeline::runReceiveThread
 
-    std::thread messageSendThread{};
-    std::atomic_bool mIsThreadRunning{};
+    std::thread mForeignMessageSendThread{};
+    std::thread mForeignMessageReceiveThread{};
+    std::thread mLocalMessageSendThread{};
+    std::thread mLocalMessageReceiveThread{};
+    std::atomic_bool mIsPipelineStarted{};
     std::atomic_bool mShouldThreadStop{};
-    pipeline::SendMessageRequestQueue mMessageRequests{8196};
+    pipeline::MessageQueue<pipeline::SendMessageRequest> mMessageRequestsLocal{4096};
+    pipeline::MessageQueue<pipeline::SendMessageRequest> mMessageRequestsForeign{4096};
+    pipeline::MessageQueue<pipeline::foreign_nng_message> mForeignReceivedMessageQueue{4096};
+    pipeline::MessageQueue<pipeline::nng_message> mLocalReceivedMessageQueue{4096};
 };

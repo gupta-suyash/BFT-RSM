@@ -5,9 +5,15 @@
 #include "scrooge_request.pb.h"
 
 #include <chrono>
+#include <fstream>
 #include <map>
+#include <pthread.h>
+#include <sched.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <thread>
+
+#include <boost/circular_buffer.hpp>
 
 uint64_t trueMod(int64_t value, int64_t modulus)
 {
@@ -22,11 +28,12 @@ uint64_t trueMod(int64_t value, int64_t modulus)
 }
 
 template <typename T>
-void blockingPush(iothread::MessageQueue &queue, T &&message, std::chrono::duration<double> pollPeriod)
+void blockingPush(moodycamel::BlockingReaderWriterCircularBuffer<T> &queue, T &&message,
+                  std::chrono::microseconds pollPeriod)
 {
-    while (not queue.push(std::forward<T>(message)))
+    while (not is_test_over() && not queue.try_enqueue(std::forward<T>(message)))
     {
-        // std::this_thread::sleep_for(pollPeriod);
+        std::this_thread::sleep_for(pollPeriod);
     }
 }
 
@@ -51,10 +58,9 @@ bool isMessageValid(const scrooge::CrossChainMessage &message)
 void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
                               const NodeConfiguration configuration)
 {
-    const auto kNumMessages = get_number_of_packets();
     const auto kMessageSize = get_packet_size();
 
-    for (uint64_t curSequenceNumber = 0; curSequenceNumber < kNumMessages; curSequenceNumber++)
+    for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
     {
         scrooge::CrossChainMessage fakeMessage;
 
@@ -64,7 +70,7 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
 
         fakeMessage.set_validity_proof(std::string(kMessageSize / 2, 'X'));
 
-        blockingPush(*messageOutput, std::move(fakeMessage), 100us);
+        blockingPush(*messageOutput, std::move(fakeMessage), 10us);
         std::this_thread::sleep_for(10us); // configure for network
     }
 }
@@ -80,7 +86,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
     createPipe(kScroogeInputPath);
     auto reader = std::thread(startPipeReader, kScroogeInputPath, readMessages, exitReader);
 
-    while (true)
+    while (not is_test_over())
     {
         constexpr auto kPollPeriod = 50ns;
 
@@ -117,7 +123,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             *newMessage.mutable_data() = newMessageRequest.content();
             *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
 
-            blockingPush(*messageOutput, std::move(newMessage), kPollPeriod);
+            blockingPush(*messageOutput, std::move(newMessage), 1us);
             break;
         }
         default: {
@@ -143,82 +149,52 @@ void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment
     message->mutable_ack_count()->set_value(curAck.value());
 }
 
-void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, 
-			   const std::shared_ptr<Pipeline> pipeline,
-                   	   const std::shared_ptr<Acknowledgment> acknowledgment,
-                   	   const std::shared_ptr<AcknowledgmentTracker> ackTracker,
-                   	   const std::shared_ptr<QuorumAcknowledgment> quorumAck, 
-			   const NodeConfiguration configuration)
+void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
+                           const std::shared_ptr<Pipeline> pipeline,
+                           const std::shared_ptr<Acknowledgment> acknowledgment,
+                           const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                 kLogPath, kWorkingDir] = configuration;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
+                 kWorkingDir] = configuration;
+    const auto kTotalMessageSends = get_number_of_packets();
 
-    // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
-    size_t num_packets = 0;
-    while (num_packets < get_number_of_packets())
+    while (not is_test_over())
     {
-        // Send and store new messages
-        // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
-        // TODO Implement multithreaded sending to parallelize sending messages (or does this matter w sockets?)
         scrooge::CrossChainMessage newMessage;
-        while (messageInput->pop(newMessage))
+        while (messageInput->try_dequeue(newMessage))
         {
-            num_packets += 1;
-            const auto sequenceNumber = newMessage.data().sequence_number();
-	    pipeline->SendToAllOtherRsm(kOtherNetworkSize, std::move(newMessage));
+            pipeline->SendToAllOtherRsm(newMessage);
         }
-        // stats.endTimer(newMessage.data().sequence_number());
-        // std::this_thread::sleep_for(kSleepTime);
     }
-    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+
+    SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
-void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, 
-		           const std::shared_ptr<Pipeline> pipeline,
+void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
+                           const std::shared_ptr<Pipeline> pipeline,
                            const std::shared_ptr<Acknowledgment> acknowledgment,
-                   	   const std::shared_ptr<AcknowledgmentTracker> ackTracker,
-                   	   const std::shared_ptr<QuorumAcknowledgment> quorumAck, 
-			   const NodeConfiguration configuration)
+                           const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    const auto kResendWaitPeriod = 5s;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                 kLogPath, kWorkingDir] = configuration;
-    const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
+                 kWorkingDir] = configuration;
 
-    // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
-    size_t num_packets = 0;
-
-    while (num_packets < get_number_of_packets())
+    while (not is_test_over())
     {
-        // Send and store new messages
-        // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
-        // TODO Implement multithreaded sending to parallelize sending messages (or does this matter w sockets?)
         scrooge::CrossChainMessage newMessage;
-        while (messageInput->pop(newMessage))
+        while (messageInput->try_dequeue(newMessage))
         {
-            num_packets += 1;
-            const auto sequenceNumber = newMessage.data().sequence_number();
-            const auto originalSenderId = sequenceNumber % kOwnNetworkSize;
-
-            if (originalSenderId == kNodeId)
-            {
-                // sendMessageBuffer.emplace_back(std::move(newMessage));
-                const auto receiverNode =
-                    getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
-
-                // stats.startTimer(sequenceNumber);
-                pipeline->SendToOtherRsm(kNodeId, std::move(newMessage));
-                continue;
-            }
+            const auto curSequenceNumber = newMessage.data().sequence_number();
+            pipeline->SendToOtherRsm(curSequenceNumber % kOtherNetworkSize, newMessage);
         }
     }
 
-    // stats.printOutAllResults();
-    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+    SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
 void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
@@ -228,36 +204,29 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    const auto kResendWaitPeriod = 5s;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                 kLogPath, kWorkingDir] = configuration;
+    constexpr auto kResendWaitPeriod = 5s;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
+                 kWorkingDir] = configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
+    std::optional<uint64_t> curQuack;
 
-    // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
     auto resendMessageMap = std::map<uint64_t, scrooge::CrossChainMessage>{};
-    size_t num_packets = 0;
 
-    while (num_packets < get_number_of_packets())
+    while (not is_test_over())
     {
-        // Send and store new messages
-        // TODO Benchmark if it is better to empty the queue sending optimistically or retry first
-        // TODO Implement multithreaded sending to parallelize sending messages (or does this matter w sockets?)
         scrooge::CrossChainMessage newMessage;
-        while (messageInput->pop(newMessage))
+        while (messageInput->try_dequeue(newMessage))
         {
-            num_packets += 1;
             const auto sequenceNumber = newMessage.data().sequence_number();
             const auto originalSenderId = sequenceNumber % kOwnNetworkSize;
 
             if (originalSenderId == kNodeId)
             {
-                // sendMessageBuffer.emplace_back(std::move(newMessage));
                 const auto receiverNode =
                     getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
                 setAckValue(&newMessage, *acknowledgment);
-                // stats.startTimer(sequenceNumber);
-                pipeline->SendToOtherRsm(receiverNode, std::move(newMessage));
+                pipeline->SendToOtherRsm(receiverNode, newMessage);
                 continue;
             }
 
@@ -265,19 +234,19 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             const bool shouldThisNodeAlsoSend = (numPreviousSenders + 1) <= kMaxMessageSends;
             if (shouldThisNodeAlsoSend)
             {
+                continue;
                 resendMessageMap.emplace(sequenceNumber, std::move(newMessage));
             }
         }
 
-        const auto curQuack = quorumAck->getCurrentQuack();
+        curQuack = quorumAck->getCurrentQuack();
         if (!curQuack.has_value())
         {
             continue; // Wait for messages before resending
             // TODO Bug, if message 0 is not sent, nobody will resend
         }
-        // stats.endTimer(newMessage.data().sequence_number());
 
-        const auto numQuackRepeats = ackTracker->getAggregateRepeatedAckCount(curQuack.value());
+        const auto numQuackRepeats = 0;
         for (auto it = std::begin(resendMessageMap); it != std::end(resendMessageMap); it = resendMessageMap.erase(it))
         {
             auto &[sequenceNumber, message] = *it;
@@ -285,7 +254,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             const bool isMessageAlreadyReceived = sequenceNumber < curQuack.value();
             if (isMessageAlreadyReceived)
             {
-                // stats.endTimer(sequenceNumber);
                 continue; // delete this message
             }
 
@@ -304,71 +272,83 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
             setAckValue(&message, *acknowledgment);
 
-            pipeline->SendToOtherRsm(receiverNode, std::move(message));
+            pipeline->SendToOtherRsm(receiverNode, message);
         }
 
-        // std::this_thread::sleep_for(kSleepTime);
+        std::this_thread::sleep_for(kSleepTime);
     }
 
-    // stats.printOutAllResults();
-    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+    SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
 void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
                       const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    constexpr auto kPollTime = 1ns;
-    const auto kStartTime = std::chrono::steady_clock::now();
+    bindThreadToCpu(8);
 
+    uint64_t timedMessages{};
     std::optional<uint64_t> lastAckCount;
-    while (true)
-    {
-        const auto curTime = std::chrono::steady_clock::now();
-        const double timeElapsed = std::chrono::duration<double>(curTime - kStartTime).count();
-        const auto newDomesticMessages = pipeline->RecvFromOwnRsm();
-        auto newForeignMessages = pipeline->RecvFromOtherRsm();
 
-        for (const auto &domesticMessage : newDomesticMessages)
+    boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(1024);
+    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(1024);
+
+    while (not is_test_over())
+    {
+        pipeline->BroadcastToOwnRsm(foreignMessages);
+
+        const auto oldNumForeign = foreignMessages.size();
+        domesticMessages.clear();
+
+        pipeline->RecvFromOwnRsm(domesticMessages);
+        pipeline->RecvFromOtherRsm(foreignMessages);
+        const auto firstNewForeign = std::next(std::cbegin(foreignMessages), oldNumForeign);
+
+        for (auto newDomesticMessage : domesticMessages)
         {
-            if (isMessageValid(domesticMessage))
+            if (isMessageValid(newDomesticMessage))
             {
-                acknowledgment->addToAckList(domesticMessage.data().sequence_number());
+                acknowledgment->addToAckList(newDomesticMessage.data().sequence_number());
+                timedMessages += is_test_recording();
             }
         }
 
-        for (auto &receivedForeignMessage : newForeignMessages)
+        for (auto newForeignMessage = firstNewForeign; newForeignMessage != std::cend(foreignMessages);
+             newForeignMessage++)
         {
-            auto &[foreignMessage, senderId] = receivedForeignMessage;
+            const auto &[foreignMessage, senderId] = *newForeignMessage;
 
             if (isMessageValid(foreignMessage))
             {
                 acknowledgment->addToAckList(foreignMessage.data().sequence_number());
+                timedMessages += is_test_recording();
             }
 
             if (foreignMessage.has_ack_count())
             {
                 const auto foreignAckCount = foreignMessage.ack_count().value();
                 quorumAck->updateNodeAck(senderId, foreignAckCount);
-                ackTracker->updateNodeData(senderId, foreignAckCount, curTime);
+                // ackTracker->updateNodeData(senderId, foreignAckCount, curTime);
             }
-
-            pipeline->BroadcastToOwnRsm(std::move(foreignMessage));
         }
-
-        const auto newAckCount = acknowledgment->getAckIterator();
-        const auto newQuackCount = quorumAck->getCurrentQuack();
-        if (lastAckCount != newAckCount)
-        {
-            // This is the node's local view of what it has received from the other network
-            const auto ackCount = newAckCount.value_or(-1);
-            const auto ackCountRate = ackCount / timeElapsed;
-            const auto quackCount = newQuackCount.value_or(-1);
-            const auto quackCountRate = quackCount / timeElapsed;
-            //SPDLOG_INFO("Node Ack Count now at {} Ack rate = {} /s Quack count {} rate = {}", ackCount, ackCountRate,
-            //            quackCount, quackCountRate);
-            lastAckCount = newAckCount;
-        }
-        // std::this_thread::sleep_for(kPollTime);
     }
+    SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
+
+    remove(configuration.kLogPath.c_str());
+    std::ofstream file{configuration.kLogPath, std::ios_base::binary};
+
+    if (!file.is_open())
+    {
+        SPDLOG_CRITICAL("COULD NOT SAVE TO FILE");
+    }
+
+    file << "message_size: " << get_packet_size() << '\n';
+    file << "messages_received: " << timedMessages << '\n';
+    file << "duration_seconds: " << std::chrono::duration<double>{get_test_duration()}.count() << '\n';
+    // file << "average_latency: " << averageLatency << '\n';
+    file << "transfer_strategy: "
+         << "2Send2Recv v2 Thread scrooge" << '\n';
+    file << "max_acknowledgment: " << acknowledgment->getAckIterator().value_or(0) << '\n';
+    file << "max_quorum_acknowledgment: " << quorumAck->getCurrentQuack().value_or(0) << '\n';
+    file.close();
 }

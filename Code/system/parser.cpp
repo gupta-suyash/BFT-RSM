@@ -1,8 +1,8 @@
 #include "parser.h"
 #include <fstream>
+#include <iostream>
 #include <jsoncpp/json/json.h>
 #include <string>
-#include <iostream>
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -52,8 +52,10 @@ NodeConfiguration parser(int argc, char *argv[])
 
     if (config.isNull() || kScroogeParams.isNull() || kOwnParams.isNull() || kGeneralParams.isNull())
     {
-        SPDLOG_CRITICAL("Invalid config found at path {}, configIsNull={}, scroogeParamsIsNull={}, ownParamsIsNull={}, generalParamsIsNull = {}",
-                        kPathToConfig, config.isNull(), kScroogeParams.isNull(), kOwnParams.isNull(), kGeneralParams.isNull());
+        SPDLOG_CRITICAL("Invalid config found at path {}, configIsNull={}, scroogeParamsIsNull={}, ownParamsIsNull={}, "
+                        "generalParamsIsNull = {}",
+                        kPathToConfig, config.isNull(), kScroogeParams.isNull(), kOwnParams.isNull(),
+                        kGeneralParams.isNull());
         usage();
     }
 
@@ -69,30 +71,29 @@ NodeConfiguration parser(int argc, char *argv[])
 
     try
     {
-	const auto workingDir = config["experiment_independent_vars"]["network_dir"].asString();
+        const auto workingDir = config["experiment_independent_vars"]["network_dir"].asString();
 
         const auto ownNodeId = std::stoull(kPersonalId);
 
-        const auto ownNetworkId = std::stoull(kConfigId);
-        
-	const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
-        
-	const auto otherNetworkSize = kOwnParams["foreign_num_nodes"][kRoundNb].asUInt64();
+        const auto ownNetworkId = stoull(kConfigId);
+
+        const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
+
+        const auto otherNetworkSize = kOwnParams["foreign_num_nodes"][kRoundNb].asUInt64();
 
         const auto ownNetworkMaxNodesFail = kOwnParams["local_max_nodes_fail"][kRoundNb].asUInt64();
 
         const auto otherNetworkMaxNodesFail = kOwnParams["foreign_max_nodes_fail"][kRoundNb].asUInt64();
-        
-	const auto numPackets = kOwnParams["num_packets"][kRoundNb].asUInt64();
+
+        const auto numPackets = kOwnParams["num_packets"][kRoundNb].asUInt64();
 
         const auto packetSize = kOwnParams["packet_size"][kRoundNb].asUInt64();
 
         const auto logDir = kOwnParams["log_path"].asString();
-        
-	const auto logPath = logDir + "log_"s + std::to_string(ownNodeId) + ".txt"s;
-        SPDLOG_INFO("Working directory: {}", workingDir);
-        //	auto logger = spdlog::basic_logger_mt("basic_logger", logPath);
-        //	spdlog::set_default_logger(logger);
+
+        const auto logPath =
+            logDir + "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
+        SPDLOG_INFO("Network directory: {}", workingDir);
 
         set_packet_size(packetSize);
         set_number_of_packets(numPackets);
@@ -104,15 +105,15 @@ NodeConfiguration parser(int argc, char *argv[])
                                  .kOtherMaxNumFailedNodes = otherNetworkMaxNodesFail,
                                  .kNodeId = ownNodeId,
                                  .kLogPath = logPath,
-				 .kWorkingDir = workingDir};
+                                 .kWorkingDir = workingDir};
     }
-    catch (const std::runtime_error& re)
+    catch (const std::runtime_error &re)
     {
-	std::cerr << "Runtime error: " << re.what() << std::endl;
+        std::cerr << "Runtime error: " << re.what() << std::endl;
     }
-    catch (const std::exception& ex)
+    catch (const std::exception &ex)
     {
-	    std::cerr << "Error occurred: " << ex.what() << std::endl;
+        std::cerr << "Error occurred: " << ex.what() << std::endl;
     }
     catch (...)
     {

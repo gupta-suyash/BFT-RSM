@@ -10,8 +10,8 @@ def main():
         sys.exit(1)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
-        setup(sys.argv[1], sys.argv[2]) 
-        run(sys.argv[1], sys.argv[2]) 
+        expDir = setup(sys.argv[1], sys.argv[2])
+        run(sys.argv[1], sys.argv[2], expDir)
 
 
 if __name__ == "__main__":

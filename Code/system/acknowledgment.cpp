@@ -7,9 +7,6 @@
  */
 void Acknowledgment::addToAckList(const uint64_t nodeId)
 {
-    // Need to lock accesses to ackValue as it used by multiple threads
-    // std::scoped_lock lock{mMutex}; removed for performance
-
     mAckWindows.add(nodeId);
 
     const auto minimumAckWindow = std::cbegin(mAckWindows);

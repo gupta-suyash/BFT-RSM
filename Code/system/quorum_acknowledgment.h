@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <map>
-#include <mutex>
 #include <unordered_map>
 
 #include "global.h"
@@ -16,11 +15,10 @@ class QuorumAcknowledgment
     QuorumAcknowledgment(uint64_t quorumSize);
     void updateNodeAck(uint64_t nodeId, uint64_t ackValue);
     std::optional<uint64_t> getNodeAck(uint64_t nodeId) const;
-    uint64_t getNodesAtAck(uint64_t ack) const;
     std::optional<uint64_t> getCurrentQuack() const;
 
   private:
-    mutable std::recursive_mutex mMutex;
+    uint64_t getNodesAtAck(uint64_t ack) const;
     // Number of nodes to accept a message
     const uint64_t kQuorumSize{};
     // mNodeToAck[node] = node.ackCount

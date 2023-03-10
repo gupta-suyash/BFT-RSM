@@ -34,7 +34,7 @@ all: scrooge
 scrooge : $(SOURCES_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
 %.o : %.cpp
-	$(CC) -c ${CFLAGS} -o $@ $<
+	$(CC) -c ${CFLAGS}  -o $@ $<
 
 proto: $(PROTO_SOURCES)
 	protoc -I./protobuf --cpp_out=./system ./protobuf/*

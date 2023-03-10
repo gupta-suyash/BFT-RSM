@@ -13,9 +13,6 @@ QuorumAcknowledgment::QuorumAcknowledgment(const uint64_t quorumSize) : kQuorumS
  */
 void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t ackValue)
 {
-    // Lock class for thread safety
-    // std::scoped_lock lock{mMutex}; removed for performance
-
     const auto curNodeEntry = mNodeToAck.find(nodeId);
     const auto curQuorumAck = mQuorumAck.load(std::memory_order_relaxed);
 
@@ -79,9 +76,6 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
 
 uint64_t QuorumAcknowledgment::getNodesAtAck(uint64_t ack) const
 {
-    assert(false && "reorganize code to be safe");
-    std::scoped_lock lock{mMutex};
-
     const auto ackToNodeCountIt = mAckToNodeCount.find(ack);
     if (std::cend(mAckToNodeCount) == ackToNodeCountIt)
     {
@@ -94,7 +88,6 @@ uint64_t QuorumAcknowledgment::getNodesAtAck(uint64_t ack) const
 std::optional<uint64_t> QuorumAcknowledgment::getNodeAck(const uint64_t nodeId) const
 {
     assert(false && "reorganize code to be safe");
-    std::scoped_lock lock{mMutex};
     const auto nodeEntry = mNodeToAck.find(nodeId);
     if (std::cend(mNodeToAck) == nodeEntry)
     {
@@ -109,6 +102,5 @@ std::optional<uint64_t> QuorumAcknowledgment::getNodeAck(const uint64_t nodeId) 
  */
 std::optional<uint64_t> QuorumAcknowledgment::getCurrentQuack() const
 {
-    // std::scoped_lock lock{mMutex}; removed for performance
     return mQuorumAck.load(std::memory_order_acquire);
 }
