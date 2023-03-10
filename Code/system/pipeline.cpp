@@ -239,7 +239,6 @@ void Pipeline::runSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSen
                 SPDLOG_CRITICAL("SEND REQUEST IS STALE, DELETING foreignRSM={}", isDestinationForeign);
                 *it = messageRequests.back();
                 messageRequests.pop_back();
-                it--;
                 continue;
             }
 
