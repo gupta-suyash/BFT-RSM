@@ -52,6 +52,7 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
     {
         uint64_t readSize{};
         pipe.read(reinterpret_cast<char *>(&readSize), sizeof(readSize));
+	SPDLOG_ERROR("Read sz: {}", readSize);
 
         if (pipe.fail())
         {

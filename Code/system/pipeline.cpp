@@ -139,9 +139,9 @@ uint64_t Pipeline::getReceivePort(uint64_t senderId, bool isForeign)
 {
     if (isForeign)
     {
-        return kMinimumPortNumber + kOwnConfiguration.kOwnNetworkSize + senderId;
+        return /*get_other_port_number();*/kMinimumPortNumber + kOwnConfiguration.kOwnNetworkSize + senderId;
     }
-    return kMinimumPortNumber + senderId;
+    return /*get_port_number();*/kMinimumPortNumber + senderId;
 }
 
 /* Returns the port the current node will use to send to receiverId
@@ -152,9 +152,9 @@ uint64_t Pipeline::getSendPort(uint64_t receiverId, bool isForeign)
 {
     if (isForeign)
     {
-        return kMinimumPortNumber + kOwnConfiguration.kOtherNetworkSize + kOwnConfiguration.kNodeId;
+        return /*get_other_port_number() + 1;*/kMinimumPortNumber + kOwnConfiguration.kOtherNetworkSize + kOwnConfiguration.kNodeId;
     }
-    return kMinimumPortNumber + kOwnConfiguration.kNodeId;
+    return /*get_port_number() + 1;*/kMinimumPortNumber + kOwnConfiguration.kNodeId;
 }
 
 void Pipeline::startPipeline()

@@ -18,7 +18,7 @@ void usage()
  */
 NodeConfiguration parser(int argc, char *argv[])
 {
-    constexpr auto kNumArgs = 5 + 1;
+    constexpr auto kNumArgs = 7 + 1;
     if (argc != kNumArgs)
     {
         // we should really use an existing parser like boost::program_options
@@ -31,7 +31,7 @@ NodeConfiguration parser(int argc, char *argv[])
     const auto kConfigId = argv[3];
     const auto kPersonalId = argv[4];
     const Json::ArrayIndex kRoundNb = stoull(argv[5]);
-
+    set_port_numbers(stoull(argv[6]), stoull(argv[7]));
     std::ifstream configFile(kPathToConfig, std::ifstream::binary);
     Json::Value config;
     try

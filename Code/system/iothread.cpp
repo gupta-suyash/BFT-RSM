@@ -72,12 +72,19 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
 // Relays messages to be sent over ipc
 void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput)
 {
+    SPDLOG_ERROR("IPC Function in RSM {}", get_rsm_id());
+    if (get_rsm_id() == 1) {
+        while (true) {
+        }
+            //reader = std::thread(startPipeReader, kScroogeInputPathOne, readMessages, exitReader);
+    }
     const auto kNumMessages = get_number_of_packets();
-    constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
-    const auto readMessages = std::make_shared<ipc::DataChannel>(10);
+    constexpr auto kScroogeInputPathOne = "/tmp/algorand-input-node1";
+    constexpr auto kScroogeInputPath = "/tmp/algorand-input";
+    const auto readMessages = std::make_shared<ipc::DataChannel>(5);
     const auto exitReader = std::make_shared<std::atomic_bool>();
 
-    createPipe(kScroogeInputPath);
+    //createPipe(kScroogeInputPath);
     auto reader = std::thread(startPipeReader, kScroogeInputPath, readMessages, exitReader);
 
     while (true)
@@ -89,6 +96,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
         {
             if (*exitReader)
             {
+		SPDLOG_ERROR("Finally read the IPC!");
                 break;
             }
             std::this_thread::sleep_for(kPollPeriod);
@@ -98,9 +106,10 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             break;
         }
 
-        scrooge::ScroogeRequest newRequest;
-
-        const auto isParseSuccessful = newRequest.ParseFromArray(messageBytes.data(), messageBytes.size());
+	scrooge::ScroogeRequest newRequest;
+	SPDLOG_ERROR("Msg bytes data and size: {} {} ", messageBytes.data(), messageBytes.size());
+        
+	const auto isParseSuccessful = newRequest.ParseFromArray(messageBytes.data(), messageBytes.size());
         if (not isParseSuccessful)
         {
             SPDLOG_ERROR("FAILED TO READ MESSAGE");
@@ -114,8 +123,9 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             const auto newMessageRequest = newRequest.send_message_request();
 
             scrooge::CrossChainMessage newMessage;
+	    SPDLOG_ERROR("Creating packet!");
             *newMessage.mutable_data() = newMessageRequest.content();
-            *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
+            //*newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
 
             blockingPush(*messageOutput, std::move(newMessage), kPollPeriod);
             break;
@@ -139,7 +149,7 @@ void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment
     {
         return;
     }
-
+    SPDLOG_INFO("Ack: ", curAck.value());
     message->mutable_ack_count()->set_value(curAck.value());
 }
 
@@ -236,7 +246,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     // auto sendMessageBuffer = std::vector<scrooge::CrossChainMessage>{};
     auto resendMessageMap = std::map<uint64_t, scrooge::CrossChainMessage>{};
     size_t num_packets = 0;
-
+    auto start = std::chrono::high_resolution_clock::now();
     while (num_packets < get_number_of_packets())
     {
         // Send and store new messages
@@ -248,7 +258,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             num_packets += 1;
             const auto sequenceNumber = newMessage.data().sequence_number();
             const auto originalSenderId = sequenceNumber % kOwnNetworkSize;
-
             if (originalSenderId == kNodeId)
             {
                 // sendMessageBuffer.emplace_back(std::move(newMessage));
@@ -256,11 +265,10 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                     getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
 
                 setAckValue(&newMessage, *acknowledgment);
-                // stats.startTimer(sequenceNumber);
+		SPDLOG_INFO("MESSAGE SENT!");
                 pipeline->SendToOtherRsm(receiverNode, std::move(newMessage));
                 continue;
             }
-
             const auto numPreviousSenders = trueMod(kNodeId - originalSenderId, kOwnNetworkSize);
             const bool shouldThisNodeAlsoSend = (numPreviousSenders + 1) <= kMaxMessageSends;
             if (shouldThisNodeAlsoSend)
@@ -268,7 +276,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 resendMessageMap.emplace(sequenceNumber, std::move(newMessage));
             }
         }
-
         const auto curQuack = quorumAck->getCurrentQuack();
         if (!curQuack.has_value())
         {
@@ -276,7 +283,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             // TODO Bug, if message 0 is not sent, nobody will resend
         }
         // stats.endTimer(newMessage.data().sequence_number());
-
         const auto numQuackRepeats = ackTracker->getAggregateRepeatedAckCount(curQuack.value());
         for (auto it = std::begin(resendMessageMap); it != std::end(resendMessageMap); it = resendMessageMap.erase(it))
         {
@@ -306,12 +312,11 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
             pipeline->SendToOtherRsm(receiverNode, std::move(message));
         }
-
         // std::this_thread::sleep_for(kSleepTime);
     }
-
-    // stats.printOutAllResults();
-    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY)");
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = end - start;
+    SPDLOG_INFO("ALL PACKETS SENT (PRESUMABLY). Time lapse: {} for {} number of packets", diff.count(), get_number_of_packets());
 }
 
 void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
@@ -343,6 +348,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
             if (isMessageValid(foreignMessage))
             {
+		SPDLOG_INFO("VALID MESSAGE RECEIVED!");
                 acknowledgment->addToAckList(foreignMessage.data().sequence_number());
             }
 

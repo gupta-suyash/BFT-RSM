@@ -1,0 +1,39 @@
+{
+    "Genesis": {
+        "NetworkName": "",
+        "Wallets": [
+            {
+                "Name": "Wallet1",
+                "Stake": 50,
+                "Online": true
+            },
+            {
+                "Name": "Wallet2",
+                "Stake": 50,
+                "Online": true
+            }
+        ]
+    },
+    "Nodes": [
+        {
+            "Name": "Node0",
+            "IsRelay": true,
+            "Wallets": [
+                {
+                    "Name": "Wallet1",
+                    "ParticipationOnly": false
+                }
+            ]
+        },
+        {
+            "Name": "Node1",
+            "Wallets": [
+                {
+                    "Name": "Wallet2",
+                    "ParticipationOnly": false
+                }
+            ]
+        }
+    ]
+}
+

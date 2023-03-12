@@ -5,11 +5,26 @@ static uint64_t g_rsm_id{};       // RSM Id for this node.
 static uint64_t g_other_rsm_id{}; // RSM Id of other RSM.
 static uint64_t g_number_of_packets{};
 static uint64_t g_packet_size{};
+static uint64_t kUniversalPortNumber{};
+static uint64_t kOtherUniversalPortNumber{};
 
 /* Get the id of the RSM this node belongs.
  *
  * @return g_rsm_id.
  */
+uint64_t get_port_number() {
+    return kUniversalPortNumber;
+}
+
+uint64_t get_other_port_number() {
+    return kOtherUniversalPortNumber;
+}
+
+void set_port_numbers(uint64_t this_port, uint64_t other_port) {
+    kUniversalPortNumber = this_port;
+    kOtherUniversalPortNumber = other_port;
+}
+
 uint64_t get_rsm_id()
 {
     return g_rsm_id;

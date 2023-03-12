@@ -19,6 +19,10 @@ struct NodeConfiguration
     const std::string kWorkingDir;
 };
 
+uint64_t get_port_number();
+uint64_t get_other_port_number();
+void set_port_numbers(uint64_t this_port, uint64_t other_port);
+
 uint64_t get_rsm_id();
 void set_rsm_id(uint64_t rsm_id);
 
