@@ -32,7 +32,7 @@ def get_log_file_names(paths: List[str]) -> List[str]:
     for path in paths:
         if not os.path.exists(path):
             usage(f'Unable to find path {path}')
-        file_names += [file for file in os.listdir(path) if file.startswith("log_") and file.endswith(".yaml")]
+        file_names += [os.path.join(path, file) for file in os.listdir(path) if file.startswith("log_") and file.endswith(".yaml")]
     return file_names
 
 def make_dataframe(file_names: List[str]) -> pd.DataFrame:
@@ -44,7 +44,7 @@ def make_dataframe(file_names: List[str]) -> pd.DataFrame:
             usage(f'Unable to parse {file_name} -- is it correct yaml format?')
     return pd.DataFrame.from_dict(rows)
 
-def get_graphs(dataframe: pd.DataFrame) -> List[Graph]:
+def get_throughput_latency(dataframe: pd.DataFrame) -> List[Graph]:
     latency_lines = []
     throughput_lines = []
     for transfer_strategy, group in dataframe.groupby('transfer_strategy'):
@@ -53,8 +53,8 @@ def get_graphs(dataframe: pd.DataFrame) -> List[Graph]:
         average_latencies = []
         overall_throughputs = []
         for message_size in message_sizes:
-            average_latency = dataframe.query('message_size == @message_size').average_latency.mean()
-            overall_throughput = dataframe.query('message_size == @message_size').total_throughput.mean()
+            average_latency = group.query('message_size == @message_size').average_latency.mean()
+            overall_throughput = group.query('message_size == @message_size').total_throughput.mean()
             average_latencies.append(average_latency)
             overall_throughputs.append(overall_throughput)
         latency_lines.append(Line(
@@ -82,6 +82,53 @@ def get_graphs(dataframe: pd.DataFrame) -> List[Graph]:
             lines = throughput_lines
         )
     ]
+
+def get_throughput_bandwidth(dataframe: pd.DataFrame) -> List[Graph]:
+    throughput_lines = []
+    bandwidth_lines = []
+    for transfer_strategy, group in dataframe.groupby('transfer_strategy'):
+        message_sizes = group.message_size.unique()
+        message_sizes.sort()
+        average_throughput = []
+        average_bandwidth = []
+        for message_size in message_sizes:
+            cur_data = group.query('message_size == @message_size')
+            #import pdb; pdb.set_trace(); 
+            throughput = cur_data.messages_received / cur_data.duration_seconds
+            bandwidth = throughput * message_size * 8
+            average_throughput.append(throughput.mean())
+            average_bandwidth.append(bandwidth.mean())
+        throughput_lines.append(Line(
+            x_values = message_sizes / 1024,
+            y_values = average_throughput,
+            name = transfer_strategy
+        ))
+        bandwidth_lines.append(Line(
+            x_values = message_sizes / 1024,
+            y_values = average_bandwidth,
+            name = transfer_strategy
+        ))
+
+    return [
+        Graph(
+            title = 'Average Message Throughput',
+            x_axis_name = 'message size (KiB)',
+            y_axis_name = 'Messages Received (per node) / second',
+            lines = throughput_lines
+        ),
+        Graph(
+            title = 'Average Message Bandwidth',
+            x_axis_name = 'message size (KiB)',
+            y_axis_name = 'Useful Bytes Received (per node) / second',
+            lines = bandwidth_lines
+        )
+    ]
+
+def get_graphs(dataframe: pd.DataFrame) -> List[Graph]:
+    graphs = []
+    # graphs.extend(get_throughput_latency(dataframe))
+    graphs.extend(get_throughput_bandwidth(dataframe))
+    return graphs
 
 def make_fig(graph: Graph) -> go.Figure: 
     fig = go.Figure()
@@ -113,10 +160,10 @@ def save_graphs(graphs: List[Graph]):
 
 
 def main():
+    dirs = [dir for dir in sys.argv[1:] if os.path.isdir(dir)]
     if len(sys.argv) <= 1:
         usage('You must input at least one directory')
-    paths = sys.argv[1:]
-    file_names = get_log_file_names(paths)
+    file_names = get_log_file_names(dirs)
     dataframe = make_dataframe(file_names)
     graphs = get_graphs(dataframe)
     save_graphs(graphs)

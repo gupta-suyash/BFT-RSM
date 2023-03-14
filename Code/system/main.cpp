@@ -75,10 +75,11 @@ static nng_socket openSendSocket(const std::string &url)
  * @param buf is the outgoing message of protobuf type.
  * @param socket is the nng_socket to put the data into
  */
-static int sendMessage(const nng_socket &socket, const std::string& data)
+static int sendMessage(const nng_socket &socket, const std::string& data, bool useNonblocking)
 {
     const auto bufferSize = data.size();
-    const auto sendReturnValue = nng_send(socket, const_cast<char *>(data.c_str()), bufferSize, NNG_FLAG_NONBLOCK);
+    const auto useNonBlock = NNG_FLAG_NONBLOCK * useNonblocking;
+    const auto sendReturnValue = nng_send(socket, const_cast<char *>(data.c_str()), bufferSize, useNonBlock);
     const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN;
     if (isActualError)
     {
@@ -93,12 +94,13 @@ static int sendMessage(const nng_socket &socket, const std::string& data)
  * @param socket is the nng_socket to check for data on.
  * @return the protobuf if data for one was contained in the socket.
  */
-static std::optional<std::string> receiveMessage(const nng_socket &socket)
+static bool receiveMessage(const nng_socket &socket, bool useNonblocking)
 {
     char *buffer;
     size_t bufferSize;
+    const auto useNonBlock = NNG_FLAG_NONBLOCK * useNonblocking;
 
-    const auto receiveReturnValue = nng_recv(socket, &buffer, &bufferSize, NNG_FLAG_ALLOC | NNG_FLAG_NONBLOCK);
+    const auto receiveReturnValue = nng_recv(socket, &buffer, &bufferSize, NNG_FLAG_ALLOC | useNonBlock);
 
     if (receiveReturnValue != 0)
     {
@@ -107,14 +109,18 @@ static std::optional<std::string> receiveMessage(const nng_socket &socket)
             SPDLOG_CRITICAL("nng_recv has error value = {}", nng_strerror(receiveReturnValue));
         }
 
-        return std::nullopt;
+        return false;
     }
 
-    std::string receivedData{buffer, bufferSize};
+    //std::string receivedData{buffer, bufferSize};
+    DoNotOptimize(buffer[0]);
+    DoNotOptimize(buffer[bufferSize/2]);
+    DoNotOptimize(buffer[bufferSize-1]);
+    assert(bufferSize == get_packet_size());
 
     nng_free(buffer, bufferSize);
 
-    return receivedData;
+    return true;
 }
 
 /* Returns the port the current node will use to receive from senderId
@@ -159,12 +165,12 @@ int main(int argc, char *argv[])
 
     for (size_t localNodeId = 0; localNodeId < kOwnNetworkUrls.size(); localNodeId++)
     {
-        // if (kOwnConfiguration.kNodeId == localNodeId)
-        // {
-        //     mLocalSendSockets.emplace_back();
-        //     mLocalReceiveSockets.emplace_back();
-        //     continue;
-        // }
+        if (kOwnConfiguration.kNodeId == localNodeId)
+        {
+            //mLocalSendSockets.emplace_back();
+            //mLocalReceiveSockets.emplace_back();
+            continue;
+        }
 
         const auto &localUrl = kOwnNetworkUrls.at(localNodeId);
         const auto sendingPort = getSendPort(localNodeId, false);
@@ -192,8 +198,7 @@ int main(int argc, char *argv[])
 
     const auto kSize = get_packet_size();
 
-    const auto startTime = std::chrono::steady_clock::now();
-    const auto testDuration = 1min;
+    const auto testDuration = 30s;
     const auto warmUpTime = 10s;
 
     std::string data(get_packet_size(), ' ');
@@ -206,7 +211,19 @@ int main(int argc, char *argv[])
         c = distrib(gen);
     }
 
-    auto localSendThread = std::thread([&](){
+    const auto startTime = std::chrono::steady_clock::now();
+
+    const auto sendNonBlocking = [&]() -> bool{
+        const auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+        return 1;
+    };
+
+    const auto recvNonBlocking = [&]() -> bool{
+        const auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+        return 1;
+    };
+    
+    auto foreignSendThread0 = std::thread([&](){
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
         CPU_SET(0, &cpuset);
@@ -215,36 +232,13 @@ int main(int argc, char *argv[])
             SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
         }
 
-        while (std::chrono::steady_clock::now() - startTime < testDuration)
+        while (std::chrono::steady_clock::now() - startTime < testDuration + 1s)
         {
-            for (auto& socket : mLocalSendSockets)
-            {
-                sendMessage(socket, data.c_str());
-            }
+            sendMessage(mForeignSendSockets[0], data, sendNonBlocking());
         }
     });
 
-    auto foreignSendThread = std::thread([&](){
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET(1, &cpuset);
-        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-        if (rc != 0) {
-            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
-        }
-
-        while (std::chrono::steady_clock::now() - startTime < testDuration)
-        {
-            for (auto& socket : mForeignSendSockets)
-            {
-                sendMessage(socket, data.c_str());
-            }
-        }
-    });
-
-    std::atomic<uint64_t> globalNumMessages{};
-
-    auto localReceiveThread = std::thread([&](){
+    auto foreignSendThread1 = std::thread([&](){
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
         CPU_SET(2, &cpuset);
@@ -253,30 +247,48 @@ int main(int argc, char *argv[])
             SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
         }
 
-        uint64_t numMessages{};
-        bool shouldCountMessage{};
-        while (std::chrono::steady_clock::now() - startTime < testDuration)
+        while (std::chrono::steady_clock::now() - startTime < testDuration + 1s)
         {
-            shouldCountMessage = shouldCountMessage || std::chrono::steady_clock::now() - startTime > warmUpTime;
-            for (auto& socket : mLocalReceiveSockets)
-            {
-                const auto x = receiveMessage(socket);
-                const bool isValid = not x.has_value() || x == data;
-                const bool shouldCount = x.has_value() && shouldCountMessage;
-                if (not isValid)
-                {
-                    SPDLOG_CRITICAL("TEST INVALID??? '{}' vs '{}'", x.value(), data);
-                }
-                numMessages += shouldCount && isValid;
-            }
+            sendMessage(mForeignSendSockets[1], data, sendNonBlocking());
         }
-        globalNumMessages += numMessages;
     });
 
-    auto foreignReceiveThread = std::thread([&](){
+    auto localSendThread0 = std::thread([&](){
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
-        CPU_SET(3, &cpuset);
+        CPU_SET(4, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        while (std::chrono::steady_clock::now() - startTime < testDuration + 1s)
+        {
+            sendMessage(mLocalSendSockets[0], data, sendNonBlocking());
+        }
+    });
+
+    auto localSendThread1 = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(6, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        while (std::chrono::steady_clock::now() - startTime < testDuration + 1s)
+        {
+            sendMessage(mLocalSendSockets[1], data, sendNonBlocking());
+        }
+    });
+
+    std::atomic<uint64_t> globalNumMessages{};
+
+    auto foreignReceiveThread0 = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(8, &cpuset);
         int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
         if (rc != 0) {
             SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
@@ -284,28 +296,83 @@ int main(int argc, char *argv[])
 
         uint64_t numMessages{};
         bool shouldCountMessage{};
-        while (std::chrono::steady_clock::now() - startTime < testDuration)
+        while (std::chrono::steady_clock::now() - startTime < testDuration + 1s)
         {
-            shouldCountMessage = shouldCountMessage || std::chrono::steady_clock::now() - startTime > warmUpTime;
-            for (auto& socket : mForeignReceiveSockets)
-            {
-                const auto x = receiveMessage(socket);
-                const bool isValid = not x.has_value() || x == data;
-                const bool shouldCount = x.has_value() && shouldCountMessage;
-                if (not isValid)
-                {
-                    SPDLOG_CRITICAL("TEST INVALID??? '{}' vs '{}'", x.value(), data);
-                }
-                numMessages += shouldCountMessage && x.has_value();
-            }
+            const auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+            shouldCountMessage = warmUpTime < elapsedTime && elapsedTime < testDuration;
+            numMessages += shouldCountMessage & receiveMessage(mForeignReceiveSockets[0], recvNonBlocking());
         }
         globalNumMessages += numMessages;
     });
 
-    localReceiveThread.join();
-    foreignReceiveThread.join();
-    localSendThread.join();
-    foreignSendThread.join();
+    auto foreignReceiveThread1 = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(10, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        uint64_t numMessages{};
+        bool shouldCountMessage{};
+        while (std::chrono::steady_clock::now() - startTime < testDuration + 1s)
+        {
+            const auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+            shouldCountMessage = warmUpTime < elapsedTime && elapsedTime < testDuration;
+            numMessages += shouldCountMessage & receiveMessage(mForeignReceiveSockets[1], recvNonBlocking());
+        }
+        globalNumMessages += numMessages;
+    });
+
+    auto localReceiveThread0 = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(12, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        uint64_t numMessages{};
+        bool shouldCountMessage{};
+        while (std::chrono::steady_clock::now() - startTime < testDuration + 1s)
+        {
+            const auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+            shouldCountMessage = warmUpTime < elapsedTime && elapsedTime < testDuration;
+            numMessages += shouldCountMessage & receiveMessage(mLocalReceiveSockets[0], recvNonBlocking());
+        }
+        globalNumMessages += numMessages;
+    });
+
+    auto localReceiveThread1 = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(14, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        uint64_t numMessages{};
+        bool shouldCountMessage{};
+        while (std::chrono::steady_clock::now() - startTime < testDuration + 1s)
+        {
+            const auto elapsedTime = std::chrono::steady_clock::now() - startTime;
+            shouldCountMessage = warmUpTime < elapsedTime && elapsedTime < testDuration;
+            numMessages += shouldCountMessage & receiveMessage(mLocalReceiveSockets[1], recvNonBlocking());
+        }
+        globalNumMessages += numMessages;
+    });
+
+    localReceiveThread0.join();
+    foreignReceiveThread0.join();
+    localSendThread0.join();
+    foreignSendThread0.join();
+    localReceiveThread1.join();
+    foreignReceiveThread1.join();
+    localSendThread1.join();
+    foreignSendThread1.join();
 
     remove(kOwnConfiguration.kLogPath.c_str());
     std::ofstream file{kOwnConfiguration.kLogPath, std::ios_base::binary};
@@ -319,7 +386,7 @@ int main(int argc, char *argv[])
     file << "messages_received: " << globalNumMessages << '\n';
     file << "duration_seconds: " << std::chrono::duration<double>{testDuration - warmUpTime}.count() << '\n';
     // file << "average_latency: " << averageLatency << '\n';
-    file << "transfer_strategy: " << "ParallelNonBlockingSendRecv" << '\n';
+    file << "transfer_strategy: " << "4Send4Recv Threads NonBlocking SendRecv" << '\n';
     file.close();
 
     return 0;
