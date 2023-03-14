@@ -200,7 +200,7 @@ def run(configJson, experimentName, expDir):
     increase_packet_size.nb_rounds = int(config[experimentName]['nb_rounds'])
     # Run for each round, nbRepetitions time.
     
-    for i in range(6, increase_packet_size.nb_rounds):
+    for i in range(0, 1):
         try:
             # Need to collect the scrooge start commands
             scrooge_commands = []

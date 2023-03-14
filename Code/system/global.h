@@ -10,13 +10,13 @@ using namespace std::chrono_literals;
 
 struct NodeConfiguration
 {
-    const uint64_t kOwnNetworkSize;
-    const uint64_t kOtherNetworkSize;
-    const uint64_t kOwnMaxNumFailedNodes;
-    const uint64_t kOtherMaxNumFailedNodes;
-    const uint64_t kNodeId;
-    const std::string kLogPath;
-    const std::string kWorkingDir;
+    uint64_t kOwnNetworkSize;
+    uint64_t kOtherNetworkSize;
+    uint64_t kOwnMaxNumFailedNodes;
+    uint64_t kOtherMaxNumFailedNodes;
+    uint64_t kNodeId;
+    std::string kLogPath;
+    std::string kWorkingDir;
 };
 
 uint64_t get_rsm_id();

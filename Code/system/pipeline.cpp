@@ -4,7 +4,7 @@
 #include <chrono>
 #include <list>
 
-int64_t getLogAck(const scrooge::CrossChainMessage &message)
+static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
     if (!message.has_ack_count())
     {
@@ -13,7 +13,7 @@ int64_t getLogAck(const scrooge::CrossChainMessage &message)
     return message.ack_count().value();
 }
 
-nng_socket openReceiveSocket(const std::string &url)
+static nng_socket openReceiveSocket(const std::string &url)
 {
     constexpr auto kResultOpenSuccessful = 0;
 
@@ -41,7 +41,7 @@ nng_socket openReceiveSocket(const std::string &url)
     return socket;
 }
 
-nng_socket openSendSocket(const std::string &url)
+static nng_socket openSendSocket(const std::string &url)
 {
     constexpr auto kResultOpenSuccessful = 0;
 
@@ -67,7 +67,7 @@ nng_socket openSendSocket(const std::string &url)
  * @param buf is the outgoing message of protobuf type.
  * @param socket is the nng_socket to put the data into
  */
-int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
+static int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
 {
     string buffer;
     buf.SerializeToString(&buffer);
@@ -88,7 +88,7 @@ int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
  * @param socket is the nng_socket to check for data on.
  * @return the protobuf if data for one was contained in the socket.
  */
-std::optional<scrooge::CrossChainMessage> receiveMessage(const nng_socket &socket)
+static std::optional<scrooge::CrossChainMessage> receiveMessage(const nng_socket &socket)
 {
     char *buffer;
     size_t bufferSize;
