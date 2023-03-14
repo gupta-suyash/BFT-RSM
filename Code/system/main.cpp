@@ -5,10 +5,15 @@
 #include <nng/protocol/pipeline0/pull.h>
 #include <nng/protocol/pipeline0/push.h>
 #include <functional>
+#include <random>
 #include <memory>
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <stdio.h>
+#include <fstream>
+#include <pthread.h>
+#include <sched.h>
 
 static constexpr uint64_t kMinimumPortNumber = 7000;
 static NodeConfiguration kOwnConfiguration;
@@ -41,7 +46,6 @@ static nng_socket openReceiveSocket(const std::string &url)
         exit(1);
     }
 
-    SPDLOG_INFO("NNG listen for URL = '{}' has return value {} ", url, nng_strerror(nngDialResult));
 
     return socket;
 }
@@ -62,7 +66,6 @@ static nng_socket openSendSocket(const std::string &url)
 
     // Asynchronous wait for someone to listen to this socket.
     const auto nngDialResult = nng_dial(socket, url.c_str(), nullptr, NNG_FLAG_NONBLOCK);
-    SPDLOG_INFO("NNG dial for URL = '{}' has return value {} ", url, nng_strerror(nngDialResult));
 
     return socket;
 }
@@ -147,17 +150,13 @@ int main(int argc, char *argv[])
                  kWorkingDir] = kOwnConfiguration;
     const auto kNetworkZeroConfigPath = kWorkingDir + "network0urls.txt"s;
     const auto kNetworkOneConfigPath = kWorkingDir + "network1urls.txt"s;
-    SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
-                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, num_packets = {},  kLogPath= '{}'",
-                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                get_rsm_id(), get_number_of_packets(), kLogPath);
+    SPDLOG_CRITICAL("PACKET SIZE={}", get_packet_size());
 
     const auto kOwnNetworkUrls = parseNetworkUrls(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
     const auto kOtherNetworkUrls = parseNetworkUrls(get_other_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
 
     const auto &kOwnUrl = kOwnNetworkUrls.at(kOwnConfiguration.kNodeId);
 
-    SPDLOG_INFO("Configuring local sockets: {}", kOwnUrl);
     for (size_t localNodeId = 0; localNodeId < kOwnNetworkUrls.size(); localNodeId++)
     {
         // if (kOwnConfiguration.kNodeId == localNodeId)
@@ -178,7 +177,6 @@ int main(int argc, char *argv[])
         mLocalReceiveSockets.emplace_back(openReceiveSocket(receivingUrl));
     }
 
-    SPDLOG_INFO("Configuring foreign sockets");
     for (size_t foreignNodeId = 0; foreignNodeId < kOtherNetworkUrls.size(); foreignNodeId++)
     {
         const auto &foreignUrl = kOtherNetworkUrls.at(foreignNodeId);
@@ -194,14 +192,49 @@ int main(int argc, char *argv[])
 
     const auto kSize = get_packet_size();
 
-    auto sendThread = std::thread([&](){
-        std::string data(' ', kSize);
-        while (true)
+    const auto startTime = std::chrono::steady_clock::now();
+    const auto testDuration = 1min;
+    const auto warmUpTime = 10s;
+
+    std::string data(get_packet_size(), ' ');
+    assert(data.length() == get_packet_size());
+
+    std::mt19937 gen(12345678);
+    std::uniform_int_distribution<> distrib(1, 255);
+    for (auto& c : data)
+    {
+        c = distrib(gen);
+    }
+
+    auto localSendThread = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(0, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        while (std::chrono::steady_clock::now() - startTime < testDuration)
         {
             for (auto& socket : mLocalSendSockets)
             {
                 sendMessage(socket, data.c_str());
             }
+        }
+    });
+
+    auto foreignSendThread = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(1, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        while (std::chrono::steady_clock::now() - startTime < testDuration)
+        {
             for (auto& socket : mForeignSendSockets)
             {
                 sendMessage(socket, data.c_str());
@@ -209,24 +242,85 @@ int main(int argc, char *argv[])
         }
     });
 
-    auto receiveThread = std::thread([&](){
-        while (true)
+    std::atomic<uint64_t> globalNumMessages{};
+
+    auto localReceiveThread = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(2, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        uint64_t numMessages{};
+        bool shouldCountMessage{};
+        while (std::chrono::steady_clock::now() - startTime < testDuration)
         {
+            shouldCountMessage = shouldCountMessage || std::chrono::steady_clock::now() - startTime > warmUpTime;
             for (auto& socket : mLocalReceiveSockets)
             {
-                auto x = receiveMessage(socket);
-                DoNotOptimize(x);
-            }
-            for (auto& socket : mForeignReceiveSockets)
-            {
-                auto x = receiveMessage(socket);
-                DoNotOptimize(x);
+                const auto x = receiveMessage(socket);
+                const bool isValid = not x.has_value() || x == data;
+                const bool shouldCount = x.has_value() && shouldCountMessage;
+                if (not isValid)
+                {
+                    SPDLOG_CRITICAL("TEST INVALID??? '{}' vs '{}'", x.value(), data);
+                }
+                numMessages += shouldCount && isValid;
             }
         }
+        globalNumMessages += numMessages;
     });
 
-    receiveThread.join();
-    sendThread.join();
+    auto foreignReceiveThread = std::thread([&](){
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(3, &cpuset);
+        int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+        if (rc != 0) {
+            SPDLOG_CRITICAL("SET AFFINITY FAILED ERR = {}", rc);
+        }
+
+        uint64_t numMessages{};
+        bool shouldCountMessage{};
+        while (std::chrono::steady_clock::now() - startTime < testDuration)
+        {
+            shouldCountMessage = shouldCountMessage || std::chrono::steady_clock::now() - startTime > warmUpTime;
+            for (auto& socket : mForeignReceiveSockets)
+            {
+                const auto x = receiveMessage(socket);
+                const bool isValid = not x.has_value() || x == data;
+                const bool shouldCount = x.has_value() && shouldCountMessage;
+                if (not isValid)
+                {
+                    SPDLOG_CRITICAL("TEST INVALID??? '{}' vs '{}'", x.value(), data);
+                }
+                numMessages += shouldCountMessage && x.has_value();
+            }
+        }
+        globalNumMessages += numMessages;
+    });
+
+    localReceiveThread.join();
+    foreignReceiveThread.join();
+    localSendThread.join();
+    foreignSendThread.join();
+
+    remove(kOwnConfiguration.kLogPath.c_str());
+    std::ofstream file{kOwnConfiguration.kLogPath, std::ios_base::binary};
+
+    if (!file.is_open())
+    {
+        SPDLOG_CRITICAL("COULD NOT SAVE TO FILE");
+    }
+
+    file << "message_size: " << get_packet_size() << '\n';
+    file << "messages_received: " << globalNumMessages << '\n';
+    file << "duration_seconds: " << std::chrono::duration<double>{testDuration - warmUpTime}.count() << '\n';
+    // file << "average_latency: " << averageLatency << '\n';
+    file << "transfer_strategy: " << "ParallelNonBlockingSendRecv" << '\n';
+    file.close();
 
     return 0;
 }
