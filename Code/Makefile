@@ -7,14 +7,14 @@ SANITIZERS=-fsanitize=address -fsanitize=undefined
 .SUFFIXES: .o .cpp .h .cc
 
 SRC_DIRS = ./system/ 
-DEPS = -I$(NNMSG)/include -I$(BOOST) 
+DEPS = -I$(NNMSG)/include -I$(BOOST)
 
 PROTO_DIR = ./protobuf/
 
 CFLAGS += $(DEPS)
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
-LIBS = -lnng -lanl -ldl -lprotobuf -lpthread -ljsoncpp -latomic
+LIBS = -lnng -lanl -ldl -lprotobuf -lpthread -ljsoncpp -latomic -lcryptopp
 
 PROTO_SOURCES = $(wildcard ./protobuf/*.proto)
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
