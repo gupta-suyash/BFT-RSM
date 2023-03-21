@@ -4,6 +4,9 @@
 #include <string>
 #include <iostream>
 
+using namespace std;
+using namespace std::chrono_literals;
+
 void usage()
 {
     SPDLOG_INFO("Run as ./scrooge path_to_config exp_name node_id");
@@ -30,7 +33,7 @@ NodeConfiguration parser(int argc, char *argv[])
     const auto kExperimentName = argv[2];
     const auto kConfigId = argv[3];
     const auto kPersonalId = argv[4];
-    const Json::ArrayIndex kRoundNb = stoull(argv[5]);
+    const Json::ArrayIndex kRoundNb = std::stoull(argv[5]);
 
     std::ifstream configFile(kPathToConfig, std::ifstream::binary);
     Json::Value config;
@@ -68,9 +71,9 @@ NodeConfiguration parser(int argc, char *argv[])
     {
 	const auto workingDir = config["experiment_independent_vars"]["network_dir"].asString();
 
-        const auto ownNodeId = stoull(kPersonalId);
+        const auto ownNodeId = std::stoull(kPersonalId);
 
-        const auto ownNetworkId = stoull(kConfigId);
+        const auto ownNetworkId = std::stoull(kConfigId);
         
 	const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
         

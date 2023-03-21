@@ -69,7 +69,7 @@ nng_socket openSendSocket(const std::string &url)
  */
 int sendMessage(const nng_socket &socket, const scrooge::CrossChainMessage &buf)
 {
-    string buffer;
+    std::string buffer;
     buf.SerializeToString(&buffer);
 
     const auto bufferSize = buffer.size();
@@ -407,7 +407,7 @@ void Pipeline::BroadcastToOwnRsm(scrooge::CrossChainMessage &&message)
 /* This function is used to receive messages from the nodes in own RSM.
  *
  */
-vector<scrooge::CrossChainMessage> Pipeline::RecvFromOwnRsm()
+std::vector<scrooge::CrossChainMessage> Pipeline::RecvFromOwnRsm()
 {
     std::vector<scrooge::CrossChainMessage> messages{};
 

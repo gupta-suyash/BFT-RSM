@@ -49,7 +49,7 @@ class Pipeline
     std::vector<pipeline::ReceivedCrossChainMessage> RecvFromOtherRsm();
 
     void BroadcastToOwnRsm(scrooge::CrossChainMessage &&message);
-    vector<scrooge::CrossChainMessage> RecvFromOwnRsm();
+    std::vector<scrooge::CrossChainMessage> RecvFromOwnRsm();
 
     void SendToAllOtherRsm(const uint64_t numOtherNodess, scrooge::CrossChainMessage &&message);
 
