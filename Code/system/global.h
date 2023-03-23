@@ -2,11 +2,12 @@
 
 //#define NDEBUG
 #include <chrono>
+#include <map>
 // Enable all spdlog logging macros for development
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_CRITICAL
 #include <spdlog/spdlog.h>
 
-using namespace std;
+//using namespace std;
 using namespace std::chrono_literals;
 
 struct NodeConfiguration
@@ -24,6 +25,19 @@ void set_test_start(std::chrono::steady_clock::time_point startTime);
 std::chrono::duration<double> get_test_duration();
 bool is_test_over();
 bool is_test_recording();
+
+extern std::string privKey;
+extern std::map<uint64_t, std::string> keyOwnCluster;
+extern std::map<uint64_t, std::string> keyOtherCluster;
+
+void set_priv_key();
+std::string get_priv_key();
+
+void set_own_rsm_key(uint64_t nid, std::string pkey);
+std::string get_own_rsm_key(uint64_t nid);
+
+void set_other_rsm_key(uint64_t nid, std::string pkey);
+std::string get_other_rsm_key(uint64_t nid);
 
 uint64_t get_rsm_id();
 void set_rsm_id(uint64_t rsm_id);

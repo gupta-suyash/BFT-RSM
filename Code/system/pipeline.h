@@ -68,6 +68,11 @@ class Pipeline
 
     void SendToAllOtherRsm(scrooge::CrossChainMessage &message);
 
+	void BroadcastKeyToOwnRsm();
+	void BroadcastKeyToOtherRsm();
+	void RecvFromOwnRsm();
+	void RecvFromOtherRsm();
+
   private:
     void runForeignSendThread(std::unique_ptr<std::vector<nng_socket>> foreignSendSockets);
     void runLocalSendThread(std::unique_ptr<std::vector<nng_socket>> localSendSockets);

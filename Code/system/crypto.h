@@ -78,7 +78,7 @@ inline std::string CmacGenerateHexKey()
 
     privKey.clear();
     StringSource ss(key, key.size(), true, new HexEncoder(new StringSink(privKey)));              
-    std::cout << "Key: " << privKey;
+    //std::cout << "Key: " << privKey;
     return privKey;
 }
 
@@ -116,10 +116,10 @@ inline bool CmacVerifyString(const std::string &aPublicKeyStrHex,
     	CMAC<AES> cmac(privKey.data(), privKey.size());
     	const int flags = HashVerificationFilter::THROW_EXCEPTION | HashVerificationFilter::HASH_AT_END;
 
-   	// MESSAGE VERIFICATION
+   		// MESSAGE VERIFICATION
     	StringSource ss3(aMessage + mac, true, new HashVerificationFilter(cmac, NULL, flags));
-	res = true;
-	std::cout << "Verified message" << std::endl;
+		res = true;
+		//std::cout << "Verified message" << std::endl;
     }
     catch(const CryptoPP::Exception& e)
     {

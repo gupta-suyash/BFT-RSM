@@ -35,3 +35,8 @@ message CrossChainMessage {
     // sequence_number in {1,2,..,ack_count} but has not seen `ack_count +1`
     google.protobuf.UInt64Value ack_count = 3;
 }
+
+message KeyExchangeMessage {
+	uint64 node_id = 1;
+    string node_key = 2;
+}
