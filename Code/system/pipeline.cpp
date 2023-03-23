@@ -3,6 +3,7 @@
 
 #include <bit>
 #include <list>
+#include "crypto.h"
 
 static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
@@ -234,6 +235,17 @@ void Pipeline::startPipeline()
         foreignSendSockets->emplace_back(openSendSocket(sendingUrl));
         foreignReceiveSockets->emplace_back(openReceiveSocket(receivingUrl));
     }
+
+	//std::cout << "Hello World \n";
+    //std::string privKey = "00000000000000000000000000000000";
+    //std::cout << "Key found: " << privKey << std::endl;
+
+    //std::string plain = "Hello World";
+    //std::string encoded = CmacSignString(privKey, plain);
+    //std::cout << "Mac: " << encoded << std::endl;
+
+    //bool res = CmacVerifyString(privKey, plain, encoded);
+    //std::cout << "Res: " << res << std::endl;
 
     mForeignMessageSendThread = std::thread(&Pipeline::runForeignSendThread, this, std::move(foreignSendSockets));
     mForeignMessageReceiveThread =
@@ -511,6 +523,14 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
                  message.data().message_content().size());
 
+	//MAC signing TODO
+	const auto mdata = message.data();
+	const auto mstr = mdata.SerializeAsString();
+	// Sign with own key.
+    std::string encoded = CmacSignString(get_priv_key(), mstr);
+	message.set_validity_proof(encoded);
+    //std::cout << "Mac: " << encoded << std::endl;
+
     const auto messageData = message.SerializeAsString();
     pipeline::SendMessageRequest::DestinationSet broadcastSet{};
     broadcastSet.set(receivingNodeId);
@@ -532,6 +552,15 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessage &message)
 {
     constexpr auto kSleepTime = 1ns;
     const auto foreignNetworkSize = kOwnConfiguration.kOtherNetworkSize;
+
+	//MAC signing TODO
+	const auto mdata = message.data();
+	const auto mstr = mdata.SerializeAsString();
+	// Sign with own key.
+    std::string encoded = CmacSignString(get_priv_key(), mstr);
+	message.set_validity_proof(encoded);
+    //std::cout << "Mac: " << encoded << std::endl;
+
     const auto messageData = message.SerializeAsString();
     pipeline::SendMessageRequest::DestinationSet broadcastSet{};
     broadcastSet |= -1ULL ^ (-1ULL << foreignNetworkSize);
@@ -557,7 +586,17 @@ void Pipeline::BroadcastToOwnRsm(boost::circular_buffer<pipeline::ReceivedCrossC
 
     while (not is_test_over() && not in.empty())
     {
-        const auto &message = in.front().message;
+		// TODO removed const from here.
+        auto &message = in.front().message;
+
+		//MAC signing TODO
+		const auto mdata = message.data();
+		const auto mstr = mdata.SerializeAsString();
+		// Sign with own key.
+    	std::string encoded = CmacSignString(get_priv_key(), mstr);
+		message.set_validity_proof(encoded);
+    	//std::cout << "Mac: " << encoded << std::endl;
+
         const auto messageData = message.SerializeAsString();
         const auto wasSent = mMessageRequestsLocal.try_enqueue(
             pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
@@ -580,6 +619,19 @@ void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossCh
     while (not is_test_over() && not out.full() && mForeignReceivedMessageQueue.try_dequeue(nng_message))
     {
         auto scroogeMessage = deserializeProtobuf<scrooge::CrossChainMessage>(nng_message.message);
+
+		// Verification TODO
+		const auto mdata = scroogeMessage.data();
+		const auto mstr = mdata.SerializeAsString();
+		// Fetch the sender key
+		//const auto senderKey = get_other_rsm_key(nng_message.senderId);
+		const auto senderKey = get_priv_key();
+		// Verify the message
+		bool res = CmacVerifyString(senderKey, mstr, scroogeMessage.validity_proof());
+		if(!res) {
+			std::cout << "Verification Failed: " << res << std::endl;
+		}
+
         out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), nng_message.senderId});
     }
 }
@@ -593,6 +645,106 @@ void Pipeline::RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage>
     while (not is_test_over() && not out.full() && mLocalReceivedMessageQueue.try_dequeue(nng_message))
     {
         auto scroogeMessage = deserializeProtobuf<scrooge::CrossChainMessage>(nng_message);
+
+		// Verification TODO
+		const auto mdata = scroogeMessage.data();
+		const auto mstr = mdata.SerializeAsString();
+		// Fetch the sender key
+		//const auto senderKey = get_other_rsm_key(nng_message.senderId);
+		const auto senderKey = get_priv_key();
+		// Verify the message
+		bool res = CmacVerifyString(senderKey, mstr, scroogeMessage.validity_proof());
+		if(!res) {
+			std::cout << "Verification Failed: " << res << std::endl;
+		}
+
         out.push_back(std::move(scroogeMessage));
     }
+}
+
+
+
+/* This function will send keys to own RSM.
+ */
+void Pipeline::BroadcastKeyToOwnRsm()
+{
+    const auto ownId = kOwnConfiguration.kNodeId;
+    const auto localNetworkSize = kOwnConfiguration.kOwnNetworkSize;
+    pipeline::SendMessageRequest::DestinationSet broadcastSet{};
+    broadcastSet |= -1ULL ^ (-1ULL << localNetworkSize) ^ (1ULL << ownId);
+
+    scrooge::KeyExchangeMessage msg;
+	msg.clear_node_key();
+	msg.clear_node_id();
+	std::cout << "Actual: " << get_priv_key() << std::endl;
+    msg.set_node_key(get_priv_key());
+    msg.set_node_id(ownId);
+
+    const auto messageData = msg.SerializeAsString();
+    const auto wasSent = mMessageRequestsLocal.try_enqueue(
+        pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+                                     .destinationNodes = broadcastSet,
+                                     .messageData = std::move(messageData)});
+
+	std::cout << "Sent? " << wasSent << std::endl; 
+}
+
+/* This function will send keys to other RSM.
+ */
+void Pipeline::BroadcastKeyToOtherRsm()
+{
+    const auto ownId = kOwnConfiguration.kNodeId;
+    const auto foreignNetworkSize = kOwnConfiguration.kOtherNetworkSize;
+    pipeline::SendMessageRequest::DestinationSet broadcastSet{};
+    broadcastSet |= -1ULL ^ (-1ULL << foreignNetworkSize);
+
+    scrooge::KeyExchangeMessage msg;
+    msg.set_node_key(get_priv_key());
+    msg.set_node_id(ownId);
+
+    const auto messageData = msg.SerializeAsString();
+
+    mMessageRequestsForeign.wait_enqueue(
+		pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+                                     .destinationNodes = broadcastSet,
+                                     .messageData = std::move(messageData)});
+}
+
+/* This function is used to receive messages from the nodes in own RSM.
+ */
+void Pipeline::RecvFromOwnRsm()
+{
+	const auto ownId = kOwnConfiguration.kNodeId;
+	const auto localNetworkSize = kOwnConfiguration.kOwnNetworkSize;
+
+	uint64_t count=0;
+    pipeline::nng_message nng_message;
+	while(count < (localNetworkSize-1)) {
+		mLocalReceivedMessageQueue.wait_dequeue(nng_message);
+        	auto keyMsg = deserializeProtobuf<scrooge::KeyExchangeMessage>(nng_message);
+			auto nodeId = keyMsg.node_id();
+			auto privKey = keyMsg.node_key();
+			set_own_rsm_key(nodeId, privKey);
+			std::cout << "Node: " << ownId << " :Key for node: " << nodeId << ": " << privKey << std::endl; 
+			count++;
+	}	
+}
+
+/* This function is used to receive messages from the other RSM.
+ */
+void Pipeline::RecvFromOtherRsm()
+{
+    const auto foreignNetworkSize = kOwnConfiguration.kOtherNetworkSize;
+
+	uint64_t count=0;
+    pipeline::foreign_nng_message nng_message;
+    while(count < foreignNetworkSize) {
+		if(mForeignReceivedMessageQueue.try_dequeue(nng_message)) {
+        	auto keyMsg = deserializeProtobuf<scrooge::KeyExchangeMessage>(nng_message.message);
+        	auto nodeId = keyMsg.node_id();
+			auto privKey = keyMsg.node_key();
+			set_other_rsm_key(nodeId, privKey);
+			count++;
+		}
+	}
 }

@@ -292,7 +292,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
     boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(1024);
     boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(1024);
-
+ 
     while (not is_test_over())
     {
         pipeline->BroadcastToOwnRsm(foreignMessages);
