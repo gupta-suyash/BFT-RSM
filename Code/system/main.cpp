@@ -10,8 +10,6 @@
 #include <string>
 #include <thread>
 
-using namespace std;
-
 int main(int argc, char *argv[])
 {
     const auto kNodeConfiguration = parser(argc, argv);
@@ -44,14 +42,14 @@ int main(int argc, char *argv[])
     SPDLOG_INFO("Done setting up sockets between nodes.");
 
     set_priv_key();
-    //std::cout << "Done setting private key." << endl;
+    // std::cout << "Done setting private key." << endl;
 
-	//KeyExchange tasks TODO
-	//constexpr auto kSleepTime = 2s;
-    //pipeline->BroadcastKeyToOwnRsm();
-	//std::this_thread::sleep_for(kSleepTime);
-	//pipeline->RecvFromOwnRsm();
-	//std::this_thread::sleep_for(kSleepTime);
+    // KeyExchange tasks TODO
+    // constexpr auto kSleepTime = 2s;
+    // pipeline->BroadcastKeyToOwnRsm();
+    // std::this_thread::sleep_for(kSleepTime);
+    // pipeline->RecvFromOwnRsm();
+    // std::this_thread::sleep_for(kSleepTime);
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
     auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
@@ -70,8 +68,8 @@ int main(int argc, char *argv[])
 
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
                     "kMaxNumLocalFailedNodes = {}, "
-                    "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, num_packets = {},  kLogPath= '{}'",
+                    "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, packet_size = {},  kLogPath= '{}'",
                     kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
-                    get_rsm_id(), get_number_of_packets(), kLogPath);
+                    get_rsm_id(), get_packet_size(), kLogPath);
     return 0;
 }

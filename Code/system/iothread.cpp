@@ -202,6 +202,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
     constexpr auto kResendWaitPeriod = 5s;
@@ -285,14 +286,14 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                       const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    bindThreadToCpu(8);
+    bindThreadToCpu(2);
 
     uint64_t timedMessages{};
     std::optional<uint64_t> lastAckCount;
 
     boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(1024);
     boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(1024);
- 
+
     while (not is_test_over())
     {
         pipeline->BroadcastToOwnRsm(foreignMessages);

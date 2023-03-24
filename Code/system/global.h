@@ -7,7 +7,7 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_CRITICAL
 #include <spdlog/spdlog.h>
 
-//using namespace std;
+using namespace std::string_literals;
 using namespace std::chrono_literals;
 
 struct NodeConfiguration

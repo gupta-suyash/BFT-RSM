@@ -1,9 +1,10 @@
 #include "pipeline.h"
+
 #include "acknowledgment.h"
+#include "crypto.h"
 
 #include <bit>
 #include <list>
-#include "crypto.h"
 
 static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
@@ -75,6 +76,42 @@ static int sendMessage(const nng_socket &socket, const std::string &message)
     }
 
     return sendReturnValue;
+}
+
+/* Uses NNG to attempt nonblocking sends of the message to all set destinations in the socketList
+ *
+ * @return a DestinationSet holding all destinations which this method failed to deliver to
+ */
+static pipeline::SendMessageRequest::DestinationSet forwardMessageRequest(
+    const pipeline::SendMessageRequest &sendMessageRequest, const std::vector<nng_socket> &sockets)
+{
+    const auto &[kRequestCreationTime, destinationNodes, messageData] = sendMessageRequest;
+
+    pipeline::SendMessageRequest::DestinationSet failedSends{};
+    auto remainingDestinations = destinationNodes;
+    while (remainingDestinations.any())
+    {
+        const auto curDestination = std::countr_zero(remainingDestinations.to_ulong());
+        remainingDestinations.reset(curDestination);
+
+        const auto socket = sockets.at(curDestination);
+
+        // send the data
+        const auto sendMessageResult = sendMessage(socket, messageData);
+
+        const bool isSendFailure = sendMessageResult != 0;
+        if (isSendFailure)
+        {
+            failedSends.set(curDestination);
+            const auto isRealError = sendMessageResult != nng_errno_enum::NNG_EAGAIN;
+            if (isRealError)
+            {
+                SPDLOG_CRITICAL("NNG_SEND error when sending to node {} Error: {}", curDestination,
+                                nng_strerror(sendMessageResult));
+            }
+        }
+    }
+    return failedSends;
 }
 
 /* Receving data from nodes of other RSM.
@@ -236,7 +273,7 @@ void Pipeline::startPipeline()
         foreignReceiveSockets->emplace_back(openReceiveSocket(receivingUrl));
     }
 
-	//std::cout << "Hello World \n";
+    //std::cout << "Hello World \n";
     //std::string privKey = "00000000000000000000000000000000";
     //std::cout << "Key found: " << privKey << std::endl;
 
@@ -258,36 +295,7 @@ void Pipeline::runLocalSendThread(std::unique_ptr<std::vector<nng_socket>> local
 {
     constexpr auto kMaxMessageRetryTime = 1s;
 
-    bindThreadToCpu(6);
-
-    const auto forwardMsg = [&](pipeline::SendMessageRequest &request) {
-        auto &[kRequestCreationTime, destinationNodes, messageData] = request;
-
-        pipeline::SendMessageRequest::DestinationSet failedSends{};
-        while (destinationNodes.any())
-        {
-            const auto curDestination = std::countr_zero(destinationNodes.to_ulong());
-            destinationNodes.reset(curDestination);
-
-            const auto socket = localSendSockets->at(curDestination);
-
-            // send the data
-            const auto sendMessageResult = sendMessage(socket, messageData);
-
-            const bool isSendFailure = sendMessageResult != 0;
-            if (isSendFailure)
-            {
-                failedSends.set(curDestination);
-                const auto isRealError = sendMessageResult != nng_errno_enum::NNG_EAGAIN;
-                if (isRealError)
-                {
-                    SPDLOG_CRITICAL("NNG_SEND error when sending from node {} to {} Error: {}",
-                                    kOwnConfiguration.kNodeId, curDestination, nng_strerror(sendMessageResult));
-                }
-            }
-        }
-        return failedSends;
-    };
+    bindThreadToCpu(1);
 
     std::list<pipeline::SendMessageRequest> messageRequests;
 
@@ -297,10 +305,10 @@ void Pipeline::runLocalSendThread(std::unique_ptr<std::vector<nng_socket>> local
         pipeline::SendMessageRequest newMessageRequest;
         const auto curTime = std::chrono::steady_clock::now();
 
-        while (std::chrono::steady_clock::now() - curTime < .5s && (messageRequests.size() < 5) &&
+        while (std::chrono::steady_clock::now() - curTime < .5s && (messageRequests.size() < 2) &&
                mMessageRequestsLocal.try_dequeue(newMessageRequest))
         {
-            const auto failedSends = forwardMsg(newMessageRequest);
+            const auto failedSends = forwardMessageRequest(newMessageRequest, *localSendSockets);
             if (failedSends.any())
             {
                 newMessageRequest.destinationNodes = failedSends;
@@ -311,7 +319,7 @@ void Pipeline::runLocalSendThread(std::unique_ptr<std::vector<nng_socket>> local
 
         for (auto it = std::begin(messageRequests); it != std::end(messageRequests) && not is_test_over();)
         {
-            const auto failedSends = forwardMsg(*it);
+            const auto failedSends = forwardMessageRequest(*it, *localSendSockets);
             const bool isSuccess = failedSends.none();
             const bool isRequestStale =
                 kMaxMessageRetryTime < std::chrono::steady_clock::now() - it->kRequestCreationTime;
@@ -327,6 +335,7 @@ void Pipeline::runLocalSendThread(std::unique_ptr<std::vector<nng_socket>> local
             else
             {
                 // increment to the next element, return to this later
+                it->destinationNodes = failedSends;
                 it++;
             }
         }
@@ -342,36 +351,7 @@ void Pipeline::runForeignSendThread(std::unique_ptr<std::vector<nng_socket>> for
 {
     constexpr auto kMaxMessageRetryTime = 1s;
 
-    bindThreadToCpu(0);
-
-    const auto forwardMsg = [&](pipeline::SendMessageRequest &request) {
-        auto &[kRequestCreationTime, destinationNodes, messageData] = request;
-
-        pipeline::SendMessageRequest::DestinationSet failedSends{};
-        while (destinationNodes.any())
-        {
-            const auto curDestination = std::countr_zero(destinationNodes.to_ulong());
-            destinationNodes.reset(curDestination);
-
-            const auto socket = foreignSendSockets->at(curDestination);
-
-            // send the data
-            const auto sendMessageResult = sendMessage(socket, messageData);
-
-            const bool isSendFailure = sendMessageResult != 0;
-            if (isSendFailure)
-            {
-                failedSends.set(curDestination);
-                const auto isRealError = sendMessageResult != nng_errno_enum::NNG_EAGAIN;
-                if (isRealError)
-                {
-                    SPDLOG_CRITICAL("NNG_SEND error when sending from node {} to {} Error: {}",
-                                    kOwnConfiguration.kNodeId, curDestination, nng_strerror(sendMessageResult));
-                }
-            }
-        }
-        return failedSends;
-    };
+    bindThreadToCpu(4);
 
     std::list<pipeline::SendMessageRequest> messageRequests;
 
@@ -384,7 +364,7 @@ void Pipeline::runForeignSendThread(std::unique_ptr<std::vector<nng_socket>> for
         while (std::chrono::steady_clock::now() - curTime < .5s && (messageRequests.size() < 2) &&
                mMessageRequestsForeign.try_dequeue(newMessageRequest))
         {
-            const auto failedSends = forwardMsg(newMessageRequest);
+            const auto failedSends = forwardMessageRequest(newMessageRequest, *foreignSendSockets);
             if (failedSends.any())
             {
                 newMessageRequest.destinationNodes = failedSends;
@@ -395,8 +375,7 @@ void Pipeline::runForeignSendThread(std::unique_ptr<std::vector<nng_socket>> for
 
         for (auto it = std::begin(messageRequests); it != std::end(messageRequests) && not is_test_over();)
         {
-            const auto failedSends = forwardMsg(*it);
-            it->destinationNodes = failedSends;
+            const auto failedSends = forwardMessageRequest(*it, *foreignSendSockets);
             const bool isSuccess = failedSends.none();
             const bool isRequestStale =
                 kMaxMessageRetryTime < std::chrono::steady_clock::now() - it->kRequestCreationTime;
@@ -412,6 +391,7 @@ void Pipeline::runForeignSendThread(std::unique_ptr<std::vector<nng_socket>> for
             else
             {
                 // increment to the next element, return to this later
+                it->destinationNodes = failedSends;
                 it++;
             }
         }
@@ -425,7 +405,7 @@ void Pipeline::runForeignSendThread(std::unique_ptr<std::vector<nng_socket>> for
 
 void Pipeline::runForeignReceiveThread(std::unique_ptr<std::vector<nng_socket>> foreignReceiveSockets)
 {
-    bindThreadToCpu(2);
+    bindThreadToCpu(5);
     boost::circular_buffer<pipeline::foreign_nng_message> foreignMessages(2048);
 
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
@@ -468,7 +448,7 @@ void Pipeline::runForeignReceiveThread(std::unique_ptr<std::vector<nng_socket>> 
 
 void Pipeline::runLocalReceiveThread(std::unique_ptr<std::vector<nng_socket>> localReceiveSockets)
 {
-    bindThreadToCpu(4);
+    bindThreadToCpu(3);
     boost::circular_buffer<pipeline::nng_message> localMessages(2048);
 
     localReceiveSockets->erase(localReceiveSockets->begin() + kOwnConfiguration.kNodeId);
@@ -523,13 +503,13 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
                  message.data().message_content().size());
 
-	//MAC signing TODO
-	const auto mdata = message.data();
-	const auto mstr = mdata.SerializeAsString();
-	// Sign with own key.
+    // MAC signing TODO
+    const auto mdata = message.data();
+    const auto mstr = mdata.SerializeAsString();
+    // Sign with own key.
     std::string encoded = CmacSignString(get_priv_key(), mstr);
-	message.set_validity_proof(encoded);
-    //std::cout << "Mac: " << encoded << std::endl;
+    message.set_validity_proof(encoded);
+    // std::cout << "Mac: " << encoded << std::endl;
 
     const auto messageData = message.SerializeAsString();
     pipeline::SendMessageRequest::DestinationSet broadcastSet{};
@@ -553,13 +533,13 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessage &message)
     constexpr auto kSleepTime = 1ns;
     const auto foreignNetworkSize = kOwnConfiguration.kOtherNetworkSize;
 
-	//MAC signing TODO
-	const auto mdata = message.data();
-	const auto mstr = mdata.SerializeAsString();
-	// Sign with own key.
+    // MAC signing TODO
+    const auto mdata = message.data();
+    const auto mstr = mdata.SerializeAsString();
+    // Sign with own key.
     std::string encoded = CmacSignString(get_priv_key(), mstr);
-	message.set_validity_proof(encoded);
-    //std::cout << "Mac: " << encoded << std::endl;
+    message.set_validity_proof(encoded);
+    // std::cout << "Mac: " << encoded << std::endl;
 
     const auto messageData = message.SerializeAsString();
     pipeline::SendMessageRequest::DestinationSet broadcastSet{};
@@ -586,16 +566,16 @@ void Pipeline::BroadcastToOwnRsm(boost::circular_buffer<pipeline::ReceivedCrossC
 
     while (not is_test_over() && not in.empty())
     {
-		// TODO removed const from here.
+        // TODO removed const from here.
         auto &message = in.front().message;
 
-		//MAC signing TODO
-		const auto mdata = message.data();
-		const auto mstr = mdata.SerializeAsString();
-		// Sign with own key.
-    	std::string encoded = CmacSignString(get_priv_key(), mstr);
-		message.set_validity_proof(encoded);
-    	//std::cout << "Mac: " << encoded << std::endl;
+        // MAC signing TODO
+        const auto mdata = message.data();
+        const auto mstr = mdata.SerializeAsString();
+        // Sign with own key.
+        std::string encoded = CmacSignString(get_priv_key(), mstr);
+        message.set_validity_proof(encoded);
+        // std::cout << "Mac: " << encoded << std::endl;
 
         const auto messageData = message.SerializeAsString();
         const auto wasSent = mMessageRequestsLocal.try_enqueue(
@@ -620,17 +600,18 @@ void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossCh
     {
         auto scroogeMessage = deserializeProtobuf<scrooge::CrossChainMessage>(nng_message.message);
 
-		// Verification TODO
-		const auto mdata = scroogeMessage.data();
-		const auto mstr = mdata.SerializeAsString();
-		// Fetch the sender key
-		//const auto senderKey = get_other_rsm_key(nng_message.senderId);
-		const auto senderKey = get_priv_key();
-		// Verify the message
-		bool res = CmacVerifyString(senderKey, mstr, scroogeMessage.validity_proof());
-		if(!res) {
-			std::cout << "Verification Failed: " << res << std::endl;
-		}
+        // Verification TODO
+        const auto mdata = scroogeMessage.data();
+        const auto mstr = mdata.SerializeAsString();
+        // Fetch the sender key
+        // const auto senderKey = get_other_rsm_key(nng_message.senderId);
+        const auto senderKey = get_priv_key();
+        // Verify the message
+        bool res = CmacVerifyString(senderKey, mstr, scroogeMessage.validity_proof());
+        if (!res)
+        {
+            std::cout << "Verification Failed: " << res << std::endl;
+        }
 
         out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), nng_message.senderId});
     }
@@ -646,23 +627,22 @@ void Pipeline::RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage>
     {
         auto scroogeMessage = deserializeProtobuf<scrooge::CrossChainMessage>(nng_message);
 
-		// Verification TODO
-		const auto mdata = scroogeMessage.data();
-		const auto mstr = mdata.SerializeAsString();
-		// Fetch the sender key
-		//const auto senderKey = get_other_rsm_key(nng_message.senderId);
-		const auto senderKey = get_priv_key();
-		// Verify the message
-		bool res = CmacVerifyString(senderKey, mstr, scroogeMessage.validity_proof());
-		if(!res) {
-			std::cout << "Verification Failed: " << res << std::endl;
-		}
+        // Verification TODO
+        const auto mdata = scroogeMessage.data();
+        const auto mstr = mdata.SerializeAsString();
+        // Fetch the sender key
+        // const auto senderKey = get_other_rsm_key(nng_message.senderId);
+        const auto senderKey = get_priv_key();
+        // Verify the message
+        bool res = CmacVerifyString(senderKey, mstr, scroogeMessage.validity_proof());
+        if (!res)
+        {
+            std::cout << "Verification Failed: " << res << std::endl;
+        }
 
         out.push_back(std::move(scroogeMessage));
     }
 }
-
-
 
 /* This function will send keys to own RSM.
  */
@@ -674,9 +654,9 @@ void Pipeline::BroadcastKeyToOwnRsm()
     broadcastSet |= -1ULL ^ (-1ULL << localNetworkSize) ^ (1ULL << ownId);
 
     scrooge::KeyExchangeMessage msg;
-	msg.clear_node_key();
-	msg.clear_node_id();
-	std::cout << "Actual: " << get_priv_key() << std::endl;
+    msg.clear_node_key();
+    msg.clear_node_id();
+    std::cout << "Actual: " << get_priv_key() << std::endl;
     msg.set_node_key(get_priv_key());
     msg.set_node_id(ownId);
 
@@ -686,7 +666,7 @@ void Pipeline::BroadcastKeyToOwnRsm()
                                      .destinationNodes = broadcastSet,
                                      .messageData = std::move(messageData)});
 
-	std::cout << "Sent? " << wasSent << std::endl; 
+    std::cout << "Sent? " << wasSent << std::endl;
 }
 
 /* This function will send keys to other RSM.
@@ -705,7 +685,7 @@ void Pipeline::BroadcastKeyToOtherRsm()
     const auto messageData = msg.SerializeAsString();
 
     mMessageRequestsForeign.wait_enqueue(
-		pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
+        pipeline::SendMessageRequest{.kRequestCreationTime = std::chrono::steady_clock::now(),
                                      .destinationNodes = broadcastSet,
                                      .messageData = std::move(messageData)});
 }
@@ -714,20 +694,21 @@ void Pipeline::BroadcastKeyToOtherRsm()
  */
 void Pipeline::RecvFromOwnRsm()
 {
-	const auto ownId = kOwnConfiguration.kNodeId;
-	const auto localNetworkSize = kOwnConfiguration.kOwnNetworkSize;
+    const auto ownId = kOwnConfiguration.kNodeId;
+    const auto localNetworkSize = kOwnConfiguration.kOwnNetworkSize;
 
-	uint64_t count=0;
+    uint64_t count = 0;
     pipeline::nng_message nng_message;
-	while(count < (localNetworkSize-1)) {
-		mLocalReceivedMessageQueue.wait_dequeue(nng_message);
-        	auto keyMsg = deserializeProtobuf<scrooge::KeyExchangeMessage>(nng_message);
-			auto nodeId = keyMsg.node_id();
-			auto privKey = keyMsg.node_key();
-			set_own_rsm_key(nodeId, privKey);
-			std::cout << "Node: " << ownId << " :Key for node: " << nodeId << ": " << privKey << std::endl; 
-			count++;
-	}	
+    while (count < (localNetworkSize - 1))
+    {
+        mLocalReceivedMessageQueue.wait_dequeue(nng_message);
+        auto keyMsg = deserializeProtobuf<scrooge::KeyExchangeMessage>(nng_message);
+        auto nodeId = keyMsg.node_id();
+        auto privKey = keyMsg.node_key();
+        set_own_rsm_key(nodeId, privKey);
+        std::cout << "Node: " << ownId << " :Key for node: " << nodeId << ": " << privKey << std::endl;
+        count++;
+    }
 }
 
 /* This function is used to receive messages from the other RSM.
@@ -736,15 +717,17 @@ void Pipeline::RecvFromOtherRsm()
 {
     const auto foreignNetworkSize = kOwnConfiguration.kOtherNetworkSize;
 
-	uint64_t count=0;
+    uint64_t count = 0;
     pipeline::foreign_nng_message nng_message;
-    while(count < foreignNetworkSize) {
-		if(mForeignReceivedMessageQueue.try_dequeue(nng_message)) {
-        	auto keyMsg = deserializeProtobuf<scrooge::KeyExchangeMessage>(nng_message.message);
-        	auto nodeId = keyMsg.node_id();
-			auto privKey = keyMsg.node_key();
-			set_other_rsm_key(nodeId, privKey);
-			count++;
-		}
-	}
+    while (count < foreignNetworkSize)
+    {
+        if (mForeignReceivedMessageQueue.try_dequeue(nng_message))
+        {
+            auto keyMsg = deserializeProtobuf<scrooge::KeyExchangeMessage>(nng_message.message);
+            auto nodeId = keyMsg.node_id();
+            auto privKey = keyMsg.node_key();
+            set_other_rsm_key(nodeId, privKey);
+            count++;
+        }
+    }
 }

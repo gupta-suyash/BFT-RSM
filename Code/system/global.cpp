@@ -1,10 +1,10 @@
 #include "global.h"
+#include "crypto.h"
 #include <bitset>
 #include <mutex>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/sysinfo.h>
-#include "crypto.h"
 
 // List of global variables and configuration parameters.
 static uint64_t g_rsm_id{};       // RSM Id for this node.
@@ -18,37 +18,35 @@ std::map<uint64_t, std::string> keyOtherCluster;
 
 void set_priv_key()
 {
-    //privKey = CmacGenerateHexKey();
-	privKey = "00000000000000000000000000000000";
-    //std::cout << "Key: " << privKey << std::endl;
-}	
+    // privKey = CmacGenerateHexKey();
+    privKey = "00000000000000000000000000000000";
+    // std::cout << "Key: " << privKey << std::endl;
+}
 
-std::string get_priv_key() 
+std::string get_priv_key()
 {
-	return privKey;
-}	
+    return privKey;
+}
 
 void set_own_rsm_key(uint64_t nid, std::string pkey)
 {
-	keyOwnCluster[nid] = pkey;
-}		
-
-std::string get_own_rsm_key(uint64_t nid) 
-{
-	return keyOwnCluster[nid];
+    keyOwnCluster[nid] = pkey;
 }
 
+std::string get_own_rsm_key(uint64_t nid)
+{
+    return keyOwnCluster[nid];
+}
 
 void set_other_rsm_key(uint64_t nid, std::string pkey)
 {
-	keyOtherCluster[nid] = pkey;
+    keyOtherCluster[nid] = pkey;
 }
 
-std::string get_other_rsm_key(uint64_t nid) 
+std::string get_other_rsm_key(uint64_t nid)
 {
-	return keyOtherCluster[nid];
-}	
-
+    return keyOtherCluster[nid];
+}
 
 static std::chrono::steady_clock::time_point g_start_time{};
 static constexpr auto kWarmupDuration = 20s;

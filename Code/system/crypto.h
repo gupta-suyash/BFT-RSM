@@ -10,7 +10,6 @@
 //#pragma GCC diagnostic ignored "-Wextra"
 //#pragma GCC diagnostic pop
 
-
 /*                                    *
  *	      CMAC-AES algorithm          *
  *                                    */
@@ -52,23 +51,21 @@ using CryptoPP::SHA1;
 using CryptoPP::FileSink;
 using CryptoPP::FileSource;
 
-#include <crypto++/whrlpool.h>
 #include <crypto++/modes.h>
+#include <crypto++/whrlpool.h>
 
-
-#include <iostream>
-#include <iomanip>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
 //#include <string>
-#include <math.h>
 #include <cstdlib>
-#include <vector>
-#include <unistd.h>
+#include <math.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include <vector>
 
-
-//CMAC-AES key generator
-//Return a keyPairHex where just the priv key is set
+// CMAC-AES key generator
+// Return a keyPairHex where just the priv key is set
 inline std::string CmacGenerateHexKey()
 {
     std::string privKey;
@@ -77,19 +74,18 @@ inline std::string CmacGenerateHexKey()
     prng.GenerateBlock(key, key.size()); // Key is of type SecByteBlock.
 
     privKey.clear();
-    StringSource ss(key, key.size(), true, new HexEncoder(new StringSink(privKey)));              
-    //std::cout << "Key: " << privKey;
+    StringSource ss(key, key.size(), true, new HexEncoder(new StringSink(privKey)));
+    // std::cout << "Key: " << privKey;
     return privKey;
 }
 
 // CMAC-AES Signature generator
 // Return a token, mac, to verify the a message.
-inline std::string CmacSignString(const std::string &aPrivateKeyStrHex, 
-				  const std::string &aMessage)
+inline std::string CmacSignString(const std::string &aPrivateKeyStrHex, const std::string &aMessage)
 {
     std::string mac = "";
 
-    //KEY TRANSFORMATION. https://stackoverflow.com/questions/26145776/string-to-secbyteblock-conversion
+    // KEY TRANSFORMATION. https://stackoverflow.com/questions/26145776/string-to-secbyteblock-conversion
 
     SecByteBlock privKey((const unsigned char *)(aPrivateKeyStrHex.data()), aPrivateKeyStrHex.size());
 
@@ -101,33 +97,29 @@ inline std::string CmacSignString(const std::string &aPrivateKeyStrHex,
 }
 
 // CMAC-AES Verification function
-inline bool CmacVerifyString(const std::string &aPublicKeyStrHex,
-                             const std::string &aMessage,
-                             const std::string &mac)
+inline bool CmacVerifyString(const std::string &aPublicKeyStrHex, const std::string &aMessage, const std::string &mac)
 {
     bool res = false;
 
     // KEY TRANSFORMATION
-    //https://stackoverflow.com/questions/26145776/string-to-secbyteblock-conversion
+    // https://stackoverflow.com/questions/26145776/string-to-secbyteblock-conversion
     try
     {
-    	SecByteBlock privKey((const unsigned char *)(aPublicKeyStrHex.data()), aPublicKeyStrHex.size());
+        SecByteBlock privKey((const unsigned char *)(aPublicKeyStrHex.data()), aPublicKeyStrHex.size());
 
-    	CMAC<AES> cmac(privKey.data(), privKey.size());
-    	const int flags = HashVerificationFilter::THROW_EXCEPTION | HashVerificationFilter::HASH_AT_END;
+        CMAC<AES> cmac(privKey.data(), privKey.size());
+        const int flags = HashVerificationFilter::THROW_EXCEPTION | HashVerificationFilter::HASH_AT_END;
 
-   		// MESSAGE VERIFICATION
-    	StringSource ss3(aMessage + mac, true, new HashVerificationFilter(cmac, NULL, flags));
-		res = true;
-		//std::cout << "Verified message" << std::endl;
+        // MESSAGE VERIFICATION
+        StringSource ss3(aMessage + mac, true, new HashVerificationFilter(cmac, NULL, flags));
+        res = true;
+        // std::cout << "Verified message" << std::endl;
     }
-    catch(const CryptoPP::Exception& e)
+    catch (const CryptoPP::Exception &e)
     {
-	std::cerr << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
     }
     return res;
 }
-
-
 
 #endif // CRYPTO_H

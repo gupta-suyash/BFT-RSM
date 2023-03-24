@@ -22,11 +22,11 @@ bool createPipe(const std::string &path)
     if (!std::filesystem::exists(path))
     {
         SPDLOG_ERROR("Path not found!");
-	/*const auto eraseError = std::remove(path.c_str()) != 0;
-        if (eraseError)
-        {
-            SPDLOG_ERROR("Cannot Create Erase old pipe at '{}': err={}", path, std::strerror(eraseError));
-        }*/
+        /*const auto eraseError = std::remove(path.c_str()) != 0;
+            if (eraseError)
+            {
+                SPDLOG_ERROR("Cannot Create Erase old pipe at '{}': err={}", path, std::strerror(eraseError));
+            }*/
     }
 
     const auto success = (mkfifo(path.c_str(), kFullPermissions) == 0);
