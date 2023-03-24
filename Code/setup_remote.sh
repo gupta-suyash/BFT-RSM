@@ -8,15 +8,16 @@ fi
 # replace with your directory
 cd /proj/ove-PG0/reggie/BFT-RSM/Code
 
+# install packages
+apt-get -y update
+apt-get -y upgrade
+
 # install performance packages
 apt install valgrind
 apt install htop
 apt install nload
 
 
-# install packages
-apt-get -y update
-apt-get -y upgrade
 apt install valgrind
 apt install htop
 apt install nload
@@ -31,7 +32,8 @@ apt-get -y remove --auto-remove golang-goprotobuf-dev
 apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
-apt-get install libjsoncpp-dev
+apt-get -y install libcrypto++-dev
+apt-get -y install libjsoncpp-dev
 pip install numpy
 pip install matplotlib
 pip install seaborn
