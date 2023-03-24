@@ -17,13 +17,16 @@ bool createPipe(const std::string &path)
 {
     constexpr auto kFullPermissions = 0777;
 
-    if (std::filesystem::exists(path))
+    // TODO: Commenting this out since the system which sends the information should be responsible for deleting
+    // the pipe. Code is here for a reference
+    if (!std::filesystem::exists(path))
     {
-        const auto eraseError = std::remove(path.c_str()) != 0;
+        SPDLOG_ERROR("Path not found!");
+	/*const auto eraseError = std::remove(path.c_str()) != 0;
         if (eraseError)
         {
             SPDLOG_ERROR("Cannot Create Erase old pipe at '{}': err={}", path, std::strerror(eraseError));
-        }
+        }*/
     }
 
     const auto success = (mkfifo(path.c_str(), kFullPermissions) == 0);
