@@ -25,7 +25,7 @@ static nng_socket openReceiveSocket(const std::string &url)
     if (cannotOpenSocket)
     {
         SPDLOG_CRITICAL("Cannot open socket for receiving on URL {} ERROR: {}", url, nng_strerror(openResult));
-        std::terminate();
+        std::abort();
     }
 
     const auto nngListenResult = nng_listen(socket, url.c_str(), nullptr, 0);
@@ -34,7 +34,7 @@ static nng_socket openReceiveSocket(const std::string &url)
     {
         SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR LISTENING. URL = '{}' Return value {}", url,
                         nng_strerror(nngListenResult));
-        std::terminate();
+        std::abort();
     }
 
     return socket;
@@ -51,7 +51,7 @@ static nng_socket openSendSocket(const std::string &url)
     if (cannotOpenSocket)
     {
         SPDLOG_CRITICAL("Cannot open socket for sending on URL {} ERROR: {}", url, nng_strerror(openResult));
-        std::terminate();
+        std::abort();
     }
 
     // Asynchronous wait for someone to listen to this socket.
@@ -165,7 +165,7 @@ template <typename T> static T deserializeProtobuf(pipeline::nng_message message
     if (not success)
     {
         SPDLOG_CRITICAL("PROTO DESERIALIZE FAILED DataSize={}", message.dataSize);
-        std::terminate();
+        std::abort();
     }
 
     return proto;

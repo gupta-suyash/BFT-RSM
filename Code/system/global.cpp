@@ -141,7 +141,7 @@ void bindThreadToCpu(int cpu)
         if (set.test(cpu) || cpu >= numCores)
         {
             SPDLOG_CRITICAL("Cannot allocate a unique core for this thread, num_cores={}, requested={}", numCores, cpu);
-            std::terminate();
+            std::abort();
         }
         set.set(cpu);
     }
@@ -155,6 +155,6 @@ void bindThreadToCpu(int cpu)
     {
         SPDLOG_CRITICAL("Cannot bind this thread to desired core error={}, num_cores={}, requested={}", rc, numCores,
                         cpu);
-        std::terminate();
+        std::abort();
     }
 }

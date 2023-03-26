@@ -3,6 +3,7 @@
 //#define NDEBUG
 #include <chrono>
 #include <map>
+#include <cstdlib>
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_CRITICAL
 #include <spdlog/spdlog.h>
 

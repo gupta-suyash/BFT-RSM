@@ -151,7 +151,7 @@ parser::ConfigurationParameters parseNetworkUrlsAndStake(const std::filesystem::
         if (missingStake)
         {
             SPDLOG_CRITICAL("NODE WITH IP '{}' HAD NO STAKE VALUE, exiting...", url);
-            std::terminate;
+            std::abort();
         }
 
         try
@@ -162,7 +162,7 @@ parser::ConfigurationParameters parseNetworkUrlsAndStake(const std::filesystem::
         catch (...)
         {
             SPDLOG_CRITICAL("COULD NOT PARSE STAKE STRING '{}', exiting...", stakeString);
-            std::terminate;
+            std::abort();
         }
     }
 
@@ -192,7 +192,7 @@ NodeConfiguration createNodeConfiguration(parser::CommandLineArguments args,
         SPDLOG_CRITICAL("Configuration File error, configuration file size ({} or {})!= CLI argument size ({} or {})",
                         config.kOwnNetworkStakes.size(), config.kOtherNetworkStakes.size(), config.kOwnNetworkSize,
                         config.kOtherNetworkSize);
-        std::terminate;
+        std::abort();
     }
     return config;
 }
