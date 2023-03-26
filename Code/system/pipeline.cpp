@@ -171,10 +171,9 @@ template <typename T> static T deserializeProtobuf(pipeline::nng_message message
     return proto;
 }
 
-Pipeline::Pipeline(std::vector<std::string> &&ownNetworkUrls, std::vector<std::string> &&otherNetworkUrls,
+Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::vector<std::string> &otherNetworkUrls,
                    NodeConfiguration ownConfiguration)
-    : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(std::move(ownNetworkUrls)),
-      kOtherNetworkUrls(std::move(otherNetworkUrls))
+    : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(ownNetworkUrls), kOtherNetworkUrls(otherNetworkUrls)
 {
 }
 
@@ -273,16 +272,16 @@ void Pipeline::startPipeline()
         foreignReceiveSockets->emplace_back(openReceiveSocket(receivingUrl));
     }
 
-    //std::cout << "Hello World \n";
-    //std::string privKey = "00000000000000000000000000000000";
-    //std::cout << "Key found: " << privKey << std::endl;
+    // std::cout << "Hello World \n";
+    // std::string privKey = "00000000000000000000000000000000";
+    // std::cout << "Key found: " << privKey << std::endl;
 
-    //std::string plain = "Hello World";
-    //std::string encoded = CmacSignString(privKey, plain);
-    //std::cout << "Mac: " << encoded << std::endl;
+    // std::string plain = "Hello World";
+    // std::string encoded = CmacSignString(privKey, plain);
+    // std::cout << "Mac: " << encoded << std::endl;
 
-    //bool res = CmacVerifyString(privKey, plain, encoded);
-    //std::cout << "Res: " << res << std::endl;
+    // bool res = CmacVerifyString(privKey, plain, encoded);
+    // std::cout << "Res: " << res << std::endl;
 
     mForeignMessageSendThread = std::thread(&Pipeline::runForeignSendThread, this, std::move(foreignSendSockets));
     mForeignMessageReceiveThread =

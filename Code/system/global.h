@@ -3,7 +3,6 @@
 //#define NDEBUG
 #include <chrono>
 #include <map>
-// Enable all spdlog logging macros for development
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_CRITICAL
 #include <spdlog/spdlog.h>
 
@@ -14,8 +13,10 @@ struct NodeConfiguration
 {
     const uint64_t kOwnNetworkSize;
     const uint64_t kOtherNetworkSize;
-    const uint64_t kOwnMaxNumFailedNodes;
-    const uint64_t kOtherMaxNumFailedNodes;
+    const std::vector<uint64_t> kOwnNetworkStakes;
+    const std::vector<uint64_t> kOtherNetworkStakes;
+    const uint64_t kOwnMaxNumFailedStake;
+    const uint64_t kOtherMaxNumFailedStake;
     const uint64_t kNodeId;
     const std::string kLogPath;
     const std::string kWorkingDir;

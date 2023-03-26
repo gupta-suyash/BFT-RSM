@@ -53,7 +53,7 @@ template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircu
 class Pipeline
 {
   public:
-    Pipeline(std::vector<std::string> &&ownNetworkUrls, std::vector<std::string> &&otherNetworkUrls,
+    Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::vector<std::string> &otherNetworkUrls,
              NodeConfiguration ownConfiguration);
     ~Pipeline();
 

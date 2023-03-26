@@ -157,8 +157,8 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
-                 kWorkingDir] = configuration;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
+                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
     const auto kTotalMessageSends = get_number_of_packets();
 
     while (not is_test_over())
@@ -181,8 +181,8 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
-                 kWorkingDir] = configuration;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
+                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
     while (not is_test_over())
     {
@@ -206,9 +206,9 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
     constexpr auto kResendWaitPeriod = 5s;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
-                 kWorkingDir] = configuration;
-    const auto kMaxMessageSends = kOwnMaxNumFailedNodes + kOtherMaxNumFailedNodes + 1;
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
+                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
+    const auto kMaxMessageSends = kOwnMaxNumFailedStake + kOtherMaxNumFailedStake + 1;
     std::optional<uint64_t> curQuack;
 
     auto resendMessageMap = std::map<uint64_t, scrooge::CrossChainMessage>{};
@@ -260,7 +260,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
             const auto originalSenderId = sequenceNumber % kOwnNetworkSize;
             const auto numPreviousSenders = trueMod(kNodeId - originalSenderId, kOwnNetworkSize);
-            const auto numStaleAcksForSending = (kOtherMaxNumFailedNodes + 1) * numPreviousSenders;
+            const auto numStaleAcksForSending = (kOtherMaxNumFailedStake + 1) * numPreviousSenders;
             const bool isReadyForResend = numStaleAcksForSending <= numQuackRepeats;
             if (!isReadyForResend)
             {

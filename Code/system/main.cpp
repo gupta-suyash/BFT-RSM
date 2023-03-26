@@ -12,26 +12,33 @@
 
 int main(int argc, char *argv[])
 {
-    const auto kNodeConfiguration = parser(argc, argv);
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId, kLogPath,
-                 kWorkingDir] = kNodeConfiguration;
+    const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId, kLogPath,
+                 kWorkingDir] = kCommandLineArguments;
     const auto kNetworkZeroConfigPath = kWorkingDir + "network0urls.txt"s;
     const auto kNetworkOneConfigPath = kWorkingDir + "network1urls.txt"s;
+
+    const auto kOwnNetworkConfiguration =
+        parseNetworkUrlsAndStake(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
+    const auto kOtherNetworkConfiguration =
+        parseNetworkUrlsAndStake(get_other_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
+
+    const auto kNodeConfiguration =
+        createNodeConfiguration(kCommandLineArguments, kOwnNetworkConfiguration, kOtherNetworkConfiguration);
+
     SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
                 "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, num_packets = {},  packet_size = {}, "
                 "kLogPath= '{}'",
-                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
+                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
                 get_rsm_id(), get_number_of_packets(), get_packet_size(), kLogPath);
 
-    auto ownNetworkUrls = parseNetworkUrls(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
-    auto otherNetworkUrls = parseNetworkUrls(get_other_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
-
-    const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedNodes + 1;
+    const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
     constexpr auto kMessageBufferSize = 8192;
 
     const auto acknowledgment = std::make_shared<Acknowledgment>();
     const auto pipeline =
-        std::make_shared<Pipeline>(std::move(ownNetworkUrls), std::move(otherNetworkUrls), kNodeConfiguration);
+        std::make_shared<Pipeline>(std::move(kOwnNetworkConfiguration.kNetworkUrls),
+                                   std::move(kOwnNetworkConfiguration.kNetworkUrls), kNodeConfiguration);
     const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
     const auto ackTracker = std::make_shared<AcknowledgmentTracker>();
     const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
@@ -69,7 +76,7 @@ int main(int argc, char *argv[])
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
                     "kMaxNumLocalFailedNodes = {}, "
                     "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, packet_size = {},  kLogPath= '{}'",
-                    kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedNodes, kOtherMaxNumFailedNodes, kNodeId,
+                    kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
                     get_rsm_id(), get_packet_size(), kLogPath);
     return 0;
 }
