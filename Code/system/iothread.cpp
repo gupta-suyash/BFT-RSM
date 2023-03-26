@@ -281,7 +281,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 {
     bindThreadToCpu(2);
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
-                kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
+                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
     uint64_t timedMessages{};
 

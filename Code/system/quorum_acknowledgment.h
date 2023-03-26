@@ -7,8 +7,8 @@
 #include "global.h"
 
 // This class counts messages which a sufficient amount (kQuorumStakeSize) of stake has reportedly accepted
-// This is done because if there are kQuorumStakeSize-1 stake in malicious hands, we can accept messages that kQuorumStakeSize much accepts
-// WARNING THIS CLASS ASSUMES STAKE NEVER CHANGES
+// This is done because if there are kQuorumStakeSize-1 stake in malicious hands, we can accept messages that
+// kQuorumStakeSize much accepts WARNING THIS CLASS ASSUMES STAKE NEVER CHANGES
 class QuorumAcknowledgment
 {
   public:

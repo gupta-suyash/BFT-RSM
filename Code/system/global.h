@@ -2,8 +2,8 @@
 
 //#define NDEBUG
 #include <chrono>
-#include <map>
 #include <cstdlib>
+#include <map>
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_CRITICAL
 #include <spdlog/spdlog.h>
 
