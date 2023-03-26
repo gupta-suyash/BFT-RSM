@@ -7,21 +7,23 @@ namespace quorum_acknowledgment_test
 
 BOOST_AUTO_TEST_SUITE(quorum_acknowledgment_test)
 
+constexpr uint64_t kUniformStake = 12345;
 constexpr uint64_t kTestQuorumSize = 50;
+constexpr uint64_t kTestQuorumStakeSize = kUniformStake * kTestQuorumSize;
 constexpr uint64_t kTestNetworkSize = 3 * kTestQuorumSize + 1;
 
 BOOST_AUTO_TEST_CASE(test_empty_quack)
 {
-    QuorumAcknowledgment quack{kTestQuorumSize};
+    QuorumAcknowledgment quack{kTestQuorumStakeSize};
     BOOST_CHECK(quack.getCurrentQuack() == std::nullopt);
 }
 
 BOOST_AUTO_TEST_CASE(test_useless_quacks)
 {
-    QuorumAcknowledgment quack{kTestQuorumSize};
+    QuorumAcknowledgment quack{kTestQuorumStakeSize};
     for (uint64_t node = 1; node < kTestQuorumSize; node++)
     {
-        quack.updateNodeAck(node, 10);
+        quack.updateNodeAck(node, kUniformStake, 10);
         BOOST_CHECK(quack.getCurrentQuack() == std::nullopt);
     }
 }
@@ -35,66 +37,66 @@ BOOST_AUTO_TEST_CASE(test_useful_quacks)
     int64_t curNodeOffset = 0;
     for (uint64_t initAck = 0; initAck <= 50; initAck++)
     {
-        QuorumAcknowledgment quack{kTestQuorumSize};
+        QuorumAcknowledgment quack{kTestQuorumStakeSize};
         for (uint64_t node_offset = 0; node_offset < kTestQuorumSize - 1; node_offset++)
         {
             const auto currentNode = getNode(curNodeOffset++);
-            quack.updateNodeAck(currentNode, initAck);
+            quack.updateNodeAck(currentNode, kUniformStake, initAck);
             BOOST_CHECK(quack.getCurrentQuack() == std::nullopt);
         }
         const auto finalNode = getNode(curNodeOffset++);
-        quack.updateNodeAck(finalNode, initAck);
+        quack.updateNodeAck(finalNode, kUniformStake, initAck);
         BOOST_CHECK(quack.getCurrentQuack() == initAck);
     }
 }
 
 BOOST_AUTO_TEST_CASE(test_monotonicity)
 {
-    QuorumAcknowledgment quack{kTestQuorumSize};
+    QuorumAcknowledgment quack{kTestQuorumStakeSize};
     for (uint64_t node = 1; node < kTestQuorumSize; node++)
     {
-        quack.updateNodeAck(node, 10);
+        quack.updateNodeAck(node, kUniformStake, 10);
         BOOST_CHECK(quack.getCurrentQuack() == std::nullopt);
     }
-    quack.updateNodeAck(kTestQuorumSize, 10);
+    quack.updateNodeAck(kTestQuorumSize, kUniformStake, 10);
     for (uint64_t node = 1; node <= kTestNetworkSize; node++)
     {
-        quack.updateNodeAck(node, 9);
+        quack.updateNodeAck(node, kUniformStake, 9);
         BOOST_CHECK(quack.getCurrentQuack() == 10);
     }
 }
 
 BOOST_AUTO_TEST_CASE(test_repeated_quacks)
 {
-    QuorumAcknowledgment quack{kTestQuorumSize};
+    QuorumAcknowledgment quack{kTestQuorumStakeSize};
     constexpr auto kNumTrials = 1000;
     constexpr auto kStuckQuack = 10;
 
     for (uint64_t node = 1; node < kTestQuorumSize; node++)
     {
-        quack.updateNodeAck(node, kStuckQuack);
+        quack.updateNodeAck(node, kUniformStake, kStuckQuack);
         BOOST_CHECK(quack.getCurrentQuack() == std::nullopt);
     }
 
-    quack.updateNodeAck(kTestQuorumSize, kStuckQuack);
+    quack.updateNodeAck(kTestQuorumSize, kUniformStake, kStuckQuack);
     BOOST_CHECK(quack.getCurrentQuack() == kStuckQuack);
 
     for (uint64_t trial = 1; trial <= kNumTrials; trial++)
     {
-        quack.updateNodeAck(kTestQuorumSize, kStuckQuack);
+        quack.updateNodeAck(kTestQuorumSize, kUniformStake, kStuckQuack);
         for (uint64_t node = 1; node <= kTestNetworkSize; node++)
         {
-            quack.updateNodeAck(node, kStuckQuack);
+            quack.updateNodeAck(node, kUniformStake, kStuckQuack);
             BOOST_CHECK(quack.getCurrentQuack() == kStuckQuack);
         }
     }
 
     for (uint64_t trial = 1; trial <= kNumTrials; trial++)
     {
-        quack.updateNodeAck(kTestQuorumSize, kStuckQuack);
+        quack.updateNodeAck(kTestQuorumSize, kUniformStake, kStuckQuack);
         for (uint64_t node = kTestQuorumSize; node < kTestQuorumSize; node++)
         {
-            quack.updateNodeAck(node, kStuckQuack + 1);
+            quack.updateNodeAck(node, kUniformStake, kStuckQuack + 1);
             BOOST_CHECK(quack.getCurrentQuack() == kStuckQuack);
         }
     }
@@ -107,18 +109,18 @@ BOOST_AUTO_TEST_CASE(test_consecutive_quacks)
         return (nodeOffset * curNodeGenerator) % kTestNetworkSize + 1;
     };
     int64_t curNodeOffset = 0;
-    QuorumAcknowledgment quack{kTestQuorumSize};
+    QuorumAcknowledgment quack{kTestQuorumStakeSize};
     std::optional<uint64_t> prevQuack{};
     for (uint64_t curAck = 0; curAck <= 50; curAck++)
     {
         for (uint64_t node_offset = 0; node_offset < kTestQuorumSize - 1; node_offset++)
         {
             const auto currentNode = getNode(curNodeOffset++);
-            quack.updateNodeAck(currentNode, curAck);
+            quack.updateNodeAck(currentNode, kUniformStake, curAck);
             BOOST_CHECK(quack.getCurrentQuack() == prevQuack);
         }
         const auto finalNode = getNode(curNodeOffset++);
-        quack.updateNodeAck(finalNode, curAck);
+        quack.updateNodeAck(finalNode, kUniformStake, curAck);
         BOOST_CHECK(quack.getCurrentQuack() == curAck);
         prevQuack = curAck;
     }
@@ -133,13 +135,13 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_quacks)
         return (nodeOffset * curNodeGenerator) % kTestNetworkSize + 1;
     };
     int64_t curNodeOffset = 0;
-    QuorumAcknowledgment quack{kTestQuorumSize};
+    QuorumAcknowledgment quack{kTestQuorumStakeSize};
     for (uint64_t i = 1; i < kTestQuorumSize; i++)
     {
-        quack.updateNodeAck(getNode(curNodeOffset++), jumpSize);
+        quack.updateNodeAck(getNode(curNodeOffset++), kUniformStake, jumpSize);
         BOOST_CHECK(quack.getCurrentQuack() == std::nullopt);
     }
-    quack.updateNodeAck(getNode(curNodeOffset++), jumpSize);
+    quack.updateNodeAck(getNode(curNodeOffset++), kUniformStake, jumpSize);
     BOOST_CHECK(quack.getCurrentQuack() == jumpSize);
 
     for (uint64_t i = 2 * jumpSize; i <= cases; i += jumpSize)
@@ -148,10 +150,10 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_quacks)
         const auto nextQuack = i;
         for (uint64_t j = 1; j < kTestQuorumSize; j++)
         {
-            quack.updateNodeAck(getNode(curNodeOffset++), nextQuack);
+            quack.updateNodeAck(getNode(curNodeOffset++), kUniformStake, nextQuack);
             BOOST_CHECK(quack.getCurrentQuack() == lastQuack);
         }
-        quack.updateNodeAck(getNode(curNodeOffset++), nextQuack);
+        quack.updateNodeAck(getNode(curNodeOffset++), kUniformStake, nextQuack);
         BOOST_CHECK(quack.getCurrentQuack() == nextQuack);
     }
 }

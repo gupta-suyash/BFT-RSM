@@ -78,7 +78,6 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
 // Relays messages to be sent over ipc
 void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput)
 {
-    const auto kNumMessages = get_number_of_packets();
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     const auto readMessages = std::make_shared<ipc::DataChannel>(10);
     const auto exitReader = std::make_shared<std::atomic_bool>();
@@ -156,10 +155,6 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
-    constexpr auto kSleepTime = 1ns;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
-                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
-    const auto kTotalMessageSends = get_number_of_packets();
 
     while (not is_test_over())
     {
@@ -180,7 +175,6 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
-    constexpr auto kSleepTime = 1ns;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
@@ -205,7 +199,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    constexpr auto kResendWaitPeriod = 5s;
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
     const auto kMaxMessageSends = kOwnMaxNumFailedStake + kOtherMaxNumFailedStake + 1;
@@ -287,9 +280,10 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     bindThreadToCpu(2);
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
+                kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
     uint64_t timedMessages{};
-    std::optional<uint64_t> lastAckCount;
 
     boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(1024);
     boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(1024);
@@ -328,7 +322,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
             if (foreignMessage.has_ack_count())
             {
                 const auto foreignAckCount = foreignMessage.ack_count().value();
-                quorumAck->updateNodeAck(senderId, foreignAckCount);
+                quorumAck->updateNodeAck(senderId, kOtherNetworkStakes.at(senderId), foreignAckCount);
                 // ackTracker->updateNodeData(senderId, foreignAckCount, curTime);
             }
         }

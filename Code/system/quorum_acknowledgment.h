@@ -6,30 +6,30 @@
 
 #include "global.h"
 
-// This class counts messages which a sufficient amount (kQuorumSize) of nodes have reportedly accepted
-// This is done because if there are kQuorumSize-1 malicious nodes, we can accept messages that kQuorumSize other nodes
-// have accepted
+// This class counts messages which a sufficient amount (kQuorumStakeSize) of stake has reportedly accepted
+// This is done because if there are kQuorumStakeSize-1 stake in malicious hands, we can accept messages that kQuorumStakeSize much accepts
+// WARNING THIS CLASS ASSUMES STAKE NEVER CHANGES
 class QuorumAcknowledgment
 {
   public:
-    QuorumAcknowledgment(uint64_t quorumSize);
-    void updateNodeAck(uint64_t nodeId, uint64_t ackValue);
+    QuorumAcknowledgment(uint64_t quorumStakeSize);
+    void updateNodeAck(uint64_t nodeId, const uint64_t nodeStake, uint64_t ackValue);
     std::optional<uint64_t> getNodeAck(uint64_t nodeId) const;
     std::optional<uint64_t> getCurrentQuack() const;
 
   private:
-    uint64_t getNodesAtAck(uint64_t ack) const;
-    // Number of nodes to accept a message
-    const uint64_t kQuorumSize{};
+    uint64_t getStakeAtAck(uint64_t ack) const;
+    // Total stake needed to accept a message
+    const uint64_t kQuorumStakeSize{};
     // mNodeToAck[node] = node.ackCount
-    // node.ackCount = last consecutive value received by the node
+    // node.ackCount = highest cummulative ack received by the node
     std::unordered_map<uint64_t, uint64_t> mNodeToAck;
-    // mAckToNodeCount[Ack_Count] = |{node | mNodeToAck[node] == AckCount}|
-    std::map<uint64_t, uint64_t> mAckToNodeCount;
+    // mAckToStakeCount[AckCount] = \Sum{node.stake | mNodeToAck[node] == AckCount}
+    std::map<uint64_t, uint64_t> mAckToStakeCount;
     // mQuorumAck
     //     = argmax_i {kQuorumSize >= mAckToNodeCount[i] + mAckToNodeCount[i+1] + ... + mAckToNodeCount[inf]}
     // This represents the current acknowledged value of the entire quorum
     std::atomic<std::optional<uint64_t>> mQuorumAck{std::nullopt};
 
-    uint64_t mNumNodesInCurQuorum = 0;
+    uint64_t mStakeInCurQuorum = 0;
 };

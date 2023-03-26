@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-QuorumAcknowledgment::QuorumAcknowledgment(const uint64_t quorumSize) : kQuorumSize(quorumSize)
+QuorumAcknowledgment::QuorumAcknowledgment(const uint64_t quorumStakeSize) : kQuorumStakeSize(quorumStakeSize)
 {
 }
 
@@ -11,10 +11,10 @@ QuorumAcknowledgment::QuorumAcknowledgment(const uint64_t quorumSize) : kQuorumS
  * @param nodeId is the value of the node to be updated/added.
  * @param ackValue is the ack value of the node.
  */
-void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t ackValue)
+void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t nodeStake, const uint64_t ackValue)
 {
     const auto curNodeEntry = mNodeToAck.find(nodeId);
-    const auto curQuorumAck = mQuorumAck.load(std::memory_order_relaxed);
+    auto curQuorumAck = mQuorumAck.load(std::memory_order_relaxed);
 
     const bool isUpdate = curNodeEntry != mNodeToAck.end();
     const bool isUpdateStale = isUpdate && (ackValue <= curNodeEntry->second);
@@ -28,56 +28,66 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t a
     {
         // Decrement the old ack value
         const auto oldAckValue = curNodeEntry->second;
-        const auto acksLeftAtNode = --mAckToNodeCount[oldAckValue];
+        const auto stakeLeftAtNode = (mAckToStakeCount[oldAckValue] -= nodeStake);
 
-        if (acksLeftAtNode == 0)
+        if (stakeLeftAtNode == 0)
         {
             // Don't store empty entries
-            mAckToNodeCount.erase(oldAckValue);
+            mAckToStakeCount.erase(oldAckValue);
         }
 
-        // Decrement the old number of acks in the quorum
+        // Decrement the stake in the quorum
         if (!curQuorumAck.has_value() || curQuorumAck <= oldAckValue)
         {
-            mNumNodesInCurQuorum--;
+            mStakeInCurQuorum -= nodeStake;
         }
     }
 
     // Update data structures
     mNodeToAck[nodeId] = ackValue;
-    mAckToNodeCount[ackValue]++;
+    mAckToStakeCount[ackValue] += nodeStake;
 
-    // Update mNumNodesInCurQuorum
+    // Update mStakeInCurQuorum
     if (!curQuorumAck.has_value() || curQuorumAck <= ackValue)
     {
-        mNumNodesInCurQuorum++;
+        mStakeInCurQuorum += nodeStake;
     }
 
-    const auto nodesAtCurQuack = (curQuorumAck.has_value()) ? getNodesAtAck(curQuorumAck.value()) : 0;
-    const auto nodesAboveCurQuorum = mNumNodesInCurQuorum - nodesAtCurQuack;
-
-    const auto isNewQuorum = nodesAboveCurQuorum >= kQuorumSize;
-    if (isNewQuorum)
+    const auto isFirstQuack = not curQuorumAck.has_value() && mStakeInCurQuorum >= kQuorumStakeSize;
+    if (isFirstQuack)
     {
-        mNumNodesInCurQuorum -= nodesAtCurQuack;
-
-        if (curQuorumAck.has_value())
-        {
-            const auto oldVal = *curQuorumAck;
-            mQuorumAck.store(mAckToNodeCount.upper_bound(oldVal)->first, std::memory_order_release);
-        }
-        else
-        {
-            // Lowest ack is the new quorum ack
-            mQuorumAck.store(std::cbegin(mAckToNodeCount)->first, std::memory_order_release);
-        }
+        curQuorumAck = mAckToStakeCount.begin()->first;
     }
+
+    const auto isNoQuorumToUpdate = not curQuorumAck.has_value();
+    if (isNoQuorumToUpdate)
+    {
+        return;
+    }
+
+    // This is linear in number of nodes -- could be made log time with a segment tree
+    for (auto nextQuack = mAckToStakeCount.upper_bound(*curQuorumAck); nextQuack != mAckToStakeCount.end(); nextQuack++)
+    {
+        const auto stakeAtCurQuack = getStakeAtAck(curQuorumAck.value());
+        const auto nodesAboveCurQuorum = mStakeInCurQuorum - stakeAtCurQuack;
+
+        const auto isNewQuorum = nodesAboveCurQuorum >= kQuorumStakeSize;
+        if (not isNewQuorum)
+        {
+            break;
+        }
+
+        mStakeInCurQuorum -= stakeAtCurQuack;
+        curQuorumAck = nextQuack->first;
+    }
+
+    mQuorumAck.store(curQuorumAck, std::memory_order_relaxed);
 }
 
-uint64_t QuorumAcknowledgment::getNodesAtAck(uint64_t ack) const
+uint64_t QuorumAcknowledgment::getStakeAtAck(uint64_t ack) const
 {
-    const auto ackToNodeCountIt = mAckToNodeCount.find(ack);
-    if (std::cend(mAckToNodeCount) == ackToNodeCountIt)
+    const auto ackToNodeCountIt = mAckToStakeCount.find(ack);
+    if (std::cend(mAckToStakeCount) == ackToNodeCountIt)
     {
         return 0;
     }
