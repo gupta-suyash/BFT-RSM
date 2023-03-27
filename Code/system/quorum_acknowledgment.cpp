@@ -11,7 +11,8 @@ QuorumAcknowledgment::QuorumAcknowledgment(const uint64_t quorumStakeSize) : kQu
  * @param nodeId is the value of the node to be updated/added.
  * @param ackValue is the ack value of the node.
  */
-void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t nodeStake, const uint64_t ackValue)
+std::optional<uint64_t> QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t nodeStake,
+                                                            const uint64_t ackValue)
 {
     const auto curNodeEntry = mNodeToAck.find(nodeId);
     auto curQuorumAck = mQuorumAck.load(std::memory_order_relaxed);
@@ -21,7 +22,7 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t n
     if (isUpdateStale)
     {
         // The update would decrease or not change the node's current ack value
-        return;
+        return curQuorumAck;
     }
 
     if (isUpdate)
@@ -62,7 +63,7 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t n
     const auto isNoQuorumToUpdate = not curQuorumAck.has_value();
     if (isNoQuorumToUpdate)
     {
-        return;
+        return curQuorumAck;
     }
 
     // This is linear in number of nodes -- could be made log time with a segment tree
@@ -82,6 +83,15 @@ void QuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t n
     }
 
     mQuorumAck.store(curQuorumAck, std::memory_order_relaxed);
+    return curQuorumAck;
+}
+
+void QuorumAcknowledgment::reset()
+{
+    mNodeToAck.clear();
+    mAckToStakeCount.clear();
+    mQuorumAck.store(std::nullopt, std::memory_order_relaxed);
+    mStakeInCurQuorum = 0;
 }
 
 uint64_t QuorumAcknowledgment::getStakeAtAck(uint64_t ack) const
@@ -112,5 +122,5 @@ std::optional<uint64_t> QuorumAcknowledgment::getNodeAck(const uint64_t nodeId) 
  */
 std::optional<uint64_t> QuorumAcknowledgment::getCurrentQuack() const
 {
-    return mQuorumAck.load(std::memory_order_acquire);
+    return mQuorumAck.load(std::memory_order_relaxed);
 }

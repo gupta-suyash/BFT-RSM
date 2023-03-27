@@ -1,136 +1,91 @@
 #include "acknowledgment_tracker.h"
 
-/* Records that nodeId reported a cummulative acknoledgement of messages [1,...,acknowledgmentValue] at time curTime
- */
-void AcknowledgmentTracker::updateNodeData(const uint64_t nodeId, const uint64_t acknowledgmentValue,
-                                           const std::chrono::steady_clock::time_point curTime)
+AcknowledgmentTracker::AcknowledgmentTracker(uint64_t otherNetworkSize, uint64_t otherNetworkMaxFailedStake)
+    : mNodeData(otherNetworkSize), staleAckQuorumCounter(otherNetworkMaxFailedStake + 1)
 {
-    const std::scoped_lock lock{mMutex};
+}
 
-    auto nodeDataEntry = mNodeData.find(nodeId);
+void AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
+                                   std::optional<uint64_t> curQuackValue)
+{
 
-    const bool isNewNode = nodeDataEntry == std::end(mNodeData);
-    if (isNewNode)
+    updateNodeData(nodeId, acknowledgmentValue);
+    updateAggregateData(nodeId, nodeStake, acknowledgmentValue, curQuackValue);
+    updateActiveResendData();
+}
+
+void AcknowledgmentTracker::updateNodeData(uint64_t nodeId, std::optional<uint64_t> acknowledgmentValue)
+{
+
+    auto &curNodeData = mNodeData.at(nodeId);
+
+    bool isNewAck = curNodeData.acknowledgmentValue < acknowledgmentValue;
+    if (isNewAck)
     {
-        auto nodeData = acknowledgment_tracker::NodeAckData{
-            .acknowledgmentValue = acknowledgmentValue, .repeatNumber = 1, .initialAckTime = curTime};
-        incrementAggregates(nodeData);
-        mNodeData.insert({nodeId, std::move(nodeData)});
+        curNodeData =
+            acknowledgment_tracker::NodeAckData{.acknowledgmentValue = acknowledgmentValue, .repeatNumber = 0};
         return;
     }
 
-    auto &storedNodeData = nodeDataEntry->second;
-
-    bool isByzantine = storedNodeData.acknowledgmentValue > acknowledgmentValue;
-    if (isByzantine)
+    bool isStaleAck = curNodeData.acknowledgmentValue > acknowledgmentValue;
+    if (isStaleAck)
     {
-        // ignore, treat as if the node was crashed
         return;
     }
 
-    bool isStuck = storedNodeData.acknowledgmentValue == acknowledgmentValue;
-    if (isStuck)
+    curNodeData.repeatNumber++;
+}
+
+void AcknowledgmentTracker::updateAggregateData(uint64_t nodeId, uint64_t nodeStake,
+                                                std::optional<uint64_t> acknowledgmentValue,
+                                                std::optional<uint64_t> curQuackValue)
+{
+    const bool isQuackUnstuck = mCurStuckQuorumAck != curQuackValue;
+    if (isQuackUnstuck)
     {
-        const auto stuckAckValue = acknowledgmentValue;
-        const auto oldNodeIniitalAckTime = storedNodeData.initialAckTime;
-        const auto oldAggregateInitialAckTime = mAggregateInitialAckTime[stuckAckValue];
+        mCurStuckQuorumAck = curQuackValue;
+        staleAckQuorumCounter.reset();
+    }
 
-        storedNodeData.initialAckTime = std::min(oldNodeIniitalAckTime, curTime);
-        storedNodeData.repeatNumber++;
+    const bool isNodeAtCurQuorumAck = acknowledgmentValue == mCurStuckQuorumAck;
+    if (isNodeAtCurQuorumAck)
+    {
+        const auto repeatAcks = mNodeData.at(nodeId).repeatNumber;
+        // staleAckQuorumCounter counts quorums of repeated acks
+        staleAckQuorumCounter.updateNodeAck(nodeId, nodeStake, repeatAcks);
+    }
+}
+#include <iostream>
+void AcknowledgmentTracker::updateActiveResendData()
+{
+    auto curResendData = mActiveResendData.load(std::memory_order_relaxed);
 
-        mAggregateInitialAckTime[stuckAckValue] = std::min(oldAggregateInitialAckTime, storedNodeData.initialAckTime);
-        mAggregateAckCount[storedNodeData.acknowledgmentValue]++;
+    const auto sequenceNumberToResend = mCurStuckQuorumAck.value_or(-1) + 1;
+    const auto numRepeatedAckQuorums = staleAckQuorumCounter.getCurrentQuack();
+
+    const bool isNoResendNeeded = not numRepeatedAckQuorums.has_value() || numRepeatedAckQuorums.value() == 0;
+    if (isNoResendNeeded)
+    {
+        if (curResendData.has_value())
+        {
+            mActiveResendData.store(std::nullopt, std::memory_order_release);
+        }
         return;
     }
 
-    // Ack value is increasing, remove from aggregates
-    decrementAggregates(storedNodeData);
+    // Small ints are so that reading/writing to the atomic doesn't use locks -- easy to remove
+    const auto potentialNewResendData = acknowledgment_tracker::ResendData{
+        .sequenceNumber = (uint32_t)sequenceNumberToResend, .resendNumber = (uint16_t)numRepeatedAckQuorums.value()};
 
-    // Update stored data
-    storedNodeData.acknowledgmentValue = acknowledgmentValue;
-    storedNodeData.repeatNumber = 1;
-    storedNodeData.initialAckTime = curTime;
-
-    // Re-include updated data from aggregates
-    incrementAggregates(storedNodeData);
-}
-
-// Updates aggregates to totally remove a once included NodeAckData
-void AcknowledgmentTracker::decrementAggregates(const acknowledgment_tracker::NodeAckData &oldAckData)
-{
-    const std::scoped_lock lock{mMutex};
-
-    const auto &[oldAckValue, oldRepeatNumber, oldInitTime] = oldAckData;
-
-    // Ack value is increasing, reset data structures
-    const auto remainingAggregateAcks = mAggregateAckCount[oldAckValue] - oldRepeatNumber;
-    if (remainingAggregateAcks == 0)
+    const bool isCurResendDataOutdated = curResendData != potentialNewResendData;
+    if (isCurResendDataOutdated)
     {
-        // delete old stats, no nodes remaining at value
-        mAggregateAckCount.erase(oldAckValue);
-        mAggregateInitialAckTime.erase(oldAckValue);
-    }
-    else
-    {
-        mAggregateAckCount[oldAckValue] -= oldRepeatNumber;
-        // mAggregateInitialAckTime[storedAckValue] should increase probably?
+        mActiveResendData.store(potentialNewResendData);
     }
 }
 
-// Updates aggregates to include a totally new NodeAckData being inserted at once
-void AcknowledgmentTracker::incrementAggregates(const acknowledgment_tracker::NodeAckData &newNodeData)
+std::optional<acknowledgment_tracker::ResendData> AcknowledgmentTracker::getActiveResendData() const
 {
-    const std::scoped_lock lock{mMutex};
-
-    const auto &[newAckValue, newRepeatNumber, newInitTime] = newNodeData;
-
-    mAggregateAckCount[newAckValue] += newRepeatNumber;
-
-    const auto curFirstAckTimeEntry = mAggregateInitialAckTime.find(newAckValue);
-    if (curFirstAckTimeEntry == std::end(mAggregateInitialAckTime))
-    {
-        mAggregateInitialAckTime.insert({newAckValue, newInitTime});
-    }
-    else
-    {
-        const auto oldFirstAckTime = curFirstAckTimeEntry->second;
-        mAggregateInitialAckTime[newAckValue] = std::min(oldFirstAckTime, newInitTime);
-    }
-}
-
-/* Get the first time nodes became stuck at acknowledgmentValuethe aggregate minimum time that a node reported
- * acknowledgmentValue If no nodes are stuck at acknowledgmentValue, it returns std::nullopt
- * TODO Should this value increase when a node gets unstuck?
- * @param acknowledgmentValue the acknowledgment value where nodes may be 'stuck' at
- * @returns of all nodes N who's newest acknowledgment is acknowledgmentValue, return the aggregate minimum time of when
- * N acknowedged acknowledgmentValue if no node's newest acknowledgment is acknowledgmentValue return std::nullopt
- */
-std::optional<std::chrono::steady_clock::time_point> AcknowledgmentTracker::getAggregateInitialAckTime(
-    uint64_t acknowledgmentValue) const
-{
-    const std::scoped_lock lock{mMutex};
-    const auto ackTimeEntry = mAggregateInitialAckTime.find(acknowledgmentValue);
-
-    if (ackTimeEntry == std::end(mAggregateInitialAckTime))
-    {
-        return std::nullopt;
-    }
-    return ackTimeEntry->second;
-}
-
-/* Get the aggregate number of times nodes have reported that they are currently stuck at acknowledgmentValue
- * @param acknowledgmentValue the acknowledgment value where nodes may be 'stuck' at
- * @returns of all nodes N who's newest acknowledgment is acknowledgmentValue, return the aggregate sum of how many
- * times N acknowedged acknowledgmentValue
- */
-uint64_t AcknowledgmentTracker::getAggregateRepeatedAckCount(uint64_t acknowledgmentValue) const
-{
-    const std::scoped_lock lock{mMutex};
-    const auto ackCountEntry = mAggregateAckCount.find(acknowledgmentValue);
-
-    if (ackCountEntry == std::end(mAggregateAckCount))
-    {
-        return 0;
-    }
-    return ackCountEntry->second;
+    // TODO check if std::memory_order_acquire is too expensive (probably won't be with crypto)
+    return mActiveResendData.load(std::memory_order_acquire);
 }

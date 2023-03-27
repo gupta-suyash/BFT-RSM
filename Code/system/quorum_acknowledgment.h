@@ -13,7 +13,9 @@ class QuorumAcknowledgment
 {
   public:
     QuorumAcknowledgment(uint64_t quorumStakeSize);
-    void updateNodeAck(uint64_t nodeId, const uint64_t nodeStake, uint64_t ackValue);
+    // returns current quorum ack after update
+    std::optional<uint64_t> updateNodeAck(uint64_t nodeId, const uint64_t nodeStake, uint64_t ackValue);
+    void reset();
     std::optional<uint64_t> getNodeAck(uint64_t nodeId) const;
     std::optional<uint64_t> getCurrentQuack() const;
 

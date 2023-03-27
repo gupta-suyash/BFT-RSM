@@ -1,46 +1,54 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
-#include <mutex>
 #include <optional>
-#include <unordered_map>
+#include <vector>
 
 #include "global.h"
+#include "quorum_acknowledgment.h"
 
 namespace acknowledgment_tracker
 {
 // Stores information about the node's data
 struct NodeAckData
 {
-    // The highest cummulative acknowledgment value received by this node
-    // Should be monotone non-decreasing in the honest case TODO punish visibly byzantine nodes
-    uint64_t acknowledgmentValue{};
-    // The number of times the node has sent this highest value repeatedly
-    uint64_t repeatNumber{};
-    // The time when the node sent its first ack of acknowledgmentValue
-    std::chrono::steady_clock::time_point initialAckTime{};
+    std::optional<uint64_t> acknowledgmentValue{};
+    // The number of times the node has sent the same acknowledgmentValue repeatedly
+    uint64_t repeatNumber{0ULL - 1};
 };
+#pragma pack(push, 1)
+struct ResendData
+{
+    uint32_t sequenceNumber{};
+    uint16_t resendNumber{}; // counts from 1
+    bool operator==(const ResendData &) const = default;
+};
+#pragma pack(pop)
 }; // namespace acknowledgment_tracker
 
-// This class keeps track of the aggregate number of times each node has reported the same acknowledgment value in
-// sequence Also keeps track of the aggregate minimum time when each node got stuck at each acknowledgment value This is
-// what will be used to determine when a node should resend a message
+// This class keeps track of the acknowledgments returned by each node to keep track of if/when nodes should retry
+// sending messages what will be used to determine when a node should resend a message
 class AcknowledgmentTracker
 {
   public:
-    void updateNodeData(uint64_t nodeId, uint64_t acknowledgmentValue, std::chrono::steady_clock::time_point curTime);
-    std::optional<std::chrono::steady_clock::time_point> getAggregateInitialAckTime(uint64_t acknowledgmentValue) const;
-    uint64_t getAggregateRepeatedAckCount(uint64_t acknowledgmentValue) const;
+    AcknowledgmentTracker(uint64_t otherNetworkSize, uint64_t otherNetworkMaxFailedStake);
+
+    void update(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
+                std::optional<uint64_t> curQuackValue);
+    std::optional<acknowledgment_tracker::ResendData> getActiveResendData() const;
 
   private:
-    void incrementAggregates(const acknowledgment_tracker::NodeAckData &newNodeData);
-    void decrementAggregates(const acknowledgment_tracker::NodeAckData &newNodeData);
+    void updateAggregateData(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
+                             std::optional<uint64_t> curQuackValue);
+    void updateNodeData(uint64_t nodeId, std::optional<uint64_t> acknowledgmentValue);
+    void updateActiveResendData();
 
-    mutable std::recursive_mutex mMutex;
+    // At any instance of time there can only be one message that a node should resend
+    // This is because nodes can only be stuck at one quorumAck
+    std::atomic<std::optional<acknowledgment_tracker::ResendData>> mActiveResendData{};
 
-    std::unordered_map<uint64_t, acknowledgment_tracker::NodeAckData> mNodeData;
-    // mAggregateAckCount[ack] = \Sum mNodeData[node].repeatNumber | mNodeData[node].ack == ack
-    std::unordered_map<uint64_t, uint64_t> mAggregateAckCount;
-    // mAggregateInitialAckTime[ack] = min mNodeData[node].initialAckTime | mNodeData[node].acknowledgmentValue == ack
-    std::unordered_map<uint64_t, std::chrono::steady_clock::time_point> mAggregateInitialAckTime;
+    std::vector<acknowledgment_tracker::NodeAckData> mNodeData;
+    std::optional<uint64_t> mCurStuckQuorumAck{};
+    QuorumAcknowledgment staleAckQuorumCounter;
 };

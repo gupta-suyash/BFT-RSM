@@ -40,7 +40,8 @@ int main(int argc, char *argv[])
         std::make_shared<Pipeline>(std::move(kOwnNetworkConfiguration.kNetworkUrls),
                                    std::move(kOwnNetworkConfiguration.kNetworkUrls), kNodeConfiguration);
     const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
-    const auto ackTracker = std::make_shared<AcknowledgmentTracker>();
+    const auto ackTracker = std::make_shared<AcknowledgmentTracker>(kNodeConfiguration.kOtherNetworkSize,
+                                                                    kNodeConfiguration.kOtherMaxNumFailedStake);
     const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
 
     set_test_start(std::chrono::steady_clock::now());

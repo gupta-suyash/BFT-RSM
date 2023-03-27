@@ -1,17 +1,15 @@
 #include "iothread.h"
 
 #include "ipc.h"
-#include "message_scheduler.h"
 #include "scrooge_message.pb.h"
 #include "scrooge_request.pb.h"
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <map>
 #include <pthread.h>
-#include <sched.h>
 #include <stdio.h>
-#include <sys/types.h>
 #include <thread>
 
 #include <boost/circular_buffer.hpp>
@@ -180,8 +178,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
     const MessageScheduler messageScheduler(configuration);
 
-    auto resendMessageMap =
-        std::map<uint64_t, std::pair<message_scheduler::CompactDestinationList, scrooge::CrossChainMessage>>{};
+    auto resendMessageMap = std::map<uint64_t, iothread::MessageResendData>{};
 
     while (not is_test_over())
     {
@@ -199,7 +196,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
             auto destinations = messageScheduler.getMessageDestinations(sequenceNumber);
 
-            if (resendNumber == 0)
+            bool isFirstSender = resendNumber == 0;
+            if (isFirstSender)
             {
                 const auto receiverNode = destinations.at(0);
 
@@ -207,11 +205,63 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 pipeline->SendToOtherRsm(receiverNode, newMessage);
             }
 
-            const auto isPossiblyResent = destinations.size() > 1;
-            if (isPossiblyResent)
+            const auto isPossiblySentLater = not isFirstSender || destinations.size() > 1;
+            if (isPossiblySentLater)
             {
-                resendMessageMap.emplace(sequenceNumber,
-                                         std::make_pair(std::move(destinations), std::move(newMessage)));
+                const uint64_t numDestinationsAlreadySent = isFirstSender;
+                resendMessageMap.emplace(
+                    sequenceNumber, iothread::MessageResendData{.message = std::move(newMessage),
+                                                                .firstDestinationResendNumber = resendNumber.value(),
+                                                                .numDestinationsSent = numDestinationsAlreadySent,
+                                                                .destinations = destinations});
+            }
+        }
+
+        const auto curQuorumAck = quorumAck->getCurrentQuack();
+        const auto activeResendData = ackTracker->getActiveResendData();
+        for (auto it = resendMessageMap.begin(); it != resendMessageMap.end();)
+        {
+            const auto sequenceNumber = it->first;
+            auto &[message, firstDestinationResendNumber, numDestinationsSent, destinations] = it->second;
+
+            const bool isMessageAlreadyDelivered = sequenceNumber <= curQuorumAck;
+            if (isMessageAlreadyDelivered)
+            {
+                it = resendMessageMap.erase(it);
+                continue;
+            }
+
+            const bool isNoMessageToResend =
+                not activeResendData.has_value() || activeResendData->sequenceNumber < sequenceNumber;
+            if (isNoMessageToResend)
+            {
+                // No message to resend, or missing a message to resend
+                break;
+            }
+            else if (activeResendData->sequenceNumber > sequenceNumber)
+            {
+                // Message to resend may be further in the map
+                continue;
+            }
+
+            // We got to the message which should be resent
+            const auto curNodeFirstResend = firstDestinationResendNumber;
+            const auto curNodeLastResend = firstDestinationResendNumber + destinations.size() - 1;
+            const auto curNodeCompletedResends = curNodeFirstResend + numDestinationsSent;
+            const auto curFinalDestination = std::min<uint64_t>(curNodeLastResend, activeResendData->resendNumber);
+            for (uint64_t resend = curNodeCompletedResends; resend <= curFinalDestination; resend++)
+            {
+                // TODO: Optimize to send all destinations at once with a bitset
+                const auto destination = destinations.at(resend - curNodeFirstResend);
+                pipeline->SendToOtherRsm(destination, newMessage);
+                numDestinationsSent++;
+            }
+
+            const auto isComplete = numDestinationsSent == destinations.size();
+            if (isComplete)
+            {
+                it = resendMessageMap.erase(it);
+                break;
             }
         }
 
@@ -268,8 +318,9 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
             if (foreignMessage.has_ack_count())
             {
                 const auto foreignAckCount = foreignMessage.ack_count().value();
-                quorumAck->updateNodeAck(senderId, kOtherNetworkStakes.at(senderId), foreignAckCount);
-                // ackTracker->updateNodeData(senderId, foreignAckCount, curTime);
+                const auto senderStake = kOtherNetworkStakes.at(senderId);
+                const auto currentQuack = quorumAck->updateNodeAck(senderId, senderStake, foreignAckCount);
+                ackTracker->update(senderId, senderStake, foreignAckCount, currentQuack);
             }
         }
     }
