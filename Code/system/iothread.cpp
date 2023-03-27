@@ -1,6 +1,7 @@
 #include "iothread.h"
 
 #include "ipc.h"
+#include "message_scheduler.h"
 #include "scrooge_message.pb.h"
 #include "scrooge_request.pb.h"
 
@@ -15,18 +16,6 @@
 
 #include <boost/circular_buffer.hpp>
 
-uint64_t trueMod(int64_t value, int64_t modulus)
-{
-    const auto remainder = (value % modulus);
-
-    if (remainder < 0)
-    {
-        return remainder + modulus;
-    }
-
-    return remainder;
-}
-
 template <typename T>
 void blockingPush(moodycamel::BlockingReaderWriterCircularBuffer<T> &queue, T &&message,
                   std::chrono::microseconds pollPeriod)
@@ -35,17 +24,6 @@ void blockingPush(moodycamel::BlockingReaderWriterCircularBuffer<T> &queue, T &&
     {
         std::this_thread::sleep_for(pollPeriod);
     }
-}
-
-// Returns the node that should be sent a message from a given sender
-uint64_t getMessageDestinationId(uint64_t sequenceNumber, uint64_t senderId, uint64_t numNodesInOwnNetwork,
-                                 uint64_t numNodesInOtherNetwork)
-{
-    const auto msgRound = sequenceNumber / numNodesInOwnNetwork;
-    const auto originalSenderId = sequenceNumber % numNodesInOwnNetwork;
-    const auto resendNum = trueMod(senderId - originalSenderId, numNodesInOwnNetwork);
-
-    return (originalSenderId + msgRound + resendNum) % numNodesInOtherNetwork;
 }
 
 bool isMessageValid(const scrooge::CrossChainMessage &message)
@@ -199,12 +177,11 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
-                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
-    const auto kMaxMessageSends = kOwnMaxNumFailedStake + kOtherMaxNumFailedStake + 1;
-    std::optional<uint64_t> curQuack;
 
-    auto resendMessageMap = std::map<uint64_t, scrooge::CrossChainMessage>{};
+    const MessageScheduler messageScheduler(configuration);
+
+    auto resendMessageMap =
+        std::map<uint64_t, std::pair<message_scheduler::CompactDestinationList, scrooge::CrossChainMessage>>{};
 
     while (not is_test_over())
     {
@@ -212,61 +189,30 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         while (messageInput->try_dequeue(newMessage))
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
-            const auto originalSenderId = sequenceNumber % kOwnNetworkSize;
+            const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
 
-            if (originalSenderId == kNodeId)
+            const auto isMessageNeverSent = not resendNumber.has_value();
+            if (isMessageNeverSent)
             {
-                const auto receiverNode =
-                    getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
+                continue;
+            }
+
+            auto destinations = messageScheduler.getMessageDestinations(sequenceNumber);
+
+            if (resendNumber == 0)
+            {
+                const auto receiverNode = destinations.at(0);
 
                 setAckValue(&newMessage, *acknowledgment);
                 pipeline->SendToOtherRsm(receiverNode, newMessage);
-                continue;
             }
 
-            const auto numPreviousSenders = trueMod(kNodeId - originalSenderId, kOwnNetworkSize);
-            const bool shouldThisNodeAlsoSend = (numPreviousSenders + 1) <= kMaxMessageSends;
-            if (shouldThisNodeAlsoSend)
+            const auto isPossiblyResent = destinations.size() > 1;
+            if (isPossiblyResent)
             {
-                continue;
-                resendMessageMap.emplace(sequenceNumber, std::move(newMessage));
+                resendMessageMap.emplace(sequenceNumber,
+                                         std::make_pair(std::move(destinations), std::move(newMessage)));
             }
-        }
-
-        curQuack = quorumAck->getCurrentQuack();
-        if (!curQuack.has_value())
-        {
-            continue; // Wait for messages before resending
-            // TODO Bug, if message 0 is not sent, nobody will resend
-        }
-
-        const auto numQuackRepeats = 0;
-        for (auto it = std::begin(resendMessageMap); it != std::end(resendMessageMap); it = resendMessageMap.erase(it))
-        {
-            auto &[sequenceNumber, message] = *it;
-
-            const bool isMessageAlreadyReceived = sequenceNumber < curQuack.value();
-            if (isMessageAlreadyReceived)
-            {
-                continue; // delete this message
-            }
-
-            const auto originalSenderId = sequenceNumber % kOwnNetworkSize;
-            const auto numPreviousSenders = trueMod(kNodeId - originalSenderId, kOwnNetworkSize);
-            const auto numStaleAcksForSending = (kOtherMaxNumFailedStake + 1) * numPreviousSenders;
-            const bool isReadyForResend = numStaleAcksForSending <= numQuackRepeats;
-            if (!isReadyForResend)
-            {
-                break; // exit and re-evaluate later, map is sorted so early exiting is ok
-            }
-
-            // resend this message, delete after.
-            const auto receiverNode =
-                getMessageDestinationId(sequenceNumber, kNodeId, kOwnNetworkSize, kOtherNetworkSize);
-
-            setAckValue(&message, *acknowledgment);
-
-            pipeline->SendToOtherRsm(receiverNode, message);
         }
 
         std::this_thread::sleep_for(kSleepTime);

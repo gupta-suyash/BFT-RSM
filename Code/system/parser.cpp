@@ -157,6 +157,10 @@ parser::ConfigurationParameters parseNetworkUrlsAndStake(const std::filesystem::
         try
         {
             uint64_t stake = std::stoull(stakeString);
+            if (stake == 0)
+            {
+                SPDLOG_CRITICAL("NODE WITH IP '{}' HAD ZERO STAKE, not supported, exiting...", url);
+            }
             stakes.push_back(stake);
         }
         catch (...)

@@ -83,7 +83,6 @@ class Pipeline
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
 
     static constexpr uint64_t kMinimumPortNumber = 7000;
-    static constexpr uint64_t kBatchSize = 750000;
 
     const NodeConfiguration kOwnConfiguration;
     const std::vector<std::string> kOwnNetworkUrls;
