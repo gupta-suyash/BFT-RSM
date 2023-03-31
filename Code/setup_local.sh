@@ -69,16 +69,11 @@ ldconfig
 cd ..
 
 # Go 1.20 install
-
 sudo wget https://go.dev/dl/go1.20.linux-amd64.tar.gz
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
 sudo rm -rf go1.20.linux-amd64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-go version
-echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
-echo "export GOPATH=$HOME/go" >> $HOME/.profile
-echo "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin" >> $HOME/.profile
+echo "export PATH=\$PATH:/usr/local/go/bin" >> $HOME/.profile
 source $HOME/.profile
 
 # Insatall go protoc extension
