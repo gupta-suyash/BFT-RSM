@@ -34,7 +34,7 @@ apt-get -y install libcrypto++-dev
 apt-get -y install libjsoncpp-dev
 apt-get -y install ripgrep
 apt-get -y install python3 python3-pip
-echo "export PATH=$PATH:$HOME/.local/bin" >> $HOME/.profile
+echo "export PATH=\$PATH:\$HOME/.local/bin" >> $HOME/.profile
 pip install numpy
 pip install matplotlib
 pip install seaborn
