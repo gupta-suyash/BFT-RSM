@@ -272,17 +272,6 @@ void Pipeline::startPipeline()
         foreignReceiveSockets->emplace_back(openReceiveSocket(receivingUrl));
     }
 
-    // std::cout << "Hello World \n";
-    // std::string privKey = "00000000000000000000000000000000";
-    // std::cout << "Key found: " << privKey << std::endl;
-
-    // std::string plain = "Hello World";
-    // std::string encoded = CmacSignString(privKey, plain);
-    // std::cout << "Mac: " << encoded << std::endl;
-
-    // bool res = CmacVerifyString(privKey, plain, encoded);
-    // std::cout << "Res: " << res << std::endl;
-
     mForeignMessageSendThread = std::thread(&Pipeline::runForeignSendThread, this, std::move(foreignSendSockets));
     mForeignMessageReceiveThread =
         std::thread(&Pipeline::runForeignReceiveThread, this, std::move(foreignReceiveSockets));
@@ -532,14 +521,6 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessage &message)
     constexpr auto kSleepTime = 1ns;
     const auto foreignNetworkSize = kOwnConfiguration.kOtherNetworkSize;
 
-    // MAC signing TODO
-    const auto mdata = message.data();
-    const auto mstr = mdata.SerializeAsString();
-    // Sign with own key.
-    std::string encoded = CmacSignString(get_priv_key(), mstr);
-    message.set_validity_proof(encoded);
-    // std::cout << "Mac: " << encoded << std::endl;
-
     const auto messageData = message.SerializeAsString();
     pipeline::SendMessageRequest::DestinationSet broadcastSet{};
     broadcastSet |= -1ULL ^ (-1ULL << foreignNetworkSize);
@@ -565,16 +546,7 @@ void Pipeline::BroadcastToOwnRsm(boost::circular_buffer<pipeline::ReceivedCrossC
 
     while (not is_test_over() && not in.empty())
     {
-        // TODO removed const from here.
         auto &message = in.front().message;
-
-        // MAC signing TODO
-        const auto mdata = message.data();
-        const auto mstr = mdata.SerializeAsString();
-        // Sign with own key.
-        std::string encoded = CmacSignString(get_priv_key(), mstr);
-        message.set_validity_proof(encoded);
-        // std::cout << "Mac: " << encoded << std::endl;
 
         const auto messageData = message.SerializeAsString();
         const auto wasSent = mMessageRequestsLocal.try_enqueue(
@@ -609,7 +581,7 @@ void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossCh
         bool res = CmacVerifyString(senderKey, mstr, scroogeMessage.validity_proof());
         if (!res)
         {
-            std::cout << "Verification Failed: " << res << std::endl;
+            SPDLOG_CRITICAL("NODE {} COULD NOT VERIFY MESSAGE FROM NODE {}", kOwnConfiguration.kNodeId, nng_message.senderId);
         }
 
         out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), nng_message.senderId});
@@ -625,20 +597,6 @@ void Pipeline::RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage>
     while (not is_test_over() && not out.full() && mLocalReceivedMessageQueue.try_dequeue(nng_message))
     {
         auto scroogeMessage = deserializeProtobuf<scrooge::CrossChainMessage>(nng_message);
-
-        // Verification TODO
-        const auto mdata = scroogeMessage.data();
-        const auto mstr = mdata.SerializeAsString();
-        // Fetch the sender key
-        // const auto senderKey = get_other_rsm_key(nng_message.senderId);
-        const auto senderKey = get_priv_key();
-        // Verify the message
-        bool res = CmacVerifyString(senderKey, mstr, scroogeMessage.validity_proof());
-        if (!res)
-        {
-            std::cout << "Verification Failed: " << res << std::endl;
-        }
-
         out.push_back(std::move(scroogeMessage));
     }
 }
