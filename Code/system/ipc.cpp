@@ -132,3 +132,20 @@ void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> message
     *exit = true;
     SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
 }
+
+void writeMessage(std::ofstream& file, const std::string& data)
+{
+    uint64_t writeSize = data.size();
+    file.write(reinterpret_cast<char *>(&writeSize), sizeof(writeSize));
+    if (file.fail())
+    {
+        SPDLOG_INFO("Attempted to write new message to pipe but failed. EOF_Reached? = {}", pipe.eof());
+    }
+
+    file.write(data.data(), data.size());
+    if (file.fail())
+    {
+        SPDLOG_INFO("Attempted to write new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
+    }
+    file.flush();
+}

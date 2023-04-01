@@ -3,6 +3,7 @@
 #include "ipc.h"
 #include "scrooge_message.pb.h"
 #include "scrooge_request.pb.h"
+#include "scrooge_transfer.pb.h"
 
 #include <algorithm>
 #include <chrono>
@@ -269,6 +270,26 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     }
 
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
+}
+
+void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck)
+{
+    std::ofstream pipe{scroogeOutputPipePath, std::ios_base::binary};
+    std::optional<uint64_t> lastQuorumAck{};
+    scrooge::ScroogeTransfer transfer;
+    const auto mutableCommitAck = transfer.mutable_commit_acknowledgment();
+    while (not is_test_over())
+    {
+        const auto curQuorumAck = quorumAck->getCurrentQuack();
+        if (lastQuorumAck < curQuorumAck)
+        {
+            lastQuorumAck = curQuorumAck;
+            mutableCommitAck->set_sequence_number(lastQuorumAck.value());
+            const auto serializedTransfer = transfer.SerializeAsString();
+            writeMessage(pipe, serializedTransfer);
+        }
+        std::this_thread::sleep_for(100ms);
+    }
 }
 
 void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,

@@ -29,6 +29,8 @@ void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOut
 
 void runRelayIPCRequestThread(std::shared_ptr<iothread::MessageQueue> messageOutput);
 
+void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck);
+
 void runSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
                    std::shared_ptr<Acknowledgment> acknowledgment, std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
