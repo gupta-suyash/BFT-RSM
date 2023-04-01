@@ -38,5 +38,5 @@ message CrossChainMessage {
 
 message KeyExchangeMessage {
 	uint64 node_id = 1;
-    string node_key = 2;
+    bytes node_key = 2;
 }
