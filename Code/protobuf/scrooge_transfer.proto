@@ -9,6 +9,7 @@ option go_package="/scrooge";
 message ScroogeTransfer {
     oneof transfer {
         UnvalidatedCrossChainMessage unvalidated_cross_chain_message = 1;
+		CommitAcknowledgment commit_acknowledgment = 2;
     }
 }
 
@@ -19,4 +20,9 @@ message UnvalidatedCrossChainMessage {
     CrossChainMessageData data = 2;
      // A proof that the message data is valid and signed off by the entire sending RSM
     bytes validity_proof = 3;
+}
+
+message CommitAcknowledgment {
+	// Sequence number of request committed at other RSM.
+	uint64 sequence_number = 1;
 }
