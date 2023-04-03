@@ -1,10 +1,12 @@
 #include "global.h"
 #include "crypto.h"
 #include <bitset>
+#include <fstream>
 #include <mutex>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/sysinfo.h>
+#include <unordered_map>
 
 // List of global variables and configuration parameters.
 static uint64_t g_rsm_id{};       // RSM Id for this node.
@@ -12,9 +14,12 @@ static uint64_t g_other_rsm_id{}; // RSM Id of other RSM.
 static uint64_t g_number_of_packets{};
 static uint64_t g_packet_size{};
 
+static std::mutex metricsMutex{};
+static std::unordered_map<std::string, std::string> metrics{};
+
 std::string privKey;
-std::map<uint64_t, std::string> keyOwnCluster;
-std::map<uint64_t, std::string> keyOtherCluster;
+std::unordered_map<uint64_t, std::string> keyOwnCluster;
+std::unordered_map<uint64_t, std::string> keyOtherCluster;
 
 void set_priv_key()
 {
@@ -156,5 +161,23 @@ void bindThreadToCpu(int cpu)
         SPDLOG_CRITICAL("Cannot bind this thread to desired core error={}, num_cores={}, requested={}", rc, numCores,
                         cpu);
         std::abort();
+    }
+}
+
+void addMetric(std::string key, std::string value)
+{
+    std::scoped_lock lock{metricsMutex};
+    metrics[key] = value;
+}
+
+void printMetrics(std::string filename)
+{
+    std::scoped_lock lock{metricsMutex};
+    remove(filename.c_str());
+    std::ofstream file{filename, std::ios_base::binary};
+    for (const auto& metric : metrics)
+    {
+        const auto& [metricKey, metricValue] = metric; 
+        file << metricKey << ": " << metricValue << '\n';
     }
 }

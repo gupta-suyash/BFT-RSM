@@ -346,22 +346,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
         }
     }
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
-
-    remove(configuration.kLogPath.c_str());
-    std::ofstream file{configuration.kLogPath, std::ios_base::binary};
-
-    if (!file.is_open())
-    {
-        SPDLOG_CRITICAL("COULD NOT SAVE TO FILE");
-    }
-
-    file << "message_size: " << get_packet_size() << '\n';
-    file << "messages_received: " << timedMessages << '\n';
-    file << "duration_seconds: " << std::chrono::duration<double>{get_test_duration()}.count() << '\n';
-    // file << "average_latency: " << averageLatency << '\n';
-    file << "transfer_strategy: "
-         << "2Send2Recv v2 Thread scrooge" << '\n';
-    file << "max_acknowledgment: " << acknowledgment->getAckIterator().value_or(0) << '\n';
-    file << "max_quorum_acknowledgment: " << quorumAck->getCurrentQuack().value_or(0) << '\n';
-    file.close();
+    addMetric("foreign_messages_received", timedMessages);
+    addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
+    addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
 }

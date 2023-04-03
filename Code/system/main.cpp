@@ -82,5 +82,11 @@ int main(int argc, char *argv[])
                     "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, packet_size = {},  kLogPath= '{}'",
                     kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
                     get_rsm_id(), get_packet_size(), kLogPath);
+
+    
+    addMetric("message_size", get_packet_size());
+    addMetric("duration_seconds", std::chrono::duration<double>{get_test_duration()}.count());
+    addMetric("transfer_strategy", "2Send2Recv v2 Thread scrooge");
+    printMetrics(kLogPath);
     return 0;
 }
