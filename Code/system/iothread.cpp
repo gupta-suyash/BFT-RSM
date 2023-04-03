@@ -173,6 +173,12 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    const bool isFirstNode = configuration.kNodeId == 0 && get_rsm_id() == 0;
+    if (isFirstNode)
+    {
+        SPDLOG_CRITICAL("Send TID == {}", gettid());
+    }
+
     bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     constexpr auto kSleepTime = 1ns;
@@ -296,34 +302,45 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                       const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    bindThreadToCpu(2);
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
+    auto ackThread = std::thread([&](){
+        bindThreadToCpu(6);
+        uint64_t timedMessages{};
+        boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(1024);
+        while (not is_test_over())
+        {
+            domesticMessages.clear();
+            pipeline->RecvFromOwnRsm(domesticMessages);
+            for (auto newDomesticMessage : domesticMessages)
+            {
+                if (isMessageValid(newDomesticMessage))
+                {
+                    timedMessages += is_test_recording();
+                    acknowledgment->addToAckList(newDomesticMessage.data().sequence_number());
+                }
+            }
+        }
+        addMetric("local_messages_received", timedMessages);
+    });
+    bindThreadToCpu(2);
+    const bool isFirstNode = kNodeId == 0 && get_rsm_id() == 0;
+    if (isFirstNode)
+    {
+        SPDLOG_CRITICAL("Receive TID == {}", gettid());
+    }
 
     uint64_t timedMessages{};
 
-    boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(1024);
-    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(1024);
+    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(4096);
 
     while (not is_test_over())
     {
         pipeline->BroadcastToOwnRsm(foreignMessages);
 
         const auto oldNumForeign = foreignMessages.size();
-        domesticMessages.clear();
-
-        pipeline->RecvFromOwnRsm(domesticMessages);
         pipeline->RecvFromOtherRsm(foreignMessages);
         const auto firstNewForeign = std::next(std::cbegin(foreignMessages), oldNumForeign);
-
-        for (auto newDomesticMessage : domesticMessages)
-        {
-            if (isMessageValid(newDomesticMessage))
-            {
-                acknowledgment->addToAckList(newDomesticMessage.data().sequence_number());
-                timedMessages += is_test_recording();
-            }
-        }
 
         for (auto newForeignMessage = firstNewForeign; newForeignMessage != std::cend(foreignMessages);
              newForeignMessage++)
@@ -346,6 +363,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
         }
     }
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
+    ackThread.join();
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));

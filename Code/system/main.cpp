@@ -50,14 +50,6 @@ int main(int argc, char *argv[])
     SPDLOG_INFO("Done setting up sockets between nodes.");
 
     set_priv_key();
-    // std::cout << "Done setting private key." << endl;
-
-    // KeyExchange tasks TODO
-    // constexpr auto kSleepTime = 2s;
-    // pipeline->BroadcastKeyToOwnRsm();
-    // std::this_thread::sleep_for(kSleepTime);
-    // pipeline->RecvFromOwnRsm();
-    // std::this_thread::sleep_for(kSleepTime);
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
     auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
