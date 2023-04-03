@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <sys/sysinfo.h>
+#include <map>
 #include <unordered_map>
 
 // List of global variables and configuration parameters.
@@ -15,7 +16,7 @@ static uint64_t g_number_of_packets{};
 static uint64_t g_packet_size{};
 
 static std::mutex metricsMutex{};
-static std::unordered_map<std::string, std::string> metrics{};
+static std::map<std::string, std::string> metrics{};
 
 std::string privKey;
 std::unordered_map<uint64_t, std::string> keyOwnCluster;
@@ -136,10 +137,10 @@ void set_packet_size(uint64_t packet_size)
     g_packet_size = packet_size;
 }
 
-void bindThreadToCpu(int cpu)
+void bindThreadToCpu(const int cpu)
 {
     static std::mutex mutex;
-    static std::bitset<128> set;
+    static std::bitset<128> set{};
     const auto numCores = get_nprocs();
     {
         std::scoped_lock lock{mutex};

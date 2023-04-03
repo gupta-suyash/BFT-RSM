@@ -44,7 +44,7 @@ struct SendMessageRequest
     using DestinationSet = std::bitset<64>;
     std::chrono::steady_clock::time_point kRequestCreationTime{};
     DestinationSet destinationNodes{};
-    std::string messageData;
+    nng_message messageData;
 };
 
 template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
@@ -97,7 +97,7 @@ class Pipeline
     std::atomic_bool mIsPipelineStarted{};
     std::atomic_bool mShouldThreadStop{};
     pipeline::MessageQueue<pipeline::SendMessageRequest> mMessageRequestsLocal{4096};
-    pipeline::MessageQueue<pipeline::SendMessageRequest> mMessageRequestsForeign{4096};
+    pipeline::MessageQueue<pipeline::SendMessageRequest> mMessageRequestsForeign{256};
     pipeline::MessageQueue<pipeline::foreign_nng_message> mForeignReceivedMessageQueue{4096};
     pipeline::MessageQueue<pipeline::nng_message> mLocalReceivedMessageQueue{4096};
 };
