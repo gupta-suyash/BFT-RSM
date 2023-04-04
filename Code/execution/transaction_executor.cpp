@@ -76,6 +76,18 @@ TransactionExecutor::TransactionExecutor(
 		LOG(INFO) << "Cannot Create Read Pipe";
 	}
 
+	if(std::filesystem::exists(write_pipe_path_)) {
+		const auto eraseError = std::remove(write_pipe_path_.c_str()) != 0;
+		if(eraseError) {
+			LOG(INFO) << "Not Erased";
+		}				
+	}
+
+	const auto wsuccess = (mkfifo(write_pipe_path_.c_str(), kFullPermissions) == 0);
+	if (not wsuccess) {
+		LOG(INFO) << "Cannot Create Write Pipe";
+	}
+
   scrooge_snd_thread_ = std::thread(&TransactionExecutor::ScroogeSendMessage, this);
   scrooge_rcv_thread_ = std::thread(&TransactionExecutor::ScroogeRecvMessage, this);
 }
@@ -278,9 +290,10 @@ void TransactionExecutor::ScroogeSendMessage() {
   // Creating Pipe for transfer
   //std::string pipe_path = "/tmp/scrooge-input"; //+ std::to_string(config_.GetSelfInfo().id());
   //scr_write_.open(pipe_path, std::ios_base::binary);
-	std::ofstream scr_write_{read_pipe_path_, std::ios_base::binary};
+	std::ofstream scr_write_{write_pipe_path_, std::ios_base::binary};
+	std::ofstream scr_wtemp_{read_pipe_path_, std::ios_base::binary};
 
-  LOG(INFO) << "PIPE: " << read_pipe_path_;
+  LOG(INFO) << "PIPE: " << write_pipe_path_;
 
   while (!IsStop()) {
     auto response = scrooge_snd_queue_.Pop();
@@ -356,7 +369,10 @@ void TransactionExecutor::ScroogeRecvMessage() {
 
   // Opening Pipe for transfer
   //scr_read_.open(pipe_path, std::ios_base::binary);
+	std::ifstream scr_rtemp_{write_pipe_path_, std::ios_base::binary};
 	std::ifstream scr_read_{read_pipe_path_, std::ios_base::binary};
+
+	LOG(INFO) << "READ PIPE" << read_pipe_path_;
 
 	//uint64_t fpos = 0, flength;	
   uint64_t readSize;
@@ -405,7 +421,7 @@ void TransactionExecutor::ScroogeRecvMessage() {
 	    	LOG(INFO) << "GOT: " << seq_no;
 
 				// Time to validate and reply to client.
-				post_valid_func_(seq_no);
+				//post_valid_func_(seq_no);
 
 				break;
 			}
