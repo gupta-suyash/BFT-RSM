@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+import "scrooge_message.proto";
+
+package scrooge;
+option go_package="/scrooge";
+
+// Message with data scrooge sends to appliaction/protocol users
+message ScroogeTransfer {
+    oneof transfer {
+        UnvalidatedCrossChainMessage unvalidated_cross_chain_message = 1;
+	CommitAcknowledgment commit_acknowledgment = 2;
+    }
+}
+
+message UnvalidatedCrossChainMessage {
+    // An unique identifier used to identify this message
+    MessageIdentifier message_identifier = 1;
+    // The content and scrooge book keeping logic needed by scrooge for correctness
+    CrossChainMessageData data = 2;
+     // A proof that the message data is valid and signed off by the entire sending RSM
+    bytes validity_proof = 3;
+}
+
+message CommitAcknowledgment {
+	// Sequence number of request committed at other RSM.
+	uint64 sequence_number = 1;
+}

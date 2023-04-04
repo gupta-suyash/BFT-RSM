@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "scrooge_networking.proto";
+
+package scrooge;
+option go_package="/scrooge";
+
+// This is a one-to-one mapping in the honest case.
+// On the case of collision, ignore both messages as sender_id is guaranteed to be valid by TLS
+message MessageIdentifier {
+    // The identity of the cluster this message originated from
+    ClusterIdentifier cluster_identifier = 1;
+    // The id of the node which sent this message
+    uint64 sender_id = 2;
+    // This message is the sequence_number-th message sent from one RSM to the next
+    uint64 sequence_number = 3;
+}
+
+// Message data which must be agreed upon by the sending RSM before sending to another RSM
+message CrossChainMessageData {
+    // The data that scrooge intends to transfer from one RSM to another
+    bytes message_content = 1;
+    // This message is the sequence_number-th message sent from one RSM to the next
+    uint64 sequence_number = 3;
+}
+
+// Message to hold both the CrossChainMessageData, a proof of its validity, and the current node's ack_count
+message CrossChainMessage {
+    // The data and scrooge book keeping logic needed by scrooge for correctness
+    CrossChainMessageData data = 1;
+     // A proof that the message contents are valid and signed off by the entire sending RSM
+    bytes validity_proof = 2;
+    // Iff present, the sender of this message preports to have seen messages with:
+    // sequence_number in {1,2,..,ack_count} but has not seen `ack_count +1`
+    google.protobuf.UInt64Value ack_count = 3;
+}
