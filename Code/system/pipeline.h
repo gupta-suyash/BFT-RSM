@@ -12,8 +12,6 @@
 #include <boost/circular_buffer.hpp>
 
 #include "nng/nng.h"
-#include <nng/protocol/pipeline0/pull.h>
-#include <nng/protocol/pipeline0/push.h>
 
 #include "global.h"
 

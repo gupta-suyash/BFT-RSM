@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <chrono>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <pthread.h>
 #include <stdio.h>
@@ -176,13 +177,37 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
     const MessageScheduler messageScheduler(configuration);
 
-    auto resendMessageMap = std::map<uint64_t, iothread::MessageResendData>{};
     uint64_t numMessagesResent{};
+    auto resendMessageMap = std::map<uint64_t, iothread::MessageResendData>{};
+    auto lastSendTime = std::chrono::steady_clock::now();
+    uint64_t numMsgsSentWithLastAck{};
+    std::optional<uint64_t> lastSentAck{};
+    constexpr uint64_t kAckWindowSize = 8;
+    constexpr uint64_t kQAckWindowSize = 12 * 4;
+    constexpr auto kMaxMessageDelay = 2ms;
 
     while (not is_test_over())
     {
+        // update window information
+        const auto curAck = acknowledgment->getAckIterator();
+        const auto curQuack = quorumAck->getCurrentQuack();
+
+        if (curAck != lastSentAck)
+        {
+            lastSentAck = curAck;
+            numMsgsSentWithLastAck = 0;
+        }
+
+        const int64_t pendingSequenceNum = (messageInput->peek())?
+                                            messageInput->peek()->data().sequence_number() :
+                                            kQAckWindowSize + curQuack.value_or(0);
+        const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
+        const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1);
+        const bool isTimeoutHit = std::chrono::steady_clock::now() - lastSendTime > kMaxMessageDelay;
+        const bool shouldDequeue = isTimeoutHit || (isAckFresh && isSequenceNumberUseful);
+
         scrooge::CrossChainMessage newMessage;
-        while (messageInput->try_dequeue(newMessage) && not is_test_over())
+        if (shouldDequeue && messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
 	    if(sequenceNumber == 1) {
@@ -205,6 +230,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
                 setAckValue(&newMessage, *acknowledgment);
                 pipeline->SendToOtherRsm(receiverNode, newMessage);
+                lastSendTime = std::chrono::steady_clock::now();
+                numMsgsSentWithLastAck++;
             }
 
             const auto isPossiblySentLater = not isFirstSender || destinations.size() > 1;
@@ -257,9 +284,10 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 const auto destination = destinations.at(resend - curNodeFirstResend);
                 setAckValue(&message, *acknowledgment);
                 pipeline->SendToOtherRsm(destination, message);
+                lastSendTime = std::chrono::steady_clock::now();
+                numMsgsSentWithLastAck++;
                 numDestinationsSent++;
                 numMessagesResent += is_test_recording();
-                SPDLOG_CRITICAL("RESSENT msg{} to node {}", sequenceNumber, destination);
             }
 
             const auto isComplete = numDestinationsSent == destinations.size();

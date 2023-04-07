@@ -4,6 +4,7 @@
 #include "crypto.h"
 
 #include <boost/container/small_vector.hpp>
+#include <nng/protocol/pair1/pair.h>
 
 static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
@@ -34,7 +35,7 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
     constexpr auto kResultOpenSuccessful = 0;
 
     nng_socket socket;
-    const auto openResult = nng_pull0_open(&socket);
+    const auto openResult = nng_pair1_open(&socket);
     const bool cannotOpenSocket = kResultOpenSuccessful != openResult;
     if (cannotOpenSocket)
     {
@@ -68,7 +69,7 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
     constexpr auto kSuccess = 0;
 
     nng_socket socket;
-    const auto openResult = nng_push0_open(&socket);
+    const auto openResult = nng_pair1_open(&socket);
 
     const bool cannotOpenSocket = kSuccess != openResult;
     if (cannotOpenSocket)
@@ -620,14 +621,14 @@ void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossCh
                     SPDLOG_CRITICAL("NODE {} COULD NOT VERIFY MESSAGE FROM NODE {}", kOwnConfiguration.kNodeId, node);
                 }
 
-                const bool isOriginalReceiver = scroogeMessage.data().sequence_number() % 4 == node;
+                // THIS HACK DOESN'T WORK WITH STAKE -- UPDATE MESSAGE SCHEDULER 
+                const bool isOriginalReceiver = scroogeMessage.data().sequence_number() % kOwnConfiguration.kOtherNetworkSize == node;
                 if (isOriginalReceiver)
                 {
                     out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node, nng_message});
                 }
                 else
                 {
-                    SPDLOG_CRITICAL("GOT RESEND OF MSG {} FROM {}", scroogeMessage.data().sequence_number(), node);
                     rebroadcastToOwnRsm(nng_message);
                     out.push_front(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node, nullptr});
                 }
