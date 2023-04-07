@@ -102,10 +102,10 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
  * @param buf is the outgoing message of protobuf type.
  * @param socket is the nng_socket to put the data into
  */
-static int sendMessage(const nng_socket &socket, const pipeline::nng_message message)
+static int sendMessage(const nng_socket &socket, nng_msg* message)
 {
     const auto sendReturnValue =
-        nng_send(socket, message.data, message.dataSize, NNG_FLAG_ALLOC);
+        nng_sendmsg(socket, message, 0);
     const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN && sendReturnValue != nng_errno_enum::NNG_ETIMEDOUT;
     if (isActualError)
     {
@@ -120,12 +120,11 @@ static int sendMessage(const nng_socket &socket, const pipeline::nng_message mes
  * @param socket is the nng_socket to check for data on.
  * @return the protobuf if data for one was contained in the socket.
  */
-static std::optional<pipeline::nng_message> receiveMessage(const nng_socket &socket)
+static std::optional<nng_msg*> receiveMessage(const nng_socket &socket)
 {
-    char *data;
-    size_t dataSize;
+    nng_msg* msg;
 
-    const auto receiveReturnValue = nng_recv(socket, &data, &dataSize, NNG_FLAG_ALLOC);
+    const auto receiveReturnValue = nng_recvmsg(socket, &msg, 0);
 
     if (receiveReturnValue != 0)
     {
@@ -137,7 +136,7 @@ static std::optional<pipeline::nng_message> receiveMessage(const nng_socket &soc
         return std::nullopt;
     }
 
-    return pipeline::nng_message{.dataSize = dataSize, .data = data};
+    return msg;
 }
 
 static void closeSocket(nng_socket& socket, std::chrono::steady_clock::time_point closeTime)
@@ -149,59 +148,45 @@ static void closeSocket(nng_socket& socket, std::chrono::steady_clock::time_poin
     nng_close(socket);
 }
 
-static void free_nng_message(pipeline::nng_message message)
-{
-    nng_free(message.data, message.dataSize);
-}
-
-static pipeline::nng_message copy_nng_message(pipeline::nng_message message)
-{
-    pipeline::nng_message newMessage{
-        .dataSize = message.dataSize,
-        .data = (char*) nng_alloc(message.dataSize)
-    };
-    std::memcpy(newMessage.data, message.data, message.dataSize);
-    return newMessage;
-}
-
-template <typename T> static pipeline::nng_message serializeProtobuf(const T& proto)
+template <typename T> static nng_msg* serializeProtobuf(const T& proto)
 {
     const auto protoSize = proto.ByteSizeLong();
-    pipeline::nng_message message{
-        .dataSize = protoSize,
-        .data = (char*) nng_alloc(protoSize)
-    };
+    nng_msg* message;
+    const auto allocResult = nng_msg_alloc(&message, protoSize) == 0;
+    char* const messageData =(char*) nng_msg_body(message);
 
-    bool success = proto.SerializeToArray(message.data, message.dataSize);
+    bool success = allocResult && proto.SerializeToArray(messageData, protoSize);
 
     if (not success)
     {
-        SPDLOG_CRITICAL("PROTO DESERIALIZE FAILED DataSize={}", message.dataSize);
+        SPDLOG_CRITICAL("PROTO SERIALIZE FAILED DataSize={} AllocResult={}", protoSize, allocResult);
         std::abort();
     }
 
     return message;
 }
 
-template <typename T> static boost::container::small_vector<pipeline::nng_message, 7> serializeProtobufRepeated(const T& proto, uint64_t numCopies)
+template <typename T> static boost::container::small_vector<nng_msg*, 7> serializeProtobufRepeated(const T& proto, uint64_t numCopies)
 {
-    boost::container::small_vector<pipeline::nng_message, 7> msgs(numCopies);
-    msgs.front() = serializeProtobuf(proto);
+    boost::container::small_vector<nng_msg*, 7> messages(numCopies);
+    messages.front() = serializeProtobuf(proto);
     for (int i = 1; i < numCopies; i++)
     {
-        msgs.at(i) = copy_nng_message(msgs.front());
+        nng_msg_dup(&messages.at(i), messages.front());
     }
-    return msgs;
+    return messages;
 }
 
-template <typename T> static T deserializeProtobuf(pipeline::nng_message message)
+template <typename T> static T deserializeProtobuf(nng_msg* message)
 {
     T proto;
-    bool success = proto.ParseFromArray(message.data, message.dataSize);
-    free_nng_message(message);
+    const auto messageData = nng_msg_body(message);
+    const auto messageSize = nng_msg_len(message);
+    bool success = proto.ParseFromArray(messageData, messageSize);
+    nng_msg_free(message);
     if (not success)
     {
-        SPDLOG_CRITICAL("PROTO DESERIALIZE FAILED DataSize={}", message.dataSize);
+        SPDLOG_CRITICAL("PROTO DESERIALIZE FAILED DataSize={}", messageData);
         std::abort();
     }
 
@@ -225,10 +210,10 @@ Pipeline::~Pipeline()
         thread.join();
     };
     const auto emptyQueue = [](auto& queue) {
-        pipeline::nng_message msg;
+        nng_msg* msg;
         while (queue && queue->try_dequeue(msg))
         {
-            free_nng_message(msg);
+            nng_msg_free(msg);
         }
     };
 
@@ -298,8 +283,8 @@ void Pipeline::startPipeline()
         auto sendingUrl = "tcp://" + localUrl + ":" + std::to_string(sendingPort);
         auto receivingUrl = "tcp://" + kOwnUrl + ":" + std::to_string(receivingPort);
 
-        mLocalSendBufs.push_back(std::make_unique<pipeline::MessageQueue<pipeline::nng_message>>(kBufferSize));
-        mLocalRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<pipeline::nng_message>>(kBufferSize));
+        mLocalSendBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg*>>(kBufferSize));
+        mLocalRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg*>>(kBufferSize));
         mLocalSendThreads.push_back(std::thread(&Pipeline::runSendThread, this, sendingUrl, mLocalSendBufs.back().get(), localNodeId, kIsLocal));
         mLocalRecvThreads.push_back(std::thread(&Pipeline::runRecvThread, this, receivingUrl, mLocalRecvBufs.back().get(), localNodeId, kIsLocal));
     }
@@ -315,8 +300,8 @@ void Pipeline::startPipeline()
         auto sendingUrl = "tcp://" + foreignUrl + ":" + std::to_string(sendingPort);
         auto receivingUrl = "tcp://" + kOwnUrl + ":" + std::to_string(receivingPort);
 
-        mForeignSendBufs.push_back(std::make_unique<pipeline::MessageQueue<pipeline::nng_message>>(kBufferSize));
-        mForeignRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<pipeline::nng_message>>(kBufferSize));
+        mForeignSendBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg*>>(kBufferSize));
+        mForeignRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg*>>(kBufferSize));
         mForeignSendThreads.push_back(std::thread(&Pipeline::runSendThread, this, sendingUrl, mForeignSendBufs.back().get(), foreignNodeId, kIsLocal));
         mForeignRecvThreads.push_back(std::thread(&Pipeline::runRecvThread, this, receivingUrl, mForeignRecvBufs.back().get(), foreignNodeId, kIsLocal));
     }
@@ -338,7 +323,7 @@ void Pipeline::reportFailedNode(const std::string& nodeUrl, const uint64_t nodeI
     }
 }
 
-void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<pipeline::nng_message>* const sendBuffer, const uint64_t destNodeId, const bool isLocal)
+void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg*>* const sendBuffer, const uint64_t destNodeId, const bool isLocal)
 {
     const auto nodenet = (isLocal)? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
@@ -347,7 +332,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<pipelin
     constexpr auto kMaxWaitTime = 3s;
 
     nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
-    pipeline::nng_message newMessage;
+    nng_msg* newMessage;
     uint64_t numSent{};
     auto kStartTime = std::chrono::steady_clock::now();
 
@@ -365,7 +350,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<pipelin
     {
         if (std::chrono::steady_clock::now() - kStartTime > kMaxWaitTime || mShouldThreadStop.load(std::memory_order_relaxed))
         {
-            free_nng_message(newMessage);
+            nng_msg_free(newMessage);
             reportFailedNode(sendUrl, destNodeId, isLocal);
             goto exit;
         }
@@ -386,7 +371,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<pipelin
         {
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
-                free_nng_message(newMessage);
+                nng_msg_free(newMessage);
                 goto exit;
             }
         }
@@ -400,13 +385,13 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<pipelin
     closeSocket(sendSocket, finishTime);
 }
 
-void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<pipeline::nng_message>* const recvBuffer, const uint64_t sendNodeId, const bool isLocal)
+void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg*>* const recvBuffer, const uint64_t sendNodeId, const bool isLocal)
 {
     const auto nodenet = (isLocal)? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
     nng_socket recvSocket = openReceiveSocket(recvUrl, kMaxNngBlockingTime);
-    std::optional<pipeline::nng_message> message;
+    std::optional<nng_msg*> message;
     uint64_t numRecv{};
     
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
@@ -423,7 +408,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<pipelin
         {
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
-                free_nng_message(*message);
+                nng_msg_free(*message);
                 goto exit;
             }
         }
@@ -478,7 +463,7 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, scrooge::CrossChai
 
     if (isPushFail)
     {
-        free_nng_message(messageData);
+        nng_msg_free(messageData);
     }
 }
 
@@ -513,7 +498,7 @@ void Pipeline::SendToAllOtherRsm(const scrooge::CrossChainMessage &message)
 
         if (isPushFail)
         {
-            free_nng_message(curMessage);
+            nng_msg_free(curMessage);
         }
     }
 }
@@ -547,7 +532,7 @@ void Pipeline::BroadcastToOwnRsm(const scrooge::CrossChainMessage &message)
 
         if (isPushFail)
         {
-            free_nng_message(curMessage);
+            nng_msg_free(curMessage);
         }
     }
 }
@@ -558,7 +543,7 @@ void Pipeline::BroadcastToOwnRsm(const scrooge::CrossChainMessage &message)
 void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &out)
 {
     constexpr auto kMaxMsgsPerNode = 5;
-    pipeline::nng_message nng_message;
+    nng_msg* nng_message;
     for (uint64_t node = 0; node < kOwnConfiguration.kOtherNetworkSize && not out.full(); node++)
     {
         const auto& curRecvBuffer = mForeignRecvBufs.at(node);
@@ -597,7 +582,7 @@ void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossCh
 void Pipeline::RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out)
 {
     constexpr auto kMaxMsgsPerNode = 5;
-    pipeline::nng_message nng_message;
+    nng_msg* nng_message;
     for (uint64_t node = 0; node < mLocalRecvBufs.size() && not out.full(); node++)
     {
         if (node == kOwnConfiguration.kNodeId)
@@ -674,7 +659,7 @@ void Pipeline::RecvFromOwnRsm()
     const auto localNetworkSize = kOwnConfiguration.kOwnNetworkSize;
 
     uint64_t count = 0;
-    pipeline::nng_message nng_message;
+    nng_msg nng_message;
     while (count < (localNetworkSize - 1))
     {
         mLocalReceivedMessageQueue.wait_dequeue(nng_message);

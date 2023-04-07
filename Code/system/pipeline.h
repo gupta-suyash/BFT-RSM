@@ -27,12 +27,6 @@ struct ReceivedCrossChainMessage
     uint64_t senderId{};
 };
 
-struct nng_message
-{
-    size_t dataSize{};
-    char *data{}; // free with nng_free()
-};
-
 template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
 }; // namespace pipeline
 
@@ -60,8 +54,8 @@ class Pipeline
 
   private:
     void reportFailedNode(const std::string& nodeUrl, uint64_t nodeId, bool isLocal);
-    void runSendThread(std::string sendUrl, pipeline::MessageQueue<pipeline::nng_message>* const sendBuffer, const uint64_t destNodeId, const bool isLocal);
-    void runRecvThread(std::string recvUrl, pipeline::MessageQueue<pipeline::nng_message>* const recvBuffer, const uint64_t sendNodeId, const bool isLocal);
+    void runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg*>* const sendBuffer, const uint64_t destNodeId, const bool isLocal);
+    void runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg*>* const recvBuffer, const uint64_t sendNodeId, const bool isLocal);
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
@@ -87,8 +81,8 @@ class Pipeline
     std::vector<std::thread> mLocalRecvThreads;
     std::vector<std::thread> mForeignSendThreads;
     std::vector<std::thread> mForeignRecvThreads;
-    std::vector<std::unique_ptr<pipeline::MessageQueue<pipeline::nng_message>>> mLocalSendBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<pipeline::nng_message>>> mLocalRecvBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<pipeline::nng_message>>> mForeignSendBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<pipeline::nng_message>>> mForeignRecvBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg*>>> mLocalSendBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg*>>> mLocalRecvBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg*>>> mForeignSendBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg*>>> mForeignRecvBufs{};
 };
