@@ -334,7 +334,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
     uint64_t timedMessages{};
 
-    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(256);
+    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(2048);
 
     while (not is_test_over())
     {
@@ -365,8 +365,15 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 const auto currentQuack = quorumAck->getCurrentQuack();
                 ackTracker->update(senderId, senderStake, foreignAckCount, currentQuack);
             }
+        }
 
-            pipeline->rebroadcastToOwnRsm(rebroadcastMessage);
+        for (auto& newForeignMessage : foreignMessages)
+        {
+            const auto &[foreignMessage, senderId, rebroadcastMessage] = newForeignMessage;
+            if (rebroadcastMessage)
+            {
+                pipeline->rebroadcastToOwnRsm(rebroadcastMessage);
+            }
         }
     }
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");

@@ -560,7 +560,7 @@ void Pipeline::rebroadcastToOwnRsm(nng_msg* message)
     auto remainingDestinations = mAliveNodesLocal.load(std::memory_order_relaxed);
     remainingDestinations.reset(kOwnConfiguration.kNodeId);
 
-    while (remainingDestinations.any())
+    while (remainingDestinations.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(remainingDestinations.to_ulong());
         remainingDestinations.reset(curDestination);
@@ -597,7 +597,7 @@ void Pipeline::rebroadcastToOwnRsm(nng_msg* message)
  */
 void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &out)
 {
-    constexpr auto kMaxMsgsPerNode = 5;
+    const auto kMaxMsgsPerNode = out.capacity() / kOwnConfiguration.kOtherNetworkSize;
     nng_msg* nng_message;
     for (uint64_t node = 0; node < kOwnConfiguration.kOtherNetworkSize && not out.full(); node++)
     {
@@ -620,9 +620,17 @@ void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossCh
                     SPDLOG_CRITICAL("NODE {} COULD NOT VERIFY MESSAGE FROM NODE {}", kOwnConfiguration.kNodeId, node);
                 }
 
-                if (scroogeMessage.data().sequence_number() % 4 != node)
+                const bool isOriginalReceiver = scroogeMessage.data().sequence_number() % 4 == node;
+                if (isOriginalReceiver)
+                {
+                    out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node, nng_message});
+                }
+                else
+                {
                     SPDLOG_CRITICAL("GOT RESEND OF MSG {} FROM {}", scroogeMessage.data().sequence_number(), node);
-                out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node, nng_message});
+                    rebroadcastToOwnRsm(nng_message);
+                    out.push_front(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node, nullptr});
+                }
             }
             else
             {
