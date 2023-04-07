@@ -338,22 +338,12 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
     while (not is_test_over())
     {
-        while (not foreignMessages.empty() && not is_test_over())
-        {
-            pipeline->BroadcastToOwnRsm(foreignMessages.front().message);
-            if (foreignMessages.front().message.data().sequence_number() % 4 != foreignMessages.front().senderId)
-                    SPDLOG_CRITICAL("BROADCAST RESENT MSG {} FROM {}", foreignMessages.front().message.data().sequence_number(), foreignMessages.front().senderId);
-            foreignMessages.pop_front();
-        }
-
-        const auto oldNumForeign = foreignMessages.size();
+        foreignMessages.clear();
         pipeline->RecvFromOtherRsm(foreignMessages);
-        const auto firstNewForeign = std::next(std::cbegin(foreignMessages), oldNumForeign);
 
-        for (auto newForeignMessage = firstNewForeign; newForeignMessage != std::cend(foreignMessages);
-             newForeignMessage++)
+        for (auto& newForeignMessage : foreignMessages)
         {
-            const auto &[foreignMessage, senderId] = *newForeignMessage;
+            const auto &[foreignMessage, senderId, rebroadcastMessage] = newForeignMessage;
 
             if (isMessageValid(foreignMessage))
             {
@@ -375,6 +365,8 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 const auto currentQuack = quorumAck->getCurrentQuack();
                 ackTracker->update(senderId, senderStake, foreignAckCount, currentQuack);
             }
+
+            pipeline->rebroadcastToOwnRsm(rebroadcastMessage);
         }
     }
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");

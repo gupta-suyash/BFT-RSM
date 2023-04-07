@@ -193,6 +193,22 @@ template <typename T> static T deserializeProtobuf(nng_msg* message)
     return proto;
 }
 
+template <typename T> static T unsafeDeserializeProtobuf(nng_msg* message)
+{
+    T proto;
+    const auto messageData = nng_msg_body(message);
+    const auto messageSize = nng_msg_len(message);
+    bool success = proto.ParseFromArray(messageData, messageSize);
+    // nng_msg_free(message); DOESN"T FREE MESSAGE
+    if (not success)
+    {
+        SPDLOG_CRITICAL("PROTO DESERIALIZE FAILED DataSize={}", messageData);
+        std::abort();
+    }
+
+    return proto;
+}
+
 Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::vector<std::string> &otherNetworkUrls,
                    NodeConfiguration ownConfiguration)
     : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(ownNetworkUrls), kOtherNetworkUrls(otherNetworkUrls)
@@ -537,6 +553,45 @@ void Pipeline::BroadcastToOwnRsm(const scrooge::CrossChainMessage &message)
     }
 }
 
+void Pipeline::rebroadcastToOwnRsm(nng_msg* message)
+{
+    constexpr auto kSleepTime = 1s;
+
+    auto remainingDestinations = mAliveNodesLocal.load(std::memory_order_relaxed);
+    remainingDestinations.reset(kOwnConfiguration.kNodeId);
+
+    while (remainingDestinations.any())
+    {
+        const auto curDestination = std::countr_zero(remainingDestinations.to_ulong());
+        remainingDestinations.reset(curDestination);
+        const auto& curBuffer =  mLocalSendBufs.at(curDestination);
+        nng_msg* curMessage;
+        if (remainingDestinations.any())
+        {
+            nng_msg_dup(&curMessage, message);
+        }
+        else
+        {
+            curMessage = message;
+        }
+        bool isPushFail{};
+
+        while ((isPushFail = not curBuffer->wait_enqueue_timed(curMessage, kSleepTime)) && not is_test_over())
+        {
+            const auto isDestFailed = not mAliveNodesLocal.load(std::memory_order_relaxed).test(curDestination);
+            if (isDestFailed)
+            {
+                break;
+            }
+        }
+
+        if (isPushFail)
+        {
+            nng_msg_free(curMessage);
+        }
+    }
+}
+
 /* This function is used to receive messages from the other RSM.
  *
  */
@@ -551,7 +606,7 @@ void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossCh
         {
             if (not out.full() && curRecvBuffer->try_dequeue(nng_message))
             {
-                auto scroogeMessage = deserializeProtobuf<scrooge::CrossChainMessage>(nng_message);
+                auto scroogeMessage = unsafeDeserializeProtobuf<scrooge::CrossChainMessage>(nng_message);
                 // Verification TODO
                 const auto mdata = scroogeMessage.data();
                 const auto mstr = mdata.SerializeAsString();
@@ -564,9 +619,10 @@ void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossCh
                 {
                     SPDLOG_CRITICAL("NODE {} COULD NOT VERIFY MESSAGE FROM NODE {}", kOwnConfiguration.kNodeId, node);
                 }
+
                 if (scroogeMessage.data().sequence_number() % 4 != node)
                     SPDLOG_CRITICAL("GOT RESEND OF MSG {} FROM {}", scroogeMessage.data().sequence_number(), node);
-                out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node});
+                out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node, nng_message});
             }
             else
             {

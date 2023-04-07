@@ -25,6 +25,7 @@ struct ReceivedCrossChainMessage
 {
     scrooge::CrossChainMessage message{};
     uint64_t senderId{};
+    nng_msg* rebroadcastMsg{};
 };
 
 template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
@@ -41,6 +42,7 @@ class Pipeline
 
     void SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage &message);
     void BroadcastToOwnRsm(const scrooge::CrossChainMessage &message);
+    void rebroadcastToOwnRsm(nng_msg* message);
 
     void RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &out);
     void RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out);
