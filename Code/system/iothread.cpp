@@ -297,31 +297,34 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
     }
 }
 
+static void runLocalReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment)
+{
+    bindThreadToCpu(6);
+    uint64_t timedMessages{};
+    boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(256);
+    while (not is_test_over())
+    {
+        domesticMessages.clear();
+        pipeline->RecvFromOwnRsm(domesticMessages);
+        for (auto newDomesticMessage : domesticMessages)
+        {
+            if (isMessageValid(newDomesticMessage))
+            {
+                timedMessages += is_test_recording();
+                acknowledgment->addToAckList(newDomesticMessage.data().sequence_number());
+            }
+        }
+    }
+    addMetric("local_messages_received", timedMessages);
+}
+
 void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
                       const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
-    auto ackThread = std::thread([&](){
-        bindThreadToCpu(6);
-        uint64_t timedMessages{};
-        boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(256);
-        while (not is_test_over())
-        {
-            domesticMessages.clear();
-            pipeline->RecvFromOwnRsm(domesticMessages);
-            for (auto newDomesticMessage : domesticMessages)
-            {
-                if (isMessageValid(newDomesticMessage))
-                {
-                    timedMessages += is_test_recording();
-                    acknowledgment->addToAckList(newDomesticMessage.data().sequence_number());
-                }
-            }
-        }
-        addMetric("local_messages_received", timedMessages);
-    });
+    auto localReceiveThread = std::thread(runLocalReceiveThread, pipeline, acknowledgment);
     bindThreadToCpu(2);
     const bool isFirstNode = kNodeId == 0 && get_rsm_id() == 0;
     if (isFirstNode)
@@ -375,7 +378,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
         }
     }
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
-    ackThread.join();
+    localReceiveThread.join();
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
