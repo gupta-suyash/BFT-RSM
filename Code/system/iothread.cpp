@@ -82,19 +82,21 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
         switch (newRequest.request_case())
         {
             using request = scrooge::ScroogeRequest::RequestCase;
-        case request::kSendMessageRequest: {
-            const auto newMessageRequest = newRequest.send_message_request();
+            case request::kSendMessageRequest: {
+                const auto newMessageRequest = newRequest.send_message_request();
 
-            scrooge::CrossChainMessage newMessage;
-            *newMessage.mutable_data() = newMessageRequest.content();
-            *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
+		//std::cout << "Entered" << std::endl;
 
-            while(not messageOutput->wait_enqueue_timed(std::move(newMessage), 100ms) && not is_test_over());
-            break;
-        }
-        default: {
-            SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
-        }
+                scrooge::CrossChainMessage newMessage;
+                *newMessage.mutable_data() = newMessageRequest.content();
+                *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
+
+                while(not messageOutput->wait_enqueue_timed(std::move(newMessage), 100ms) && not is_test_over());
+                break;
+            }
+            default: {
+                SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
+            }
         }
 
         std::this_thread::sleep_for(kPollPeriod);
@@ -183,6 +185,9 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         while (messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
+	    if(sequenceNumber == 1) {
+	    	std::cout << "Seq: " << sequenceNumber << std::endl;
+	    }
             const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
 
             const auto isMessageNeverSent = not resendNumber.has_value();
@@ -285,6 +290,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
             lastQuorumAck = curQuorumAck;
             mutableCommitAck->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
+	    std::cout << "Going to Write" << std::endl;
             writeMessage(pipe, serializedTransfer);
         }
         std::this_thread::sleep_for(100ms);
