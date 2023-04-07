@@ -1,0 +1,17 @@
+{
+    "general": {
+        "send_ip": "128.110.218.145",
+        "receive_ip": "128.110.218.141",
+        "send_port": 1234,
+        "receive_port": 4003
+    },
+    "simple": {
+        "input_file": "",
+        "rounds": 3,
+        "payload": 1
+    },
+    "experiment_two": {
+        "rounds": 3,
+        "payload": 2
+    }
+}

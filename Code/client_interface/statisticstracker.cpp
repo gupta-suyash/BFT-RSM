@@ -14,7 +14,7 @@ class StatisticsInterpreter
   public:
     void startTimer(size_t packet_num)
     {
-        packet_num_to_start_time.insert(std::pair(packet_num, std::chrono::high_resolution_clock::now()));
+        packet_num_to_start_time.insert({packet_num, std::chrono::high_resolution_clock::now()});
     }
 
     double recordLatency(size_t packet_num)
@@ -38,12 +38,12 @@ class StatisticsInterpreter
 
     void printOutAllResults()
     {
-        std::ofstream myfile;
-        myfile.open("results.txt");
+        //std::ofstream myfile;
+        //myfile.open("results.txt");
         for (size_t latency : latencies)
         {
-            myfile << latency;
+            std::cout << latency << std::endl;
         }
-        myfile.close();
+        //myfile.close();
     }
 };

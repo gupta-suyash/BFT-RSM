@@ -8,10 +8,6 @@ fi
 # replace with your directory
 cd /proj/ove-PG0/reggie/BFT-RSM/Code
 
-# install performance packages
-apt install valgrind
-apt install htop
-apt install nload
 # install packages
 apt-get -y update
 apt-get -y upgrade
@@ -30,6 +26,8 @@ apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
 apt-get install libjsoncpp-dev
+apt -y install nodejs
+apt -y install npm
 pip install numpy
 pip install matplotlib
 pip install seaborn
@@ -38,7 +36,7 @@ apt-get -y install ninja-build
 echo "built ninja"
 
 # nng installation
-tar -xzf /proj/ove-PG0/murray/Scrooge/Code/nng-1.5.2.tar.gz
+tar -xzf  $SCROOGE_DIR/Code/nng-1.5.2.tar.gz
 echo "untar of nng successful"
 cd ./nng-1.5.2
 mkdir build
@@ -51,7 +49,7 @@ cd ..
 cd ..
 
 # protobuf installation
-tar -xzf /proj/ove-PG0/murray/Scrooge/Code/protobuf-cpp-3.20.2.tar.gz
+tar -xzf $SCROOGE_DIR/Code/protobuf-cpp-3.20.2.tar.gz
 echo "untar of protobuf successful"
 cd ./protobuf-3.20.2
 ./configure
@@ -63,10 +61,9 @@ cd ..
 
 # Go 1.20 install
 
-sudo wget https://go.dev/dl/go1.20.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.20.linux-amd64.tar.gz
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
-sudo rm -rf go1.20.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 go version
 echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile

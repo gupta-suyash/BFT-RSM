@@ -32,6 +32,7 @@ apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
 apt-get install libjsoncpp-dev
+apt install nodejs
 pip install numpy
 pip install matplotlib
 pip install seaborn
