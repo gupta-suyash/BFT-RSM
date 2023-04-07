@@ -38,6 +38,11 @@ uint64_t message_scheduler::stakeToNode(uint64_t stakeIndex, const std::vector<u
 
 uint64_t message_scheduler::nodeToStake(uint64_t nodeIndex, const std::vector<uint64_t> &networkStakePrefixSum)
 {
+    if (nodeIndex >= networkStakePrefixSum.size())
+    {
+        SPDLOG_CRITICAL("Requested node that doesn't exist, nodeIndex={}", nodeIndex);
+        std::abort();
+    }
     return networkStakePrefixSum.at(nodeIndex + 1) - networkStakePrefixSum.at(nodeIndex);
 }
 

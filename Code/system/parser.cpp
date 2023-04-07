@@ -190,7 +190,9 @@ NodeConfiguration createNodeConfiguration(parser::CommandLineArguments args,
     };
 
     const bool isInvalid = config.kOwnNetworkStakes.size() != config.kOwnNetworkSize ||
-                           config.kOtherNetworkStakes.size() != config.kOtherNetworkSize;
+                           config.kOtherNetworkStakes.size() != config.kOtherNetworkSize ||
+                           ownNetworkParams.kNetworkUrls.size() != config.kOwnNetworkSize ||
+                           otherNetworkParams.kNetworkUrls.size() != config.kOtherNetworkSize;
     if (isInvalid)
     {
         SPDLOG_CRITICAL("Configuration File error, configuration file size ({} or {})!= CLI argument size ({} or {})",

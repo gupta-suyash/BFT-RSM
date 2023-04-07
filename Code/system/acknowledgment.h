@@ -11,7 +11,7 @@ class Acknowledgment
   public:
     static constexpr uint64_t kMinimumAckValue = 0;
 
-    void addToAckList(uint64_t nodeId);
+    void addToAckList(uint64_t ack);
     std::optional<uint64_t> getAckIterator() const;
 
   private:

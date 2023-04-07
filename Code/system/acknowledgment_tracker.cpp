@@ -16,7 +16,6 @@ void AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake, std::opt
 
 void AcknowledgmentTracker::updateNodeData(uint64_t nodeId, std::optional<uint64_t> acknowledgmentValue)
 {
-
     auto &curNodeData = mNodeData.at(nodeId);
 
     bool isNewAck = curNodeData.acknowledgmentValue < acknowledgmentValue;
@@ -55,15 +54,15 @@ void AcknowledgmentTracker::updateAggregateData(uint64_t nodeId, uint64_t nodeSt
         staleAckQuorumCounter.updateNodeAck(nodeId, nodeStake, repeatAcks);
     }
 }
-#include <iostream>
+
 void AcknowledgmentTracker::updateActiveResendData()
 {
     auto curResendData = mActiveResendData.load(std::memory_order_relaxed);
 
-    const auto sequenceNumberToResend = mCurStuckQuorumAck.value_or(-1) + 1;
+    const auto sequenceNumberToResend = mCurStuckQuorumAck.value_or(0ULL - 1) + 1;
     const auto numRepeatedAckQuorums = staleAckQuorumCounter.getCurrentQuack();
 
-    const bool isNoResendNeeded = not numRepeatedAckQuorums.has_value() || numRepeatedAckQuorums.value() == 0;
+    const bool isNoResendNeeded = numRepeatedAckQuorums < 1;
     if (isNoResendNeeded)
     {
         if (curResendData.has_value())
@@ -80,7 +79,7 @@ void AcknowledgmentTracker::updateActiveResendData()
     const bool isCurResendDataOutdated = curResendData != potentialNewResendData;
     if (isCurResendDataOutdated)
     {
-        mActiveResendData.store(potentialNewResendData);
+        mActiveResendData.store(potentialNewResendData, std::memory_order_release);
     }
 }
 

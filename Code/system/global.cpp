@@ -22,6 +22,11 @@ std::string privKey;
 std::unordered_map<uint64_t, std::string> keyOwnCluster;
 std::unordered_map<uint64_t, std::string> keyOtherCluster;
 
+static std::chrono::steady_clock::time_point g_start_time{};
+static constexpr auto kWarmupDuration = 1s;
+static constexpr auto kTestDuration = 30s;
+static constexpr auto kShutDownEps = 1s;
+
 void set_priv_key()
 {
     // privKey = CmacGenerateHexKey();
@@ -53,11 +58,6 @@ std::string get_other_rsm_key(uint64_t nid)
 {
     return keyOtherCluster[nid];
 }
-
-static std::chrono::steady_clock::time_point g_start_time{};
-static constexpr auto kWarmupDuration = 20s;
-static constexpr auto kTestDuration = 60s;
-static constexpr auto kShutDownEps = 1s;
 
 void set_test_start(std::chrono::steady_clock::time_point startTime)
 {

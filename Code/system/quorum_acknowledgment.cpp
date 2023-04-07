@@ -15,7 +15,7 @@ std::optional<uint64_t> QuorumAcknowledgment::updateNodeAck(const uint64_t nodeI
                                                             const uint64_t ackValue)
 {
     const auto curNodeEntry = mNodeToAck.find(nodeId);
-    auto curQuorumAck = mQuorumAck.load(std::memory_order_relaxed);
+    auto curQuorumAck = mQuorumAck.load(std::memory_order_acquire);
 
     const bool isUpdate = curNodeEntry != mNodeToAck.end();
     const bool isUpdateStale = isUpdate && (ackValue <= curNodeEntry->second);
@@ -82,7 +82,7 @@ std::optional<uint64_t> QuorumAcknowledgment::updateNodeAck(const uint64_t nodeI
         curQuorumAck = nextQuack->first;
     }
 
-    mQuorumAck.store(curQuorumAck, std::memory_order_relaxed);
+    mQuorumAck.store(curQuorumAck, std::memory_order_release);
     return curQuorumAck;
 }
 
@@ -90,7 +90,7 @@ void QuorumAcknowledgment::reset()
 {
     mNodeToAck.clear();
     mAckToStakeCount.clear();
-    mQuorumAck.store(std::nullopt, std::memory_order_relaxed);
+    mQuorumAck.store(std::nullopt, std::memory_order_release);
     mStakeInCurQuorum = 0;
 }
 
@@ -122,5 +122,5 @@ std::optional<uint64_t> QuorumAcknowledgment::getNodeAck(const uint64_t nodeId) 
  */
 std::optional<uint64_t> QuorumAcknowledgment::getCurrentQuack() const
 {
-    return mQuorumAck.load(std::memory_order_relaxed);
+    return mQuorumAck.load(std::memory_order_acquire);
 }

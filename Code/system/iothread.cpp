@@ -15,15 +15,6 @@
 
 #include <boost/circular_buffer.hpp>
 
-template <typename T>
-void blockingPush(moodycamel::BlockingReaderWriterCircularBuffer<T> &queue, T &&message,
-                  std::chrono::microseconds pollPeriod)
-{
-    while (not is_test_over() && not queue.try_enqueue(std::forward<T>(message)))
-    {
-        std::this_thread::sleep_for(pollPeriod);
-    }
-}
 
 bool isMessageValid(const scrooge::CrossChainMessage &message)
 {
@@ -47,8 +38,7 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
 
         fakeMessage.set_validity_proof(std::string(kMessageSize / 2, 'X'));
 
-        blockingPush(*messageOutput, std::move(fakeMessage), 10us);
-        std::this_thread::sleep_for(10us); // configure for network
+        while(not messageOutput->wait_enqueue_timed(std::move(fakeMessage), 100ms) && not is_test_over());
     }
 }
 
@@ -99,7 +89,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             *newMessage.mutable_data() = newMessageRequest.content();
             *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
 
-            blockingPush(*messageOutput, std::move(newMessage), 1us);
+            while(not messageOutput->wait_enqueue_timed(std::move(newMessage), 100ms) && not is_test_over());
             break;
         }
         default: {
@@ -181,16 +171,16 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
     bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
-    constexpr auto kSleepTime = 1ns;
 
     const MessageScheduler messageScheduler(configuration);
 
     auto resendMessageMap = std::map<uint64_t, iothread::MessageResendData>{};
+    uint64_t numMessagesResent{};
 
     while (not is_test_over())
     {
         scrooge::CrossChainMessage newMessage;
-        while (messageInput->try_dequeue(newMessage))
+        while (messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
             const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
@@ -226,7 +216,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
         const auto curQuorumAck = quorumAck->getCurrentQuack();
         const auto activeResendData = ackTracker->getActiveResendData();
-        for (auto it = resendMessageMap.begin(); it != resendMessageMap.end();)
+        for (auto it = resendMessageMap.begin(); it != resendMessageMap.end() && not is_test_over();)
         {
             const auto sequenceNumber = it->first;
             auto &[message, firstDestinationResendNumber, numDestinationsSent, destinations] = it->second;
@@ -248,6 +238,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             else if (activeResendData->sequenceNumber > sequenceNumber)
             {
                 // Message to resend may be further in the map
+                it++;
                 continue;
             }
 
@@ -258,23 +249,25 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             const auto curFinalDestination = std::min<uint64_t>(curNodeLastResend, activeResendData->resendNumber);
             for (uint64_t resend = curNodeCompletedResends; resend <= curFinalDestination; resend++)
             {
-                // TODO: Optimize to send all destinations at once with a bitset
                 const auto destination = destinations.at(resend - curNodeFirstResend);
-                pipeline->SendToOtherRsm(destination, newMessage);
+                setAckValue(&message, *acknowledgment);
+                pipeline->SendToOtherRsm(destination, message);
                 numDestinationsSent++;
+                numMessagesResent += is_test_recording();
+                SPDLOG_CRITICAL("RESSENT msg{} to node {}", sequenceNumber, destination);
             }
 
             const auto isComplete = numDestinationsSent == destinations.size();
             if (isComplete)
             {
-                it = resendMessageMap.erase(it);
-                break;
+                resendMessageMap.erase(it);
             }
+            break;
         }
-
-        std::this_thread::sleep_for(kSleepTime);
     }
 
+    addMetric("resend_msg_map_size", resendMessageMap.size());
+    addMetric("num_msgs_resent", numMessagesResent);
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
@@ -307,7 +300,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
     auto ackThread = std::thread([&](){
         bindThreadToCpu(6);
         uint64_t timedMessages{};
-        boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(1024);
+        boost::circular_buffer<scrooge::CrossChainMessage> domesticMessages(256);
         while (not is_test_over())
         {
             domesticMessages.clear();
@@ -332,11 +325,17 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
     uint64_t timedMessages{};
 
-    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(4096);
+    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(256);
 
     while (not is_test_over())
     {
-        pipeline->BroadcastToOwnRsm(foreignMessages);
+        while (not foreignMessages.empty() && not is_test_over())
+        {
+            pipeline->BroadcastToOwnRsm(foreignMessages.front().message);
+            if (foreignMessages.front().message.data().sequence_number() % 4 != foreignMessages.front().senderId)
+                    SPDLOG_CRITICAL("BROADCAST RESENT MSG {} FROM {}", foreignMessages.front().message.data().sequence_number(), foreignMessages.front().senderId);
+            foreignMessages.pop_front();
+        }
 
         const auto oldNumForeign = foreignMessages.size();
         pipeline->RecvFromOtherRsm(foreignMessages);
@@ -358,6 +357,13 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 const auto foreignAckCount = foreignMessage.ack_count().value();
                 const auto senderStake = kOtherNetworkStakes.at(senderId);
                 const auto currentQuack = quorumAck->updateNodeAck(senderId, senderStake, foreignAckCount);
+                ackTracker->update(senderId, senderStake, foreignAckCount, currentQuack);
+            }
+            else
+            {
+                const auto foreignAckCount = std::nullopt;
+                const auto senderStake = kOtherNetworkStakes.at(senderId);
+                const auto currentQuack = quorumAck->getCurrentQuack();
                 ackTracker->update(senderId, senderStake, foreignAckCount, currentQuack);
             }
         }

@@ -33,12 +33,12 @@ int main(int argc, char *argv[])
                 get_rsm_id(), get_number_of_packets(), get_packet_size(), kLogPath);
 
     const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
-    constexpr auto kMessageBufferSize = 8192;
+    constexpr auto kMessageBufferSize = 256;
 
     const auto acknowledgment = std::make_shared<Acknowledgment>();
     const auto pipeline =
-        std::make_shared<Pipeline>(std::move(kOwnNetworkConfiguration.kNetworkUrls),
-                                   std::move(kOwnNetworkConfiguration.kNetworkUrls), kNodeConfiguration);
+        std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
+                                   kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
     const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
     const auto ackTracker = std::make_shared<AcknowledgmentTracker>(kNodeConfiguration.kOtherNetworkSize,
                                                                     kNodeConfiguration.kOtherMaxNumFailedStake);
@@ -78,7 +78,13 @@ int main(int argc, char *argv[])
     
     addMetric("message_size", get_packet_size());
     addMetric("duration_seconds", std::chrono::duration<double>{get_test_duration()}.count());
-    addMetric("transfer_strategy", "2Send2Recv v2 Thread scrooge");
+    addMetric("transfer_strategy", "NSendNRecv Thread scrooge");
+    addMetric("local_network_size", kOwnNetworkSize);
+    addMetric("foreign_network_size", kOtherNetworkSize);
+    addMetric("local_max_failed_stake", kOwnMaxNumFailedStake);
+    addMetric("foreign_max_failed_stake", kOtherMaxNumFailedStake);
+    addMetric("foreign_stake_total", kOtherMaxNumFailedStake);
+    addMetric("local_stake_total", kOwnMaxNumFailedStake);
     printMetrics(kLogPath);
     return 0;
 }
