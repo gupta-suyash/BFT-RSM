@@ -1,5 +1,5 @@
 CC=clang++
-CFLAGS=-Wall -g -std=c++20 -O3
+CFLAGS=-Wall -g -std=c++20 -O3 -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 NNMSG=${PWD}/deps/nng
 BOOST=${PWD}/deps/boost_1_80_0
 RAPIDJSON=${PWD}/include/rapidjson
@@ -40,7 +40,7 @@ scrooge : $(SOURCES_OBJ)
 client : $(CLIENT_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
 %.o : %.cpp
-	$(CC) -c ${CFLAGS}  -o $@ $<
+	$(CC) -c ${CFLAGS} -o $@ $<
 
 proto: $(PROTO_SOURCES)
 	protoc -I./protobuf --cpp_out=./system ./protobuf/*

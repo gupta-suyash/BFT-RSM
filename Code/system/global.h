@@ -2,20 +2,23 @@
 
 //#define NDEBUG
 #include <chrono>
-#include <map>
-// Enable all spdlog logging macros for development
+#include <cstdlib>
+#include <string>
+#include <type_traits>
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_CRITICAL
 #include <spdlog/spdlog.h>
 
-//using namespace std;
+using namespace std::string_literals;
 using namespace std::chrono_literals;
 
 struct NodeConfiguration
 {
     const uint64_t kOwnNetworkSize;
     const uint64_t kOtherNetworkSize;
-    const uint64_t kOwnMaxNumFailedNodes;
-    const uint64_t kOtherMaxNumFailedNodes;
+    const std::vector<uint64_t> kOwnNetworkStakes;
+    const std::vector<uint64_t> kOtherNetworkStakes;
+    const uint64_t kOwnMaxNumFailedStake;
+    const uint64_t kOtherMaxNumFailedStake;
     const uint64_t kNodeId;
     const std::string kLogPath;
     const std::string kWorkingDir;
@@ -25,10 +28,6 @@ void set_test_start(std::chrono::steady_clock::time_point startTime);
 std::chrono::duration<double> get_test_duration();
 bool is_test_over();
 bool is_test_recording();
-
-extern std::string privKey;
-extern std::map<uint64_t, std::string> keyOwnCluster;
-extern std::map<uint64_t, std::string> keyOtherCluster;
 
 void set_priv_key();
 std::string get_priv_key();
@@ -57,3 +56,15 @@ void set_packet_size(uint64_t packet_size);
 // Will set the current thread to be bound to a unique CPU
 // Will terminate program with error msg if there are not enough CPUs or if operation fails
 void bindThreadToCpu(int cpu);
+
+void addMetric(std::string key, std::string value);
+
+template<typename NumericType,
+    std::enable_if_t<std::is_arithmetic_v<NumericType>, bool> = true
+>
+void addMetric(std::string key, NumericType value)
+{
+    addMetric(key, std::to_string(value));
+}
+
+void printMetrics(std::string filename);

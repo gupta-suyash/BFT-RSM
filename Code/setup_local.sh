@@ -25,13 +25,18 @@ apt-get -y remove --auto-remove golang-goprotobuf-dev
 apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
-apt-get install libjsoncpp-dev
+apt-get -y install libcrypto++-dev
+apt-get -y install libjsoncpp-dev
+apt-get -y install ripgrep
 apt -y install nodejs
 apt -y install npm
-apt install python3-pip
+apt-get -y install python3 python3-pip
+echo "export PATH=\$PATH:\$HOME/.local/bin" >> $HOME/.profile
 pip install numpy
 pip install matplotlib
 pip install seaborn
+pip install plotly
+pip install pandas
 echo "basic packages installed"
 apt-get -y install ninja-build
 echo "built ninja"
@@ -61,15 +66,13 @@ ldconfig
 cd ..
 
 # Go 1.20 install
-
-wget https://go.dev/dl/go1.20.linux-amd64.tar.gz
+sudo wget https://go.dev/dl/go1.20.linux-amd64.tar.gz
 sudo rm -rf /usr/local/go
 sudo tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-go version
-echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
-echo "export GOPATH=$HOME/go" >> $HOME/.profile
-echo "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin" >> $HOME/.profile
+sudo rm -rf go1.20.linux-amd64.tar.gz
+echo "export PATH=\$PATH:/usr/local/go/bin" >> $HOME/.profile
+source $HOME/.profile
+echo "export PATH=\$PATH:`go env GOPATH`/bin" >> $HOME/.profile
 source $HOME/.profile
 
 # Insatall go protoc extension

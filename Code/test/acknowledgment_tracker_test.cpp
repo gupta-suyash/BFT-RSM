@@ -4,118 +4,174 @@
 
 namespace acknowledgment_tracker_test
 {
-using namespace std::chrono_literals;
-const std::chrono::steady_clock::time_point kTestStartTime{1'000'000s};
 
 BOOST_AUTO_TEST_SUITE(acknowledgment_tracker_test)
 
 BOOST_AUTO_TEST_CASE(test_empty_tracker)
 {
-    AcknowledgmentTracker tracker{};
-    for (uint64_t ack = 0; ack < 1000; ack++)
+    AcknowledgmentTracker tracker(10, 5);
+    BOOST_CHECK_EQUAL(0, tracker.getActiveResendData().has_value());
+}
+
+BOOST_AUTO_TEST_CASE(test_missing_message_zero)
+{
+    AcknowledgmentTracker tracker(4, 1);
+
+    for (uint64_t node = 0; node < 4; node++)
     {
-        BOOST_CHECK(tracker.getAggregateInitialAckTime(ack) == std::nullopt);
-        BOOST_CHECK_EQUAL(tracker.getAggregateRepeatedAckCount(ack), 0);
+        tracker.update(node, 1, std::nullopt, std::nullopt);
+    }
+    BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+    for (uint16_t update = 1; update <= 1000; update++)
+    {
+        for (uint64_t node = 0; node < 4; node++)
+        {
+            tracker.update(node, 1, std::nullopt, std::nullopt);
+        }
+        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update};
+        BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_non_aggregate_queries)
+BOOST_AUTO_TEST_CASE(test_byzantine_attack)
 {
-    constexpr uint64_t kNumNodes = 100;
-    constexpr auto stuckAmt = [](uint64_t nodeId) {
-        const auto lowBits = nodeId & 0b1111;
-        return 200 - lowBits;
-    };
+    AcknowledgmentTracker tracker(4, 1);
 
-    AcknowledgmentTracker tracker{};
+    // node 0 is byzantine, they can change their ack, not my quorumAck
+    tracker.update(0, 1, 0, std::nullopt);
 
-    for (uint64_t node = 0; node < kNumNodes; node++)
+    for (uint64_t node = 0; node < 4; node++)
     {
-        const auto initStuckTime = kTestStartTime + std::chrono::milliseconds{node};
-        const auto stuckAck = node;
-        const auto stuckAmount = stuckAmt(node);
-        for (uint64_t update = 1; update <= stuckAmount; update++)
+        tracker.update(node, 1, std::nullopt, std::nullopt);
+    }
+    BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+    for (uint16_t update = 1; update <= 1000; update++)
+    {
+        for (uint64_t node = 0; node < 4; node++)
         {
-            const auto updateTime = initStuckTime + std::chrono::seconds{update - 1};
-            tracker.updateNodeData(node, stuckAck, updateTime);
-            const auto trackerInitTime = tracker.getAggregateInitialAckTime(stuckAck);
-            const auto trackerRepeatedAckCount = tracker.getAggregateRepeatedAckCount(stuckAck);
-            BOOST_CHECK(initStuckTime == trackerInitTime);
-            BOOST_CHECK_EQUAL(update, trackerRepeatedAckCount);
+            tracker.update(node, 1, std::nullopt, std::nullopt);
+        }
+        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update};
+        BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_crash_attack)
+{
+    AcknowledgmentTracker tracker(4, 1);
+
+    for (uint64_t node = 2; node < 4; node++)
+    {
+        tracker.update(node, 1, std::nullopt, std::nullopt);
+    }
+    BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+    for (uint16_t update = 1; update <= 1000; update++)
+    {
+        for (uint64_t node = 2; node < 4; node++)
+        {
+            tracker.update(node, 1, std::nullopt, std::nullopt);
+        }
+        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update};
+        BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_quadratic_updates)
+{
+    AcknowledgmentTracker tracker(4, 1);
+
+    std::optional<uint64_t> quorumAck{std::nullopt};
+    for (std::optional<uint32_t> sequenceNumber{}; sequenceNumber < 1000;
+         sequenceNumber = sequenceNumber.value_or(-1) + 1)
+    {
+        tracker.update(0, 1, sequenceNumber, quorumAck);
+        quorumAck = sequenceNumber; // after 2 updates quorumAck should be set
+
+        tracker.update(1, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+        tracker.update(2, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+        tracker.update(3, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+        for (uint16_t update = 1; update <= 1000; update++) // we're stuck at curQuorumAck
+        {
+            tracker.update(0, 1, sequenceNumber, quorumAck);
+            tracker.update(1, 1, sequenceNumber, quorumAck);
+            tracker.update(2, 1, sequenceNumber, quorumAck);
+            tracker.update(3, 1, sequenceNumber, quorumAck);
+
+            const auto expectedResendData = acknowledgment_tracker::ResendData{
+                .sequenceNumber = sequenceNumber.value_or(-1) + 1, .resendNumber = update};
+            BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
         }
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_aggregate_queries)
+BOOST_AUTO_TEST_CASE(test_quadratic_updates_byzantine)
 {
-    constexpr uint64_t kNumNodes = 100;
-    constexpr uint64_t kNumNodeCopies = 10;
-    constexpr auto stuckAmt = [](uint64_t nodeId) {
-        const auto lowBits = nodeId & 0b1111;
-        return 200 - lowBits;
-    };
+    AcknowledgmentTracker tracker(4, 1);
 
-    AcknowledgmentTracker tracker{};
-    for (uint64_t node = 0; node < kNumNodes; node++)
+    std::optional<uint64_t> quorumAck{std::nullopt};
+
+    // node 0 is byzantine, they can change their ack, not my quorumAck
+    tracker.update(0, 1, 0, quorumAck);
+
+    for (std::optional<uint32_t> sequenceNumber{}; sequenceNumber < 1000;
+         sequenceNumber = sequenceNumber.value_or(-1) + 1)
     {
-        for (uint64_t copy = 0; copy < kNumNodeCopies; copy++)
+        tracker.update(0, 1, sequenceNumber, quorumAck);
+        quorumAck = sequenceNumber; // after 2 updates quorumAck should be set
+
+        tracker.update(1, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+        tracker.update(2, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+        tracker.update(3, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+        for (uint16_t update = 1; update <= 1000; update++) // we're stuck at curQuorumAck
         {
-            const auto nodeId = node * kNumNodeCopies + copy;
-            const auto initStuckTime =
-                kTestStartTime + std::chrono::milliseconds{node + 1} - std::chrono::microseconds{copy};
-            const auto stuckAck = node;
-            const auto stuckAmount = stuckAmt(node);
-            for (uint64_t update = 1; update <= stuckAmount; update++)
-            {
-                const auto updateTime = initStuckTime + std::chrono::seconds{update - 1};
-                tracker.updateNodeData(nodeId, stuckAck, updateTime);
-                const auto trackerInitTime = tracker.getAggregateInitialAckTime(stuckAck);
-                const auto trackerRepeatedAckCount = tracker.getAggregateRepeatedAckCount(stuckAck);
-                const auto minimumStuckTime = initStuckTime;
-                const auto totalRepeatedAckCount = stuckAmount * copy + update;
-                BOOST_CHECK(minimumStuckTime == trackerInitTime);
-                BOOST_CHECK_EQUAL(totalRepeatedAckCount, trackerRepeatedAckCount);
-            }
+            tracker.update(0, 1, sequenceNumber, quorumAck);
+            tracker.update(1, 1, sequenceNumber, quorumAck);
+            tracker.update(2, 1, sequenceNumber, quorumAck);
+            tracker.update(3, 1, sequenceNumber, quorumAck);
+
+            const auto expectedResendData = acknowledgment_tracker::ResendData{
+                .sequenceNumber = sequenceNumber.value_or(-1) + 1, .resendNumber = update};
+            BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
         }
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_aggregate_updates)
+BOOST_AUTO_TEST_CASE(test_good_case)
 {
-    constexpr uint64_t kNumNodes = 100;
-    constexpr uint64_t kNumNodeCopies = 10;
-    constexpr uint64_t kNumUpdates = 10;
-    constexpr auto stuckAmt = [](uint64_t nodeId) {
-        const auto lowBits = nodeId & 0b1111;
-        return 200 - lowBits;
-    };
+    AcknowledgmentTracker tracker(4, 1);
 
-    AcknowledgmentTracker tracker{};
+    std::optional<uint64_t> quorumAck{std::nullopt};
 
-    for (uint64_t nodeUpdate = 0; nodeUpdate < kNumUpdates; nodeUpdate++)
+    for (std::optional<uint32_t> sequenceNumber{}; sequenceNumber < 1000;
+         sequenceNumber = sequenceNumber.value_or(-1) + 1)
     {
-        for (uint64_t node = 0; node < kNumNodes; node++)
-        {
-            for (uint64_t copy = 0; copy < kNumNodeCopies; copy++)
-            {
-                const auto nodeId = node * kNumNodeCopies + copy;
-                const auto initStuckTime = kTestStartTime + std::chrono::milliseconds{node + 1} -
-                                           std::chrono::microseconds{copy} + std::chrono::nanoseconds{nodeUpdate};
-                const auto stuckAck = kNumNodes * nodeUpdate + node;
-                const auto stuckAmount = stuckAmt(node) + nodeUpdate;
-                for (uint64_t update = 1; update <= stuckAmount; update++)
-                {
-                    const auto updateTime = initStuckTime + std::chrono::seconds{update - 1};
-                    tracker.updateNodeData(nodeId, stuckAck, updateTime);
-                    const auto trackerInitTime = tracker.getAggregateInitialAckTime(stuckAck);
-                    const auto trackerRepeatedAckCount = tracker.getAggregateRepeatedAckCount(stuckAck);
-                    const auto minimumStuckTime = initStuckTime;
-                    const auto totalRepeatedAckCount = stuckAmount * copy + update;
-                    BOOST_CHECK(minimumStuckTime == trackerInitTime);
-                    BOOST_CHECK_EQUAL(totalRepeatedAckCount, trackerRepeatedAckCount);
-                }
-            }
-        }
+        tracker.update(0, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        quorumAck = sequenceNumber; // after 2 updates quorumAck should be set
+
+        tracker.update(1, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+        tracker.update(2, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+
+        tracker.update(3, 1, sequenceNumber, quorumAck);
+        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
     }
 }
 

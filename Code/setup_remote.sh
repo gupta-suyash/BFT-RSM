@@ -8,15 +8,16 @@ fi
 # replace with your directory
 cd /proj/ove-PG0/reggie/BFT-RSM/Code
 
+# install packages
+apt-get -y update
+apt-get -y upgrade
+
 # install performance packages
 apt install valgrind
 apt install htop
 apt install nload
 
 
-# install packages
-apt-get -y update
-apt-get -y upgrade
 apt install valgrind
 apt install htop
 apt install nload
@@ -31,8 +32,9 @@ apt-get -y remove --auto-remove golang-goprotobuf-dev
 apt-get -y remove --auto-remove protobuf-compiler
 apt-get -y install clang-format
 apt-get -y install libspdlog-dev
-apt-get install libjsoncpp-dev
+apt-get -y install libjsoncpp-dev
 apt install nodejs
+apt-get -y install libcrypto++-dev
 pip install numpy
 pip install matplotlib
 pip install seaborn
@@ -60,14 +62,14 @@ sudo make install -j
 sudo ldconfig
 cd ..
 
-# Go 1.19.5 install
-rm -rf /usr/local/go
-tar -C /usr/local -xzf go1.20.linux-arm64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-go version
-echo "export PATH=$PATH:/usr/local/go/bin" >> $HOME/.profile
-echo "export GOPATH=$HOME/go" >> $HOME/.profile
-echo "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin" >> $HOME/.profile
+# Go 1.20 install
+sudo wget https://go.dev/dl/go1.20.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.20.linux-amd64.tar.gz
+sudo rm -rf go1.20.linux-amd64.tar.gz
+echo "export PATH=\$PATH:/usr/local/go/bin" >> $HOME/.profile
+source $HOME/.profile
+echo "export PATH=\$PATH:`go env GOPATH`/bin" >> $HOME/.profile
 source $HOME/.profile
 
 # Insatall go protoc extension

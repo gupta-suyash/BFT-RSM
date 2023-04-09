@@ -1,10 +1,13 @@
 #include "global.h"
+#include "crypto.h"
 #include <bitset>
+#include <fstream>
 #include <mutex>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/sysinfo.h>
-#include "crypto.h"
+#include <map>
+#include <unordered_map>
 
 // List of global variables and configuration parameters.
 static uint64_t g_rsm_id{};       // RSM Id for this node.
@@ -12,48 +15,49 @@ static uint64_t g_other_rsm_id{}; // RSM Id of other RSM.
 static uint64_t g_number_of_packets{};
 static uint64_t g_packet_size{};
 
+static std::mutex metricsMutex{};
+static std::map<std::string, std::string> metrics{};
+
 std::string privKey;
-std::map<uint64_t, std::string> keyOwnCluster;
-std::map<uint64_t, std::string> keyOtherCluster;
+std::unordered_map<uint64_t, std::string> keyOwnCluster;
+std::unordered_map<uint64_t, std::string> keyOtherCluster;
+
+static std::chrono::steady_clock::time_point g_start_time{};
+static constexpr auto kWarmupDuration = 1s;
+static constexpr auto kTestDuration = 30s;
+static constexpr auto kShutDownEps = 1s;
 
 void set_priv_key()
 {
-    //privKey = CmacGenerateHexKey();
-	privKey = "00000000000000000000000000000000";
-    //std::cout << "Key: " << privKey << std::endl;
-}	
+    // privKey = CmacGenerateHexKey();
+    privKey = "00000000000000000000000000000000";
+    // std::cout << "Key: " << privKey << std::endl;
+}
 
-std::string get_priv_key() 
+std::string get_priv_key()
 {
-	return privKey;
-}	
+    return privKey;
+}
 
 void set_own_rsm_key(uint64_t nid, std::string pkey)
 {
-	keyOwnCluster[nid] = pkey;
-}		
-
-std::string get_own_rsm_key(uint64_t nid) 
-{
-	return keyOwnCluster[nid];
+    keyOwnCluster[nid] = pkey;
 }
 
+std::string get_own_rsm_key(uint64_t nid)
+{
+    return keyOwnCluster[nid];
+}
 
 void set_other_rsm_key(uint64_t nid, std::string pkey)
 {
-	keyOtherCluster[nid] = pkey;
+    keyOtherCluster[nid] = pkey;
 }
 
-std::string get_other_rsm_key(uint64_t nid) 
+std::string get_other_rsm_key(uint64_t nid)
 {
-	return keyOtherCluster[nid];
-}	
-
-
-static std::chrono::steady_clock::time_point g_start_time{};
-static constexpr auto kWarmupDuration = 20s;
-static constexpr auto kTestDuration = 60s;
-static constexpr auto kShutDownEps = 1s;
+    return keyOtherCluster[nid];
+}
 
 void set_test_start(std::chrono::steady_clock::time_point startTime)
 {
@@ -133,17 +137,17 @@ void set_packet_size(uint64_t packet_size)
     g_packet_size = packet_size;
 }
 
-void bindThreadToCpu(int cpu)
+void bindThreadToCpu(const int cpu)
 {
     static std::mutex mutex;
-    static std::bitset<128> set;
+    static std::bitset<128> set{};
     const auto numCores = get_nprocs();
     {
         std::scoped_lock lock{mutex};
         if (set.test(cpu) || cpu >= numCores)
         {
             SPDLOG_CRITICAL("Cannot allocate a unique core for this thread, num_cores={}, requested={}", numCores, cpu);
-            std::terminate();
+            std::abort();
         }
         set.set(cpu);
     }
@@ -157,6 +161,24 @@ void bindThreadToCpu(int cpu)
     {
         SPDLOG_CRITICAL("Cannot bind this thread to desired core error={}, num_cores={}, requested={}", rc, numCores,
                         cpu);
-        std::terminate();
+        std::abort();
+    }
+}
+
+void addMetric(std::string key, std::string value)
+{
+    std::scoped_lock lock{metricsMutex};
+    metrics[key] = value;
+}
+
+void printMetrics(std::string filename)
+{
+    std::scoped_lock lock{metricsMutex};
+    remove(filename.c_str());
+    std::ofstream file{filename, std::ios_base::binary};
+    for (const auto& metric : metrics)
+    {
+        const auto& [metricKey, metricValue] = metric; 
+        file << metricKey << ": " << metricValue << '\n';
     }
 }

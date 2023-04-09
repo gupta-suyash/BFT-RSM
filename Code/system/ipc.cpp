@@ -22,11 +22,11 @@ bool createPipe(const std::string &path)
     if (!std::filesystem::exists(path))
     {
         SPDLOG_ERROR("Path not found!");
-	/*const auto eraseError = std::remove(path.c_str()) != 0;
-        if (eraseError)
-        {
-            SPDLOG_ERROR("Cannot Create Erase old pipe at '{}': err={}", path, std::strerror(eraseError));
-        }*/
+        /*const auto eraseError = std::remove(path.c_str()) != 0;
+            if (eraseError)
+            {
+                SPDLOG_ERROR("Cannot Create Erase old pipe at '{}': err={}", path, std::strerror(eraseError));
+            }*/
     }
 
     const auto success = (mkfifo(path.c_str(), kFullPermissions) == 0);
@@ -131,4 +131,21 @@ void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> message
 
     *exit = true;
     SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
+}
+
+void writeMessage(std::ofstream& file, const std::string& data)
+{
+    uint64_t writeSize = data.size();
+    file.write(reinterpret_cast<char *>(&writeSize), sizeof(writeSize));
+    if (file.fail())
+    {
+        SPDLOG_INFO("Attempted to write new message to pipe but failed. EOF_Reached? = {}", pipe.eof());
+    }
+
+    file.write(data.data(), data.size());
+    if (file.fail())
+    {
+        SPDLOG_INFO("Attempted to write new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
+    }
+    file.flush();
 }

@@ -19,7 +19,7 @@ void usage()
  * all the nodes belonging to one RSM have consecutive ids.
  *
  */
-NodeConfiguration parser(int argc, char *argv[])
+parser::CommandLineArguments parseCommandLineArguments(int argc, char *argv[])
 {
     constexpr auto kNumArgs = 5 + 1;
     if (argc != kNumArgs)
@@ -99,13 +99,13 @@ NodeConfiguration parser(int argc, char *argv[])
         set_number_of_packets(numPackets);
         set_rsm_id(ownNetworkId);
         set_other_rsm_id(1 - ownNetworkId);
-        return NodeConfiguration{.kOwnNetworkSize = ownNetworkSize,
-                                 .kOtherNetworkSize = otherNetworkSize,
-                                 .kOwnMaxNumFailedNodes = ownNetworkMaxNodesFail,
-                                 .kOtherMaxNumFailedNodes = otherNetworkMaxNodesFail,
-                                 .kNodeId = ownNodeId,
-                                 .kLogPath = logPath,
-                                 .kWorkingDir = workingDir};
+        return parser::CommandLineArguments{.kOwnNetworkSize = ownNetworkSize,
+                                            .kOtherNetworkSize = otherNetworkSize,
+                                            .kOwnMaxNumFailedStake = ownNetworkMaxNodesFail,
+                                            .kOtherMaxNumFailedStake = otherNetworkMaxNodesFail,
+                                            .kNodeId = ownNodeId,
+                                            .kLogPath = logPath,
+                                            .kWorkingDir = workingDir};
     }
     catch (const std::runtime_error &re)
     {
@@ -118,12 +118,12 @@ NodeConfiguration parser(int argc, char *argv[])
     catch (...)
     {
         SPDLOG_CRITICAL("Cannot parse config ints properly");
-        usage();
-        return NodeConfiguration{}; // unreachable
     }
+    usage();
+    return parser::CommandLineArguments{}; // unreachable
 }
 
-std::vector<std::string> parseNetworkUrls(const std::filesystem::path &networkConfigPath)
+parser::ConfigurationParameters parseNetworkUrlsAndStake(const std::filesystem::path &networkConfigPath)
 {
     auto input = std::ifstream{networkConfigPath};
     if (!input)
@@ -132,13 +132,73 @@ std::vector<std::string> parseNetworkUrls(const std::filesystem::path &networkCo
         exit(1);
     }
 
-    std::string ipAddress;
-    std::vector<std::string> ipAddresses{""};
+    constexpr auto urlDelimiter = ' ';
+    std::vector<std::string> networkUrls{};
+    std::vector<uint64_t> stakes{};
 
-    while (std::getline(input, ipAddresses.back()))
+    while (true)
     {
-        ipAddresses.emplace_back("");
+        std::string url;
+        bool noInput = std::getline(input, url, urlDelimiter).fail();
+        if (noInput)
+        {
+            break;
+        }
+        networkUrls.push_back(url);
+
+        std::string stakeString;
+        bool missingStake = std::getline(input, stakeString).fail();
+        if (missingStake)
+        {
+            SPDLOG_CRITICAL("NODE WITH IP '{}' HAD NO STAKE VALUE, exiting...", url);
+            std::abort();
+        }
+
+        try
+        {
+            uint64_t stake = std::stoull(stakeString);
+            if (stake == 0)
+            {
+                SPDLOG_CRITICAL("NODE WITH IP '{}' HAD ZERO STAKE, not supported, exiting...", url);
+            }
+            stakes.push_back(stake);
+        }
+        catch (...)
+        {
+            SPDLOG_CRITICAL("COULD NOT PARSE STAKE STRING '{}', exiting...", stakeString);
+            std::abort();
+        }
     }
-    ipAddresses.pop_back();
-    return ipAddresses;
+
+    return parser::ConfigurationParameters{.kNetworkUrls = networkUrls, .kNetworkStakes = stakes};
+}
+
+NodeConfiguration createNodeConfiguration(parser::CommandLineArguments args,
+                                          parser::ConfigurationParameters ownNetworkParams,
+                                          parser::ConfigurationParameters otherNetworkParams)
+{
+    const auto config = NodeConfiguration{
+        .kOwnNetworkSize = args.kOwnNetworkSize,
+        .kOtherNetworkSize = args.kOtherNetworkSize,
+        .kOwnNetworkStakes = ownNetworkParams.kNetworkStakes,
+        .kOtherNetworkStakes = otherNetworkParams.kNetworkStakes,
+        .kOwnMaxNumFailedStake = args.kOwnMaxNumFailedStake,
+        .kOtherMaxNumFailedStake = args.kOtherMaxNumFailedStake,
+        .kNodeId = args.kNodeId,
+        .kLogPath = args.kLogPath,
+        .kWorkingDir = args.kWorkingDir,
+    };
+
+    const bool isInvalid = config.kOwnNetworkStakes.size() != config.kOwnNetworkSize ||
+                           config.kOtherNetworkStakes.size() != config.kOtherNetworkSize ||
+                           ownNetworkParams.kNetworkUrls.size() != config.kOwnNetworkSize ||
+                           otherNetworkParams.kNetworkUrls.size() != config.kOtherNetworkSize;
+    if (isInvalid)
+    {
+        SPDLOG_CRITICAL("Configuration File error, configuration file size ({} or {})!= CLI argument size ({} or {})",
+                        config.kOwnNetworkStakes.size(), config.kOtherNetworkStakes.size(), config.kOwnNetworkSize,
+                        config.kOtherNetworkSize);
+        std::abort();
+    }
+    return config;
 }
