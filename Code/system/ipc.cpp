@@ -33,7 +33,7 @@ bool createPipe(const std::string &path)
 
     if (not success)
     {
-        SPDLOG_ERROR("Cannot Create Pipe at '{}': err={}", path, std::strerror(errno));
+        SPDLOG_CRITICAL("Cannot Create Pipe at '{}': err={}", path, std::strerror(errno));
     }
 
     return success;
@@ -139,13 +139,13 @@ void writeMessage(std::ofstream& file, const std::string& data)
     file.write(reinterpret_cast<char *>(&writeSize), sizeof(writeSize));
     if (file.fail())
     {
-        SPDLOG_INFO("Attempted to write new message to pipe but failed. EOF_Reached? = {}", pipe.eof());
+        SPDLOG_CRITICAL("Attempted to write new message to pipe but failed. EOF_Reached? = {}", file.eof());
     }
 
     file.write(data.data(), data.size());
     if (file.fail())
     {
-        SPDLOG_INFO("Attempted to write new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
+        SPDLOG_CRITICAL("Attempted to write new message from pipe but failed. EOF_Reached? = {}", file.eof());
     }
     file.flush();
 }

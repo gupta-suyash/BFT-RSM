@@ -13,6 +13,8 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <thread>
+#include <cerrno>
+#include <unistd.h>
 
 #include <boost/circular_buffer.hpp>
 
@@ -44,7 +46,7 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
 }
 
 // Relays messages to be sent over ipc
-void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput)
+void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration kNodeConfiguration)
 {
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     const auto readMessages = std::make_shared<ipc::DataChannel>(10);
@@ -210,9 +212,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         if (shouldDequeue && messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
-	    if(sequenceNumber == 1) {
-	    	std::cout << "Seq: " << sequenceNumber << std::endl;
-	    }
+	    SPDLOG_CRITICAL("Seq: {} :: N:{} :: R:{} ",sequenceNumber,configuration.kNodeId,get_rsm_id());
             const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
 
             const auto isMessageNeverSent = not resendNumber.has_value();
@@ -304,9 +304,15 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
-void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck)
+void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration kNodeConfiguration)
 {
-    std::ofstream pipe{scroogeOutputPipePath, std::ios_base::binary};
+    std::ofstream pipe{scroogeOutputPipePath, std::ios_base::app};
+    if(!pipe.is_open()) {
+	SPDLOG_CRITICAL("Open Failed={}, {}",std::strerror(errno), getlogin());
+    } else {
+        SPDLOG_CRITICAL("Open Success");
+    }	    
+
     std::optional<uint64_t> lastQuorumAck{};
     scrooge::ScroogeTransfer transfer;
     const auto mutableCommitAck = transfer.mutable_commit_acknowledgment();
@@ -318,7 +324,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
             lastQuorumAck = curQuorumAck;
             mutableCommitAck->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
-	    std::cout << "Going to Write" << std::endl;
+	    SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId, get_rsm_id()); 
             writeMessage(pipe, serializedTransfer);
         }
         std::this_thread::sleep_for(100ms);

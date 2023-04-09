@@ -209,11 +209,11 @@ def run(configJson, experimentName, expDir):
             cluster_zero = config['experiment_independent_vars']['clusterZeroIps']
             cluster_one = config['experiment_independent_vars']['clusterOneIps']
             ip_list =  cluster_zero + cluster_one
-            scrooge_exec = "/proj/ove-PG0/reggie/BFT-RSM/Code/scrooge "
+            scrooge_exec = "/proj/ove-PG0/suyash2/BFT-RSM/Code/scrooge "
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
-                cmd = 'sudo ' + scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
+                cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
