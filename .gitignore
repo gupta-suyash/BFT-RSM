@@ -7,6 +7,7 @@ Code/*/*.o
 Code/nng-1.5.2/*
 Code/protobuf-*
 Code/scrooge
+Code/client
 Code/check
 Docs/*.pdf
 Docs/*.aux

@@ -28,6 +28,7 @@ apt-get -y install libspdlog-dev
 apt-get install libjsoncpp-dev
 apt -y install nodejs
 apt -y install npm
+apt install python3-pip
 pip install numpy
 pip install matplotlib
 pip install seaborn
