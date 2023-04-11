@@ -128,7 +128,6 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
     uint64_t numReceivedMessages{};
 
     createPipe(kScroogeInputPath);
-    std::this_thread::sleep_for(1s);
     std::ifstream pipe{kScroogeInputPath};
     if (!pipe.is_open())
     {
