@@ -1,5 +1,6 @@
 #include "iothread.h"
 
+#include "crypto.h"
 #include "ipc.h"
 #include "scrooge_message.pb.h"
 #include "scrooge_request.pb.h"
@@ -17,7 +18,30 @@
 #include <unistd.h>
 
 #include <boost/circular_buffer.hpp>
+#include <nng/nng.h>
 
+
+void generateMessageMac(scrooge::CrossChainMessage* const message)
+{
+    // MAC signing TODO
+    const auto mstr = message->data().SerializeAsString();
+    // Sign with own key.
+    std::string encoded = CmacSignString(get_priv_key(), mstr);
+    message->set_validity_proof(encoded);
+    // std::cout << "Mac: " << encoded << std::endl;
+}
+
+bool checkMessageMac(const scrooge::CrossChainMessage* const message)
+{
+    // Verification TODO
+    const auto mstr = message->data().SerializeAsString();
+    // Fetch the sender key
+    // const auto senderKey = get_other_rsm_key(nng_message.senderId);
+    const auto senderKey = get_priv_key();
+    // Verify the message
+    bool res = CmacVerifyString(senderKey, mstr, message->validity_proof());
+    return res;
+}
 
 bool isMessageValid(const scrooge::CrossChainMessage &message)
 {
@@ -51,6 +75,8 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     const auto readMessages = std::make_shared<ipc::DataChannel>(10);
     const auto exitReader = std::make_shared<std::atomic_bool>();
+    Acknowledgment receivedMessages{};
+    uint64_t numReceivedMessages{};
 
     createPipe(kScroogeInputPath);
     auto reader = std::thread(startPipeReader, kScroogeInputPath, readMessages, exitReader);
@@ -88,11 +114,12 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             case request::kSendMessageRequest: {
                 const auto newMessageRequest = newRequest.send_message_request();
 
-		//std::cout << "Entered" << std::endl;
-
                 scrooge::CrossChainMessage newMessage;
                 *newMessage.mutable_data() = newMessageRequest.content();
                 *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
+
+                receivedMessages.addToAckList(newMessage.data().sequence_number());
+                numReceivedMessages++;
 
                 while(not messageOutput->wait_enqueue_timed(std::move(newMessage), 100ms) && not is_test_over());
                 break;
@@ -104,6 +131,9 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
 
         std::this_thread::sleep_for(kPollPeriod);
     }
+
+    addMetric("ipc_recv_messages", numReceivedMessages);
+    addMetric("ipc_msg_block_size", receivedMessages.getAckIterator().value_or(0));
     SPDLOG_INFO("Relay IPC Message Thread Exiting");
     *exitReader = true;
     reader.join();
@@ -126,17 +156,26 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
                            const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
+    uint64_t numMessagesSent{};
+    Acknowledgment sentMessages{};
     while (not is_test_over())
     {
         scrooge::CrossChainMessage newMessage;
         while (messageInput->try_dequeue(newMessage))
         {
+            const auto curSequenceNumber = newMessage.data().sequence_number();
             pipeline->SendToAllOtherRsm(newMessage);
+            sentMessages.addToAckList(curSequenceNumber);
+            quorumAck->updateNodeAck(0, 1, sentMessages.getAckIterator().value_or(0));
+            numMessagesSent++;
         }
     }
 
+    addMetric("num_msgs_sent", numMessagesSent);
+    addMetric("max_quack", quorumAck->getCurrentQuack().value_or(0));
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
@@ -146,10 +185,12 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
                            const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
+    uint64_t numMessagesSent{};
     while (not is_test_over())
     {
         scrooge::CrossChainMessage newMessage;
@@ -157,9 +198,11 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
         {
             const auto curSequenceNumber = newMessage.data().sequence_number();
             pipeline->SendToOtherRsm(curSequenceNumber % kOtherNetworkSize, newMessage);
+            numMessagesSent++;
         }
     }
 
+    addMetric("num_msgs_sent", numMessagesSent);
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
@@ -229,6 +272,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 const auto receiverNode = destinations.at(0);
 
                 setAckValue(&newMessage, *acknowledgment);
+                generateMessageMac(&newMessage);
                 pipeline->SendToOtherRsm(receiverNode, newMessage);
                 lastSendTime = std::chrono::steady_clock::now();
                 numMsgsSentWithLastAck++;
@@ -283,6 +327,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             {
                 const auto destination = destinations.at(resend - curNodeFirstResend);
                 setAckValue(&message, *acknowledgment);
+                generateMessageMac(&message);
                 pipeline->SendToOtherRsm(destination, message);
                 lastSendTime = std::chrono::steady_clock::now();
                 numMsgsSentWithLastAck++;
@@ -311,7 +356,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
 	SPDLOG_CRITICAL("Open Failed={}, {}",std::strerror(errno), getlogin());
     } else {
         SPDLOG_CRITICAL("Open Success");
-    }	    
+    }
 
     std::optional<uint64_t> lastQuorumAck{};
     scrooge::ScroogeTransfer transfer;
@@ -387,6 +432,12 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
             if (foreignMessage.has_ack_count())
             {
+                bool isAckValid = checkMessageMac(&foreignMessage);
+                if (not isAckValid)
+                {
+                    SPDLOG_CRITICAL("CANNOT VERIFY ACK OF MESSAGE {}", foreignMessage.data().sequence_number());
+                    continue;
+                }
                 const auto foreignAckCount = foreignMessage.ack_count().value();
                 const auto senderStake = kOtherNetworkStakes.at(senderId);
                 const auto currentQuack = quorumAck->updateNodeAck(senderId, senderStake, foreignAckCount);
@@ -412,6 +463,103 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
     }
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
     localReceiveThread.join();
+    addMetric("foreign_messages_received", timedMessages);
+    addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
+    addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
+}
+
+
+void runOneToOneReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
+                      const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                      const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+{
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
+                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
+    auto localReceiveThread = std::thread(runLocalReceiveThread, pipeline, acknowledgment);
+    bindThreadToCpu(2);
+    const bool isFirstNode = kNodeId == 0 && get_rsm_id() == 0;
+    if (isFirstNode)
+    {
+        SPDLOG_CRITICAL("Receive TID == {}", gettid());
+    }
+
+    uint64_t timedMessages{};
+
+    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(2048);
+
+    while (not is_test_over())
+    {
+        foreignMessages.clear();
+        pipeline->RecvFromOtherRsm(foreignMessages);
+
+        for (auto& newForeignMessage : foreignMessages)
+        {
+            const auto &[foreignMessage, senderId, rebroadcastMessage] = newForeignMessage;
+
+            if (isMessageValid(foreignMessage))
+            {
+                acknowledgment->addToAckList(foreignMessage.data().sequence_number());
+                timedMessages += is_test_recording();
+            }
+
+            if (foreignMessage.has_ack_count())
+            {
+                const auto foreignAckCount = foreignMessage.ack_count().value();
+                const auto senderStake = kOtherNetworkStakes.at(senderId);
+                const auto currentQuack = quorumAck->updateNodeAck(senderId, senderStake, foreignAckCount);
+            }
+            else
+            {
+                const auto foreignAckCount = std::nullopt;
+                const auto currentQuack = quorumAck->getCurrentQuack();
+            }
+        }
+
+        for (auto& newForeignMessage : foreignMessages)
+        {
+            const auto &[foreignMessage, senderId, rebroadcastMessage] = newForeignMessage;
+            if (rebroadcastMessage)
+            {
+                pipeline->rebroadcastToOwnRsm(rebroadcastMessage);
+            }
+        }
+    }
+    SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
+    localReceiveThread.join();
+    addMetric("foreign_messages_received", timedMessages);
+    addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
+    addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
+}
+
+void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
+                      const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                      const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+{
+    bindThreadToCpu(1);
+    uint64_t timedMessages{};
+    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(256);
+    while (not is_test_over())
+    {
+        foreignMessages.clear();
+        pipeline->RecvFromOtherRsm(foreignMessages);
+        for (auto newMessage : foreignMessages)
+        {
+            auto& [message, sender, useless] = newMessage;
+
+            if (isMessageValid(message))
+            {
+                timedMessages += is_test_recording();
+                acknowledgment->addToAckList(message.data().sequence_number());
+            }
+
+            if (useless)
+            {
+                nng_msg_free(useless);
+            }
+        }
+    }
+
+    addMetric("local_messages_received", 0);
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));

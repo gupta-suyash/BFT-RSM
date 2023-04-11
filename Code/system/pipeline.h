@@ -11,7 +11,7 @@
 
 #include <boost/circular_buffer.hpp>
 
-#include "nng/nng.h"
+#include <nng/nng.h>
 
 #include "global.h"
 
@@ -38,12 +38,13 @@ class Pipeline
 
     void startPipeline();
 
-    void SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessage &message);
+    void SendToOtherRsm(uint64_t receivingNodeId, const scrooge::CrossChainMessage &message);
     void BroadcastToOwnRsm(const scrooge::CrossChainMessage &message);
     void rebroadcastToOwnRsm(nng_msg* message);
 
     void RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &out);
     void RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out);
+    void RecvAllToAllFromOtherRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out);
 
     void SendToAllOtherRsm(const scrooge::CrossChainMessage &message);
 
@@ -53,6 +54,7 @@ class Pipeline
     void RecvFromOtherRsm();
 
   private:
+    inline void SendToDestinations(bool isLocal, std::bitset<64> destinations, const scrooge::CrossChainMessage& message);
     void reportFailedNode(const std::string& nodeUrl, uint64_t nodeId, bool isLocal);
     void runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg*>* const sendBuffer, const uint64_t destNodeId, const bool isLocal);
     void runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg*>* const recvBuffer, const uint64_t sendNodeId, const bool isLocal);
