@@ -21,4 +21,4 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
 void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> messageWrites,
                      std::shared_ptr<std::atomic_bool> exit);
 
-void writeMessage(std::ofstream& file, const std::string& data);
+void writeMessage(std::ofstream &file, const std::string &data);

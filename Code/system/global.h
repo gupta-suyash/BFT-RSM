@@ -59,9 +59,7 @@ void bindThreadToCpu(int cpu);
 
 void addMetric(std::string key, std::string value);
 
-template<typename NumericType,
-    std::enable_if_t<std::is_arithmetic_v<NumericType>, bool> = true
->
+template <typename NumericType, std::enable_if_t<std::is_arithmetic_v<NumericType>, bool> = true>
 void addMetric(std::string key, NumericType value)
 {
     addMetric(key, std::to_string(value));

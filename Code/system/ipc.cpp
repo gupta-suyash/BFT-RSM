@@ -133,7 +133,7 @@ void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> message
     SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
 }
 
-void writeMessage(std::ofstream& file, const std::string& data)
+void writeMessage(std::ofstream &file, const std::string &data)
 {
     uint64_t writeSize = data.size();
     file.write(reinterpret_cast<char *>(&writeSize), sizeof(writeSize));

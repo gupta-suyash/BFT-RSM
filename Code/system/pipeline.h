@@ -23,7 +23,7 @@ struct ReceivedCrossChainMessage
 {
     scrooge::CrossChainMessage message{};
     uint64_t senderId{};
-    nng_msg* rebroadcastMsg{};
+    nng_msg *rebroadcastMsg{};
 };
 
 template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
@@ -40,7 +40,7 @@ class Pipeline
 
     void SendToOtherRsm(uint64_t receivingNodeId, const scrooge::CrossChainMessage &message);
     void BroadcastToOwnRsm(const scrooge::CrossChainMessage &message);
-    void rebroadcastToOwnRsm(nng_msg* message);
+    void rebroadcastToOwnRsm(nng_msg *message);
 
     void RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &out);
     void RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out);
@@ -54,10 +54,13 @@ class Pipeline
     void RecvFromOtherRsm();
 
   private:
-    inline void SendToDestinations(bool isLocal, std::bitset<64> destinations, const scrooge::CrossChainMessage& message);
-    void reportFailedNode(const std::string& nodeUrl, uint64_t nodeId, bool isLocal);
-    void runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg*>* const sendBuffer, const uint64_t destNodeId, const bool isLocal);
-    void runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg*>* const recvBuffer, const uint64_t sendNodeId, const bool isLocal);
+    inline void SendToDestinations(bool isLocal, std::bitset<64> destinations,
+                                   const scrooge::CrossChainMessage &message);
+    void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
+    void runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
+                       const uint64_t destNodeId, const bool isLocal);
+    void runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
+                       const uint64_t sendNodeId, const bool isLocal);
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
@@ -72,7 +75,6 @@ class Pipeline
     // send/receive sockets owned by sending/receiving thread
     // look in Pipeline::runSendThread and Pipeline::runReceiveThread
 
-
     std::atomic_bool mIsPipelineStarted{};
     std::atomic_bool mShouldThreadStop{};
 
@@ -83,8 +85,8 @@ class Pipeline
     std::vector<std::thread> mLocalRecvThreads;
     std::vector<std::thread> mForeignSendThreads;
     std::vector<std::thread> mForeignRecvThreads;
-    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg*>>> mLocalSendBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg*>>> mLocalRecvBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg*>>> mForeignSendBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg*>>> mForeignRecvBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mLocalSendBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mLocalRecvBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignSendBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignRecvBufs{};
 };
