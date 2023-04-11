@@ -17,26 +17,15 @@ bool createPipe(const std::string &path)
 {
     constexpr auto kFullPermissions = 0777;
 
-    // TODO: Commenting this out since the system which sends the information should be responsible for deleting
-    // the pipe. Code is here for a reference
-    if (!std::filesystem::exists(path))
-    {
-        SPDLOG_ERROR("Path not found!");
-        /*const auto eraseError = std::remove(path.c_str()) != 0;
-            if (eraseError)
-            {
-                SPDLOG_ERROR("Cannot Create Erase old pipe at '{}': err={}", path, std::strerror(eraseError));
-            }*/
-    }
+    const auto mkfifoResult = mkfifo(path.c_str(), kFullPermissions);
+    const bool isError = mkfifoResult == -1 && errno != EEXIST;
 
-    const auto success = (mkfifo(path.c_str(), kFullPermissions) == 0);
-
-    if (not success)
+    if (isError)
     {
         SPDLOG_CRITICAL("Cannot Create Pipe at '{}': err={}", path, std::strerror(errno));
     }
 
-    return success;
+    return not isError;
 }
 
 /* Takes over the current thread to read from a pipe located at path
@@ -58,7 +47,7 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
 
         if (pipe.fail())
         {
-            SPDLOG_INFO("Attempted to read new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
+            SPDLOG_CRITICAL("Attempted to read new message from pipe but failed. EOF_Reached? = {}", pipe.eof());
             break;
         }
 
@@ -75,7 +64,7 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
         {
             if (exit->load())
             {
-                SPDLOG_INFO("Reader of pipe '{}' is exiting", path);
+                SPDLOG_CRITICAL("Reader of pipe '{}' is exiting", path);
                 *exit = true;
                 return;
             }
@@ -83,7 +72,7 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
         }
     }
     *exit = true;
-    SPDLOG_INFO("Reader of pipe '{}' is exiting", path);
+    SPDLOG_CRITICAL("Reader of pipe '{}' is exiting", path);
 }
 
 /* Takes over the current thread to write to a pipe located at path
@@ -131,6 +120,28 @@ void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> message
 
     *exit = true;
     SPDLOG_INFO("Writer of pipe '{}' is exiting", path);
+}
+
+std::string readMessage(std::ifstream &file)
+{
+    uint64_t readSize{};
+    file.read(reinterpret_cast<char *>(&readSize), sizeof(readSize));
+
+    if (file.fail())
+    {
+        SPDLOG_CRITICAL("Attempted to read new message from pipe but failed. EOF_Reached? = {}", file.eof());
+        return "";
+    }
+
+    std::string message(readSize, '\0');
+    file.read(reinterpret_cast<char *>(message.data()), message.size());
+
+    if (file.fail())
+    {
+        SPDLOG_CRITICAL("ATTEMPTED TO READ {} BYTES, AND READ FAILED", readSize, message.size());
+        return "";
+    }
+    return message;
 }
 
 void writeMessage(std::ofstream &file, const std::string &data)

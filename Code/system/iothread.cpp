@@ -42,6 +42,17 @@ bool checkMessageMac(const scrooge::CrossChainMessage *const message)
     return res;
 }
 
+void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
+{
+    const auto curAck = acknowledgment.getAckIterator();
+    if (!curAck.has_value())
+    {
+        return;
+    }
+
+    message->mutable_ack_count()->set_value(curAck.value());
+}
+
 bool isMessageValid(const scrooge::CrossChainMessage &message)
 {
     // no signature checking currently
@@ -69,43 +80,75 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
     }
 }
 
+// Generates fake messages of a given size for throughput testing
+void runGenerateMessageThreadWithIpc()
+{
+    auto fork_res = fork();
+    if (fork_res > 0)
+    {
+        return;
+    }
+    else if (fork_res < 0)
+    {
+        SPDLOG_CRITICAL("CANNOT FORK PROCESS ERR {}", fork_res);
+    }
+
+    constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
+    createPipe(kScroogeInputPath);
+
+    std::ofstream pipe{kScroogeInputPath};
+    if (!pipe.is_open())
+    {
+        SPDLOG_CRITICAL("Writer Open Failed={}, {}", std::strerror(errno), getlogin());
+    }
+    else
+    {
+        SPDLOG_CRITICAL("Writer Open Success");
+    }
+
+    const auto kMessageSize = get_packet_size();
+
+    for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
+    {
+        scrooge::ScroogeRequest request;
+        auto messageContent = request.mutable_send_message_request()->mutable_content();
+        messageContent->set_message_content(std::string(kMessageSize, 'L'));
+        messageContent->set_sequence_number(curSequenceNumber);
+
+        writeMessage(pipe, request.SerializeAsString());
+    }
+}
+
 // Relays messages to be sent over ipc
 void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
                               NodeConfiguration kNodeConfiguration)
 {
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
-    const auto readMessages = std::make_shared<ipc::DataChannel>(10);
-    const auto exitReader = std::make_shared<std::atomic_bool>();
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
 
     createPipe(kScroogeInputPath);
-    auto reader = std::thread(startPipeReader, kScroogeInputPath, readMessages, exitReader);
+    std::this_thread::sleep_for(1s);
+    std::ifstream pipe{kScroogeInputPath};
+    if (!pipe.is_open())
+    {
+        SPDLOG_CRITICAL("Reader Open Failed={}, {}", std::strerror(errno), getlogin());
+    }
+    else
+    {
+        SPDLOG_CRITICAL("Reader Open Success");
+    }
 
     while (not is_test_over())
     {
-        constexpr auto kPollPeriod = 50ns;
-
-        std::vector<uint8_t> messageBytes;
-        while (not readMessages->pop(messageBytes))
-        {
-            if (*exitReader)
-            {
-                break;
-            }
-            std::this_thread::sleep_for(kPollPeriod);
-        }
-        if (*exitReader)
-        {
-            break;
-        }
-
+        auto messageBytes = readMessage(pipe);
+        
         scrooge::ScroogeRequest newRequest;
 
-        const auto isParseSuccessful = newRequest.ParseFromArray(messageBytes.data(), messageBytes.size());
+        const auto isParseSuccessful = newRequest.ParseFromString(std::move(messageBytes));
         if (not isParseSuccessful)
         {
-            SPDLOG_ERROR("FAILED TO READ MESSAGE");
+            SPDLOG_CRITICAL("FAILED TO READ MESSAGE");
             continue;
         }
 
@@ -130,26 +173,11 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
         }
         }
-
-        std::this_thread::sleep_for(kPollPeriod);
     }
 
     addMetric("ipc_recv_messages", numReceivedMessages);
     addMetric("ipc_msg_block_size", receivedMessages.getAckIterator().value_or(0));
     SPDLOG_INFO("Relay IPC Message Thread Exiting");
-    *exitReader = true;
-    reader.join();
-}
-
-void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
-{
-    const auto curAck = acknowledgment.getAckIterator();
-    if (!curAck.has_value())
-    {
-        return;
-    }
-
-    message->mutable_ack_count()->set_value(curAck.value());
 }
 
 void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,

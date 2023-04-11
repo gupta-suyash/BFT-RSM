@@ -62,3 +62,5 @@ void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
                               const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                               const std::shared_ptr<QuorumAcknowledgment> quorumAck,
                               const NodeConfiguration configuration);
+
+void runGenerateMessageThreadWithIpc();
