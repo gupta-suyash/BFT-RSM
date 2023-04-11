@@ -79,19 +79,17 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             SPDLOG_ERROR("FAILED TO READ MESSAGE");
             continue;
         }
-
+        std::cout << "Is parse successful: " << isParseSuccessful << std::endl;
         switch (newRequest.request_case())
         {
             using request = scrooge::ScroogeRequest::RequestCase;
             case request::kSendMessageRequest: {
                 const auto newMessageRequest = newRequest.send_message_request();
 
-		//std::cout << "Entered" << std::endl;
-
                 scrooge::CrossChainMessage newMessage;
                 *newMessage.mutable_data() = newMessageRequest.content();
                 *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
-
+                std::cout << "Entered final stage!! Sending out the new request!" << std::endl;
                 while(not messageOutput->wait_enqueue_timed(std::move(newMessage), 100ms) && not is_test_over());
                 break;
             }
@@ -210,9 +208,9 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         if (shouldDequeue && messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
-	    if(sequenceNumber == 1) {
-	    	std::cout << "Seq: " << sequenceNumber << std::endl;
-	    }
+            if(sequenceNumber == 1) {
+                SPDLOG_INFO("Seq: {}", sequenceNumber);
+            }
             const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
 
             const auto isMessageNeverSent = not resendNumber.has_value();
@@ -310,15 +308,18 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
     std::optional<uint64_t> lastQuorumAck{};
     scrooge::ScroogeTransfer transfer;
     const auto mutableCommitAck = transfer.mutable_commit_acknowledgment();
+    std::cout << "runRelayIPCTransactionThread" << std::endl;
     while (not is_test_over())
     {
         const auto curQuorumAck = quorumAck->getCurrentQuack();
+        std::cout << "runRelayIPCTransactionThread " << std::endl;
         if (lastQuorumAck < curQuorumAck)
         {
+            std::cout << "Made it to if statement!! " << std::endl;
             lastQuorumAck = curQuorumAck;
             mutableCommitAck->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
-	    std::cout << "Going to Write" << std::endl;
+	        std::cout << "Going to Write" << std::endl;
             writeMessage(pipe, serializedTransfer);
         }
         std::this_thread::sleep_for(100ms);

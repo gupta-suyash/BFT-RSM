@@ -8,10 +8,15 @@
 class StatisticsInterpreter
 {
     std::mutex sendThread;
-    std::vector<size_t> latencies;
-    std::map<size_t, std::chrono::high_resolution_clock::time_point> packet_num_to_start_time; // TODO fixed size
+    std::vector<size_t> latencies = {};
+    std::map<size_t, std::chrono::high_resolution_clock::time_point> packet_num_to_start_time = {}; // TODO fixed size
 
   public:
+    // void setup() {
+    //     packet_num_to_start_time = {};
+    //     latencies = {};
+    // }
+
     void startTimer(size_t packet_num)
     {
         packet_num_to_start_time.insert({packet_num, std::chrono::high_resolution_clock::now()});
@@ -22,7 +27,7 @@ class StatisticsInterpreter
         auto end = std::chrono::high_resolution_clock::now();
         if (packet_num_to_start_time.count(packet_num))
         {
-            SPDLOG_CRITICAL("Packet number is not found!");
+            SPDLOG_CRITICAL("Packet number {} is not found!", packet_num);
             return -1;
         }
         std::chrono::duration<double> diff = end - packet_num_to_start_time.at(packet_num);

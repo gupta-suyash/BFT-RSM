@@ -81,6 +81,8 @@ class AlgorandClient : public virtual Client {
         int64_t internal_seq_id;
         uint64_t final_max_seq_id;
 
+        uint64_t ack_counter = 0;
+
     public:
         /* 
          * Sets up Client connection to the primary server machine and loads in
@@ -270,10 +272,8 @@ int main(int argc, char* argv[]) {
        std::cout << "Too few args! Format: ./client <send_url> <receive_url>" << std::endl;
        return -1;
    }*/
-   std::string path_to_config = "/proj/ove-PG0/murray/BFT-RSM/Code/client_interface/client.json";
-   std::vector<std::string> experiment_names = {"simple"};
-//    boost::asio::io_service send_io_service;
-//    boost::asio::io_service receive_io_service;
+   std::string path_to_config = "/proj/ove-PG0/murray/BFT-RSM/Code/client_interface/client.json"; //TODO
+   std::vector<std::string> experiment_names = {"simple"}; // TODO
    AlgorandClient* algoCli = new AlgorandClient(path_to_config, experiment_names);
    algoCli->runExperiments();
    return 0;
