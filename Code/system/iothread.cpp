@@ -164,12 +164,12 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
     while (not is_test_over())
     {
         scrooge::CrossChainMessage newMessage;
-        while (messageInput->try_dequeue(newMessage))
+        while (messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto curSequenceNumber = newMessage.data().sequence_number();
             pipeline->SendToAllOtherRsm(newMessage);
             sentMessages.addToAckList(curSequenceNumber);
-            quorumAck->updateNodeAck(0, 1, sentMessages.getAckIterator().value_or(0));
+            quorumAck->updateNodeAck(0, 0ULL-1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
         }
     }
@@ -194,7 +194,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
     while (not is_test_over())
     {
         scrooge::CrossChainMessage newMessage;
-        while (messageInput->try_dequeue(newMessage))
+        while (messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto curSequenceNumber = newMessage.data().sequence_number();
             pipeline->SendToOtherRsm(curSequenceNumber % kOtherNetworkSize, newMessage);
@@ -537,24 +537,17 @@ void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline, const st
 {
     bindThreadToCpu(1);
     uint64_t timedMessages{};
-    boost::circular_buffer<pipeline::ReceivedCrossChainMessage> foreignMessages(256);
+    boost::circular_buffer<scrooge::CrossChainMessage> foreignMessages(256);
     while (not is_test_over())
     {
         foreignMessages.clear();
-        pipeline->RecvFromOtherRsm(foreignMessages);
-        for (auto newMessage : foreignMessages)
+        pipeline->RecvAllToAllFromOtherRsm(foreignMessages);
+        for (auto message : foreignMessages)
         {
-            auto& [message, sender, useless] = newMessage;
-
             if (isMessageValid(message))
             {
                 timedMessages += is_test_recording();
                 acknowledgment->addToAckList(message.data().sequence_number());
-            }
-
-            if (useless)
-            {
-                nng_msg_free(useless);
             }
         }
     }
