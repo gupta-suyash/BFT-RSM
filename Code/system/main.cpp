@@ -52,22 +52,22 @@ int main(int argc, char *argv[])
     set_priv_key();
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
-    //auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-    auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+    auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+    //auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+    //auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
     auto sendThread =
-        std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+        std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     auto receiveThread =
-        std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+        std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ", kThreadHasher(receiveThread.get_id()));
 
-    //messageRelayThread.join();
+    messageRelayThread.join();
     sendThread.join();
     receiveThread.join();
-    relayRequestThread.join();
-    relayTransactionThread.join();
+    //relayRequestThread.join();
+    //relayTransactionThread.join();
 
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
                     "kMaxNumLocalFailedNodes = {}, "
@@ -77,7 +77,6 @@ int main(int argc, char *argv[])
 
     addMetric("message_size", get_packet_size());
     addMetric("duration_seconds", std::chrono::duration<double>{get_test_duration()}.count());
-    addMetric("transfer_strategy", "NSendNRecv Thread scrooge");
     addMetric("local_network_size", kOwnNetworkSize);
     addMetric("foreign_network_size", kOtherNetworkSize);
     addMetric("local_max_failed_stake", kOwnMaxNumFailedStake);
