@@ -63,7 +63,7 @@ class Client {
         std::string path_to_config;
         Json::Value config;
         std::vector<std::string> experiment_names; 
-        std::map<std::string, StatisticsInterpreter> stats;
+        // std::map<std::string, StatisticsInterpreter> stats;
         
 };
 
@@ -203,7 +203,7 @@ class AlgorandClient : public virtual Client {
                     std::cout << "send failed: " << error.message() << std::endl;
                 }
                 std::cout << "Transaction sent: " << txn.seq_id << std::endl;
-                stats[experiment_name].startTimer(txn.seq_id);
+                // stats[experiment_name].startTimer(txn.seq_id);
             }
             send_socket.close();
         }
@@ -233,7 +233,7 @@ class AlgorandClient : public virtual Client {
                     document.Parse(data);
                     std::cout << "Here 3 " << std::endl;
                     std::cout << " Ack count: " << document["ack_count"].GetInt() << std::endl;
-                    stats[experiment_name].recordLatency((size_t)document["ack_count"].GetInt());
+                    // stats[experiment_name].recordLatency((size_t)document["ack_count"].GetInt());
                     if (final_max_seq_id <= document["ack_count"].GetInt()) {
                         std::cout << "Here? " << std::endl;
                         break;
@@ -263,7 +263,7 @@ class AlgorandClient : public virtual Client {
 
 	    void reportPerformanceMetrics(std::string experiment_name) {
             // Graph the metrics
-            stats[experiment_name].printOutAllResults();
+            // stats[experiment_name].printOutAllResults();
         }
 };
 

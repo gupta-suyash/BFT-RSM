@@ -68,7 +68,7 @@ void startPipeReader(std::string path, std::shared_ptr<ipc::DataChannel> message
                 *exit = true;
                 return;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds{10});
+            //std::this_thread::sleep_for(std::chrono::milliseconds{10});
         }
     }
     *exit = true;
@@ -98,7 +98,7 @@ void startPipeWriter(std::string path, std::shared_ptr<ipc::DataChannel> message
                 *exit = true;
                 return;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds{10});
+            //std::this_thread::sleep_for(std::chrono::milliseconds{10});
         }
 
         uint64_t writeSize = message.size();
