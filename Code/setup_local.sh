@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 # replace with your directory
-cd /proj/ove-PG0/reggie/BFT-RSM/Code
+cd /proj/ove-PG0/murray/BFT-RSM/Code
 
 # install packages
 apt-get -y update
@@ -42,7 +42,7 @@ apt-get -y install ninja-build
 echo "built ninja"
 
 # nng installation
-tar -xzf  $SCROOGE_DIR/Code/nng-1.5.2.tar.gz
+tar -xzf  /proj/ove-PG0/murray/BFT-RSM/Code/nng-1.5.2.tar.gz
 echo "untar of nng successful"
 cd ./nng-1.5.2
 mkdir build
@@ -55,7 +55,7 @@ cd ..
 cd ..
 
 # protobuf installation
-tar -xzf $SCROOGE_DIR/Code/protobuf-cpp-3.20.2.tar.gz
+tar -xzf /proj/ove-PG0/murray/BFT-RSM/Code/protobuf-cpp-3.20.2.tar.gz
 echo "untar of protobuf successful"
 cd ./protobuf-3.20.2
 ./configure

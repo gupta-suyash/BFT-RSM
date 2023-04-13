@@ -123,7 +123,7 @@ void runGenerateMessageThreadWithIpc()
 void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
                               NodeConfiguration kNodeConfiguration)
 {
-    constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
+    constexpr auto kScroogeInputPath = "/tmp/algorand-input";
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
 
@@ -150,7 +150,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             SPDLOG_CRITICAL("FAILED TO READ MESSAGE");
             continue;
         }
-        std::cout << "Is parse successful: " << isParseSuccessful << std::endl;
+        // std::cout << "Is parse successful: " << isParseSuccessful << std::endl;
         switch (newRequest.request_case())
         {
             using request = scrooge::ScroogeRequest::RequestCase;
@@ -391,7 +391,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
     std::optional<uint64_t> lastQuorumAck{};
     scrooge::ScroogeTransfer transfer;
     const auto mutableCommitAck = transfer.mutable_commit_acknowledgment();
-    std::cout << "runRelayIPCTransactionThread" << std::endl;
+    //std::cout << "runRelayIPCTransactionThread" << std::endl;
     while (not is_test_over())
     {
         const auto curQuorumAck = quorumAck->getCurrentQuack();
