@@ -52,22 +52,28 @@ int main(int argc, char *argv[])
     set_priv_key();
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
-    auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-    //auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-    //auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+    //auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+    auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
     auto sendThread =
-        std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+        std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     auto receiveThread =
-        std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+        std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ", kThreadHasher(receiveThread.get_id()));
 
-    messageRelayThread.join();
+    while (not is_test_recording())
+    {
+        std::this_thread::sleep_for(1ms);
+    }
+    addMetric("starting_quack", quorumAck->getCurrentQuack().value_or(0));
+    addMetric("starting_ack", acknowledgment->getAckIterator().value_or(0));
+    //messageRelayThread.join();
     sendThread.join();
     receiveThread.join();
-    //relayRequestThread.join();
-    //relayTransactionThread.join();
+    relayRequestThread.join();
+    relayTransactionThread.join();
 
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
                     "kMaxNumLocalFailedNodes = {}, "
@@ -82,7 +88,7 @@ int main(int argc, char *argv[])
     addMetric("local_max_failed_stake", kOwnMaxNumFailedStake);
     addMetric("foreign_max_failed_stake", kOtherMaxNumFailedStake);
     addMetric("foreign_stake_total", kOtherMaxNumFailedStake);
-    addMetric("local_stake_total", kOwnMaxNumFailedStake);
+    addMetric("local_stake", kNodeConfiguration.kOwnNetworkStakes.at(kNodeId));
     printMetrics(kLogPath);
     return 0;
 }

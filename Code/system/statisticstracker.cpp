@@ -34,6 +34,7 @@ void removeTimeStamp(uint64_t packet_num)
 
 double averageLat()
 {
+    addMetric("Ack Count",ack_count);
     return tot_lat / (ack_count * 1.0);
 }	
 
