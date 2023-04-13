@@ -52,8 +52,8 @@ int main(int argc, char *argv[])
     set_priv_key();
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
-    auto messageRelayThread = std::thread(runGenerateMessageThreadWithIpc);
-    //auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+    // auto messageRelayThread = std::thread(runGenerateMessageThreadWithIpc);
+    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
     auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
         std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ", kThreadHasher(receiveThread.get_id()));
 
-    messageRelayThread.join();
+    // messageRelayThread.join();
     sendThread.join();
     receiveThread.join();
-    //relayRequestThread.join();
+    relayRequestThread.join();
     relayTransactionThread.join();
 
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "

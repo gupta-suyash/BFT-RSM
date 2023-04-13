@@ -9,6 +9,7 @@ Code/protobuf-*
 Code/scrooge
 Code/client
 Code/check
+Code/node*
 Docs/*.pdf
 Docs/*.aux
 Docs/*.log
