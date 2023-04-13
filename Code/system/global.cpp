@@ -2,11 +2,11 @@
 #include "crypto.h"
 #include <bitset>
 #include <fstream>
+#include <map>
 #include <mutex>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/sysinfo.h>
-#include <map>
 #include <unordered_map>
 
 // List of global variables and configuration parameters.
@@ -24,7 +24,7 @@ std::unordered_map<uint64_t, std::string> keyOtherCluster;
 
 static std::chrono::steady_clock::time_point g_start_time{};
 static constexpr auto kWarmupDuration = 1s;
-static constexpr auto kTestDuration = 30s;
+static constexpr auto kTestDuration = 180s;
 static constexpr auto kShutDownEps = 1s;
 
 void set_priv_key()
@@ -176,9 +176,9 @@ void printMetrics(std::string filename)
     std::scoped_lock lock{metricsMutex};
     remove(filename.c_str());
     std::ofstream file{filename, std::ios_base::binary};
-    for (const auto& metric : metrics)
+    for (const auto &metric : metrics)
     {
-        const auto& [metricKey, metricValue] = metric; 
+        const auto &[metricKey, metricValue] = metric;
         file << metricKey << ": " << metricValue << '\n';
     }
 }

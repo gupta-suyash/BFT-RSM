@@ -26,19 +26,19 @@ int main(int argc, char *argv[])
     const auto kNodeConfiguration =
         createNodeConfiguration(kCommandLineArguments, kOwnNetworkConfiguration, kOtherNetworkConfiguration);
 
-    SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
-                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, num_packets = {},  packet_size = {}, "
-                "kLogPath= '{}'",
-                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
-                get_rsm_id(), get_number_of_packets(), get_packet_size(), kLogPath);
+    SPDLOG_CRITICAL(
+        "Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
+        "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, num_packets = {},  packet_size = {}, "
+        "kLogPath= '{}'",
+        kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId, get_rsm_id(),
+        get_number_of_packets(), get_packet_size(), kLogPath);
 
     const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
     constexpr auto kMessageBufferSize = 256;
 
     const auto acknowledgment = std::make_shared<Acknowledgment>();
-    const auto pipeline =
-        std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
-                                   kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
+    const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
+                                                     kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
     const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
     const auto ackTracker = std::make_shared<AcknowledgmentTracker>(kNodeConfiguration.kOtherNetworkSize,
                                                                     kNodeConfiguration.kOtherMaxNumFailedStake);
@@ -53,8 +53,8 @@ int main(int argc, char *argv[])
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
     //auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer);
-    auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output"s, quorumAck);
+    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+    auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
     auto sendThread =
@@ -75,7 +75,6 @@ int main(int argc, char *argv[])
                     kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
                     get_rsm_id(), get_packet_size(), kLogPath);
 
-    
     addMetric("message_size", get_packet_size());
     addMetric("duration_seconds", std::chrono::duration<double>{get_test_duration()}.count());
     addMetric("transfer_strategy", "NSendNRecv Thread scrooge");

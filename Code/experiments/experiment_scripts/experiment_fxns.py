@@ -101,19 +101,18 @@ def setup(configJson, experimentName):
 ##### LOADING CONFIG FILE ####
     # Username for ssh-ing.
     # Name of the experiment that will be run
-    scrooge_dir = os.getenv('SCROOGE_DIR')
     cloudlab.experiment_name = experimentName
     # Experiment results dir on the machine
-    cloudlab.project_dir = scrooge_dir + config['experiment_independent_vars']['project_dir']
+    cloudlab.project_dir = config['experiment_independent_vars']['project_dir']
     # Source directory on the local machine (for compilation)
     print("Src dir: ", cloudlab.project_dir)
-    cloudlab.src_dir = scrooge_dir + config['experiment_independent_vars']['src_dir']
+    cloudlab.src_dir = config['experiment_independent_vars']['src_dir']
     # Path to setup script
-    cloudlab.local_setup_script = scrooge_dir + config['experiment_independent_vars']['local_setup_script']
+    cloudlab.local_setup_script = config['experiment_independent_vars']['local_setup_script']
     # Path to setup script for remote machines
-    cloudlab.remote_setup_script = scrooge_dir + config['experiment_independent_vars']['remote_setup_script']
+    cloudlab.remote_setup_script = config['experiment_independent_vars']['remote_setup_script']
     # Compile the program once on the local machine
-    compileCode((scrooge_dir + config['experiment_independent_vars']['local_compile_script']))
+    compileCode((config['experiment_independent_vars']['local_compile_script']))
     # The date is used to distinguish multiple runs of the same experiment
     expFolder = cloudlab.project_dir + cloudlab.experiment_name
     expDir =  expFolder + "/" + datetime.datetime.now().strftime("%Y:%m:%d:%H:%M") + "/"
@@ -176,13 +175,12 @@ def run(configJson, experimentName, expDir):
     # Load local arguments
     cloudlab = Cloudlab_Experiment()
     config = loadJsonFile(configJson)
-    scrooge_dir = os.getenv('SCROOGE_DIR')
     # Name of the experiment that will be run
     cloudlab.experiment_name = experimentName
     # Experiment results dir on the machine
-    cloudlab.project_dir = scrooge_dir + config['experiment_independent_vars']['project_dir']
+    cloudlab.project_dir = config['experiment_independent_vars']['project_dir']
     # Source directory on the local machine (for compilation)
-    cloudlab.src_dir = scrooge_dir + config['experiment_independent_vars']['src_dir']
+    cloudlab.src_dir = config['experiment_independent_vars']['src_dir']
 
     # The nbclients field is a list that contains a list of client counts.
     # Ex, if this is listed: [1,2,4,8], the framework will run the experiment
@@ -212,11 +210,11 @@ def run(configJson, experimentName, expDir):
             cluster_zero = config['experiment_independent_vars']['clusterZeroIps']
             cluster_one = config['experiment_independent_vars']['clusterOneIps']
             ip_list =  cluster_zero + cluster_one
-            scrooge_exec = scrooge_dir + config['experiment_independent_vars']['executable']
+            scrooge_exec = "/proj/ove-PG0/murray/BFT-RSM/Code/scrooge "
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
-                cmd = 'sudo ' + scrooge_exec + " " + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
+                cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
