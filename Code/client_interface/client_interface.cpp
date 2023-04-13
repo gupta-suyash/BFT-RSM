@@ -8,7 +8,8 @@
 #include <fstream>
 #include <optional>
 #include <boost/asio.hpp>
-#include "statisticstracker.cpp"
+#include <iostream>
+// #include "statisticstracker.cpp"
 
 #include <../include/rapidjson/document.h>
 #include <../include/rapidjson/writer.h>

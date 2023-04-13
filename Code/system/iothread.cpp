@@ -124,7 +124,7 @@ void runGenerateMessageThreadWithIpc()
 void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
                               NodeConfiguration kNodeConfiguration)
 {
-    constexpr auto kScroogeInputPath = "/tmp/algorand-input";
+    constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
 
@@ -406,7 +406,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
     }
     else
     {
-        SPDLOG_CRITICAL("Open Success");
+        SPDLOG_CRITICAL("Open Success!!");
     }
 
     std::optional<uint64_t> lastQuorumAck{};
@@ -416,10 +416,9 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
     while (not is_test_over())
     {
         const auto curQuorumAck = quorumAck->getCurrentQuack();
-        std::cout << "runRelayIPCTransactionThread " << std::endl;
         if (lastQuorumAck < curQuorumAck)
         {
-            std::cout << "Made it to if statement!! " << std::endl;
+            // std::cout << "Made it to if statement!! " << std::endl;
             lastQuorumAck = curQuorumAck;
             mutableCommitAck->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
