@@ -5,6 +5,7 @@ from dataclasses import dataclass, astuple
 from pathlib import Path
 from typing import List
 import pandas as pd
+import numpy as np
 import yaml
 import sys
 import plotly.graph_objects as go
@@ -44,7 +45,16 @@ def make_dataframe(file_names: List[str]) -> pd.DataFrame:
             usage(f'Unable to parse {file_name} -- is it correct yaml format?')
     return pd.DataFrame.from_dict(rows)
 
-def get_throughput_latency(dataframe: pd.DataFrame) -> List[Graph]:
+# modifies dataframe in place
+def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
+    # Place Ack count in QAck count for One to One (quack wasn't recorded)
+    one_to_one_rows = dataframe.transfer_strategy == "NSendNRecv Thread One-to-One"
+    missing_max_qack = (dataframe.max_quorum_acknowledgment == np.NaN) | (dataframe.max_quorum_acknowledgment == 0)
+    missing_starting_qack = (dataframe.starting_quack == np.NaN) | (dataframe.max_quorum_acknowledgment == 0)
+    dataframe.loc[one_to_one_rows & missing_max_qack, 'max_quorum_acknowledgment'] = dataframe.loc[one_to_one_rows].max_acknowledgment[missing_max_qack]
+    dataframe.loc[one_to_one_rows & missing_starting_qack, 'starting_quack'] = dataframe.loc[one_to_one_rows].starting_ack[missing_max_qack]
+
+def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
     latency_lines = []
     throughput_lines = []
     for transfer_strategy, group in dataframe.groupby('transfer_strategy'):
@@ -53,10 +63,12 @@ def get_throughput_latency(dataframe: pd.DataFrame) -> List[Graph]:
         average_latencies = []
         overall_throughputs = []
         for message_size in message_sizes:
-            average_latency = group.query('message_size == @message_size').average_latency.mean()
-            overall_throughput = group.query('message_size == @message_size').total_throughput.mean()
-            average_latencies.append(average_latency)
-            overall_throughputs.append(overall_throughput)
+            size_group = group.query('message_size == @message_size')
+            quack_delta = size_group.max_quorum_acknowledgment - size_group.starting_quack
+            throughput = quack_delta / size_group.duration_seconds
+            latency = size_group.Latency
+            average_latencies.append(latency.mean())
+            overall_throughputs.append(throughput.mean())
         latency_lines.append(Line(
             x_values = message_sizes / 1000,
             y_values = average_latencies,
@@ -70,13 +82,13 @@ def get_throughput_latency(dataframe: pd.DataFrame) -> List[Graph]:
 
     return [
         Graph(
-            title = 'Average Message Delivery Latency',
+            title = f'{title} Confirmation Latency',
             x_axis_name = 'message size (kilobytes)',
             y_axis_name = 'Receiver Calculated Message Latency (seconds)',
             lines = latency_lines
         ),
         Graph(
-            title = 'Overall Message Throughput',
+            title = f'{title} Confirmation Throughput',
             x_axis_name = 'message size (kilobytes)',
             y_axis_name = 'Receiver Calculated Message Throughput (messages/seconds)',
             lines = throughput_lines
@@ -124,10 +136,18 @@ def get_throughput_bandwidth(dataframe: pd.DataFrame) -> List[Graph]:
         )
     ]
 
-def get_graphs(dataframe: pd.DataFrame) -> List[Graph]:
+def get_graphs(name: str, dataframe: pd.DataFrame) -> List[Graph]:
     graphs = []
-    # graphs.extend(get_throughput_latency(dataframe))
-    graphs.extend(get_throughput_bandwidth(dataframe))
+    graphs.extend(get_throughput_latency(name, dataframe))
+    # graphs.extend(get_throughput_bandwidth(dataframe))
+    return graphs
+
+def get_graphs_by_group(dataframe: pd.DataFrame):
+    dist_to_name = {'11111111':'Equal Stake', '43214321':'4321 Stake', '71117111':'7111 Stake'}
+    graphs = []
+    for stake_dist, dist_results in dataframe.groupby('stake_dist'):
+        graph_name = dist_to_name.get(stake_dist) or f'Stake Dist: {str(stake_dist)}'
+        graphs.extend(get_graphs(graph_name, dist_results))
     return graphs
 
 def make_fig(graph: Graph) -> go.Figure: 
@@ -165,7 +185,8 @@ def main():
         usage('You must input at least one directory')
     file_names = get_log_file_names(dirs)
     dataframe = make_dataframe(file_names)
-    graphs = get_graphs(dataframe)
+    clean_dataframe(dataframe)
+    graphs = get_graphs_by_group(dataframe)
     save_graphs(graphs)
 
 if __name__ == '__main__':
