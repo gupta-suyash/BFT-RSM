@@ -21,10 +21,21 @@ namespace pipeline
 {
 struct ReceivedCrossChainMessage
 {
-    scrooge::CrossChainMessage message{};
+    nng_msg *protoBatch{};
     uint64_t senderId{};
-    nng_msg *rebroadcastMsg{};
 };
+
+struct MessageBatch
+{
+  nng_msg *message{};
+  uint64_t spaceUsed{};
+  std::chrono::steady_clock::time_point creationTime{};
+};
+
+MessageBatch initMessageBatch(const uint64_t batchSize, const uint64_t batchEps, std::chrono::steady_clock::time_point creationTime);
+
+
+void trimMessageBatch(MessageBatch& batch);
 
 template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
 }; // namespace pipeline
@@ -42,18 +53,15 @@ class Pipeline
     void BroadcastToOwnRsm(const scrooge::CrossChainMessage &message);
     void rebroadcastToOwnRsm(nng_msg *message);
 
-    void RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &out);
-    void RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out);
-    void RecvAllToAllFromOtherRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out);
+    pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
+    pipeline::ReceivedCrossChainMessage RecvFromOwnRsm();
 
     void SendToAllOtherRsm(const scrooge::CrossChainMessage &message);
 
-    void BroadcastKeyToOwnRsm();
-    void BroadcastKeyToOtherRsm();
-    void RecvFromOwnRsm();
-    void RecvFromOtherRsm();
-
   private:
+    void bufferedMessageSend(const scrooge::CrossChainMessage& message,
+                             std::optional<pipeline::MessageBatch>* const batch,
+                             pipeline::MessageQueue<nng_msg *> * const sendingQueue);
     inline void SendToDestinations(bool isLocal, std::bitset<64> destinations,
                                    const scrooge::CrossChainMessage &message);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
@@ -65,9 +73,12 @@ class Pipeline
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
 
-    static constexpr uint64_t kMinimumPortNumber = 7000;
-    static constexpr std::chrono::milliseconds kMaxNngBlockingTime{500ms};
-    static constexpr uint64_t kBufferSize = 256;
+    static constexpr uint64_t kMinimumPortNumber = 7'000;
+    static constexpr uint64_t kBatchSizeEps = 150; // extra bytes to avoid realloc
+    static constexpr uint64_t kMinumBatchSize = (1 << 12) - kBatchSizeEps; // bytes
+    static constexpr auto kMaxBatchCreationTime = 10s;
+    static constexpr auto kMaxNngBlockingTime = 500ms;
+    static constexpr uint64_t kBufferSize = 1024;
 
     const NodeConfiguration kOwnConfiguration;
     const std::vector<std::string> kOwnNetworkUrls;
@@ -89,4 +100,7 @@ class Pipeline
     std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mLocalRecvBufs{};
     std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignSendBufs{};
     std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignRecvBufs{};
+
+    std::vector<std::optional<pipeline::MessageBatch>> mLocalMessageBatches{};
+    std::vector<std::optional<pipeline::MessageBatch>> mForeignMessageBatches{};
 };

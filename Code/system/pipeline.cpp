@@ -5,6 +5,25 @@
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 
+
+pipeline::MessageBatch pipeline::initMessageBatch(const uint64_t batchSize, const uint64_t batchEps, std::chrono::steady_clock::time_point creationTime)
+{
+  nng_msg *message;
+  nng_msg_alloc(&message, batchSize + batchEps);
+  return pipeline::MessageBatch{
+    .message = message,
+    .spaceUsed = 0,
+    .creationTime = creationTime
+  };
+}
+
+void pipeline::trimMessageBatch(pipeline::MessageBatch& batch)
+{
+  const auto batchSize = nng_msg_len(batch.message);
+  const auto unusedSpace = batchSize - batch.spaceUsed;
+  nng_msg_chop(batch.message, unusedSpace);
+}
+
 static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
     if (!message.has_ack_count())
@@ -161,53 +180,36 @@ template <typename T> static nng_msg *serializeProtobuf(const T &proto)
     return message;
 }
 
-template <typename T>
-static boost::container::small_vector<nng_msg *, 7> serializeProtobufRepeated(const T &proto, uint64_t numCopies)
+template <typename T> static void appendProto(const T &proto, pipeline::MessageBatch* const batch)
 {
-    boost::container::small_vector<nng_msg *, 7> messages(numCopies);
-    messages.front() = serializeProtobuf(proto);
-    for (int i = 1; i < numCopies; i++)
-    {
-        nng_msg_dup(&messages.at(i), messages.front());
-    }
-    return messages;
-}
-
-template <typename T> static T deserializeProtobuf(nng_msg *message)
-{
-    T proto;
-    const auto messageData = nng_msg_body(message);
+    auto& [message, spaceUsed, creationTime] = *batch;
+    auto messageData = (char*) nng_msg_body(message);
     const auto messageSize = nng_msg_len(message);
-    bool success = proto.ParseFromArray(messageData, messageSize);
-    nng_msg_free(message);
+    const uint32_t protoSize = proto.ByteSizeLong();
+    const auto delimiterSize = sizeof(protoSize);
+    const auto resultantSize = spaceUsed + protoSize + delimiterSize;
+    if (messageSize < resultantSize)
+    {
+        nng_msg_realloc(message, resultantSize);
+        messageData = (char*) nng_msg_body(message);
+    }
+
+    std::memcpy(messageData + spaceUsed, reinterpret_cast<const char *>(&protoSize), delimiterSize);
+
+    bool success = proto.SerializeToArray(messageData + spaceUsed + delimiterSize, protoSize);
+
     if (not success)
     {
-        SPDLOG_CRITICAL("PROTO DESERIALIZE FAILED DataSize={}", messageData);
+        SPDLOG_CRITICAL("PROTO SERIALIZE FAILED DataSize={} AllocResult={}", protoSize);
         std::abort();
     }
 
-    return proto;
-}
-
-template <typename T> static T unsafeDeserializeProtobuf(nng_msg *message)
-{
-    T proto;
-    const auto messageData = nng_msg_body(message);
-    const auto messageSize = nng_msg_len(message);
-    bool success = proto.ParseFromArray(messageData, messageSize);
-    // nng_msg_free(message); DOESN"T FREE MESSAGE
-    if (not success)
-    {
-        SPDLOG_CRITICAL("PROTO DESERIALIZE FAILED DataSize={}", messageData);
-        std::abort();
-    }
-
-    return proto;
+    spaceUsed += delimiterSize + protoSize;
 }
 
 Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::vector<std::string> &otherNetworkUrls,
                    NodeConfiguration ownConfiguration)
-    : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(ownNetworkUrls), kOtherNetworkUrls(otherNetworkUrls)
+    : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(ownNetworkUrls), kOtherNetworkUrls(otherNetworkUrls), mLocalMessageBatches(kOwnConfiguration.kOwnNetworkSize), mForeignMessageBatches(kOwnConfiguration.kOtherNetworkSize)
 {
     std::bitset<64> foreignAliveNodes{}, localAliveNodes{};
     localAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOwnNetworkSize);
@@ -226,8 +228,17 @@ Pipeline::~Pipeline()
             nng_msg_free(msg);
         }
     };
+    const auto freeBatch = [](auto &batch) {
+        if (batch.has_value())
+        {
+            nng_msg_free(batch->message);
+        }
+    };
 
     mShouldThreadStop = true;
+
+    std::for_each(mLocalMessageBatches.begin(), mLocalMessageBatches.end(), freeBatch);
+    std::for_each(mForeignMessageBatches.begin(), mForeignMessageBatches.end(), freeBatch);
 
     std::for_each(mLocalSendThreads.begin(), mLocalSendThreads.end(), joinThread);
     std::for_each(mForeignSendThreads.begin(), mForeignSendThreads.end(), joinThread);
@@ -327,7 +338,7 @@ void Pipeline::reportFailedNode(const std::string &nodeUrl, const uint64_t nodeI
     const auto ownNetwork = get_rsm_id();
     const auto failedNetwork = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_CRITICAL("Node [{} : {}] detected failed Node [{} : {} :: '{}']", ownNodeId, ownNetwork, nodeId,
-                    failedNetwork, nodeUrl);
+                    failedNetwork, nodeUrl); // used for detecting configuration issues
     if (isLocal)
     {
         reset_atomic_bit(mAliveNodesLocal, nodeId);
@@ -345,7 +356,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
 
     constexpr auto kNngSendSuccess = 0;
-    constexpr auto kMaxWaitTime = 3s;
+    constexpr auto kMaxWaitTime = 10s;
 
     nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
     nng_msg *newMessage;
@@ -367,8 +378,8 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
         if (std::chrono::steady_clock::now() - kStartTime > kMaxWaitTime ||
             mShouldThreadStop.load(std::memory_order_relaxed))
         {
-            nng_msg_free(newMessage);
             reportFailedNode(sendUrl, destNodeId, isLocal);
+            nng_msg_free(newMessage);
             goto exit;
         }
     }
@@ -440,76 +451,77 @@ exit:
     closeSocket(recvSocket, finishTime);
 }
 
+
+void Pipeline::bufferedMessageSend(const scrooge::CrossChainMessage& message,
+                         std::optional<pipeline::MessageBatch>* const batch,
+                         pipeline::MessageQueue<nng_msg *> * const sendingQueue)
+{
+    const auto curTime = std::chrono::steady_clock::now();
+    constexpr auto kSleepTime = 2s;
+
+    if (not batch->has_value())
+    {
+        const auto protoSize = message.ByteSizeLong();
+        if (protoSize >= kMinumBatchSize)
+        {
+            *batch = pipeline::initMessageBatch(protoSize, 0, {});
+        }
+        else
+        {
+            *batch = pipeline::initMessageBatch(kMinumBatchSize, kBatchSizeEps, curTime);
+        }
+    }
+
+    appendProto(message, &(batch->value()));
+
+    const auto timeDelta = curTime - batch->value().creationTime;
+    bool shouldSend = batch->value().spaceUsed > kMinumBatchSize || timeDelta > kMaxBatchCreationTime;
+    if (not shouldSend)
+    {
+        return;
+    }
+
+    trimMessageBatch(batch->value());
+
+    bool pushFailure{};
+
+    while ((pushFailure = not sendingQueue->wait_enqueue_timed(batch->value().message, kSleepTime)) && not is_test_over());
+
+
+    if (not pushFailure)
+    {
+        batch->reset();
+    }
+}
 /* This function is used to send message to a specific node in other RSM.
  *
  * @param nid is the identifier of the node in the other RSM.
  */
 void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, const scrooge::CrossChainMessage &message)
 {
-    constexpr auto kSleepTime = 2s;
 
     SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
                  message.data().message_content().size());
 
-    const auto isDestFailed = not mAliveNodesForeign.load(std::memory_order_relaxed).test(receivingNodeId);
-    if (isDestFailed)
-    {
-        return;
-    }
-
-    const auto messageData = serializeProtobuf(message);
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
-    bool isPushFail{};
+    const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
-    while ((isPushFail = not destinationBuffer->wait_enqueue_timed(messageData, kSleepTime)) && not is_test_over())
-    {
-        const auto isDestFailed = not mAliveNodesForeign.load(std::memory_order_relaxed).test(receivingNodeId);
-        if (isDestFailed)
-        {
-            break;
-        }
-    }
-
-    if (isPushFail)
-    {
-        nng_msg_free(messageData);
-    }
+    bufferedMessageSend(message, destinationBatch, destinationBuffer.get());
 }
 
-inline void Pipeline::SendToDestinations(bool isLocal, std::bitset<64> destinations,
+inline void Pipeline::SendToDestinations(const bool isLocal, std::bitset<64> destinations,
                                          const scrooge::CrossChainMessage &message)
 {
-    constexpr auto kSleepTime = 1s;
-    auto messages = serializeProtobufRepeated(message, destinations.count());
-
     while (destinations.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(destinations.to_ulong());
         destinations.reset(curDestination);
-        const auto &curBuffer = (isLocal) ? mLocalSendBufs.at(curDestination) : mForeignSendBufs.at(curDestination);
-        const auto &curMessage = messages.back();
-        bool isPushFail{};
 
-        while ((isPushFail = not curBuffer->wait_enqueue_timed(curMessage, kSleepTime)) && not is_test_over())
-        {
-            const auto isDestFailed = not mAliveNodesLocal.load(std::memory_order_relaxed).test(curDestination);
-            if (isDestFailed)
-            {
-                break;
-            }
-        }
+        const auto &destinationBuffer = (isLocal) ? mLocalSendBufs.at(curDestination) : mForeignSendBufs.at(curDestination);
+        auto& destinationBatch = (isLocal) ? mLocalMessageBatches.at(curDestination) : mForeignMessageBatches.at(curDestination);
 
-        if (isPushFail)
-        {
-            nng_msg_free(messages.back());
-        }
-        messages.pop_back();
-    }
-
-    for (const auto &message : messages)
-    {
-        nng_msg_free(message);
+        bufferedMessageSend(message, &destinationBatch, destinationBuffer.get());
     }
 }
 
@@ -575,193 +587,85 @@ void Pipeline::rebroadcastToOwnRsm(nng_msg *message)
 /* This function is used to receive messages from the other RSM.
  *
  */
-void Pipeline::RecvFromOtherRsm(boost::circular_buffer<pipeline::ReceivedCrossChainMessage> &out)
+pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOtherRsm()
 {
-    const auto kMaxMsgsPerNode = (out.capacity() - out.size()) / kOwnConfiguration.kOtherNetworkSize;
-    nng_msg *nng_message;
-    for (uint64_t node = 0; node < kOwnConfiguration.kOtherNetworkSize; node++)
-    {
-        const auto &curRecvBuffer = mForeignRecvBufs.at(node);
-        for (uint64_t msg = 0; msg < kMaxMsgsPerNode; msg++)
-        {
-            if (out.full())
-            {
-                return;
-            }
-            if (curRecvBuffer->try_dequeue(nng_message))
-            {
-                auto scroogeMessage = unsafeDeserializeProtobuf<scrooge::CrossChainMessage>(nng_message);
+    static uint64_t curNode{0ULL - 1};
+    nng_msg *message;
 
-                // THIS HACK DOESN'T WORK WITH STAKE -- UPDATE MESSAGE SCHEDULER
-                const bool isOriginalReceiver =
-                    scroogeMessage.data().sequence_number() % kOwnConfiguration.kOtherNetworkSize == node;
-                if (isOriginalReceiver)
-                {
-                    out.push_back(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node, nng_message});
-                }
-                else
-                {
-                    rebroadcastToOwnRsm(nng_message);
-                    out.push_front(pipeline::ReceivedCrossChainMessage{std::move(scroogeMessage), node, nullptr});
-                }
-            }
-            else
+    curNode = (curNode + 1 == mForeignRecvBufs.size())? 0 : curNode + 1;
+
+    while (not is_test_over())
+    {
+        for (uint64_t node = curNode; node < mForeignRecvBufs.size(); node++)
+        {
+            const auto& curBuf = mForeignRecvBufs.at(node);
+            if (curBuf->try_dequeue(message))
             {
-                break;
+                return pipeline::ReceivedCrossChainMessage{
+                    .protoBatch = message,
+                    .senderId = node
+                };
+            }
+        }
+
+        for (uint64_t node = 0; node < curNode; node++)
+        {
+            const auto& curBuf = mForeignRecvBufs.at(node);
+            if (curBuf->try_dequeue(message))
+            {
+                return pipeline::ReceivedCrossChainMessage{
+                    .protoBatch = message,
+                    .senderId = node
+                };
             }
         }
     }
-}
-
-/* This function is used to receive messages from the other RSM.
- *
- */
-void Pipeline::RecvAllToAllFromOtherRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out)
-{
-    const auto kMaxMsgsPerNode = (out.capacity() - out.size()) / kOwnConfiguration.kOtherNetworkSize;
-    nng_msg *nng_message;
-    for (uint64_t node = 0; node < kOwnConfiguration.kOtherNetworkSize; node++)
-    {
-        const auto &curRecvBuffer = mForeignRecvBufs.at(node);
-        for (uint64_t msg = 0; msg < kMaxMsgsPerNode; msg++)
-        {
-            if (out.full())
-            {
-                return;
-            }
-            if (curRecvBuffer->try_dequeue(nng_message))
-            {
-                auto scroogeMessage = deserializeProtobuf<scrooge::CrossChainMessage>(nng_message);
-                out.push_back(scrooge::CrossChainMessage{std::move(scroogeMessage)});
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
+    return {};
 }
 
 /* This function is used to receive messages from the nodes in own RSM.
  *
  */
-void Pipeline::RecvFromOwnRsm(boost::circular_buffer<scrooge::CrossChainMessage> &out)
+pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOwnRsm()
 {
-    const auto kMaxMsgsPerNode = (out.capacity() - out.size()) / kOwnConfiguration.kOtherNetworkSize;
-    nng_msg *nng_message;
-    for (uint64_t node = 0; node < mLocalRecvBufs.size(); node++)
-    {
-        if (node == kOwnConfiguration.kNodeId)
-        {
-            continue;
-        }
-        const auto &curRecvBuffer = mLocalRecvBufs.at(node);
-        for (uint64_t msg = 0; msg < kMaxMsgsPerNode; msg++)
-        {
-            if (out.full())
-            {
-                return;
-            }
-            if (curRecvBuffer->try_dequeue(nng_message))
-            {
-                auto scroogeMessage = deserializeProtobuf<scrooge::CrossChainMessage>(nng_message);
+    static uint64_t curNode{0ULL - 1};
+    nng_msg *message;
 
-                out.push_back(std::move(scroogeMessage));
-            }
-            else
+    curNode = (curNode + 1 == mLocalRecvBufs.size())? 0 : curNode + 1;
+
+    while (not is_test_over())
+    {
+        for (uint64_t node = curNode; node < mLocalRecvBufs.size(); node++)
+        {
+            if (node == kOwnConfiguration.kNodeId)
             {
-                break;
+                continue;
+            }
+            const auto& curBuf = mLocalRecvBufs.at(node);
+            if (curBuf->try_dequeue(message))
+            {
+                return pipeline::ReceivedCrossChainMessage{
+                    .protoBatch = message,
+                    .senderId = node
+                };
             }
         }
-    }
-}
 
-/* This function will send keys to own RSM.
- */
-void Pipeline::BroadcastKeyToOwnRsm()
-{
-    /*
-    scrooge::KeyExchangeMessage msg;
-    msg.clear_node_key();
-    msg.clear_node_id();
-    msg.set_node_key(get_priv_key());
-    msg.set_node_id(kOwnConfiguration.kNodeId);
-
-    constexpr auto kSleepTime = 1ns;
-
-    const auto messages = serializeProtobufRepeated(msg, kOwnConfiguration.kOwnNetworkSize);
-    for (int i = 0; i < kOwnConfiguration.kOwnNetworkSize; i++)
-    {
-        const auto& curBuffer =  mLocalSendBufs.at(i);
-        const auto& curMessage = messages.at(i);
-        while (not is_test_over() && not curBuffer->wait_enqueue_timed(curMessage, kSleepTime));
-    }
-    */
-}
-
-/* This function will send keys to other RSM.
- */
-void Pipeline::BroadcastKeyToOtherRsm()
-{
-    /*
-    scrooge::KeyExchangeMessage msg;
-    msg.set_node_key(get_priv_key());
-    msg.set_node_id(kOwnConfiguration.kNodeId);
-
-    constexpr auto kSleepTime = 1ns;
-
-    const auto messages = serializeProtobufRepeated(msg, kOwnConfiguration.kOtherNetworkSize);
-    for (int i = 0; i < kOwnConfiguration.kOtherNetworkSize; i++)
-    {
-        const auto& curBuffer =  mForeignSendBufs.at(i);
-        const auto& curMessage = messages.at(i);
-        while (not is_test_over() && not curBuffer->wait_enqueue_timed(curMessage, kSleepTime));
-    }
-    */
-}
-
-/* This function is used to receive messages from the nodes in own RSM.
- */
-void Pipeline::RecvFromOwnRsm()
-{
-    /*
-    const auto ownId = kOwnConfiguration.kNodeId;
-    const auto localNetworkSize = kOwnConfiguration.kOwnNetworkSize;
-
-    uint64_t count = 0;
-    nng_msg nng_message;
-    while (count < (localNetworkSize - 1))
-    {
-        mLocalReceivedMessageQueue.wait_dequeue(nng_message);
-        auto keyMsg = deserializeProtobuf<scrooge::KeyExchangeMessage>(nng_message);
-        auto nodeId = keyMsg.node_id();
-        auto privKey = keyMsg.node_key();
-        set_own_rsm_key(nodeId, privKey);
-        std::cout << "Node: " << ownId << " :Key for node: " << nodeId << ": " << privKey << std::endl;
-        count++;
-    }
-    */
-}
-
-/* This function is used to receive messages from the other RSM.
- */
-void Pipeline::RecvFromOtherRsm()
-{
-    /*
-    const auto foreignNetworkSize = kOwnConfiguration.kOtherNetworkSize;
-
-    uint64_t count = 0;
-    pipeline::foreign_nng_message nng_message;
-    while (count < foreignNetworkSize)
-    {
-        if (mForeignReceivedMessageQueue.try_dequeue(nng_message))
+        for (uint64_t node = 0; node < curNode; node++)
         {
-            auto keyMsg = deserializeProtobuf<scrooge::KeyExchangeMessage>(nng_message.message);
-            auto nodeId = keyMsg.node_id();
-            auto privKey = keyMsg.node_key();
-            set_other_rsm_key(nodeId, privKey);
-            count++;
+            if (node == kOwnConfiguration.kNodeId)
+            {
+                continue;
+            }
+            const auto& curBuf = mLocalRecvBufs.at(node);
+            if (curBuf->try_dequeue(message))
+            {
+                return pipeline::ReceivedCrossChainMessage{
+                    .protoBatch = message,
+                    .senderId = node
+                };
+            }
         }
     }
-    */
+    return {};
 }
