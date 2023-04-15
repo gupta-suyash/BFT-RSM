@@ -127,7 +127,7 @@ void runGenerateMessageThreadWithIpc()
             auto messageContent = request.mutable_send_message_request()->mutable_content();
             messageContent->set_message_content(std::string(kMessageSize, 'L'));
             messageContent->set_sequence_number(curSequenceNumber);
-	    curSequenceNumber++;
+	        curSequenceNumber++;
 
             writeMessage(pipe, request.SerializeAsString());
 	}
