@@ -178,6 +178,26 @@ def save_graphs(graphs: List[Graph]):
         fig = make_fig(graph)
         fig.write_image(f'{graph.title}.png')
 
+def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for transfer_strategy, group in dataframe.groupby('transfer_strategy'):
+        message_sizes = group.message_size.unique()
+        message_sizes.sort()
+        average_latencies = []
+        overall_throughputs = []
+        for message_size in message_sizes:
+            size_group = group.query('message_size == @message_size')
+            quack_delta = size_group.max_quorum_acknowledgment - size_group.starting_quack
+            throughput = quack_delta / size_group.duration_seconds
+            latency = size_group.Latency
+            rows.append({
+                'message_size': message_size,
+                'latency': latency.mean(),
+                'throughput': throughput.mean(),
+                'strategy': transfer_strategy
+            })
+
+    return pd.DataFrame.from_dict(rows)
 
 def main():
     dirs = [dir for dir in sys.argv[1:] if os.path.isdir(dir)]
@@ -188,6 +208,13 @@ def main():
     clean_dataframe(dataframe)
     graphs = get_graphs_by_group(dataframe)
     save_graphs(graphs)
+
+    csv = get_throughput_latency_csv(dataframe)
+
+    csv.sort_values(by=['strategy', 'message_size'], inplace=True)
+    print('Cur Results:')
+    print(csv)
+    csv.to_csv('cur_results.csv', index=False)
 
 if __name__ == '__main__':
     main()
