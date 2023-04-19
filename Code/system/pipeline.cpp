@@ -451,6 +451,47 @@ exit:
     closeSocket(recvSocket, finishTime);
 }
 
+void Pipeline::appendToBufferedMessage(const scrooge::CrossChainMessage& message,
+                             std::optional<pipeline::MessageBatch>* const batch,
+                             pipeline::MessageQueue<nng_msg *> * const sendingQueue)
+{
+    const auto curTime = std::chrono::steady_clock::now();
+    constexpr auto kSleepTime = 2s;
+
+    if (not batch->has_value())
+    {
+        const auto protoSize = message.ByteSizeLong()+ sizeof(uint32_t);
+        if (protoSize >= kMinumBatchSize)
+        {
+            *batch = pipeline::initMessageBatch(protoSize, 0, {});
+        }
+        else
+        {
+            *batch = pipeline::initMessageBatch(kMinumBatchSize, kBatchSizeEps, curTime);
+        }
+    }
+
+    appendProto(message, &(batch->value()));
+}
+
+void Pipeline::flushBufferedMessage(const scrooge::CrossChainMessage& message,
+                             std::optional<pipeline::MessageBatch>* const batch,
+                             pipeline::MessageQueue<nng_msg *> * const sendingQueue)
+
+{
+    constexpr auto kSleepTime = 2s;
+    trimMessageBatch(batch->value());
+
+    bool pushFailure{};
+
+    while ((pushFailure = not sendingQueue->wait_enqueue_timed(batch->value().message, kSleepTime)) && not is_test_over());
+
+
+    if (not pushFailure)
+    {
+        batch->reset();
+    }
+}
 
 void Pipeline::bufferedMessageSend(const scrooge::CrossChainMessage& message,
                          std::optional<pipeline::MessageBatch>* const batch,
@@ -507,7 +548,19 @@ void Pipeline::SendToOtherRsm(const uint64_t receivingNodeId, const scrooge::Cro
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
-    bufferedMessageSend(message, destinationBatch, destinationBuffer.get());
+    if (message.has_data())
+    {
+        bufferedMessageSend(message, destinationBatch, destinationBuffer.get());
+    }
+    else if (destinationBatch->has_value())
+    {
+        flushBufferedMessage(message, destinationBatch, destinationBuffer.get());
+    }
+    else
+    {
+        appendToBufferedMessage(message, destinationBatch, destinationBuffer.get());
+        flushBufferedMessage(message, destinationBatch, destinationBuffer.get());
+    }
 }
 
 inline void Pipeline::SendToDestinations(const bool isLocal, std::bitset<64> destinations,

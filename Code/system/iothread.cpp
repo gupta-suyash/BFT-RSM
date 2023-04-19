@@ -317,8 +317,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
                                                                   : kQAckWindowSize + curQuack.value_or(0);
         const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
         const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
-	const auto curTime = std::chrono::steady_clock::now();
-	const bool isNoopTimeoutHit = curTime - std::max(lastNoopTime,lastSendTime) > kNoopDelay;
+        const auto curTime = std::chrono::steady_clock::now();
+        const bool isNoopTimeoutHit = curTime - std::max(lastNoopTime,lastSendTime) > kNoopDelay;
         const bool isTimeoutHit = curTime - lastSendTime > kMaxMessageDelay;
         const bool shouldDequeue = isTimeoutHit || (isAckFresh && isSequenceNumberUseful);
 
@@ -375,10 +375,10 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
 	{
 	    static uint64_t receiver = 0;
 	    setAckValue(&newMessage, *acknowledgment);
-            generateMessageMac(&newMessage);
-            pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, newMessage);
+        generateMessageMac(&newMessage);
+        pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, newMessage);
 	    receiver++;
-            numMsgsSentWithLastAck++; 
+        numMsgsSentWithLastAck++; 
 	    noop_ack++;
 
 	    lastNoopTime = curTime;

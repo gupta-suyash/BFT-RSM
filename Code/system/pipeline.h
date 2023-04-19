@@ -62,6 +62,12 @@ class Pipeline
     void bufferedMessageSend(const scrooge::CrossChainMessage& message,
                              std::optional<pipeline::MessageBatch>* const batch,
                              pipeline::MessageQueue<nng_msg *> * const sendingQueue);
+    void appendToBufferedMessage(const scrooge::CrossChainMessage& message,
+                             std::optional<pipeline::MessageBatch>* const batch,
+                             pipeline::MessageQueue<nng_msg *> * const sendingQueue);
+    void flushBufferedMessage(const scrooge::CrossChainMessage& message,
+                             std::optional<pipeline::MessageBatch>* const batch,
+                             pipeline::MessageQueue<nng_msg *> * const sendingQueue);
     inline void SendToDestinations(bool isLocal, std::bitset<64> destinations,
                                    const scrooge::CrossChainMessage &message);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
