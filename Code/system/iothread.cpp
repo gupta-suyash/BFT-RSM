@@ -39,8 +39,7 @@ bool checkMessageMac(const scrooge::CrossChainMessage *const message)
     // const auto senderKey = get_other_rsm_key(nng_message.senderId);
     const auto senderKey = get_priv_key();
     // Verify the message
-    bool res = CmacVerifyString(senderKey, mstr, message->validity_proof());
-    return res;
+    return CmacVerifyString(senderKey, mstr, message->validity_proof());
 }
 
 void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
@@ -524,67 +523,124 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_CRITICAL("FOREIGN RECV THREAD TID {}", gettid());
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
-                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
-    auto localReceiveThread = std::thread(runLocalReceiveThread, pipeline, acknowledgment);
 
     uint64_t timedMessages{};
-    scrooge::CrossChainMessage foreignMessage;
+    pipeline::ReceivedCrossChainMessage receivedMessage{};
 
     while (not is_test_over())
     {
-        const auto [batchMessage, senderId] = pipeline->RecvFromOtherRsm();
-        if (not batchMessage)
+        if (receivedMessage.protoBatch == nullptr)
         {
-            std::this_thread::yield();
-            continue;
+            receivedMessage = pipeline->RecvFromOtherRsm();
         }
-        const auto batchData = (char*) nng_msg_body(batchMessage);
-        const auto batchSize = nng_msg_len(batchMessage);
-        uint64_t batchPos = 0;
 
-        while (batchPos < batchSize && not is_test_over())
+        if (receivedMessage.protoBatch != nullptr)
         {
-            constexpr auto delimiterSize = sizeof(uint32_t);
-            const auto delimiterPos = batchData + batchPos;
-            const auto messagePos = batchData + batchPos + delimiterSize;
-            const auto messageSize = *(reinterpret_cast<uint32_t*>(delimiterPos));
+            const auto [batchMessage, senderId] = receivedMessage;
+            const auto batchData = (char*) nng_msg_body(batchMessage);
+            const auto batchSize = nng_msg_len(batchMessage);
+            uint64_t batchPos = 0;
+            std::optional<uint64_t> max_foreign_ack{};
+            uint64_t max_foreign_ack_repeats{};
 
-            foreignMessage.Clear();
-            foreignMessage.ParseFromArray(messagePos, messageSize);
-            batchPos += delimiterSize + messageSize;
-
-            if (isMessageValid(foreignMessage))
+            while (batchPos < batchSize && not is_test_over())
             {
-                acknowledgment->addToAckList(foreignMessage.data().sequence_number());
-                timedMessages += is_test_recording();
-            }
+                constexpr auto delimiterSize = sizeof(uint32_t);
+                const auto delimiterPos = batchData + batchPos;
+                const auto messagePos = batchData + batchPos + delimiterSize;
+                const auto messageSize = *(reinterpret_cast<uint32_t*>(delimiterPos));
 
-            if (foreignMessage.has_ack_count())
-            {
-                bool isAckValid = checkMessageMac(&foreignMessage);
-                if (not isAckValid)
+                scrooge::CrossChainMessage foreignMessage;
+                foreignMessage.ParseFromArray(messagePos, messageSize);
+                batchPos += delimiterSize + messageSize;
+
+                if (isMessageValid(foreignMessage))
                 {
-                    SPDLOG_CRITICAL("CANNOT VERIFY ACK OF MESSAGE {}", foreignMessage.data().sequence_number());
-                    continue;
+                    acknowledgment->addToAckList(foreignMessage.data().sequence_number());
+                    timedMessages += is_test_recording();
                 }
-                const auto foreignAckCount = foreignMessage.ack_count().value();
-                const auto senderStake = kOtherNetworkStakes.at(senderId);
-                const auto currentQuack = quorumAck->updateNodeAck(senderId, senderStake, foreignAckCount);
-                ackTracker->update(senderId, senderStake, foreignAckCount, currentQuack);
+
+                const auto curForeignAck =
+                    (foreignMessage.has_ack_count())?
+                    std::optional<uint64_t>(foreignMessage.ack_count().value())
+                    : std::nullopt;
+
+                if (curForeignAck > max_foreign_ack)
+                {
+                    max_foreign_ack_repeats = 0;
+                    max_foreign_ack = curForeignAck;
+                }
+
+                max_foreign_ack_repeats++;
+
+                if (batchPos >= batchSize)
+                {
+                    bool isAckValid = checkMessageMac(&foreignMessage);
+                    if (not isAckValid)
+                    {
+                        SPDLOG_CRITICAL("CANNOT VERIFY ACK OF MESSAGE {}", foreignMessage.data().sequence_number());
+                        max_foreign_ack_repeats = 0;
+                        max_foreign_ack = std::nullopt;
+                        continue;
+                    }
+                }
             }
-            else
+            
+            const auto senderStake = configuration.kOtherNetworkStakes.at(senderId);
+            if (max_foreign_ack)
             {
-                const auto foreignAckCount = std::nullopt;
-                const auto senderStake = kOtherNetworkStakes.at(senderId);
+                quorumAck->updateNodeAck(senderId, senderStake, *max_foreign_ack);
+            }
+
+            for (uint64_t ackRepeat{}; ackRepeat < max_foreign_ack_repeats; ackRepeat++)
+            {
                 const auto currentQuack = quorumAck->getCurrentQuack();
-                ackTracker->update(senderId, senderStake, foreignAckCount, currentQuack);
+                ackTracker->update(senderId, senderStake, max_foreign_ack, currentQuack);
             }
         }
-        pipeline->rebroadcastToOwnRsm(batchMessage);
+
+        if (receivedMessage.protoBatch)
+        {
+            bool success = pipeline->rebroadcastToOwnRsm(receivedMessage.protoBatch);
+            if (success)
+            {
+                receivedMessage.protoBatch = nullptr;
+            }
+        }
+
+        const auto [batchMessage, senderId] = pipeline->RecvFromOwnRsm();
+        if (batchMessage)
+        {
+            const auto batchData = (char*) nng_msg_body(batchMessage);
+            const auto batchSize = nng_msg_len(batchMessage);
+            uint64_t batchPos = 0;
+
+            while (batchPos < batchSize)
+            {
+                constexpr auto delimiterSize = sizeof(uint32_t);
+                const auto delimiterPos = batchData + batchPos;
+                const auto messagePos = batchData + batchPos + delimiterSize;
+                const auto messageSize = *(reinterpret_cast<uint32_t*>(delimiterPos));
+
+                scrooge::CrossChainMessage message;
+                message.ParseFromArray(messagePos, messageSize);
+                batchPos += delimiterSize + messageSize;
+
+                if (isMessageValid(message))
+                {
+                    timedMessages += is_test_recording();
+                    acknowledgment->addToAckList(message.data().sequence_number());
+                }
+            }
+            nng_msg_free(batchMessage);
+        }
+    }
+
+    if (receivedMessage.protoBatch)
+    {
+        nng_msg_free(receivedMessage.protoBatch);
     }
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
-    localReceiveThread.join();
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));

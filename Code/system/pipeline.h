@@ -51,7 +51,7 @@ class Pipeline
 
     void SendToOtherRsm(uint64_t receivingNodeId, const scrooge::CrossChainMessage &message);
     void BroadcastToOwnRsm(const scrooge::CrossChainMessage &message);
-    void rebroadcastToOwnRsm(nng_msg *message);
+    bool rebroadcastToOwnRsm(nng_msg *message);
 
     pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
     pipeline::ReceivedCrossChainMessage RecvFromOwnRsm();

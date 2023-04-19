@@ -7,24 +7,7 @@
  */
 void Acknowledgment::addToAckList(const uint64_t ack)
 {
-    static constexpr uint64_t kAckBatch{2048};
-    thread_local std::vector<uint64_t> localAcks{};
-    thread_local uint64_t curRound{};
-
-    if (curRound++ < kAckBatch)
-    {
-        localAcks.push_back(ack);
-    }
-
-    curRound = 0;
-
-    std::scoped_lock lock{mMutex};
-    for (const auto ack : localAcks)
-    {
-        mAckWindows.add(ack);
-    }
-
-    localAcks.clear();
+    mAckWindows.add(ack);
 
     const auto minimumAckWindow = std::cbegin(mAckWindows);
 

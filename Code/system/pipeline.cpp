@@ -461,7 +461,7 @@ void Pipeline::bufferedMessageSend(const scrooge::CrossChainMessage& message,
 
     if (not batch->has_value())
     {
-        const auto protoSize = message.ByteSizeLong();
+        const auto protoSize = message.ByteSizeLong()+ sizeof(uint32_t);
         if (protoSize >= kMinumBatchSize)
         {
             *batch = pipeline::initMessageBatch(protoSize, 0, {});
@@ -475,7 +475,7 @@ void Pipeline::bufferedMessageSend(const scrooge::CrossChainMessage& message,
     appendProto(message, &(batch->value()));
 
     const auto timeDelta = curTime - batch->value().creationTime;
-    bool shouldSend = batch->value().spaceUsed > kMinumBatchSize || timeDelta > kMaxBatchCreationTime;
+    bool shouldSend = batch->value().spaceUsed >= kMinumBatchSize || timeDelta > kMaxBatchCreationTime;
     if (not shouldSend)
     {
         return;
@@ -531,9 +531,62 @@ inline void Pipeline::SendToDestinations(const bool isLocal, std::bitset<64> des
  */
 void Pipeline::SendToAllOtherRsm(const scrooge::CrossChainMessage &message)
 {
-    const auto foreignAliveNodes = mAliveNodesForeign.load(std::memory_order_relaxed);
-    bool isLocal = false;
-    SendToDestinations(isLocal, foreignAliveNodes, message);
+    const auto curTime = std::chrono::steady_clock::now();
+    constexpr auto kSleepTime = 2s;
+
+    auto& batch = mForeignMessageBatches.at(0);
+
+    if (not batch.has_value())
+    {
+        const auto protoSize = message.ByteSizeLong() + sizeof(uint32_t);
+        if (protoSize >= kMinumBatchSize)
+        {
+            batch = pipeline::initMessageBatch(protoSize, 0, {});
+        }
+        else
+        {
+            batch = pipeline::initMessageBatch(kMinumBatchSize, kBatchSizeEps, curTime);
+        }
+    }
+
+    appendProto(message, &(batch.value()));
+
+    const auto timeDelta = curTime - batch.value().creationTime;
+    bool shouldSend = batch.value().spaceUsed >= kMinumBatchSize || timeDelta > kMaxBatchCreationTime;
+    if (not shouldSend)
+    {
+        return;
+    }
+
+    trimMessageBatch(batch.value());
+
+    auto foreignAliveNodes = mAliveNodesForeign.load(std::memory_order_relaxed);
+
+    while (foreignAliveNodes.any() && not is_test_over())
+    {
+        const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
+        foreignAliveNodes.reset(curDestination);
+        const auto &curBuffer = mForeignSendBufs.at(curDestination);
+        nng_msg* curMessage;
+
+        if (foreignAliveNodes.any())
+        {
+            nng_msg_dup(&curMessage, batch->message);
+        }
+        else
+        {
+            curMessage = batch->message;
+        }
+
+        while (not curBuffer->wait_enqueue_timed(curMessage, kSleepTime))
+        {
+            if (is_test_over())
+            {
+                break;
+            }
+        }
+    }
+    batch.reset();
 }
 
 void Pipeline::BroadcastToOwnRsm(const scrooge::CrossChainMessage &message)
@@ -545,43 +598,43 @@ void Pipeline::BroadcastToOwnRsm(const scrooge::CrossChainMessage &message)
     SendToDestinations(isLocal, localAliveDestinations, message);
 }
 
-void Pipeline::rebroadcastToOwnRsm(nng_msg *message)
+bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
 {
-    constexpr auto kSleepTime = 1s;
-
+    static std::optional<uint64_t> lastSentNode{};
+    static nng_msg *curMessage{};
     auto remainingDestinations = mAliveNodesLocal.load(std::memory_order_relaxed);
     remainingDestinations.reset(kOwnConfiguration.kNodeId);
+
+    if (lastSentNode.has_value())
+    {
+        remainingDestinations &= (~0) << lastSentNode.value();
+    }
 
     while (remainingDestinations.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(remainingDestinations.to_ulong());
         remainingDestinations.reset(curDestination);
         const auto &curBuffer = mLocalSendBufs.at(curDestination);
-        nng_msg *curMessage;
-        if (remainingDestinations.any())
+
+        if (remainingDestinations.any() && not lastSentNode.has_value())
         {
             nng_msg_dup(&curMessage, message);
         }
-        else
+        else if(not lastSentNode.has_value())
         {
             curMessage = message;
         }
-        bool isPushFail{};
+        lastSentNode.reset();
 
-        while ((isPushFail = not curBuffer->wait_enqueue_timed(curMessage, kSleepTime)) && not is_test_over())
+        if (not curBuffer->try_enqueue(curMessage))
         {
-            const auto isDestFailed = not mAliveNodesLocal.load(std::memory_order_relaxed).test(curDestination);
-            if (isDestFailed)
-            {
-                break;
-            }
-        }
-
-        if (isPushFail)
-        {
-            nng_msg_free(curMessage);
+            lastSentNode = curDestination;
+            // will possibly leak one message on shutdown /shrug
+            return false;
         }
     }
+    lastSentNode.reset();
+    return true;
 }
 
 /* This function is used to receive messages from the other RSM.
@@ -594,32 +647,30 @@ pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOtherRsm()
 
     curNode = (curNode + 1 == mForeignRecvBufs.size())? 0 : curNode + 1;
 
-    while (not is_test_over())
+    for (uint64_t node = curNode; node < mForeignRecvBufs.size(); node++)
     {
-        for (uint64_t node = curNode; node < mForeignRecvBufs.size(); node++)
+        const auto& curBuf = mForeignRecvBufs.at(node);
+        if (curBuf->try_dequeue(message))
         {
-            const auto& curBuf = mForeignRecvBufs.at(node);
-            if (curBuf->try_dequeue(message))
-            {
-                return pipeline::ReceivedCrossChainMessage{
-                    .protoBatch = message,
-                    .senderId = node
-                };
-            }
-        }
-
-        for (uint64_t node = 0; node < curNode; node++)
-        {
-            const auto& curBuf = mForeignRecvBufs.at(node);
-            if (curBuf->try_dequeue(message))
-            {
-                return pipeline::ReceivedCrossChainMessage{
-                    .protoBatch = message,
-                    .senderId = node
-                };
-            }
+            return pipeline::ReceivedCrossChainMessage{
+                .protoBatch = message,
+                .senderId = node
+            };
         }
     }
+
+    for (uint64_t node = 0; node < curNode; node++)
+    {
+        const auto& curBuf = mForeignRecvBufs.at(node);
+        if (curBuf->try_dequeue(message))
+        {
+            return pipeline::ReceivedCrossChainMessage{
+                .protoBatch = message,
+                .senderId = node
+            };
+        }
+    }
+
     return {};
 }
 
@@ -633,39 +684,37 @@ pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOwnRsm()
 
     curNode = (curNode + 1 == mLocalRecvBufs.size())? 0 : curNode + 1;
 
-    while (not is_test_over())
+    for (uint64_t node = curNode; node < mLocalRecvBufs.size(); node++)
     {
-        for (uint64_t node = curNode; node < mLocalRecvBufs.size(); node++)
+        if (node == kOwnConfiguration.kNodeId)
         {
-            if (node == kOwnConfiguration.kNodeId)
-            {
-                continue;
-            }
-            const auto& curBuf = mLocalRecvBufs.at(node);
-            if (curBuf->try_dequeue(message))
-            {
-                return pipeline::ReceivedCrossChainMessage{
-                    .protoBatch = message,
-                    .senderId = node
-                };
-            }
+            continue;
         }
-
-        for (uint64_t node = 0; node < curNode; node++)
+        const auto& curBuf = mLocalRecvBufs.at(node);
+        if (curBuf->try_dequeue(message))
         {
-            if (node == kOwnConfiguration.kNodeId)
-            {
-                continue;
-            }
-            const auto& curBuf = mLocalRecvBufs.at(node);
-            if (curBuf->try_dequeue(message))
-            {
-                return pipeline::ReceivedCrossChainMessage{
-                    .protoBatch = message,
-                    .senderId = node
-                };
-            }
+            return pipeline::ReceivedCrossChainMessage{
+                .protoBatch = message,
+                .senderId = node
+            };
         }
     }
+
+    for (uint64_t node = 0; node < curNode; node++)
+    {
+        if (node == kOwnConfiguration.kNodeId)
+        {
+            continue;
+        }
+        const auto& curBuf = mLocalRecvBufs.at(node);
+        if (curBuf->try_dequeue(message))
+        {
+            return pipeline::ReceivedCrossChainMessage{
+                .protoBatch = message,
+                .senderId = node
+            };
+        }
+    }
+    
     return {};
 }
