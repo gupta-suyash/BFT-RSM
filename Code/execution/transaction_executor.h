@@ -105,10 +105,11 @@ class TransactionExecutor {
   LockFreeQueue<Request> commit_queue_, execute_queue_, execute_OOO_queue_;
 
   //@Suyash
+  uint64_t tot_txn = 0;
   PostValidateFunc post_valid_func_ = nullptr;
   std::thread scrooge_snd_thread_, scrooge_rcv_thread_;
   LockFreeQueue<BatchClientResponse> scrooge_snd_queue_; 
-  std::string read_pipe_path_, write_pipe_path_;
+  std::string read_pipe_path_, write_pipe_path_, data_str;
   //******
 
   std::atomic<bool> stop_;

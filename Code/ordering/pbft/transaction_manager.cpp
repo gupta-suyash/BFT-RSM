@@ -50,8 +50,8 @@ TransactionManager::TransactionManager(
 	    //@Suyash
 	    // Originally, the resp_msg was supposed to be pushed to queue_
 	    // but now we first store it in store_queue.
-            //queue_.Push(std::move(resp_msg));
-	    store_queue_.Push(std::move(resp_msg));
+            queue_.Push(std::move(resp_msg));
+	    //store_queue_.Push(std::move(resp_msg));
 
             if (checkpoint_manager_) {
               checkpoint_manager_->AddCommitData(std::move(request));
@@ -67,7 +67,7 @@ TransactionManager::TransactionManager(
 	    auto resp_msg = store_queue_.Pop();
 	    if (resp_msg->seq() == seq_no) {
 	      queue_.Push(std::move(resp_msg));
-	      LOG(INFO) << "Matched";
+	      //LOG(INFO) << "Matched";
 	    }		    
           }		      
       )),

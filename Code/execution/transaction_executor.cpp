@@ -32,6 +32,8 @@
 #include "scrooge_transfer.pb.h"
 
 #include <glog/logging.h>
+#include <chrono>
+#include <ctime>
 
 namespace resdb {
 
@@ -59,34 +61,43 @@ TransactionExecutor::TransactionExecutor(
   }
 
   //@Suyash
-	read_pipe_path_ = "/tmp/scrooge-output";
-	write_pipe_path_ = "/tmp/scrooge-input";
+  tot_txn = 0;
+  read_pipe_path_ = "/tmp/scrooge-output";
+  write_pipe_path_ = "/tmp/scrooge-input";
+  
+  constexpr auto kFullPermissions = 0777;
+  
+  if(std::filesystem::exists(read_pipe_path_)) {
+  	const auto eraseError = std::remove(read_pipe_path_.c_str()) != 0;
+  	if(eraseError) {
+  		LOG(INFO) << "Not Erased";
+  	} else {
+		LOG(INFO) << "Erased";
+	}		
+  } else {
+		LOG(INFO) << "Does not exist";
+  }
+  
+  const auto success = (mkfifo(read_pipe_path_.c_str(), kFullPermissions) == 0);
+  if (not success) {
+  	LOG(INFO) << "Cannot Create Read Pipe";
+  } else {
+	LOG(INFO) << "Created";
+  }
+  
+  if(std::filesystem::exists(write_pipe_path_)) {
+  	const auto eraseError = std::remove(write_pipe_path_.c_str()) != 0;
+  	if(eraseError) {
+  		LOG(INFO) << "Not Erased";
+  	}				
+  }
+  
+  const auto wsuccess = (mkfifo(write_pipe_path_.c_str(), kFullPermissions) == 0);
+  if (not wsuccess) {
+  	LOG(INFO) << "Cannot Create Write Pipe";
+  }
 
-	constexpr auto kFullPermissions = 0777;
-
-	if(std::filesystem::exists(read_pipe_path_)) {
-		const auto eraseError = std::remove(read_pipe_path_.c_str()) != 0;
-		if(eraseError) {
-			LOG(INFO) << "Not Erased";
-		}				
-	}
-
-	const auto success = (mkfifo(read_pipe_path_.c_str(), kFullPermissions) == 0);
-	if (not success) {
-		LOG(INFO) << "Cannot Create Read Pipe";
-	}
-
-	if(std::filesystem::exists(write_pipe_path_)) {
-		const auto eraseError = std::remove(write_pipe_path_.c_str()) != 0;
-		if(eraseError) {
-			LOG(INFO) << "Not Erased";
-		}				
-	}
-
-	const auto wsuccess = (mkfifo(write_pipe_path_.c_str(), kFullPermissions) == 0);
-	if (not wsuccess) {
-		LOG(INFO) << "Cannot Create Write Pipe";
-	}
+  data_str = std::string(100, 'R');
 
   scrooge_snd_thread_ = std::thread(&TransactionExecutor::ScroogeSendMessage, this);
   scrooge_rcv_thread_ = std::thread(&TransactionExecutor::ScroogeRecvMessage, this);
@@ -259,6 +270,15 @@ void TransactionExecutor::Execute(std::unique_ptr<Request> request,
   if (executor_impl_ && need_execute) {
     response = executor_impl_->ExecuteBatch(batch_request);
   }
+
+  //@Suyash
+  //tot_txn = tot_txn + batch_request.client_requests_size();
+  //LOG(INFO) << "TOT: " << tot_txn;
+  //
+  // auto timeNow = std::chrono::system_clock::now();
+  // auto passed = timeNow.time_since_epoch();
+  // LOG(INFO) << "Executed: " << request->seq()-1 << "At: " << passed.count();
+
   
   global_stats_->IncTotalRequest(batch_request.client_requests_size());
   if (executor_impl_ == nullptr || executor_impl_->NeedResponse()) {
@@ -269,12 +289,13 @@ void TransactionExecutor::Execute(std::unique_ptr<Request> request,
     response->set_createtime(batch_request.createtime());
     response->set_local_id(batch_request.local_id());
 
-		//@Suyash
-  	std::unique_ptr<BatchClientResponse> scrooge_response = std::make_unique<BatchClientResponse> (*response);
-		scrooge_response->set_seq(request->seq());
-		scrooge_response->set_current_view(request->current_view());
-  	scrooge_snd_queue_.Push(std::move(scrooge_response));
-		//LOG(INFO) << "FOUND: " << request->seq();
+    //@Suyash
+    /*
+    std::unique_ptr<BatchClientResponse> scrooge_response = std::make_unique<BatchClientResponse> (*response);
+    scrooge_response->set_seq(request->seq());
+    scrooge_response->set_current_view(request->current_view());
+    scrooge_snd_queue_.Push(std::move(scrooge_response));
+    */
 
     post_exec_func_(std::move(request), std::move(response));
   }
@@ -285,15 +306,17 @@ void TransactionExecutor::Execute(std::unique_ptr<Request> request,
 
 //@Suyash
 void TransactionExecutor::ScroogeSendMessage() {
-  //LOG(INFO) << "ScroogeSendMessage: " << config_.GetSelfInfo().id();
-  
+  LOG(INFO) << "ScroogeSendMessage: " << config_.GetSelfInfo().id();
+
   // Creating Pipe for transfer
   //std::string pipe_path = "/tmp/scrooge-input"; //+ std::to_string(config_.GetSelfInfo().id());
   //scr_write_.open(pipe_path, std::ios_base::binary);
-	std::ofstream scr_write_{write_pipe_path_, std::ios_base::binary};
-	std::ofstream scr_wtemp_{read_pipe_path_, std::ios_base::binary};
+  std::ofstream scr_write_{write_pipe_path_, std::ios_base::binary};
+  //std::ofstream scr_rtemp_{read_pipe_path_, std::ios_base::binary};
 
   LOG(INFO) << "PIPE: " << write_pipe_path_;
+
+  auto start = std::chrono::steady_clock::now();
 
   while (!IsStop()) {
     auto response = scrooge_snd_queue_.Pop();
@@ -301,62 +324,72 @@ void TransactionExecutor::ScroogeSendMessage() {
       continue;
     }
 
-    //ScroogeSend(std::move(message));
-		
-		/*
-  	// Response in string format.
-  	std::string resp_str = "ResDB data";
-  	//response->SerializeToString(&resp_str);
-  	//LOG(INFO) << "RESPONSE: " << resp_str;
+    // Response in string format.
+    //std::string resp_str = "ResDB data";
+    //response->SerializeToString(&resp_str);
+    //LOG(INFO) << "RESPONSE: " << resp_str;
+   
+     
+    scrooge::ScroogeRequest scroogeRequest;
+    scrooge::SendMessageRequest sendMessageRequest;
+    scrooge::CrossChainMessageData messageData;
+    
+    messageData.set_message_content(data_str);
+    messageData.set_sequence_number(response->seq()-1);
+    //LOG(INFO) << "WRITE SEQ: " << messageData.sequence_number();
+    
+    std::string validityProof = "bytes of a proof";
+    sendMessageRequest.set_validity_proof(validityProof);
+    *sendMessageRequest.mutable_content() = std::move(messageData);
+    
+    *scroogeRequest.mutable_send_message_request() = std::move(sendMessageRequest);
+    
+    const std::string scroogeRequestBytes = scroogeRequest.SerializeAsString();
+    uint64_t messageSize = scroogeRequestBytes.size();
+    uint8_t* const messageBytes = (uint8_t*) scroogeRequestBytes.c_str();
+    
+    
+    /*
+     * Test Purposes
+     
+    scrooge::ScroogeTransfer scroogeRequest;
+    scrooge::CommitAcknowledgment messageData;
+    messageData.set_sequence_number(response->seq());
+    LOG(INFO) << "DUMP SEQ: " << messageData.sequence_number();
+    
+    *scroogeRequest.mutable_commit_acknowledgment() = std::move(messageData);
+    const std::string scroogeRequestBytes = scroogeRequest.SerializeAsString();
+    uint64_t messageSize = scroogeRequestBytes.size();
+    uint8_t* const messageBytes = (uint8_t*) scroogeRequestBytes.c_str();
+    */
+    
+    //LOG(INFO) << "BEFORE WRITE " << messageSize << sizeof(messageSize) ;
+    
+    // Writing size of message to pipe.
+    scr_write_.write(reinterpret_cast<char *>(&messageSize), sizeof(messageSize));
+    if (scr_write_.fail()) {
+        LOG(INFO) << "WRITE Size fail" << scr_write_.eof();
+    }
+    
+    //LOG(INFO) << "MESSAGE SIZE WRITTEN";
+    
+    // Writing message to pipe.
+    scr_write_.write(reinterpret_cast<char *>(messageBytes), messageSize);
+    if (scr_write_.fail()) {
+        LOG(INFO) << "WRITE Message fail" << scr_write_.eof();
+    }
+    
+    scr_write_.flush();
 
-  	scrooge::ScroogeRequest scroogeRequest;
-  	scrooge::SendMessageRequest sendMessageRequest;
-  	scrooge::CrossChainMessageData messageData;
-
-  	messageData.set_message_content(resp_str);
-  	messageData.set_sequence_number(response->seq());
-  	LOG(INFO) << "WRITE SEQ: " << messageData.sequence_number();
-
-  	std::string validityProof = "bytes of a proof";
-  	sendMessageRequest.set_validity_proof(validityProof);
-  	*sendMessageRequest.mutable_content() = std::move(messageData);
-
-  	*scroogeRequest.mutable_send_message_request() = std::move(sendMessageRequest);
-
-  	const std::string scroogeRequestBytes = scroogeRequest.SerializeAsString();
-  	uint64_t messageSize = scroogeRequestBytes.size();
-  	uint8_t* const messageBytes = (uint8_t*) scroogeRequestBytes.c_str();
-  	*/
-	
-		scrooge::ScroogeTransfer scroogeRequest;
-		scrooge::CommitAcknowledgment messageData;
-		messageData.set_sequence_number(response->seq());
-  	LOG(INFO) << "DUMP SEQ: " << messageData.sequence_number();
-
-		*scroogeRequest.mutable_commit_acknowledgment() = std::move(messageData);
-  	const std::string scroogeRequestBytes = scroogeRequest.SerializeAsString();
-  	uint64_t messageSize = scroogeRequestBytes.size();
-  	uint8_t* const messageBytes = (uint8_t*) scroogeRequestBytes.c_str();
-
-  	LOG(INFO) << "BEFORE WRITE " << messageSize << sizeof(messageSize) ;
-
-  	// Writing size of message to pipe.
-  	scr_write_.write(reinterpret_cast<char *>(&messageSize), sizeof(messageSize));
-  	if (scr_write_.fail()) {
-  	    LOG(INFO) << "WRITE Size fail" << scr_write_.eof();
-  	}
-
-  	//LOG(INFO) << "MESSAGE SIZE WRITTEN";
-
-  	// Writing message to pipe.
-  	scr_write_.write(reinterpret_cast<char *>(messageBytes), messageSize);
-  	if (scr_write_.fail()) {
-  	    LOG(INFO) << "WRITE Message fail" << scr_write_.eof();
-  	}
-
-  	scr_write_.flush();
-  	
-  	LOG(INFO) << "SUCCESS";
+    //auto timeNow = std::chrono::system_clock::now();
+    //auto passed = timeNow.time_since_epoch();
+    //LOG(INFO) << "Wrote: " << response->seq()-1 << "At: " << passed.count();
+    
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    if(elapsed_seconds.count() > 95) {
+	scr_write_.close();
+    }	    
 
   }
 }
@@ -365,74 +398,74 @@ void TransactionExecutor::ScroogeSendMessage() {
 void TransactionExecutor::ScroogeRecvMessage() {
   LOG(INFO) << "ScroogeRcvMessage: " << config_.GetSelfInfo().id();
   
-  std::this_thread::sleep_for(std::chrono::milliseconds{40000});
-
   // Opening Pipe for transfer
-  //scr_read_.open(pipe_path, std::ios_base::binary);
-	std::ifstream scr_rtemp_{write_pipe_path_, std::ios_base::binary};
-	std::ifstream scr_read_{read_pipe_path_, std::ios_base::binary};
+  //std::ofstream scr_rtemp_{read_pipe_path_, std::ios_base::binary}; 
 
-	LOG(INFO) << "READ PIPE" << read_pipe_path_;
+  std::ifstream scr_read_{read_pipe_path_, std::ios_base::binary};
+  LOG(INFO) << "READ PIPE" << read_pipe_path_;
 
-	//uint64_t fpos = 0, flength;	
-  uint64_t readSize;
+  uint64_t readSize, last_seq=1;
   
   while (!IsStop()) {
-		// Attempt reading size.
-  	scr_read_.read(reinterpret_cast<char *>(&readSize), sizeof(readSize));
-  	if (scr_read_.fail()) {
-  	  LOG(INFO) << "READ Size fail" << scr_read_.eof();
-			// When fails we reset the position.
-		  //scr_read_.seekg(fpos, scr_read_.beg);
-			continue;
-  	}
+    // Attempt reading size.
+    scr_read_.read(reinterpret_cast<char *>(&readSize), sizeof(readSize));
+    if (scr_read_.fail()) {
+      LOG(INFO) << "READ Size fail" << scr_read_.eof();
+      // When fails we reset the position.
+      //scr_read_.seekg(fpos, scr_read_.beg);
+      continue;
+    }
 
-  	//LOG(INFO) << "READ SIZE: " << readSize;
+    //LOG(INFO) << "READ SIZE: " << readSize;
 
-  	std::vector<uint8_t> message(readSize);
-  	scr_read_.read(reinterpret_cast<char *>(message.data()), message.size());
-  	if (scr_read_.fail()) {
-  		LOG(INFO) << "READ Message fail: "; //<< readSize << " Bytes failed: " << message.size();
-			//scr_read_.seekg(fpos, scr_read_.beg);	
-			continue;
-  	}
+    std::vector<uint8_t> message(readSize);
+    scr_read_.read(reinterpret_cast<char *>(message.data()), message.size());
+    if (scr_read_.fail()) {
+      LOG(INFO) << "READ Message fail: "; //<< readSize << " Bytes: " << message.size();
+      //scr_read_.seekg(fpos, scr_read_.beg);	
+      continue;
+    }
 
-		//// Location of current read pointer.
-		//flength = scr_read_.tellg();
-		//fpos += flength;
-
-		scrooge::ScroogeTransfer newRequest;
+    scrooge::ScroogeTransfer newRequest;
 
     const auto isParseSuccessful = newRequest.ParseFromArray(message.data(), message.size());
     if (not isParseSuccessful) {
-    	LOG(INFO) << "BAD PARSE";
-    	continue;
-    } else{
-			LOG(INFO) << "Parse successful: " << isParseSuccessful;
-		}
+      LOG(INFO) << "BAD PARSE";
+      continue;
+    }
+    //else{
+    //  LOG(INFO) << "Parse successful: " << isParseSuccessful;
+    //}
 
     switch (newRequest.transfer_case())
     {
-    	using request = scrooge::ScroogeTransfer::TransferCase;
+      using request = scrooge::ScroogeTransfer::TransferCase;
       case request::kCommitAcknowledgment: {
-				// Extracting commit_acknowledgment message.
-				const auto commit_ack_msg = newRequest.commit_acknowledgment();
-				uint64_t seq_no = commit_ack_msg.sequence_number();
-	    	LOG(INFO) << "GOT: " << seq_no;
+	// Extracting commit_acknowledgment message.
+	const auto commit_ack_msg = newRequest.commit_acknowledgment();
+	uint64_t seq_no = commit_ack_msg.sequence_number()+1;
+	//LOG(INFO) << "GOT: " << seq_no;
 
-				// Time to validate and reply to client.
-				//post_valid_func_(seq_no);
+	// Time to validate and reply to client.
+	while(last_seq < seq_no) {
+	  //auto timeNow = std::chrono::system_clock::now();
+  	  //auto passed = timeNow.time_since_epoch();
+	  //LOG(INFO) << "Acked: " << last_seq << "At: " << passed.count();
 
-				break;
-			}
-			case request::kUnvalidatedCrossChainMessage: {
-				LOG(INFO) << "Message received by other RSM";
-				break;
-			}																					 
+	  post_valid_func_(last_seq);
+	  last_seq++;
+	}
+
+	break;
+      }
+      case request::kUnvalidatedCrossChainMessage: {
+      	LOG(INFO) << "Message received by other RSM";
+      	break;
+      }																					 
       default: {
       	LOG(INFO) << "UNKNOWN REQUEST TYPE: " << newRequest.transfer_case();
       }
-		}
+    }
   }
 	
 }
