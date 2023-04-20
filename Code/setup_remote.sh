@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 # replace with your directory
-cd /proj/ove-PG0/suyash2/BFT-RSM/Code
+#cd /proj/ove-PG0/suyash/BFT-RSM/Code
 
 apt-get -y update
 apt-get -y upgrade
