@@ -5,23 +5,19 @@
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 
-
-pipeline::MessageBatch pipeline::initMessageBatch(const uint64_t batchSize, const uint64_t batchEps, std::chrono::steady_clock::time_point creationTime)
+pipeline::MessageBatch pipeline::initMessageBatch(const uint64_t batchSize, const uint64_t batchEps,
+                                                  std::chrono::steady_clock::time_point creationTime)
 {
-  nng_msg *message;
-  nng_msg_alloc(&message, batchSize + batchEps);
-  return pipeline::MessageBatch{
-    .message = message,
-    .spaceUsed = 0,
-    .creationTime = creationTime
-  };
+    nng_msg *message;
+    nng_msg_alloc(&message, batchSize + batchEps);
+    return pipeline::MessageBatch{.message = message, .spaceUsed = 0, .creationTime = creationTime};
 }
 
-void pipeline::trimMessageBatch(pipeline::MessageBatch& batch)
+void pipeline::trimMessageBatch(pipeline::MessageBatch &batch)
 {
-  const auto batchSize = nng_msg_len(batch.message);
-  const auto unusedSpace = batchSize - batch.spaceUsed;
-  nng_msg_chop(batch.message, unusedSpace);
+    const auto batchSize = nng_msg_len(batch.message);
+    const auto unusedSpace = batchSize - batch.spaceUsed;
+    nng_msg_chop(batch.message, unusedSpace);
 }
 
 static int64_t getLogAck(const scrooge::CrossChainMessage &message)
@@ -180,10 +176,10 @@ template <typename T> static nng_msg *serializeProtobuf(const T &proto)
     return message;
 }
 
-template <typename T> static void appendProto(const T &proto, pipeline::MessageBatch* const batch)
+template <typename T> static void appendProto(const T &proto, pipeline::MessageBatch *const batch)
 {
-    auto& [message, spaceUsed, creationTime] = *batch;
-    auto messageData = (char*) nng_msg_body(message);
+    auto &[message, spaceUsed, creationTime] = *batch;
+    auto messageData = (char *)nng_msg_body(message);
     const auto messageSize = nng_msg_len(message);
     const uint32_t protoSize = proto.ByteSizeLong();
     const auto delimiterSize = sizeof(protoSize);
@@ -191,7 +187,7 @@ template <typename T> static void appendProto(const T &proto, pipeline::MessageB
     if (messageSize < resultantSize)
     {
         nng_msg_realloc(message, resultantSize);
-        messageData = (char*) nng_msg_body(message);
+        messageData = (char *)nng_msg_body(message);
     }
 
     std::memcpy(messageData + spaceUsed, reinterpret_cast<const char *>(&protoSize), delimiterSize);
@@ -209,7 +205,9 @@ template <typename T> static void appendProto(const T &proto, pipeline::MessageB
 
 Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::vector<std::string> &otherNetworkUrls,
                    NodeConfiguration ownConfiguration)
-    : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(ownNetworkUrls), kOtherNetworkUrls(otherNetworkUrls), mLocalMessageBatches(kOwnConfiguration.kOwnNetworkSize), mForeignMessageBatches(kOwnConfiguration.kOtherNetworkSize)
+    : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(ownNetworkUrls), kOtherNetworkUrls(otherNetworkUrls),
+      mLocalMessageBatches(kOwnConfiguration.kOwnNetworkSize),
+      mForeignMessageBatches(kOwnConfiguration.kOtherNetworkSize)
 {
     std::bitset<64> foreignAliveNodes{}, localAliveNodes{};
     localAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOwnNetworkSize);
@@ -451,16 +449,16 @@ exit:
     closeSocket(recvSocket, finishTime);
 }
 
-void Pipeline::appendToBufferedMessage(const scrooge::CrossChainMessage& message,
-                             std::optional<pipeline::MessageBatch>* const batch,
-                             pipeline::MessageQueue<nng_msg *> * const sendingQueue)
+void Pipeline::appendToBufferedMessage(const scrooge::CrossChainMessage &message,
+                                       std::optional<pipeline::MessageBatch> *const batch,
+                                       pipeline::MessageQueue<nng_msg *> *const sendingQueue)
 {
     const auto curTime = std::chrono::steady_clock::now();
     constexpr auto kSleepTime = 2s;
 
     if (not batch->has_value())
     {
-        const auto protoSize = message.ByteSizeLong()+ sizeof(uint32_t);
+        const auto protoSize = message.ByteSizeLong() + sizeof(uint32_t);
         if (protoSize >= kMinumBatchSize)
         {
             *batch = pipeline::initMessageBatch(protoSize, 0, {});
@@ -474,9 +472,9 @@ void Pipeline::appendToBufferedMessage(const scrooge::CrossChainMessage& message
     appendProto(message, &(batch->value()));
 }
 
-void Pipeline::flushBufferedMessage(const scrooge::CrossChainMessage& message,
-                             std::optional<pipeline::MessageBatch>* const batch,
-                             pipeline::MessageQueue<nng_msg *> * const sendingQueue)
+void Pipeline::flushBufferedMessage(const scrooge::CrossChainMessage &message,
+                                    std::optional<pipeline::MessageBatch> *const batch,
+                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue)
 
 {
     constexpr auto kSleepTime = 2s;
@@ -484,8 +482,9 @@ void Pipeline::flushBufferedMessage(const scrooge::CrossChainMessage& message,
 
     bool pushFailure{};
 
-    while ((pushFailure = not sendingQueue->wait_enqueue_timed(batch->value().message, kSleepTime)) && not is_test_over());
-
+    while ((pushFailure = not sendingQueue->wait_enqueue_timed(batch->value().message, kSleepTime)) &&
+           not is_test_over())
+        ;
 
     if (not pushFailure)
     {
@@ -493,16 +492,16 @@ void Pipeline::flushBufferedMessage(const scrooge::CrossChainMessage& message,
     }
 }
 
-void Pipeline::bufferedMessageSend(const scrooge::CrossChainMessage& message,
-                         std::optional<pipeline::MessageBatch>* const batch,
-                         pipeline::MessageQueue<nng_msg *> * const sendingQueue)
+void Pipeline::bufferedMessageSend(const scrooge::CrossChainMessage &message,
+                                   std::optional<pipeline::MessageBatch> *const batch,
+                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue)
 {
     const auto curTime = std::chrono::steady_clock::now();
     constexpr auto kSleepTime = 2s;
 
     if (not batch->has_value())
     {
-        const auto protoSize = message.ByteSizeLong()+ sizeof(uint32_t);
+        const auto protoSize = message.ByteSizeLong() + sizeof(uint32_t);
         if (protoSize >= kMinumBatchSize)
         {
             *batch = pipeline::initMessageBatch(protoSize, 0, {});
@@ -526,8 +525,9 @@ void Pipeline::bufferedMessageSend(const scrooge::CrossChainMessage& message,
 
     bool pushFailure{};
 
-    while ((pushFailure = not sendingQueue->wait_enqueue_timed(batch->value().message, kSleepTime)) && not is_test_over());
-
+    while ((pushFailure = not sendingQueue->wait_enqueue_timed(batch->value().message, kSleepTime)) &&
+           not is_test_over())
+        ;
 
     if (not pushFailure)
     {
@@ -571,8 +571,10 @@ inline void Pipeline::SendToDestinations(const bool isLocal, std::bitset<64> des
         const auto curDestination = std::countr_zero(destinations.to_ulong());
         destinations.reset(curDestination);
 
-        const auto &destinationBuffer = (isLocal) ? mLocalSendBufs.at(curDestination) : mForeignSendBufs.at(curDestination);
-        auto& destinationBatch = (isLocal) ? mLocalMessageBatches.at(curDestination) : mForeignMessageBatches.at(curDestination);
+        const auto &destinationBuffer =
+            (isLocal) ? mLocalSendBufs.at(curDestination) : mForeignSendBufs.at(curDestination);
+        auto &destinationBatch =
+            (isLocal) ? mLocalMessageBatches.at(curDestination) : mForeignMessageBatches.at(curDestination);
 
         bufferedMessageSend(message, &destinationBatch, destinationBuffer.get());
     }
@@ -587,7 +589,7 @@ void Pipeline::SendToAllOtherRsm(const scrooge::CrossChainMessage &message)
     const auto curTime = std::chrono::steady_clock::now();
     constexpr auto kSleepTime = 2s;
 
-    auto& batch = mForeignMessageBatches.at(0);
+    auto &batch = mForeignMessageBatches.at(0);
 
     if (not batch.has_value())
     {
@@ -620,7 +622,7 @@ void Pipeline::SendToAllOtherRsm(const scrooge::CrossChainMessage &message)
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
         foreignAliveNodes.reset(curDestination);
         const auto &curBuffer = mForeignSendBufs.at(curDestination);
-        nng_msg* curMessage;
+        nng_msg *curMessage;
 
         if (foreignAliveNodes.any())
         {
@@ -673,7 +675,7 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
         {
             nng_msg_dup(&curMessage, message);
         }
-        else if(not lastSentNode.has_value())
+        else if (not lastSentNode.has_value())
         {
             curMessage = message;
         }
@@ -698,29 +700,23 @@ pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOtherRsm()
     static uint64_t curNode{0ULL - 1};
     nng_msg *message;
 
-    curNode = (curNode + 1 == mForeignRecvBufs.size())? 0 : curNode + 1;
+    curNode = (curNode + 1 == mForeignRecvBufs.size()) ? 0 : curNode + 1;
 
     for (uint64_t node = curNode; node < mForeignRecvBufs.size(); node++)
     {
-        const auto& curBuf = mForeignRecvBufs.at(node);
+        const auto &curBuf = mForeignRecvBufs.at(node);
         if (curBuf->try_dequeue(message))
         {
-            return pipeline::ReceivedCrossChainMessage{
-                .protoBatch = message,
-                .senderId = node
-            };
+            return pipeline::ReceivedCrossChainMessage{.protoBatch = message, .senderId = node};
         }
     }
 
     for (uint64_t node = 0; node < curNode; node++)
     {
-        const auto& curBuf = mForeignRecvBufs.at(node);
+        const auto &curBuf = mForeignRecvBufs.at(node);
         if (curBuf->try_dequeue(message))
         {
-            return pipeline::ReceivedCrossChainMessage{
-                .protoBatch = message,
-                .senderId = node
-            };
+            return pipeline::ReceivedCrossChainMessage{.protoBatch = message, .senderId = node};
         }
     }
 
@@ -735,7 +731,7 @@ pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOwnRsm()
     static uint64_t curNode{0ULL - 1};
     nng_msg *message;
 
-    curNode = (curNode + 1 == mLocalRecvBufs.size())? 0 : curNode + 1;
+    curNode = (curNode + 1 == mLocalRecvBufs.size()) ? 0 : curNode + 1;
 
     for (uint64_t node = curNode; node < mLocalRecvBufs.size(); node++)
     {
@@ -743,13 +739,10 @@ pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOwnRsm()
         {
             continue;
         }
-        const auto& curBuf = mLocalRecvBufs.at(node);
+        const auto &curBuf = mLocalRecvBufs.at(node);
         if (curBuf->try_dequeue(message))
         {
-            return pipeline::ReceivedCrossChainMessage{
-                .protoBatch = message,
-                .senderId = node
-            };
+            return pipeline::ReceivedCrossChainMessage{.protoBatch = message, .senderId = node};
         }
     }
 
@@ -759,15 +752,12 @@ pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOwnRsm()
         {
             continue;
         }
-        const auto& curBuf = mLocalRecvBufs.at(node);
+        const auto &curBuf = mLocalRecvBufs.at(node);
         if (curBuf->try_dequeue(message))
         {
-            return pipeline::ReceivedCrossChainMessage{
-                .protoBatch = message,
-                .senderId = node
-            };
+            return pipeline::ReceivedCrossChainMessage{.protoBatch = message, .senderId = node};
         }
     }
-    
+
     return {};
 }

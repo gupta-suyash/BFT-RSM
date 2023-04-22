@@ -73,7 +73,7 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
         fakeData->set_message_content(std::string(kMessageSize, 'L'));
         fakeData->set_sequence_number(curSequenceNumber);
 
-        //fakeMessage.set_validity_proof(std::string(kMessageSize / 2, 'X'));
+        // fakeMessage.set_validity_proof(std::string(kMessageSize / 2, 'X'));
 
         while (not messageOutput->wait_enqueue_timed(std::move(fakeMessage), 100ms) && not is_test_over())
             ;
@@ -114,22 +114,23 @@ void runGenerateMessageThreadWithIpc()
     auto lastSendTime = std::chrono::steady_clock::now();
 
     uint64_t curSequenceNumber = 0;
-    //for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
+    // for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
     while (not is_test_over())
     {
-	while (std::chrono::steady_clock::now() - lastSendTime < kMessageSpace);
-	lastSendTime = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - lastSendTime < kMessageSpace)
+            ;
+        lastSendTime = std::chrono::steady_clock::now();
 
         scrooge::ScroogeRequest request;
-	for (uint64_t burst = 0; burst < kBurstSize; burst++)
-	{
+        for (uint64_t burst = 0; burst < kBurstSize; burst++)
+        {
             auto messageContent = request.mutable_send_message_request()->mutable_content();
             messageContent->set_message_content(std::string(kMessageSize, 'L'));
             messageContent->set_sequence_number(curSequenceNumber);
-	        curSequenceNumber++;
+            curSequenceNumber++;
 
             writeMessage(pipe, request.SerializeAsString());
-	}
+        }
     }
 }
 
@@ -155,7 +156,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
     while (not is_test_over())
     {
         auto messageBytes = readMessage(pipe);
-        
+
         scrooge::ScroogeRequest newRequest;
 
         const auto isParseSuccessful = newRequest.ParseFromString(std::move(messageBytes));
@@ -168,24 +169,24 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
         switch (newRequest.request_case())
         {
             using request = scrooge::ScroogeRequest::RequestCase;
-            case request::kSendMessageRequest: {
-                const auto newMessageRequest = newRequest.send_message_request();
+        case request::kSendMessageRequest: {
+            const auto newMessageRequest = newRequest.send_message_request();
 
-                scrooge::CrossChainMessage newMessage;
-                *newMessage.mutable_data() = newMessageRequest.content();
+            scrooge::CrossChainMessage newMessage;
+            *newMessage.mutable_data() = newMessageRequest.content();
 
-                *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
+            *newMessage.mutable_validity_proof() = newMessageRequest.validity_proof();
 
-                receivedMessages.addToAckList(newMessage.data().sequence_number());
-                numReceivedMessages++;
+            receivedMessages.addToAckList(newMessage.data().sequence_number());
+            numReceivedMessages++;
 
-                while (not messageOutput->wait_enqueue_timed(std::move(newMessage), 1ms) && not is_test_over())
-                    ;
-                break;
-            }
-            default: {
-                SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
-            }
+            while (not messageOutput->wait_enqueue_timed(std::move(newMessage), 1ms) && not is_test_over())
+                ;
+            break;
+        }
+        default: {
+            SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
+        }
         }
     }
 
@@ -200,7 +201,7 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
                            const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    //bindThreadToCpu(0);
+    // bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
     uint64_t numMessagesSent{};
@@ -211,21 +212,21 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
         while (messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto curSequenceNumber = newMessage.data().sequence_number();
-	    auto start_time = std::chrono::high_resolution_clock::now();
+            auto start_time = std::chrono::high_resolution_clock::now();
 
             pipeline->SendToAllOtherRsm(newMessage);
             sentMessages.addToAckList(curSequenceNumber);
             quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
 
-	    allToall(start_time);
+            allToall(start_time);
         }
     }
 
     addMetric("Latency", averageLat());
     addMetric("transfer_strategy", "NSendNRecv Thread All-to-All");
     addMetric("num_msgs_sent", numMessagesSent);
-    //addMetric("max_quack", quorumAck->getCurrentQuack().value_or(0));
+    // addMetric("max_quack", quorumAck->getCurrentQuack().value_or(0));
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
@@ -235,7 +236,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
                            const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    //bindThreadToCpu(0);
+    // bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
@@ -248,14 +249,14 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
         while (messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto curSequenceNumber = newMessage.data().sequence_number();
-	    auto start_time = std::chrono::high_resolution_clock::now();
+            auto start_time = std::chrono::high_resolution_clock::now();
 
             pipeline->SendToOtherRsm((kNodeId + curSequenceNumber) % kOtherNetworkSize, newMessage);
-	    sentMessages.addToAckList(curSequenceNumber);
-	    quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
+            sentMessages.addToAckList(curSequenceNumber);
+            quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
 
-	    allToall(start_time);
+            allToall(start_time);
         }
     }
 
@@ -265,8 +266,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
-void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, 
-		   const std::shared_ptr<Pipeline> pipeline,
+void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
                    const std::shared_ptr<Acknowledgment> acknowledgment,
                    const std::shared_ptr<AcknowledgmentTracker> ackTracker,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
@@ -281,7 +281,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
         SPDLOG_CRITICAL("Send TID == {}", gettid());
     }
 
-    //bindThreadToCpu(0);
+    // bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
     const MessageScheduler messageScheduler(configuration);
@@ -294,7 +294,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
     std::optional<uint64_t> lastSentAck{};
     uint64_t lastQuack = 0, lastSeq = 0;
     constexpr uint64_t kAckWindowSize = 100'000'000;
-    constexpr uint64_t kQAckWindowSize = 100'000'000; 
+    constexpr uint64_t kQAckWindowSize = 100'000'000;
     // Optimal window size for non-stake: 12*16 and for stake: 12*8
     constexpr auto kMaxMessageDelay = 0ms;
     constexpr auto kNoopDelay = 5000s;
@@ -303,7 +303,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
 
     while (not is_test_over())
     {
-        // update window information 
+        // update window information
         const auto curAck = acknowledgment->getAckIterator();
         const auto curQuack = quorumAck->getCurrentQuack();
 
@@ -318,7 +318,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
         const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
         const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
         const auto curTime = std::chrono::steady_clock::now();
-        const bool isNoopTimeoutHit = curTime - std::max(lastNoopTime,lastSendTime) > kNoopDelay;
+        const bool isNoopTimeoutHit = curTime - std::max(lastNoopTime, lastSendTime) > kNoopDelay;
         const bool isTimeoutHit = curTime - lastSendTime > kMaxMessageDelay;
         const bool shouldDequeue = isTimeoutHit || (isAckFresh && isSequenceNumberUseful);
 
@@ -326,18 +326,19 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
         if (shouldDequeue && messageInput->try_dequeue(newMessage) && not is_test_over())
         {
             const auto sequenceNumber = newMessage.data().sequence_number();
-	    if (lastSeq != sequenceNumber) {
-		SPDLOG_CRITICAL("SeqFail: L:{} :: N:{}", lastSeq,sequenceNumber);
-	    }
-	    lastSeq++;	    
+            if (lastSeq != sequenceNumber)
+            {
+                SPDLOG_CRITICAL("SeqFail: L:{} :: N:{}", lastSeq, sequenceNumber);
+            }
+            lastSeq++;
 
-	    // Start the timer for latency
-	    startTimer(sequenceNumber);
-	    
-	    // Recording latency
-	    uint64_t checkVal = curQuack.value_or(0);
-	    recordLatency(lastQuack, checkVal);
-	    lastQuack = checkVal;
+            // Start the timer for latency
+            startTimer(sequenceNumber);
+
+            // Recording latency
+            uint64_t checkVal = curQuack.value_or(0);
+            recordLatency(lastQuack, checkVal);
+            lastQuack = checkVal;
 
             const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
             const auto isMessageNeverSent = not resendNumber.has_value();
@@ -370,19 +371,19 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
                                                                 .numDestinationsSent = numDestinationsAlreadySent,
                                                                 .destinations = destinations});
             }
-        } 
-	else if(isAckFresh && isNoopTimeoutHit) 
-	{
-	    static uint64_t receiver = 0;
-	    setAckValue(&newMessage, *acknowledgment);
-        generateMessageMac(&newMessage);
-        pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, newMessage);
-	    receiver++;
-        numMsgsSentWithLastAck++; 
-	    noop_ack++;
+        }
+        else if (isAckFresh && isNoopTimeoutHit)
+        {
+            static uint64_t receiver = 0;
+            setAckValue(&newMessage, *acknowledgment);
+            generateMessageMac(&newMessage);
+            pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, newMessage);
+            receiver++;
+            numMsgsSentWithLastAck++;
+            noop_ack++;
 
-	    lastNoopTime = curTime;
-	}	
+            lastNoopTime = curTime;
+        }
 
         const auto curQuorumAck = quorumAck->getCurrentQuack();
         const auto activeResendData = ackTracker->getActiveResendData();
@@ -470,12 +471,13 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
             lastQuorumAck = curQuorumAck;
             mutableCommitAck->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
-	        //SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId, get_rsm_id()); 
+            // SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId,
+            // get_rsm_id());
             writeMessage(pipe, serializedTransfer);
         }
     }
     pipe.close();
-    addMetric("IPC test",true);
+    addMetric("IPC test", true);
 }
 
 static void runLocalReceiveThread(const std::shared_ptr<Pipeline> pipeline,
@@ -492,7 +494,7 @@ static void runLocalReceiveThread(const std::shared_ptr<Pipeline> pipeline,
             std::this_thread::yield();
             continue;
         }
-        const auto batchData = (char*) nng_msg_body(batchMessage);
+        const auto batchData = (char *)nng_msg_body(batchMessage);
         const auto batchSize = nng_msg_len(batchMessage);
         uint64_t batchPos = 0;
 
@@ -501,7 +503,7 @@ static void runLocalReceiveThread(const std::shared_ptr<Pipeline> pipeline,
             constexpr auto delimiterSize = sizeof(uint32_t);
             const auto delimiterPos = batchData + batchPos;
             const auto messagePos = batchData + batchPos + delimiterSize;
-            const auto messageSize = *(reinterpret_cast<uint32_t*>(delimiterPos));
+            const auto messageSize = *(reinterpret_cast<uint32_t *>(delimiterPos));
 
             message.Clear();
             message.ParseFromArray(messagePos, messageSize);
@@ -537,7 +539,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
         if (receivedMessage.protoBatch != nullptr)
         {
             const auto [batchMessage, senderId] = receivedMessage;
-            const auto batchData = (char*) nng_msg_body(batchMessage);
+            const auto batchData = (char *)nng_msg_body(batchMessage);
             const auto batchSize = nng_msg_len(batchMessage);
             uint64_t batchPos = 0;
             std::optional<uint64_t> max_foreign_ack{};
@@ -548,7 +550,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 constexpr auto delimiterSize = sizeof(uint32_t);
                 const auto delimiterPos = batchData + batchPos;
                 const auto messagePos = batchData + batchPos + delimiterSize;
-                const auto messageSize = *(reinterpret_cast<uint32_t*>(delimiterPos));
+                const auto messageSize = *(reinterpret_cast<uint32_t *>(delimiterPos));
 
                 scrooge::CrossChainMessage foreignMessage;
                 foreignMessage.ParseFromArray(messagePos, messageSize);
@@ -560,10 +562,9 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                     timedMessages += is_test_recording();
                 }
 
-                const auto curForeignAck =
-                    (foreignMessage.has_ack_count())?
-                    std::optional<uint64_t>(foreignMessage.ack_count().value())
-                    : std::nullopt;
+                const auto curForeignAck = (foreignMessage.has_ack_count())
+                                               ? std::optional<uint64_t>(foreignMessage.ack_count().value())
+                                               : std::nullopt;
 
                 if (curForeignAck > max_foreign_ack)
                 {
@@ -585,7 +586,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                     }
                 }
             }
-            
+
             const auto senderStake = configuration.kOtherNetworkStakes.at(senderId);
             if (max_foreign_ack)
             {
@@ -611,7 +612,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
         const auto [batchMessage, senderId] = pipeline->RecvFromOwnRsm();
         if (batchMessage)
         {
-            const auto batchData = (char*) nng_msg_body(batchMessage);
+            const auto batchData = (char *)nng_msg_body(batchMessage);
             const auto batchSize = nng_msg_len(batchMessage);
             uint64_t batchPos = 0;
 
@@ -620,7 +621,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 constexpr auto delimiterSize = sizeof(uint32_t);
                 const auto delimiterPos = batchData + batchPos;
                 const auto messagePos = batchData + batchPos + delimiterSize;
-                const auto messageSize = *(reinterpret_cast<uint32_t*>(delimiterPos));
+                const auto messageSize = *(reinterpret_cast<uint32_t *>(delimiterPos));
 
                 scrooge::CrossChainMessage message;
                 message.ParseFromArray(messagePos, messageSize);
@@ -652,7 +653,7 @@ void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
                               const std::shared_ptr<QuorumAcknowledgment> quorumAck,
                               const NodeConfiguration configuration)
 {
-    //bindThreadToCpu(1);
+    // bindThreadToCpu(1);
     uint64_t timedMessages{};
     scrooge::CrossChainMessage message;
 
@@ -664,7 +665,7 @@ void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
             std::this_thread::yield();
             continue;
         }
-        const auto batchData = (char*) nng_msg_body(batchMessage);
+        const auto batchData = (char *)nng_msg_body(batchMessage);
         const auto batchSize = nng_msg_len(batchMessage);
         uint64_t batchPos = 0;
 
@@ -673,7 +674,7 @@ void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
             constexpr auto delimiterSize = sizeof(uint32_t);
             const auto delimiterPos = batchData + batchPos;
             const auto messagePos = batchData + batchPos + delimiterSize;
-            const auto messageSize = *(reinterpret_cast<uint32_t*>(delimiterPos));
+            const auto messageSize = *(reinterpret_cast<uint32_t *>(delimiterPos));
 
             message.Clear();
             message.ParseFromArray(messagePos, messageSize);

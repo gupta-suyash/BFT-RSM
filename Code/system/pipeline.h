@@ -27,15 +27,15 @@ struct ReceivedCrossChainMessage
 
 struct MessageBatch
 {
-  nng_msg *message{};
-  uint64_t spaceUsed{};
-  std::chrono::steady_clock::time_point creationTime{};
+    nng_msg *message{};
+    uint64_t spaceUsed{};
+    std::chrono::steady_clock::time_point creationTime{};
 };
 
-MessageBatch initMessageBatch(const uint64_t batchSize, const uint64_t batchEps, std::chrono::steady_clock::time_point creationTime);
+MessageBatch initMessageBatch(const uint64_t batchSize, const uint64_t batchEps,
+                              std::chrono::steady_clock::time_point creationTime);
 
-
-void trimMessageBatch(MessageBatch& batch);
+void trimMessageBatch(MessageBatch &batch);
 
 template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
 }; // namespace pipeline
@@ -59,15 +59,15 @@ class Pipeline
     void SendToAllOtherRsm(const scrooge::CrossChainMessage &message);
 
   private:
-    void bufferedMessageSend(const scrooge::CrossChainMessage& message,
-                             std::optional<pipeline::MessageBatch>* const batch,
-                             pipeline::MessageQueue<nng_msg *> * const sendingQueue);
-    void appendToBufferedMessage(const scrooge::CrossChainMessage& message,
-                             std::optional<pipeline::MessageBatch>* const batch,
-                             pipeline::MessageQueue<nng_msg *> * const sendingQueue);
-    void flushBufferedMessage(const scrooge::CrossChainMessage& message,
-                             std::optional<pipeline::MessageBatch>* const batch,
-                             pipeline::MessageQueue<nng_msg *> * const sendingQueue);
+    void bufferedMessageSend(const scrooge::CrossChainMessage &message,
+                             std::optional<pipeline::MessageBatch> *const batch,
+                             pipeline::MessageQueue<nng_msg *> *const sendingQueue);
+    void appendToBufferedMessage(const scrooge::CrossChainMessage &message,
+                                 std::optional<pipeline::MessageBatch> *const batch,
+                                 pipeline::MessageQueue<nng_msg *> *const sendingQueue);
+    void flushBufferedMessage(const scrooge::CrossChainMessage &message,
+                              std::optional<pipeline::MessageBatch> *const batch,
+                              pipeline::MessageQueue<nng_msg *> *const sendingQueue);
     inline void SendToDestinations(bool isLocal, std::bitset<64> destinations,
                                    const scrooge::CrossChainMessage &message);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
@@ -80,7 +80,7 @@ class Pipeline
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
 
     static constexpr uint64_t kMinimumPortNumber = 7'000;
-    static constexpr uint64_t kBatchSizeEps = 150; // extra bytes to avoid realloc
+    static constexpr uint64_t kBatchSizeEps = 150;                         // extra bytes to avoid realloc
     static constexpr uint64_t kMinumBatchSize = (1 << 12) - kBatchSizeEps; // bytes
     static constexpr auto kMaxBatchCreationTime = 10s;
     static constexpr auto kMaxNngBlockingTime = 500ms;
