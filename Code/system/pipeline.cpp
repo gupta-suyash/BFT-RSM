@@ -549,41 +549,51 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
 
 bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
 {
-    static std::optional<uint64_t> lastSentNode{};
+    static std::bitset<64> remainingDestinations{};
     static nng_msg *curMessage{};
-    auto remainingDestinations = mAliveNodesLocal.load(std::memory_order_relaxed);
-    remainingDestinations.reset(kOwnConfiguration.kNodeId);
 
-    if (lastSentNode.has_value())
+    const bool isContinuation = remainingDestinations.any();
+
+    if (not isContinuation)
     {
-        remainingDestinations &= (~0) << lastSentNode.value();
+        remainingDestinations = mAliveNodesLocal.load(std::memory_order_relaxed);
+        remainingDestinations.reset(kOwnConfiguration.kNodeId);
+        curMessage = nullptr;
     }
 
+    std::bitset<64> failedSends{};
     while (remainingDestinations.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(remainingDestinations.to_ulong());
         remainingDestinations.reset(curDestination);
         const auto &curBuffer = mLocalSendBufs.at(curDestination);
 
-        if (remainingDestinations.any() && not lastSentNode.has_value())
+        if (curMessage)
+        {
+            //curMessage is correctly set
+        }
+        else if (remainingDestinations.any() || failedSends.any())
         {
             nng_msg_dup(&curMessage, message);
         }
-        else if (not lastSentNode.has_value())
+        else
         {
             curMessage = message;
         }
-        lastSentNode.reset();
 
-        if (not curBuffer->try_enqueue(curMessage))
+        if (curBuffer->try_enqueue(curMessage))
         {
-            lastSentNode = curDestination;
-            // will possibly leak one message on shutdown /shrug
-            return false;
+            curMessage = nullptr;
+        }
+        else
+        {
+            failedSends.set(curDestination);
+            // curMessage <- message that should be used next time
         }
     }
-    lastSentNode.reset();
-    return true;
+    remainingDestinations = failedSends;
+    
+    return remainingDestinations.none();
 }
 
 /* This function is used to receive messages from the other RSM.

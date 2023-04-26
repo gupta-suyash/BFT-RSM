@@ -71,7 +71,7 @@ class Pipeline
 
     static constexpr uint64_t kMinimumPortNumber = 7'000;
     static constexpr uint64_t kProtobufDefaultSize = 0;
-    static constexpr uint64_t kMinimumBatchSize = (1 << 16); // bytes
+    static constexpr uint64_t kMinimumBatchSize = (1 << 18); // bytes
     static constexpr auto kMaxNngBlockingTime = 500ms;
     static constexpr uint64_t kBufferSize = 1024;
 
