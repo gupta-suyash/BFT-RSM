@@ -18,7 +18,6 @@
 #include <thread>
 #include <unistd.h>
 
-#include <boost/circular_buffer.hpp>
 #include <nng/nng.h>
 
 bool checkMessageMac(const scrooge::CrossChainMessage *const message)
