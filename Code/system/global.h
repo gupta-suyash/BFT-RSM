@@ -26,6 +26,7 @@ struct NodeConfiguration
 
 void set_test_start(std::chrono::steady_clock::time_point startTime);
 std::chrono::duration<double> get_test_duration();
+std::chrono::duration<double> get_test_warmup_duration();
 bool is_test_over();
 bool is_test_recording();
 
