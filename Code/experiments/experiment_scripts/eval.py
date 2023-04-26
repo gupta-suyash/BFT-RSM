@@ -40,7 +40,9 @@ def make_dataframe(file_names: List[str]) -> pd.DataFrame:
     rows = []
     for file_name in file_names:
         try:
-            rows.append(yaml.safe_load(Path(file_name).read_text()))
+            yaml_map = yaml.safe_load(Path(file_name).read_text())
+            if yaml_map is not None:
+                rows.append(yaml_map)
         except:
             usage(f'Unable to parse {file_name} -- is it correct yaml format?')
     return pd.DataFrame.from_dict(rows)
@@ -48,7 +50,7 @@ def make_dataframe(file_names: List[str]) -> pd.DataFrame:
 # modifies dataframe in place
 def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     # Place Ack count in QAck count for One to One (quack wasn't recorded)
-    one_to_one_rows = dataframe.transfer_strategy == "NSendNRecv Thread One-to-One"
+    one_to_one_rows = dataframe.transfer_strategy == "One-to-One"
     missing_max_qack = (dataframe.max_quorum_acknowledgment == np.NaN) | (dataframe.max_quorum_acknowledgment == 0)
     missing_starting_qack = (dataframe.starting_quack == np.NaN) | (dataframe.max_quorum_acknowledgment == 0)
     dataframe.loc[one_to_one_rows & missing_max_qack, 'max_quorum_acknowledgment'] = dataframe.loc[one_to_one_rows].max_acknowledgment[missing_max_qack]
@@ -62,20 +64,24 @@ def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
         message_sizes.sort()
         average_latencies = []
         overall_throughputs = []
+        x_vals = []
         for message_size in message_sizes:
+            if message_size <= 50000:
+                continue
             size_group = group.query('message_size == @message_size')
             quack_delta = size_group.max_quorum_acknowledgment - size_group.starting_quack
             throughput = quack_delta / size_group.duration_seconds
             latency = size_group.Latency
             average_latencies.append(latency.mean())
             overall_throughputs.append(throughput.mean())
+            x_vals.append(message_size)
         latency_lines.append(Line(
-            x_values = message_sizes / 1000,
+            x_values = np.array(x_vals) / 1000,
             y_values = average_latencies,
             name = transfer_strategy
         ))
         throughput_lines.append(Line(
-            x_values = message_sizes / 1000,
+            x_values = np.array(x_vals) / 1000,
             y_values = overall_throughputs,
             name = transfer_strategy
         ))
@@ -84,13 +90,13 @@ def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
         Graph(
             title = f'{title} Confirmation Latency',
             x_axis_name = 'message size (kilobytes)',
-            y_axis_name = 'Receiver Calculated Message Latency (seconds)',
+            y_axis_name = 'Message Latency (seconds)',
             lines = latency_lines
         ),
         Graph(
             title = f'{title} Confirmation Throughput',
             x_axis_name = 'message size (kilobytes)',
-            y_axis_name = 'Receiver Calculated Message Throughput (messages/seconds)',
+            y_axis_name = 'Message Throughput (messages/seconds)',
             lines = throughput_lines
         )
     ]
@@ -142,7 +148,8 @@ def get_graphs(name: str, dataframe: pd.DataFrame) -> List[Graph]:
     # graphs.extend(get_throughput_bandwidth(dataframe))
     return graphs
 
-def get_graphs_by_group(dataframe: pd.DataFrame):
+def get_graphs_by_group(dataframe: pd.DataFrame) -> List[Graph]:
+    return get_graphs('Equal Stake', dataframe)
     dist_to_name = {'11111111':'Equal Stake', '43214321':'4321 Stake', '71117111':'7111 Stake'}
     graphs = []
     for stake_dist, dist_results in dataframe.groupby('stake_dist'):

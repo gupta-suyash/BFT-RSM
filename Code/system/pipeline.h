@@ -81,7 +81,7 @@ class Pipeline
 
     static constexpr uint64_t kMinimumPortNumber = 7'000;
     static constexpr uint64_t kBatchSizeEps = 150; // extra bytes to avoid realloc
-    static constexpr uint64_t kMinumBatchSize = (1 << 12) - kBatchSizeEps; // bytes
+    static constexpr uint64_t kMinumBatchSize = (1 << 14) - kBatchSizeEps; // bytes
     static constexpr auto kMaxBatchCreationTime = 10s;
     static constexpr auto kMaxNngBlockingTime = 500ms;
     static constexpr uint64_t kBufferSize = 1024;
