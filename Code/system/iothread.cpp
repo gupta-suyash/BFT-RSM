@@ -260,11 +260,11 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     uint64_t numMsgsSentWithLastAck{};
     std::optional<uint64_t> lastSentAck{};
     uint64_t lastQuack = 0, lastSeq = 0;
-    constexpr uint64_t kAckWindowSize = 100'000'000;
-    constexpr uint64_t kQAckWindowSize = 100'000'000;
+    constexpr uint64_t kAckWindowSize = 12*16*10;
+    constexpr uint64_t kQAckWindowSize = 12*16*10;
     // Optimal window size for non-stake: 12*16 and for stake: 12*8
-    constexpr auto kMaxMessageDelay = 0ms;
-    constexpr auto kNoopDelay = 5000s;
+    constexpr auto kMaxMessageDelay = 10us;
+    constexpr auto kNoopDelay = 5000us;
     // kNoopDelay for Scrooge for non-failures: 500
     uint64_t noop_ack = 0;
 
@@ -429,6 +429,9 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     }
 
     addMetric("Noop Acks", noop_ack);
+    addMetric("Noop Delay",std::chrono::duration<double>(kNoopDelay).count());
+    addMetric("Ack Window",std::chrono::duration<double>(kAckWindowSize).count());
+    addMetric("Quack Window",std::chrono::duration<double>(kQAckWindowSize).count());
     addMetric("Latency", averageLat());
     addMetric("transfer_strategy", "Scrooge");
     addMetric("resend_msg_map_size", resendMessageMap.size());

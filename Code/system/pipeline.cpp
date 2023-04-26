@@ -193,6 +193,8 @@ Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::ve
     foreignAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOtherNetworkSize);
     mAliveNodesLocal.store(localAliveNodes);
     mAliveNodesForeign.store(foreignAliveNodes);
+
+    addMetric("Batch Size",kMinimumBatchSize);
 }
 
 Pipeline::~Pipeline()
