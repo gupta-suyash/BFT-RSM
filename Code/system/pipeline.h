@@ -71,7 +71,7 @@ class Pipeline
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
 
     static constexpr uint64_t kMinimumPortNumber = 7'000;
-    static constexpr uint64_t kProtobufDefaultSize = 0;
+    static constexpr uint64_t kProtobufDefaultSize = kListSize / 8;
     static constexpr uint64_t kMinimumBatchSize = (1 << 18); // bytes
     static constexpr auto kMaxBatchCreationTime = 1ms;
     static constexpr auto kMaxNngBlockingTime = 500ms;

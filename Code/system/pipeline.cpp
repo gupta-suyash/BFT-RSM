@@ -3,6 +3,7 @@
 #include "acknowledgment.h"
 #include "crypto.h"
 
+#include <algorithm>
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 
@@ -27,13 +28,13 @@ static void generateMessageMac(scrooge::CrossChainMessage *const message)
 
 static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
 {
-    const auto curAck = acknowledgment.getAckIterator();
-    if (!curAck.has_value())
+    const auto curAckView = acknowledgment.getAckView<(kListSize)>();
+    if (curAckView.ackOffset > 0)
     {
-        return;
+        message->mutable_ack_count()->set_value(curAckView.ackOffset);
     }
 
-    message->mutable_ack_count()->set_value(curAck.value());
+    *message->mutable_ack_set() = {curAckView.view.begin(), curAckView.view.end()};
 }
 
 template <typename atomic_bitset> void reset_atomic_bit(atomic_bitset &set, uint64_t bit)

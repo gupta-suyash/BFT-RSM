@@ -11,6 +11,9 @@
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 
+constexpr uint64_t kListSize = 1024;
+static_assert(kListSize % 64 == 0, "kListSize must be a multiple of 64");
+
 struct NodeConfiguration
 {
     const uint64_t kOwnNetworkSize;

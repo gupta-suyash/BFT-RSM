@@ -7,25 +7,25 @@
  */
 void Acknowledgment::addToAckList(const uint64_t ack)
 {
-    const auto curAckValue = mAckValue.load(std::memory_order::relaxed);
+    const auto curAckValue = mAckValue.load(std::memory_order_relaxed);
     if (ack <= curAckValue)
     {
         return;
     }
     const auto ackLocation = ack & (kWindowSize - 1);
-    mAckWindow[ackLocation] = true;
+    mAckWindow[ackLocation / 64] |= 1ULL << (ackLocation % 64);
 
 
     auto curWindowBaseline = curAckValue.value_or(0ULL - 1) + 1;
-    while (mAckWindow[curWindowBaseline])
+    while (mAckWindow[curWindowBaseline / 64] & (1ULL << (curWindowBaseline % 64)))
     {
-        mAckWindow[curWindowBaseline] = false;
+        mAckWindow[curWindowBaseline / 64] ^= 1ULL << (curWindowBaseline % 64);
         curWindowBaseline = (curWindowBaseline + 1 == kWindowSize)? 0 : curWindowBaseline + 1;
     }
     const auto highestAcked = curWindowBaseline - 1;
     if (highestAcked != curAckValue.value_or(0ULL - 1))
     {
-        mAckValue.store(highestAcked, std::memory_order::release);
+        mAckValue.store(highestAcked, std::memory_order_release);
     }
 }
 
@@ -35,5 +35,5 @@ void Acknowledgment::addToAckList(const uint64_t ack)
  */
 std::optional<uint64_t> Acknowledgment::getAckIterator() const
 {
-    return mAckValue.load(std::memory_order::acquire);
+    return mAckValue.load(std::memory_order_acquire);
 }

@@ -22,6 +22,9 @@ BOOST_AUTO_TEST_CASE(test_useless_acks)
     {
         ack.addToAckList(x);
         BOOST_CHECK(ack.getAckIterator() == std::nullopt);
+        const auto ackView = ack.getAckView<(1 << 14)>();
+        BOOST_CHECK(ackView.ackOffset == 0);
+        BOOST_CHECK(acknowledgment::testAckView(ackView, x));
     }
 }
 
@@ -33,6 +36,9 @@ BOOST_AUTO_TEST_CASE(test_consecutive_acks)
     {
         ack.addToAckList(i);
         BOOST_CHECK(ack.getAckIterator() == i);
+        const auto ackView = ack.getAckView<(1 << 14)>();
+        BOOST_CHECK(ackView.ackOffset == i+1);
+        BOOST_CHECK(ackView.view[0] == 0);
     }
 }
 
@@ -46,6 +52,9 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_acks)
     {
         ack.addToAckList(i);
         BOOST_CHECK(ack.getAckIterator() == std::nullopt);
+        const auto ackView = ack.getAckView<(1 << 14)>();
+        BOOST_CHECK(ackView.ackOffset == 0);
+        BOOST_CHECK(acknowledgment::testAckView(ackView, i));
     }
 
     ack.addToAckList(0);

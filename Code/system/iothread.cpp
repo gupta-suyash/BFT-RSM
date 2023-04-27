@@ -433,7 +433,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     addMetric("Ack Window",std::chrono::duration<double>(kAckWindowSize).count());
     addMetric("Quack Window",std::chrono::duration<double>(kQAckWindowSize).count());
     addMetric("Latency", averageLat());
-    addMetric("transfer_strategy", "Scrooge");
+    addMetric("transfer_strategy", "Scrooge 1024bit KList LockFreeAck");
     addMetric("resend_msg_map_size", resendMessageMap.size());
     addMetric("num_msgs_resent", numMessagesResent);
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
