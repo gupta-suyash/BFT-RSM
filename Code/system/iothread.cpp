@@ -263,8 +263,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     constexpr uint64_t kAckWindowSize = 12*16*10;
     constexpr uint64_t kQAckWindowSize = 12*16*10;
     // Optimal window size for non-stake: 12*16 and for stake: 12*8
-    constexpr auto kMaxMessageDelay = 10us;
-    constexpr auto kNoopDelay = 5000us;
+    constexpr auto kMaxMessageDelay = 1us;
+    constexpr auto kNoopDelay = 500us;
     // kNoopDelay for Scrooge for non-failures: 500
     uint64_t noop_ack = 0;
 

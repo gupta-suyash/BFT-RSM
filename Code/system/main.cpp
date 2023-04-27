@@ -83,7 +83,8 @@ int main(int argc, char *argv[])
                     get_rsm_id(), get_packet_size(), kLogPath);
 
     addMetric("message_size", get_packet_size());
-    addMetric("duration_seconds", std::chrono::duration<double>{get_test_duration()}.count());
+    addMetric("Experiment Time", std::chrono::duration<double>{get_test_duration()}.count());
+    addMetric("Warmup Time", std::chrono::duration<double>{get_test_warmup_duration()}.count());
     addMetric("local_network_size", kOwnNetworkSize);
     addMetric("foreign_network_size", kOtherNetworkSize);
     addMetric("local_max_failed_stake", kOwnMaxNumFailedStake);
