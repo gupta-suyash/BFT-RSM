@@ -195,7 +195,7 @@ Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::ve
     mAliveNodesForeign.store(foreignAliveNodes);
 
     addMetric("Batch Size",kMinimumBatchSize);
-    addMetric("Batch Timeout",std::chrono::duration<double>(kMaxBatchCreationTime).count());
+    addMetric("Batch Timeout", std::chrono::duration<double>(kMaxBatchCreationTime).count());
 }
 
 Pipeline::~Pipeline()
@@ -444,6 +444,9 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
            not is_test_over())
         ;
 
+
+    batch->creationTime = std::chrono::steady_clock::now();
+
     if (pushFailure)
     {
         nng_msg_free(batchData);
@@ -458,7 +461,8 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     batch->batchSizeEstimate += message.ByteSizeLong();
     batch->data.mutable_data()->Add(std::move(message));
 
-    bool shouldSend = batch->batchSizeEstimate >= kMinimumBatchSize;
+    const auto timeDelta = std::chrono::steady_clock::now() - batch->creationTime;
+    bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
     if (not shouldSend)
     {
         return false;
