@@ -10,6 +10,7 @@ Code/scrooge
 Code/client
 Code/check
 Code/configuration/*.txt
+Code/node*
 Docs/*.pdf
 Docs/*.aux
 Docs/*.log

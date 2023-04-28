@@ -105,13 +105,14 @@ def setup(configJson, experimentName):
     # Experiment results dir on the machine
     cloudlab.project_dir = config['experiment_independent_vars']['project_dir']
     # Source directory on the local machine (for compilation)
+    print("Src dir: ", cloudlab.project_dir)
     cloudlab.src_dir = config['experiment_independent_vars']['src_dir']
     # Path to setup script
     cloudlab.local_setup_script = config['experiment_independent_vars']['local_setup_script']
     # Path to setup script for remote machines
     cloudlab.remote_setup_script = config['experiment_independent_vars']['remote_setup_script']
     # Compile the program once on the local machine
-    compileCode(config['experiment_independent_vars']['local_compile_script'])
+    compileCode((config['experiment_independent_vars']['local_compile_script']))
     # The date is used to distinguish multiple runs of the same experiment
     expFolder = cloudlab.project_dir + cloudlab.experiment_name
     expDir =  expFolder + "/" + datetime.datetime.now().strftime("%Y:%m:%d:%H:%M") + "/"

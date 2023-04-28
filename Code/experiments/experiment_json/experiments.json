@@ -6,14 +6,15 @@
     "local_setup_script": "/proj/ove-PG0/murray/BFT-RSM/Code/setup_local.sh",
     "remote_setup_script": "/proj/ove-PG0/murray/BFT-RSM/Code/setup_remote.sh",
     "local_compile_script": "/proj/ove-PG0/murray/BFT-RSM/Code/build.sh",
+    "executable": "/proj/ove-PG0/murray/BFT-RSM/Code/scrooge ",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
-      "10.10.1.1",
-      "10.10.1.2"
+      "10.10.1.3",
+      "10.10.1.5"
     ],
     "clusterOneIps": [
-      "10.10.1.11",
-      "10.10.1.12"
+      "10.10.1.12",
+      "10.10.1.13"
     ],
     "client_regions": [
       "US"
@@ -27,7 +28,7 @@
     "scrooge_args": {
       "general": {
         "use_debug_logs_bool": 0,
-        "log_path": "/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/",
+        "log_path": "/proj/ove-PG0/murray/BFT-RSM/Code/experiments/results/",
         "max_num_packets": 10000
       },
       "cluster_0": {
@@ -80,7 +81,7 @@
     "scrooge_args": {
       "general": {
         "use_debug_logs_bool": 0,
-        "log_path": "/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/",
+        "log_path": "/proj/ove-PG0/murray/BFT-RSM/Code/experiments/results/",
         "max_num_packets": 600000
       },
       "cluster_0": {

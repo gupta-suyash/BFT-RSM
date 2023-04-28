@@ -1,7 +1,7 @@
 {
     "general": {
-        "send_ip": "128.110.218.145",
-        "receive_ip": "128.110.218.141",
+        "send_ip": "10.10.1.3",
+        "receive_ip": "10.10.1.1",
         "send_port": 1234,
         "receive_port": 4003
     },

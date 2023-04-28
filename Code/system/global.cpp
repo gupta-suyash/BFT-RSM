@@ -2,11 +2,11 @@
 #include "crypto.h"
 #include <bitset>
 #include <fstream>
+#include <map>
 #include <mutex>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/sysinfo.h>
-#include <map>
 #include <unordered_map>
 
 // List of global variables and configuration parameters.
@@ -23,8 +23,8 @@ std::unordered_map<uint64_t, std::string> keyOwnCluster;
 std::unordered_map<uint64_t, std::string> keyOtherCluster;
 
 static std::chrono::steady_clock::time_point g_start_time{};
-static constexpr auto kWarmupDuration = 1s;
-static constexpr auto kTestDuration = 30s;
+static constexpr auto kWarmupDuration = 30s;
+static constexpr auto kTestDuration = 90s;
 static constexpr auto kShutDownEps = 1s;
 
 void set_priv_key()
@@ -71,6 +71,12 @@ std::chrono::duration<double> get_test_duration()
 
 bool is_test_over()
 {
+    static constexpr uint64_t kBatchSize{100};
+    thread_local uint64_t curRound{};
+    if (curRound++ < kBatchSize)
+    {
+        return false;
+    }
     const auto elapsedTime = std::chrono::steady_clock::now() - g_start_time;
     return elapsedTime > kTestDuration + kShutDownEps;
 }
@@ -176,9 +182,9 @@ void printMetrics(std::string filename)
     std::scoped_lock lock{metricsMutex};
     remove(filename.c_str());
     std::ofstream file{filename, std::ios_base::binary};
-    for (const auto& metric : metrics)
+    for (const auto &metric : metrics)
     {
-        const auto& [metricKey, metricValue] = metric; 
+        const auto &[metricKey, metricValue] = metric;
         file << metricKey << ": " << metricValue << '\n';
     }
 }

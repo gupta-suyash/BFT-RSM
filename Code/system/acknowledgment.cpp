@@ -7,7 +7,6 @@
  */
 void Acknowledgment::addToAckList(const uint64_t ack)
 {
-    std::scoped_lock lock{mMutex};
     mAckWindows.add(ack);
 
     const auto minimumAckWindow = std::cbegin(mAckWindows);

@@ -26,19 +26,19 @@ int main(int argc, char *argv[])
     const auto kNodeConfiguration =
         createNodeConfiguration(kCommandLineArguments, kOwnNetworkConfiguration, kOtherNetworkConfiguration);
 
-    SPDLOG_INFO("Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
-                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, num_packets = {},  packet_size = {}, "
-                "kLogPath= '{}'",
-                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
-                get_rsm_id(), get_number_of_packets(), get_packet_size(), kLogPath);
+    SPDLOG_CRITICAL(
+        "Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
+        "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, num_packets = {},  packet_size = {}, "
+        "kLogPath= '{}'",
+        kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId, get_rsm_id(),
+        get_number_of_packets(), get_packet_size(), kLogPath);
 
     const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
     constexpr auto kMessageBufferSize = 256;
 
     const auto acknowledgment = std::make_shared<Acknowledgment>();
-    const auto pipeline =
-        std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
-                                   kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
+    const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
+                                                     kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
     const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
     const auto ackTracker = std::make_shared<AcknowledgmentTracker>(kNodeConfiguration.kOtherNetworkSize,
                                                                     kNodeConfiguration.kOtherMaxNumFailedStake);
@@ -52,9 +52,10 @@ int main(int argc, char *argv[])
     set_priv_key();
 
     const auto kThreadHasher = std::hash<std::thread::id>{};
-    //auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer);
-    auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output"s, quorumAck);
+    // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+    auto relayTransactionThread =
+        std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Generate message relay thread ID={}", kThreadHasher(messageRelayThread.get_id()));
 
     auto sendThread =
@@ -63,7 +64,13 @@ int main(int argc, char *argv[])
         std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ", kThreadHasher(receiveThread.get_id()));
 
-    //messageRelayThread.join();
+    while (not is_test_recording())
+    {
+        std::this_thread::sleep_for(1ms);
+    }
+    addMetric("starting_quack", quorumAck->getCurrentQuack().value_or(0));
+    addMetric("starting_ack", acknowledgment->getAckIterator().value_or(0));
+    // messageRelayThread.join();
     sendThread.join();
     receiveThread.join();
     relayRequestThread.join();
@@ -75,16 +82,14 @@ int main(int argc, char *argv[])
                     kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
                     get_rsm_id(), get_packet_size(), kLogPath);
 
-    
     addMetric("message_size", get_packet_size());
     addMetric("duration_seconds", std::chrono::duration<double>{get_test_duration()}.count());
-    addMetric("transfer_strategy", "NSendNRecv Thread scrooge");
     addMetric("local_network_size", kOwnNetworkSize);
     addMetric("foreign_network_size", kOtherNetworkSize);
     addMetric("local_max_failed_stake", kOwnMaxNumFailedStake);
     addMetric("foreign_max_failed_stake", kOtherMaxNumFailedStake);
     addMetric("foreign_stake_total", kOtherMaxNumFailedStake);
-    addMetric("local_stake_total", kOwnMaxNumFailedStake);
+    addMetric("local_stake", kNodeConfiguration.kOwnNetworkStakes.at(kNodeId));
     printMetrics(kLogPath);
     return 0;
 }

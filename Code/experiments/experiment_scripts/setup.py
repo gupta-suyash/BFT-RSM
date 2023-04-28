@@ -53,6 +53,7 @@ def setup(configJson):
     print(ip_list)
     # Run function to install all appropriate packages on servers
     subprocess.call(localSetupFile)
+    # executeParallelBlockingRemoteCommand(ip_list, localSetupFile)
     executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
 
 if __name__ == "__main__":
