@@ -21,7 +21,7 @@ struct NodeAckData
 struct ResendData
 {
     uint32_t sequenceNumber{};
-    uint16_t resendNumber{}; // counts from 1
+    uint32_t resendNumber{}; // counts from 1
     bool operator==(const ResendData &) const = default;
 };
 #pragma pack(pop)
@@ -39,8 +39,8 @@ class AcknowledgmentTracker
     std::optional<acknowledgment_tracker::ResendData> getActiveResendData() const;
 
   private:
-    void updateAggregateData(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
-                             std::optional<uint64_t> curQuackValue);
+    void updateAggregateData(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> oldAcknowledgmentValue,
+                             std::optional<uint64_t> acknowledgmentValue, std::optional<uint64_t> curQuackValue);
     void updateNodeData(uint64_t nodeId, std::optional<uint64_t> acknowledgmentValue);
     void updateActiveResendData();
 
@@ -48,7 +48,9 @@ class AcknowledgmentTracker
     // This is because nodes can only be stuck at one quorumAck
     std::atomic<std::optional<acknowledgment_tracker::ResendData>> mActiveResendData{};
 
+    const uint64_t kOtherNetworkMaxFailedStake{};
     std::vector<acknowledgment_tracker::NodeAckData> mNodeData;
     std::optional<uint64_t> mCurStuckQuorumAck{};
+    uint64_t curUnstuckStake{}; // will disable resend data if this > failedStake
     QuorumAcknowledgment staleAckQuorumCounter;
 };

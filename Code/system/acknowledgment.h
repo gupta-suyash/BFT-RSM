@@ -2,7 +2,9 @@
 
 #include "global.h"
 #include <atomic>
+#include <bit>
 #include <vector>
+#include <mutex>
 
 namespace acknowledgment
 {
@@ -11,23 +13,36 @@ namespace acknowledgment
   {
     static_assert(kViewSize % 64 == 0, "View Size must be a multiple of 64");
     constexpr static uint64_t kNumInts = kViewSize / 64;
-    uint64_t ackOffset{};
+    uint64_t ackOffset{}; // node's ackValue.value_or(-1) + 2. ackValue.value_or(-1)+1 is always missing
     std::array<uint64_t, kNumInts> view{};
   };
 
   template<uint64_t kViewSize>
   bool testAckView(const AckView<kViewSize>& ackView, const uint64_t ack)
   {
+    if (ack == ackView.ackOffset - 1 || ack >= ackView.ackOffset + kViewSize)
+    {
+      return false;
+    }
     if (ack < ackView.ackOffset)
     {
       return true;
     }
-    else if (ack >= ackView.ackOffset + kViewSize)
-    {
-      return false;
-    }
     const auto index = (ack - ackView.ackOffset) & (kViewSize - 1);
     return ackView.view[index / 64] & (1ULL << (index % 64));
+  }
+  template<uint64_t kViewSize>
+  uint64_t getFinalAck(const AckView<kViewSize>& ackView)
+  {
+    for (int i = ackView.view.size() - 1; i >= 0; i--)
+    {
+      const auto numRighZeros = std::countl_zero(ackView.view[i]);
+      if (numRighZeros != 64)
+      {
+        return ackView.ackOffset + i * 64 + (64 - numRighZeros);
+      }
+    }
+    return ackView.ackOffset;
   }
 }
 
@@ -40,8 +55,9 @@ class Acknowledgment
     template<uint64_t kViewSize>
     acknowledgment::AckView<kViewSize> getAckView() const
     {
+      std::scoped_lock lock{mMutex};
       acknowledgment::AckView<kViewSize> ackView{};
-      const auto ackOffset = mAckValue.load(std::memory_order_acquire).value_or(0ULL - 1) + 1;
+      const auto ackOffset = mAckValue.value_or(0ULL - 1) + 2;
       ackView.ackOffset = ackOffset;
 
       const uint64_t initialAckValue = ackOffset % kWindowSize;
@@ -95,6 +111,8 @@ class Acknowledgment
     static constexpr uint64_t kWindowSize = 2ULL * (1ULL<<30);
     static_assert(kWindowSize % 64 == 0, "kWindowSize Must be a multiple of 64 (word size)");
 
-    std::atomic<std::optional<uint64_t>> mAckValue{std::nullopt};
+    mutable std::mutex mMutex;
+
+    std::optional<uint64_t> mAckValue{std::nullopt};
     std::vector<uint64_t> mAckWindow = std::vector<uint64_t>(kWindowSize / 64);
 };

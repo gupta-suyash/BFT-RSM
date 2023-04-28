@@ -165,7 +165,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
 void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
                            const std::shared_ptr<Pipeline> pipeline,
                            const std::shared_ptr<Acknowledgment> acknowledgment,
-                           const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     // bindThreadToCpu(0);
@@ -200,7 +200,7 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
 void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
                            const std::shared_ptr<Pipeline> pipeline,
                            const std::shared_ptr<Acknowledgment> acknowledgment,
-                           const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     // bindThreadToCpu(0);
@@ -235,7 +235,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
 
 void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
                    const std::shared_ptr<Acknowledgment> acknowledgment,
-                   const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                   const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_CRITICAL("SEND THREAD TID {}", gettid());
@@ -261,10 +261,12 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     std::optional<uint64_t> lastSentAck{};
     uint64_t lastQuack = 0, lastSeq = 0;
     constexpr uint64_t kAckWindowSize = 12*16*10;
-    constexpr uint64_t kQAckWindowSize = 12*16*10;
+    constexpr uint64_t kQAckWindowSize = 256;
     // Optimal window size for non-stake: 12*16 and for stake: 12*8
     constexpr auto kMaxMessageDelay = 1us;
     constexpr auto kNoopDelay = 500us;
+    constexpr auto kAckTrackerTimeout = 1ms;
+    std::chrono::steady_clock::time_point lastAckTrackerCheck{};
     // kNoopDelay for Scrooge for non-failures: 500
     uint64_t noop_ack = 0;
 
@@ -358,73 +360,82 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         }
 
         const auto curQuorumAck = quorumAck->getCurrentQuack();
-        const auto activeResendData = ackTracker->getActiveResendData();
+
+        // Prune old message resend data
         for (auto it = resendMessageMap.begin(); it != resendMessageMap.end() && not is_test_over();)
         {
             const auto sequenceNumber = it->first;
-            auto &[message, firstDestinationResendNumber, numDestinationsSent, destinations] = it->second;
 
             const bool isMessageAlreadyDelivered = sequenceNumber <= curQuorumAck;
             if (isMessageAlreadyDelivered)
             {
                 it = resendMessageMap.erase(it);
-                continue;
             }
-
-            const bool isNoMessageToResend =
-                not activeResendData.has_value() || activeResendData->sequenceNumber < sequenceNumber;
-            if (isNoMessageToResend)
+            else
             {
-                // No message to resend, or missing a message to resend
                 break;
             }
-            else if (activeResendData->sequenceNumber > sequenceNumber)
+        }
+
+        bool shouldSkipAckTrackCheck = curTime - lastAckTrackerCheck <= kAckTrackerTimeout;
+        if (shouldSkipAckTrackCheck)
+        {
+            continue;
+        }
+        lastAckTrackerCheck = curTime;
+        for (const auto& ackTracker : *ackTrackers)
+        {
+            const auto activeResendData = ackTracker->getActiveResendData();
+            if (not activeResendData.has_value())
             {
-                // Message to resend may be further in the map
-                it++;
                 continue;
             }
+            const auto [resendSequenceNumber, resendNumber] = *activeResendData;
+            auto resendMessageData = resendMessageMap.find(resendSequenceNumber);
 
-            // We got to the message which should be resent
-            const auto curNodeFirstResend = firstDestinationResendNumber;
-            const auto curNodeLastResend = firstDestinationResendNumber + destinations.size() - 1;
-            const auto curNodeCompletedResends = curNodeFirstResend + numDestinationsSent;
-            const auto curFinalDestination = std::min<uint64_t>(curNodeLastResend, activeResendData->resendNumber);
-            for (uint64_t resend = curNodeCompletedResends; resend <= curFinalDestination; resend++)
+            if (resendMessageData != resendMessageMap.end())
             {
-                const auto destination = destinations.at(resend - curNodeFirstResend);
+                auto &[message, firstDestinationResendNumber, numDestinationsSent, destinations] = resendMessageData->second;
+                // We got to the message which should be resent
+                const auto curNodeFirstResend = firstDestinationResendNumber;
+                const auto curNodeLastResend = firstDestinationResendNumber + destinations.size() - 1;
+                const auto curNodeCompletedResends = curNodeFirstResend + numDestinationsSent;
+                const auto curFinalDestination = std::min<uint64_t>(curNodeLastResend, activeResendData->resendNumber);
+                for (uint64_t resend = curNodeCompletedResends; resend <= curFinalDestination; resend++)
+                {
+                    const auto destination = destinations.at(resend - curNodeFirstResend);
 
-                bool wasSent{};
-                const bool isSentLater = numDestinationsSent + 1 < destinations.size();
-                if (isSentLater)
-                {
-                    auto messageDataCopy = message;
-                    wasSent = pipeline->SendToOtherRsm(destination, std::move(messageDataCopy), acknowledgment.get());
-                }
-                else
-                {
-                    wasSent = pipeline->SendToOtherRsm(destination, std::move(message), acknowledgment.get());
-                }
-                
-                if (not wasSent)
-                {
-                    // Expedite sending of failed message
-                    // Check if this helps or hurts performance @Reggie
-                    pipeline->SendToOtherRsm(destination, {}, acknowledgment.get());
+                    bool wasSent{};
+                    const bool isSentLater = numDestinationsSent + 1 < destinations.size();
+                    if (isSentLater)
+                    {
+                        auto messageDataCopy = message;
+                        wasSent = pipeline->SendToOtherRsm(destination, std::move(messageDataCopy), acknowledgment.get());
+                    }
+                    else
+                    {
+                        wasSent = pipeline->SendToOtherRsm(destination, std::move(message), acknowledgment.get());
+                    }
+                    
+                    if (not wasSent)
+                    {
+                        // Expedite sending of failed message
+                        // Check if this helps or hurts performance @Reggie
+                        pipeline->SendToOtherRsm(destination, {}, acknowledgment.get());
+                    }
+
+                    lastSendTime = std::chrono::steady_clock::now();
+                    numMsgsSentWithLastAck++;
+                    numDestinationsSent++;
+                    numMessagesResent += is_test_recording();
                 }
 
-                lastSendTime = std::chrono::steady_clock::now();
-                numMsgsSentWithLastAck++;
-                numDestinationsSent++;
-                numMessagesResent += is_test_recording();
+                const auto isComplete = numDestinationsSent == destinations.size();
+                if (isComplete)
+                {
+                    resendMessageMap.erase(resendMessageData);
+                }
             }
-
-            const auto isComplete = numDestinationsSent == destinations.size();
-            if (isComplete)
-            {
-                resendMessageMap.erase(it);
-            }
-            break;
         }
     }
 
@@ -433,7 +444,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     addMetric("Ack Window",std::chrono::duration<double>(kAckWindowSize).count());
     addMetric("Quack Window",std::chrono::duration<double>(kQAckWindowSize).count());
     addMetric("Latency", averageLat());
-    addMetric("transfer_strategy", "Scrooge 1024bit KList LockFreeAck");
+    addMetric("transfer_strategy", "Scrooge k=" + std::to_string(kListSize) + "+ resends");
     addMetric("resend_msg_map_size", resendMessageMap.size());
     addMetric("num_msgs_resent", numMessagesResent);
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
@@ -472,8 +483,41 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
     addMetric("IPC test", true);
 }
 
+uint64_t numMissing = 0;
+uint64_t numChecked = 0;
+uint64_t numRecv = 0;
+void updateAckTrackers(const std::optional<uint64_t> curQuack,
+                       const uint64_t nodeId,
+                       const uint64_t nodeStake,
+                       const acknowledgment::AckView<kListSize> nodeAckView,
+                       std::vector<std::unique_ptr<AcknowledgmentTracker>>* const ackTrackers)
+{
+    numRecv++;
+    const auto kNumAckTrackers = ackTrackers->size();
+    const auto initialMessageTrack = curQuack.value_or(0ULL - 1ULL) + 1;
+    const auto finialMessageTrack = 
+        std::min(initialMessageTrack + kNumAckTrackers - 1, acknowledgment::getFinalAck(nodeAckView));
+    for (uint64_t curMessage = initialMessageTrack; curMessage <= finialMessageTrack; curMessage++)
+    {
+        numChecked++;
+        const auto virtualQuack = (curMessage)? std::optional<uint64_t>(curMessage-1) : std::nullopt;
+        const auto isNodeMissingCurMessage = not acknowledgment::testAckView(nodeAckView, curMessage);
+        const auto curAckTracker = ackTrackers->data() + (curMessage % ackTrackers->size());
+
+        if (isNodeMissingCurMessage)
+        {
+            numMissing++;
+            (*curAckTracker)->update(nodeId, nodeStake, virtualQuack, virtualQuack);
+        }
+        else
+        {
+            (*curAckTracker)->update(nodeId, nodeStake, virtualQuack.value_or(0ULL - 1ULL) + 1, virtualQuack);
+        }
+    }
+}
+
 void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
-                      const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                      const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
@@ -482,6 +526,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
     pipeline::ReceivedCrossChainMessage receivedMessage{};
 
     scrooge::CrossChainMessage crossChainMessage;
+    auto ackView = std::array<uint64_t, acknowledgment::AckView<kListSize>::kNumInts>{};
 
     while (not is_test_over())
     {
@@ -521,7 +566,17 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 }
 
                 const auto currentQuack = quorumAck->getCurrentQuack();
-                ackTracker->update(senderId, senderStake, curForeignAck, currentQuack);
+                assert(ackView.size() == crossChainMessage.ack_set_size() && "AckListSize inconsistent");
+                std::copy_n(
+                    crossChainMessage.ack_set().begin(),
+                    ackView.size(),
+                    ackView.begin()
+                );
+                const auto senderAckView = acknowledgment::AckView<kListSize>{
+                    .ackOffset = curForeignAck.value_or(0ULL - 1ULL) + 2,
+                    .view = ackView
+                };
+                updateAckTrackers(currentQuack, senderId, senderStake, senderAckView, ackTrackers.get());
             }
         }
 
@@ -564,6 +619,9 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
         nng_msg_free(receivedMessage.message);
     }
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
+    addMetric("Average Missing Acks", (double)numMissing /(double) numChecked);
+    addMetric("Average KList Size", (double)numChecked / (double)numRecv);
+    addMetric("NumKListRecv", numRecv);
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
@@ -571,7 +629,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
 void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
                               const std::shared_ptr<Acknowledgment> acknowledgment,
-                              const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                              const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                               const std::shared_ptr<QuorumAcknowledgment> quorumAck,
                               const NodeConfiguration configuration)
 {
@@ -613,4 +671,22 @@ void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
+}
+
+void runCrashedNodeReceiveThread(const std::shared_ptr<Pipeline> pipeline)
+{
+    while (not is_test_over())
+    {
+        // steal other node's bandwidth but don't help in protocol
+        auto [foreignMessage, foreignSender] = pipeline->RecvFromOtherRsm();
+        if (foreignMessage)
+        {
+            nng_msg_free(foreignMessage);
+        }
+        auto [localMessage, localSender] = pipeline->RecvFromOwnRsm();
+        if (localMessage)
+        {
+            nng_msg_free(localMessage);
+        }
+    }
 }

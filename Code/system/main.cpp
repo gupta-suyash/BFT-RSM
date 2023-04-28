@@ -40,18 +40,41 @@ int main(int argc, char *argv[])
     const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
                                                      kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
     const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
-    const auto ackTracker = std::make_shared<AcknowledgmentTracker>(kNodeConfiguration.kOtherNetworkSize,
-                                                                    kNodeConfiguration.kOtherMaxNumFailedStake);
+    constexpr auto kNumAckTrackers = kListSize;
+    const auto ackTrackers = std::make_shared<std::vector<std::unique_ptr<AcknowledgmentTracker>>>();
+    for (uint64_t i = 0; i < kNumAckTrackers; i++)
+    {
+        ackTrackers->push_back(std::make_unique<AcknowledgmentTracker>(
+            kNodeConfiguration.kOtherNetworkSize,
+            kNodeConfiguration.kOtherMaxNumFailedStake
+        ));
+    }
     const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
 
     pipeline->startPipeline();
 
     const auto kTestStartTime = std::chrono::steady_clock::now();
+    const auto testStartRecordTime = kTestStartTime + get_test_warmup_duration();
+    const auto testEndTime = testStartRecordTime + get_test_duration();
     set_test_start(kTestStartTime);
 
     SPDLOG_INFO("Done setting up sockets between nodes.");
 
     set_priv_key();
+
+    if (get_rsm_id() == 1 && kNodeId == 0)
+    {
+        SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
+        auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
+
+        std::this_thread::sleep_until(testEndTime);
+        end_test();
+
+        receiveThread.join();
+        SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
+        remove(kLogPath.c_str());
+        return 0;
+    }
 
     auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
     //auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
@@ -60,38 +83,46 @@ int main(int argc, char *argv[])
     SPDLOG_INFO("Created Generate message relay thread");
 
     auto sendThread =
-        std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+        std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
     auto receiveThread =
-        std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+        std::thread(runReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
-    const auto testStartRecordTime = kTestStartTime + get_test_warmup_duration();
     std::this_thread::sleep_until(testStartRecordTime);
+    const auto trueTestStartTime = std::chrono::steady_clock::now();
+    start_recording();
     addMetric("starting_quack", quorumAck->getCurrentQuack().value_or(0));
     addMetric("starting_ack", acknowledgment->getAckIterator().value_or(0));
+
+    std::this_thread::sleep_until(testEndTime);
+    const auto trueTestEndTime = std::chrono::steady_clock::now();
+    end_test();
 
     messageRelayThread.join();
     sendThread.join();
     receiveThread.join();
     // relayRequestThread.join();
     // relayTransactionThread.join();
-
+    
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
-                    "kMaxNumLocalFailedNodes = {}, "
-                    "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, packet_size = {},  kLogPath= '{}'",
-                    kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
-                    get_rsm_id(), get_packet_size(), kLogPath);
+                "kMaxNumLocalFailedNodes = {}, "
+                "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, packet_size = {},  kLogPath= '{}'",
+                kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
+                get_rsm_id(), get_packet_size(), kLogPath);
 
+    const auto trueTestWarmupDuration = trueTestStartTime - kTestStartTime;
+    const auto trueTestDuration = trueTestEndTime - trueTestStartTime;
     addMetric("message_size", get_packet_size());
-    addMetric("duration_seconds", std::chrono::duration<double>{get_test_duration()}.count()); // legacy for eval.py
-    addMetric("Experiment Time", std::chrono::duration<double>{get_test_duration()}.count());
-    addMetric("Warmup Time", std::chrono::duration<double>{get_test_warmup_duration()}.count());
+    addMetric("duration_seconds", std::chrono::duration<double>{trueTestDuration}.count()); // legacy for eval.py
+    addMetric("Experiment Time", std::chrono::duration<double>{trueTestDuration}.count());
+    addMetric("Warmup Time", std::chrono::duration<double>{trueTestWarmupDuration}.count());
     addMetric("local_network_size", kOwnNetworkSize);
     addMetric("foreign_network_size", kOtherNetworkSize);
     addMetric("local_max_failed_stake", kOwnMaxNumFailedStake);
     addMetric("foreign_max_failed_stake", kOtherMaxNumFailedStake);
     addMetric("foreign_stake_total", kOtherMaxNumFailedStake);
     addMetric("local_stake", kNodeConfiguration.kOwnNetworkStakes.at(kNodeId));
+    addMetric("kList_size", kListSize);
     printMetrics(kLogPath);
     return 0;
 }

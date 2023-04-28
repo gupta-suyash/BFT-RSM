@@ -7,7 +7,8 @@
  */
 void Acknowledgment::addToAckList(const uint64_t ack)
 {
-    const auto curAckValue = mAckValue.load(std::memory_order_relaxed);
+    std::scoped_lock lock{mMutex};
+    const auto curAckValue = mAckValue;
     if (ack <= curAckValue)
     {
         return;
@@ -25,7 +26,7 @@ void Acknowledgment::addToAckList(const uint64_t ack)
     const auto highestAcked = curWindowBaseline - 1;
     if (highestAcked != curAckValue.value_or(0ULL - 1))
     {
-        mAckValue.store(highestAcked, std::memory_order_release);
+        mAckValue = highestAcked;
     }
 }
 
@@ -35,5 +36,6 @@ void Acknowledgment::addToAckList(const uint64_t ack)
  */
 std::optional<uint64_t> Acknowledgment::getAckIterator() const
 {
-    return mAckValue.load(std::memory_order_acquire);
+    std::scoped_lock lock{mMutex};
+    return mAckValue;
 }

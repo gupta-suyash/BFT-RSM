@@ -1,5 +1,6 @@
 #include "global.h"
 #include "crypto.h"
+#include <atomic>
 #include <bitset>
 #include <fstream>
 #include <map>
@@ -23,9 +24,11 @@ std::unordered_map<uint64_t, std::string> keyOwnCluster;
 std::unordered_map<uint64_t, std::string> keyOtherCluster;
 
 static std::chrono::steady_clock::time_point g_start_time{};
-static constexpr auto kWarmupDuration = 10s;
-static constexpr auto kTestDuration = 30s;
-static constexpr auto kShutDownEps = 1s;
+static constexpr auto kWarmupDuration = 5s;
+static constexpr auto kTestDuration = 20s;
+
+static std::atomic_bool isTestOver{};
+static std::atomic_bool isTestRecording{};
 
 void set_priv_key()
 {
@@ -74,16 +77,24 @@ std::chrono::duration<double> get_test_warmup_duration()
     return kWarmupDuration;
 }
 
+void start_recording()
+{
+    isTestRecording = true;
+}
+
+void end_test()
+{
+    isTestOver = true;
+}
+
 bool is_test_over()
 {
-    const auto elapsedTime = std::chrono::steady_clock::now() - g_start_time;
-    return elapsedTime > kTestDuration + kShutDownEps;
+    return isTestOver.load(std::memory_order_relaxed);
 }
 
 bool is_test_recording()
 {
-    const auto elapsedTime = std::chrono::steady_clock::now() - g_start_time;
-    return kWarmupDuration < elapsedTime && elapsedTime < kTestDuration;
+    return isTestRecording.load(std::memory_order_relaxed);
 }
 
 /* Get the id of the RSM this node belongs.

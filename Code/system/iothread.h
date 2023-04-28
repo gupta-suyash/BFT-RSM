@@ -34,27 +34,29 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
                                   NodeConfiguration kNodeConfiguration);
 
 void runSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
-                   std::shared_ptr<Acknowledgment> acknowledgment, std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                   std::shared_ptr<Acknowledgment> acknowledgment, std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runAllToAllSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
                            std::shared_ptr<Acknowledgment> acknowledgment,
-                           std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runOneToOneSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
                            std::shared_ptr<Acknowledgment> acknowledgment,
-                           std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                           std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runReceiveThread(std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
-                      std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                      std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                       std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
                               const std::shared_ptr<Acknowledgment> acknowledgment,
-                              const std::shared_ptr<AcknowledgmentTracker> ackTracker,
+                              const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                               const std::shared_ptr<QuorumAcknowledgment> quorumAck,
                               const NodeConfiguration configuration);
 
 void runGenerateMessageThreadWithIpc();
+
+void runCrashedNodeReceiveThread(std::shared_ptr<Pipeline> pipeline);

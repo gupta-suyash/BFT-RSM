@@ -29,9 +29,9 @@ static void generateMessageMac(scrooge::CrossChainMessage *const message)
 static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
 {
     const auto curAckView = acknowledgment.getAckView<(kListSize)>();
-    if (curAckView.ackOffset > 0)
+    if (curAckView.ackOffset > 1)
     {
-        message->mutable_ack_count()->set_value(curAckView.ackOffset);
+        message->mutable_ack_count()->set_value(curAckView.ackOffset - 2);
     }
 
     *message->mutable_ack_set() = {curAckView.view.begin(), curAckView.view.end()};
