@@ -14,11 +14,11 @@
 
 namespace iothread
 {
-using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<scrooge::CrossChainMessage>;
+using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<scrooge::CrossChainMessageData>;
 
 struct MessageResendData
 {
-    scrooge::CrossChainMessage message;
+    scrooge::CrossChainMessageData messageData;
     uint64_t firstDestinationResendNumber{};
     uint64_t numDestinationsSent{};
     message_scheduler::CompactDestinationList destinations{};

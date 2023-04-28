@@ -28,7 +28,7 @@ message CrossChainMessageData {
 // Message to hold both the CrossChainMessageData, a proof of its validity, and the current node's ack_count
 message CrossChainMessage {
     // The data and scrooge book keeping logic needed by scrooge for correctness
-    CrossChainMessageData data = 1;
+    repeated CrossChainMessageData data = 1;
      // A proof that the message contents are valid and signed off by the entire sending RSM
     bytes validity_proof = 2;
     // Iff present, the sender of this message preports to have seen messages with:

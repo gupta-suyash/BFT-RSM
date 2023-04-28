@@ -3,8 +3,7 @@
 #include "global.h"
 #include <atomic>
 #include <mutex>
-
-#include <boost/icl/interval_set.hpp>
+#include <vector>
 
 class Acknowledgment
 {
@@ -15,7 +14,9 @@ class Acknowledgment
     std::optional<uint64_t> getAckIterator() const;
 
   private:
+    static constexpr uint64_t kWindowSize = 2ULL * (1ULL<<30);
+
     mutable std::mutex mMutex{};
     std::atomic<std::optional<uint64_t>> mAckValue{std::nullopt};
-    boost::icl::interval_set<uint64_t> mAckWindows;
+    std::vector<bool> mAckWindow = std::vector<bool>(kWindowSize);
 };

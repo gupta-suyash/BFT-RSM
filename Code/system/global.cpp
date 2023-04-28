@@ -69,14 +69,13 @@ std::chrono::duration<double> get_test_duration()
     return kTestDuration - kWarmupDuration;
 }
 
+std::chrono::duration<double> get_test_warmup_duration()
+{
+    return kWarmupDuration;
+}
+
 bool is_test_over()
 {
-    static constexpr uint64_t kBatchSize{100};
-    thread_local uint64_t curRound{};
-    if (curRound++ < kBatchSize)
-    {
-        return false;
-    }
     const auto elapsedTime = std::chrono::steady_clock::now() - g_start_time;
     return elapsedTime > kTestDuration + kShutDownEps;
 }

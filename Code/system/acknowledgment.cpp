@@ -7,13 +7,25 @@
  */
 void Acknowledgment::addToAckList(const uint64_t ack)
 {
-    mAckWindows.add(ack);
-
-    const auto minimumAckWindow = std::cbegin(mAckWindows);
-
-    if (minimumAckWindow->lower() <= kMinimumAckValue)
+    const auto curAckValue = mAckValue.load(std::memory_order::relaxed);
+    if (ack <= curAckValue)
     {
-        mAckValue.store(minimumAckWindow->upper(), std::memory_order::release);
+        return;
+    }
+    const auto ackLocation = ack & (kWindowSize - 1);
+    mAckWindow[ackLocation] = true;
+
+
+    auto curWindowBaseline = curAckValue.value_or(0ULL - 1) + 1;
+    while (mAckWindow[curWindowBaseline])
+    {
+        mAckWindow[curWindowBaseline] = false;
+        curWindowBaseline = (curWindowBaseline + 1 == kWindowSize)? 0 : curWindowBaseline + 1;
+    }
+    const auto highestAcked = curWindowBaseline - 1;
+    if (highestAcked != curAckValue.value_or(0ULL - 1))
+    {
+        mAckValue.store(highestAcked, std::memory_order::release);
     }
 }
 
