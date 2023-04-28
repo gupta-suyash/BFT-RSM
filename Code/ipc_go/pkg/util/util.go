@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"os"
 
-	"github.com/gupta-suyash/BFT-RSM/client/scrooge"
+	"github.com/gupta-suyash/BFT-RSM/ipc_go/scrooge"
 )
 
 // For a file of urls where the i'th url is the address of the i-th node in a cluster

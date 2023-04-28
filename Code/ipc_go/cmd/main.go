@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/golang/glog"
-	"github.com/gupta-suyash/BFT-RSM/client/pkg/ipc"
-	"github.com/gupta-suyash/BFT-RSM/client/pkg/util"
-	"github.com/gupta-suyash/BFT-RSM/client/scrooge"
+	"github.com/gupta-suyash/BFT-RSM/ipc_go/pkg/ipc"
+	"github.com/gupta-suyash/BFT-RSM/ipc_go/pkg/util"
+	"github.com/gupta-suyash/BFT-RSM/ipc_go/scrooge"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
