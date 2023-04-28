@@ -84,13 +84,13 @@ def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
         Graph(
             title = f'{title} Confirmation Latency',
             x_axis_name = 'message size (kilobytes)',
-            y_axis_name = 'Receiver Calculated Message Latency (seconds)',
+            y_axis_name = 'Message Latency (seconds)',
             lines = latency_lines
         ),
         Graph(
             title = f'{title} Confirmation Throughput',
             x_axis_name = 'message size (kilobytes)',
-            y_axis_name = 'Receiver Calculated Message Throughput (messages/seconds)',
+            y_axis_name = 'Message Throughput (messages/seconds)',
             lines = throughput_lines
         )
     ]
@@ -143,6 +143,7 @@ def get_graphs(name: str, dataframe: pd.DataFrame) -> List[Graph]:
     return graphs
 
 def get_graphs_by_group(dataframe: pd.DataFrame):
+    return get_graphs('Equal Stake', dataframe)
     dist_to_name = {'11111111':'Equal Stake', '43214321':'4321 Stake', '71117111':'7111 Stake'}
     graphs = []
     for stake_dist, dist_results in dataframe.groupby('stake_dist'):
