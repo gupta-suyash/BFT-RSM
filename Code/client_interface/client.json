@@ -1,9 +1,15 @@
 {
     "general": {
-        "send_ip": "10.10.1.3",
-        "receive_ip": "10.10.1.1",
+        "send_ip": [
+            "10.10.1.2",
+            "10.10.1.3",
+            "10.10.1.4",
+            "10.10.1.5"
+        ],
+        "receive_ip": "10.10.1.11",
         "send_port": 1234,
-        "receive_port": 4003
+        "receive_port": 4003,
+        "filename": "/proj/ove-PG0/murray/payload/100_byte_payload.txt"
     },
     "simple": {
         "input_file": "",
