@@ -5,6 +5,7 @@
 #include <bit>
 #include <vector>
 #include <mutex>
+#include <iostream>
 
 namespace acknowledgment
 {
@@ -28,23 +29,35 @@ namespace acknowledgment
     {
       return true;
     }
-    const auto index = (ack - ackView.ackOffset) & (kViewSize - 1);
+    const auto index = (ack - ackView.ackOffset) % kViewSize;
     return ackView.view[index / 64] & (1ULL << (index % 64));
   }
   template<uint64_t kViewSize>
   uint64_t getFinalAck(const AckView<kViewSize>& ackView)
   {
-    for (int i = ackView.view.size() - 1; i >= 0; i--)
+    if constexpr (kViewSize != 0)
     {
-      const auto numRighZeros = std::countl_zero(ackView.view[i]);
-      if (numRighZeros != 64)
+      for (int64_t i = ackView.view.size() - 1; i >= 0; i--)
       {
-        return ackView.ackOffset + i * 64 + (64 - numRighZeros);
+        const auto numRighZeros = std::countl_zero(ackView.view[i]);
+        if (numRighZeros != 64)
+        {
+          return ackView.ackOffset + (i * 64) + (64 - numRighZeros) - 1;
+        }
       }
     }
-    return ackView.ackOffset;
+
+    return ackView.ackOffset - 1;
   }
-}
+  template<uint64_t kViewSize>
+  std::optional<uint64_t> getAckIterator(const AckView<kViewSize>& ackView)
+  {
+    const auto ackIterator = (ackView.ackOffset > 1)
+                             ? std::optional<uint64_t>(ackView.ackOffset - 2)
+                             : std::nullopt;
+    return ackIterator;
+  }
+}; // namespace acknowledgment
 
 class Acknowledgment
 {

@@ -17,6 +17,7 @@ BOOST_AUTO_TEST_CASE(test_empty_ack)
     const auto ackView = ack.getAckView<kViewSize>();
     BOOST_CHECK(ack.getAckIterator() == std::nullopt);
     BOOST_CHECK(acknowledgment::getAckIterator(ackView) == std::nullopt);
+    BOOST_CHECK(acknowledgment::getFinalAck(ackView) == 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_useless_acks)
@@ -54,7 +55,8 @@ BOOST_AUTO_TEST_CASE(test_consecutive_acks)
         {
             BOOST_CHECK(not acknowledgment::testAckView(ackView, noAck));
         }
-        BOOST_CHECK_EQUAL(acknowledgment::getFinalAck(ackView), i);
+        BOOST_CHECK(acknowledgment::testAckView(ackView, i));
+        BOOST_CHECK_EQUAL(acknowledgment::getFinalAck(ackView), i + 1);
     }
 }
 
@@ -81,7 +83,7 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_acks)
     const auto ackView = ack.getAckView<kViewSize>();
     BOOST_CHECK(acknowledgment::getAckIterator(ackView) == jumpSize);
     BOOST_CHECK(ackView.ackOffset == jumpSize + 2);
-    BOOST_CHECK_EQUAL(acknowledgment::getFinalAck(ackView), jumpSize);
+    BOOST_CHECK_EQUAL(acknowledgment::getFinalAck(ackView), jumpSize + 1);
 
     for (uint64_t i = 0; i <= jumpSize; i++)
     {
