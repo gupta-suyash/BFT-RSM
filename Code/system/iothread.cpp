@@ -139,6 +139,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             SPDLOG_CRITICAL("FAILED TO READ MESSAGE");
             continue;
         }
+        // SPDLOG_CRITICAL("Parsed string successfully: {}", messageBytes);
         // std::cout << "Is parse successful: " << isParseSuccessful << std::endl;
         switch (newRequest.request_case())
         {
