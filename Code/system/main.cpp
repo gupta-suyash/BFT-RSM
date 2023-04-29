@@ -53,16 +53,16 @@ int main(int argc, char *argv[])
 
     set_priv_key();
 
-    auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-    //auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-    // auto relayTransactionThread =
-    //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+    // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+    auto relayTransactionThread =
+        std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Generate message relay thread");
 
-    auto sendThread =
-        std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
-    auto receiveThread =
-        std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+    // auto sendThread =
+    //     std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
+    // auto receiveThread =
+    //     std::thread(runReceiveThread, pipeline, acknowledgment, ackTracker, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
     const auto testStartRecordTime = kTestStartTime + get_test_warmup_duration();
@@ -70,11 +70,11 @@ int main(int argc, char *argv[])
     addMetric("starting_quack", quorumAck->getCurrentQuack().value_or(0));
     addMetric("starting_ack", acknowledgment->getAckIterator().value_or(0));
 
-    messageRelayThread.join();
-    sendThread.join();
-    receiveThread.join();
-    // relayRequestThread.join();
-    // relayTransactionThread.join();
+    // messageRelayThread.join();
+    // sendThread.join();
+    // receiveThread.join();
+    relayRequestThread.join();
+    relayTransactionThread.join();
 
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
                     "kMaxNumLocalFailedNodes = {}, "

@@ -113,6 +113,16 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
                               NodeConfiguration kNodeConfiguration)
 {
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
+
+    std::ofstream outPipe{"/tmp/scrooge-output", std::ios_base::app};
+    if (!outPipe.is_open())
+    {
+        SPDLOG_CRITICAL("Output pipe open failed Failed={}, {}", std::strerror(errno), getlogin());
+    }
+    else
+    {
+        SPDLOG_CRITICAL("Output pipe open Success");
+    }
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
 
@@ -127,6 +137,9 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
         SPDLOG_CRITICAL("Reader Open Success");
     }
 
+
+    scrooge::ScroogeTransfer transfer;
+    const auto mutableCommitAck = transfer.mutable_commit_acknowledgment();
     while (not is_test_over())
     {
         auto messageBytes = readMessage(pipe);
@@ -147,8 +160,11 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             auto newMessageRequest = newRequest.send_message_request();
             receivedMessages.addToAckList(newMessageRequest.content().sequence_number());
 
-            while (not messageOutput->wait_enqueue_timed(std::move(*(newMessageRequest.mutable_content())), 1ms) && not is_test_over())
-                ;
+            mutableCommitAck->set_sequence_number(newMessageRequest.content().sequence_number());
+            const auto serializedTransfer = transfer.SerializeAsString();
+            // SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId,
+            // get_rsm_id());
+            writeMessage(outPipe, serializedTransfer);
             break;
         }
         default: {
@@ -442,6 +458,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
                                   NodeConfiguration kNodeConfiguration)
 {
+    return;
     std::ofstream pipe{scroogeOutputPipePath, std::ios_base::app};
     if (!pipe.is_open())
     {
