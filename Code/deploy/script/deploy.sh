@@ -41,9 +41,11 @@ deploy/script/generate_key.sh ${config_real_path} ${output_path}
 deploy/script/generate_config.sh ${config_real_path} ${output_path}
 
 echo "DONE GEN"
+echo ${server}
 
 # build kv server
-bazel build ${server}
+bazel build ${server} 
+#--copt="-mno-omit-leaf-frame-pointer" --copt="-fno-omit-frame-pointer"
 
 if [ $? != 0 ]
 then
@@ -59,7 +61,7 @@ function run_cmd(){
   count=1
   for ip in ${deploy_iplist[@]};
   do
-     ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no sugupta@${ip} "$1" &
+     ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no murray22@${ip} "$1" &
     ((count++))
   done
 
@@ -70,7 +72,7 @@ function run_cmd(){
 }
 
 function run_one_cmd(){
-  ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no sugupta@${ip} "$1" 
+  ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no murray22@${ip} "$1" 
 }
 
 run_cmd "killall -9 ${server_bin}"
@@ -85,7 +87,7 @@ count=0
 for ip in ${deploy_iplist[@]};
 do
   #scp -i ${key} -r ${bin_path} ${output_path}/server.config ${output_path}/cert ubuntu@${ip}:/home/ubuntu/ &
-  scp -r ${bin_path} ${output_path}/server.config ${output_path}/cert sugupta@${ip}: &
+  scp -r ${bin_path} ${output_path}/server.config ${output_path}/cert murray22@${ip}: &
   ((count++))
 done
 
@@ -123,7 +125,7 @@ do
   resp=""
   while [ "$resp" = "" ]
   do
-    resp=`ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no sugupta@${ip} "grep \"receive public size:${#iplist[@]}\" ${server_bin}${idx}.log"` 
+    resp=`ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no murray22@${ip} "grep \"receive public size:${#iplist[@]}\" ${server_bin}${idx}.log"` 
     if [ "$resp" = "" ]; then
       sleep 1
     fi

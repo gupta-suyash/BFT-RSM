@@ -29,7 +29,7 @@ function run_cmd(){
   count=1
   for ip in ${deploy_iplist[@]};
   do
-     ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no sugupta@${ip} "$1" &
+     ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no murray22@${ip} "$1" &
     ((count++))
   done
 
