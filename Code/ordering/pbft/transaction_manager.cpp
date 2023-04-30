@@ -34,15 +34,15 @@ TransactionManager::TransactionManager(
     std::unique_ptr<TransactionExecutorImpl> executor_impl,
     CheckPointManager* checkpoint_manager, SystemInfo* system_info)
     : config_(config),
-      queue_("executed"),
-      store_queue_("validated"),
+      queue_(20000),
+      store_queue_(20000),
       txn_db_(checkpoint_manager->GetTxnDB()),
       system_info_(system_info),
       checkpoint_manager_(checkpoint_manager),
       transaction_executor_(std::make_unique<TransactionExecutor>(
           config,
           [&](std::unique_ptr<Request> request,
-              std::unique_ptr<BatchClientResponse> resp_msg) {
+              std::shared_ptr<BatchClientResponse> resp_msg) {
             uint64_t seq = request->seq();
             resp_msg->set_proxy_id(request->proxy_id());
             resp_msg->set_seq(request->seq());
@@ -50,8 +50,9 @@ TransactionManager::TransactionManager(
 	    //@Suyash
 	    // Originally, the resp_msg was supposed to be pushed to queue_
 	    // but now we first store it in store_queue.
-            queue_.Push(std::move(resp_msg));
-	    //store_queue_.Push(std::move(resp_msg));
+            //queue_.Push(std::move(resp_msg));
+    	    //store_queue_.Push(std::move(resp_msg));
+	    while(!store_queue_.push(std::move(resp_msg)));
 
             if (checkpoint_manager_) {
               checkpoint_manager_->AddCommitData(std::move(request));
@@ -64,11 +65,19 @@ TransactionManager::TransactionManager(
 	  // and then we match sequence numbers, and if they match, we push it to
 	  // the client.
 	  [&](uint64_t seq_no) {
-	    auto resp_msg = store_queue_.Pop();
-	    if (resp_msg->seq() == seq_no) {
-	      queue_.Push(std::move(resp_msg));
-	      //LOG(INFO) << "Matched";
-	    }		    
+	    //auto resp_msg = store_queue_.Pop();
+	    std::shared_ptr<BatchClientResponse> resp_msg;
+	    bool success = false;
+	    while(!success) {
+	      success = store_queue_.pop(resp_msg);
+	      if(success) {
+	        if (resp_msg->seq() == seq_no) {
+	          while(!queue_.push(std::move(resp_msg)));
+	          //queue_.Push(std::move(resp_msg));
+	          //LOG(INFO) << "Matched";
+	        }
+	      }
+	    }
           }		      
       )),
       collector_pool_(std::make_unique<LockFreeCollectorPool>(
@@ -85,8 +94,14 @@ TransactionManager::~TransactionManager() {
   }
 }
 
-std::unique_ptr<BatchClientResponse> TransactionManager::GetResponseMsg() {
-  return queue_.Pop();
+std::shared_ptr<BatchClientResponse> TransactionManager::GetResponseMsg() {
+  std::shared_ptr<BatchClientResponse> resp_msg;
+  bool success = false;
+  while(!success) {
+    success = queue_.pop(resp_msg);
+  }
+  //return *(queue_.Pop());
+  return resp_msg;
 }
 
 int64_t TransactionManager::GetCurrentPrimary() const {

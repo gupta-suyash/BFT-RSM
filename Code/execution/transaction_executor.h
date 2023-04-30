@@ -29,6 +29,7 @@
 #include <filesystem>
 #include <fstream>
 
+#include <boost/lockfree/spsc_queue.hpp>
 #include "common/queue/lock_free_queue.h"
 #include "config/resdb_config.h"
 #include "execution/system_info.h"
@@ -42,7 +43,7 @@ namespace resdb {
 class TransactionExecutor {
  public:
   typedef std::function<void(std::unique_ptr<Request>,
-                             std::unique_ptr<BatchClientResponse> resp)>
+                             std::shared_ptr<BatchClientResponse> resp)>
   			PostExecuteFunc;
   typedef std::function<void(Request*)> PreExecuteFunc;
   typedef std::function<void(uint64_t seq)> SeqUpdateNotifyFunc;
@@ -108,7 +109,8 @@ class TransactionExecutor {
   uint64_t tot_txn = 0;
   PostValidateFunc post_valid_func_ = nullptr;
   std::thread scrooge_snd_thread_, scrooge_rcv_thread_;
-  LockFreeQueue<BatchClientResponse> scrooge_snd_queue_; 
+  boost::lockfree::spsc_queue<std::shared_ptr<BatchClientResponse>> scrooge_snd_queue_; 
+  //boost::lockfree::spsc_queue<uint64_t> scrooge_snd_queue_;
   std::string read_pipe_path_, write_pipe_path_, data_str;
   //******
 

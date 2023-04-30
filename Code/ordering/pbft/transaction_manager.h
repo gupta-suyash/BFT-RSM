@@ -75,7 +75,7 @@ class TransactionManager {
   // The messages that have been executed from Executor will save inside
   // Message Manager. Consensus Service can obtain the message then send back
   // to the client proxy.
-  std::unique_ptr<BatchClientResponse> GetResponseMsg();
+  std::shared_ptr<BatchClientResponse> GetResponseMsg();
 
   // Get committed messages with 2f+1 proof in [min_seq, max_seq].
   RequestSet GetRequestSet(uint64_t min_seq, uint64_t max_seq);
@@ -109,10 +109,10 @@ class TransactionManager {
   ResDBConfig config_;
   uint64_t next_seq_ = 1;
 
-  LockFreeQueue<BatchClientResponse> queue_;
 
   //@Suyash
-  LockFreeQueue<BatchClientResponse> store_queue_; // To hold client responses.
+  boost::lockfree::spsc_queue<std::shared_ptr<BatchClientResponse>> queue_;
+  boost::lockfree::spsc_queue<std::shared_ptr<BatchClientResponse>> store_queue_; // To hold client responses.
 
   TxnMemoryDB* txn_db_;
   SystemInfo* system_info_;

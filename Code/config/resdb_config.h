@@ -143,7 +143,7 @@ class ResDBConfig {
   uint64_t viewchange_commit_timeout_ms_ =
       60000;  // default 60s to change viewchange
 
-  uint32_t worker_num_ = 64;
+  uint32_t worker_num_ = 8;
   uint32_t input_worker_num_ = 1;
   uint32_t output_worker_num_ = 1;
 };

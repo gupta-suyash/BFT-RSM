@@ -49,7 +49,7 @@ TransactionExecutor::TransactionExecutor(
 			post_valid_func_(post_valid_func), //@Suyash
       commit_queue_("order"),
       execute_queue_("execute"),
-      scrooge_snd_queue_("scrooge_snd"), //@Suyash
+      scrooge_snd_queue_(20000), //@Suyash
       stop_(false) {
   global_stats_ = Stats::GetGlobalStats();
   ordering_thread_ = std::thread(&TransactionExecutor::OrderMessage, this);
@@ -266,7 +266,7 @@ void TransactionExecutor::Execute(std::unique_ptr<Request> request,
   std::unique_ptr<BatchClientResponse> batch_response =
       std::make_unique<BatchClientResponse>();
 
-  std::unique_ptr<BatchClientResponse> response;
+  std::shared_ptr<BatchClientResponse> response;
   if (executor_impl_ && need_execute) {
     response = executor_impl_->ExecuteBatch(batch_request);
   }
@@ -289,13 +289,29 @@ void TransactionExecutor::Execute(std::unique_ptr<Request> request,
     response->set_createtime(batch_request.createtime());
     response->set_local_id(batch_request.local_id());
 
+    if(request->seq() == 1) {
+      LOG(INFO) << "Thread Id: " << gettid();
+    }
+
     //@Suyash
-    /*
-    std::unique_ptr<BatchClientResponse> scrooge_response = std::make_unique<BatchClientResponse> (*response);
+    
+    std::shared_ptr<BatchClientResponse> scrooge_response = response;
     scrooge_response->set_seq(request->seq());
     scrooge_response->set_current_view(request->current_view());
-    scrooge_snd_queue_.Push(std::move(scrooge_response));
+    
+
+    /*
+    while(!scrooge_snd_queue_.push(request->seq())) {
+        std::this_thread::yield();
+    }
     */
+
+    
+    //BatchClientResponse *scr_msg = scrooge_response.release();
+    while(!scrooge_snd_queue_.push(scrooge_response)) {
+        std::this_thread::yield();
+    }
+        
 
     post_exec_func_(std::move(request), std::move(response));
   }
@@ -310,17 +326,19 @@ void TransactionExecutor::ScroogeSendMessage() {
 
   // Creating Pipe for transfer
   //std::string pipe_path = "/tmp/scrooge-input"; //+ std::to_string(config_.GetSelfInfo().id());
-  //scr_write_.open(pipe_path, std::ios_base::binary);
   std::ofstream scr_write_{write_pipe_path_, std::ios_base::binary};
-  //std::ofstream scr_rtemp_{read_pipe_path_, std::ios_base::binary};
 
   LOG(INFO) << "PIPE: " << write_pipe_path_;
 
   auto start = std::chrono::steady_clock::now();
 
   while (!IsStop()) {
-    auto response = scrooge_snd_queue_.Pop();
-    if (response == nullptr) {
+    std::shared_ptr<BatchClientResponse> response;
+    //BatchClientResponse *response;
+    //uint64_t response;
+    auto success = scrooge_snd_queue_.pop(response);
+    if (!success) {
+      std::this_thread::yield();
       continue;
     }
 
@@ -329,13 +347,13 @@ void TransactionExecutor::ScroogeSendMessage() {
     //response->SerializeToString(&resp_str);
     //LOG(INFO) << "RESPONSE: " << resp_str;
    
-     
     scrooge::ScroogeRequest scroogeRequest;
     scrooge::SendMessageRequest sendMessageRequest;
     scrooge::CrossChainMessageData messageData;
     
     messageData.set_message_content(data_str);
     messageData.set_sequence_number(response->seq()-1);
+    //messageData.set_sequence_number(response-1);
     //LOG(INFO) << "WRITE SEQ: " << messageData.sequence_number();
     
     std::string validityProof = "bytes of a proof";
@@ -343,11 +361,11 @@ void TransactionExecutor::ScroogeSendMessage() {
     *sendMessageRequest.mutable_content() = std::move(messageData);
     
     *scroogeRequest.mutable_send_message_request() = std::move(sendMessageRequest);
+    //delete response;
     
     const std::string scroogeRequestBytes = scroogeRequest.SerializeAsString();
     uint64_t messageSize = scroogeRequestBytes.size();
     uint8_t* const messageBytes = (uint8_t*) scroogeRequestBytes.c_str();
-    
     
     /*
      * Test Purposes
@@ -387,9 +405,9 @@ void TransactionExecutor::ScroogeSendMessage() {
     
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
-    if(elapsed_seconds.count() > 95) {
+    if(elapsed_seconds.count() > 125) {
 	scr_write_.close();
-    }	    
+    }
 
   }
 }
@@ -410,7 +428,7 @@ void TransactionExecutor::ScroogeRecvMessage() {
     // Attempt reading size.
     scr_read_.read(reinterpret_cast<char *>(&readSize), sizeof(readSize));
     if (scr_read_.fail()) {
-      LOG(INFO) << "READ Size fail" << scr_read_.eof();
+      //LOG(INFO) << "READ Size fail" << scr_read_.eof();
       // When fails we reset the position.
       //scr_read_.seekg(fpos, scr_read_.beg);
       continue;
