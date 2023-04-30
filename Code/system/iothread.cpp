@@ -233,6 +233,22 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
+void lameResendDataThread(
+    moodycamel::BlockingReaderWriterCircularBuffer<acknowledgment_tracker::ResendData>* const resendOutput,
+    const std::vector<std::unique_ptr<AcknowledgmentTracker>>* const ackTrackers
+)
+{
+ // commit your code and add this dumb thing that just resends all active things no batching
+ // optimizations: maybe only send messages this node may resend
+ //                maybe send out things in batches
+ //                maybe keep track of things that have already been stored?
+ //                smallest element in a full sweep left->right of the list is monotonic "quorum ack"
+ // observations: 1-2% of checks will actually have data
+ // this thread can probably make way too many checks for the sending thread though :/
+ // maybe the send thread can message about messages its concerned about? And this thread frees once its monotonic counter is bigger than it?
+ // 
+}
+
 void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
                    const std::shared_ptr<Acknowledgment> acknowledgment,
                    const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
@@ -261,19 +277,20 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     std::optional<uint64_t> lastSentAck{};
     uint64_t lastQuack = 0, lastSeq = 0;
     constexpr uint64_t kAckWindowSize = 12*16*10;
-    constexpr uint64_t kQAckWindowSize = 256;
+    constexpr uint64_t kQAckWindowSize = kListSize * 2;
     // Optimal window size for non-stake: 12*16 and for stake: 12*8
     constexpr auto kMaxMessageDelay = 1us;
     constexpr auto kNoopDelay = 500us;
-    constexpr auto kAckTrackerTimeout = 1ms;
+    constexpr auto kAckTrackerTimeout = .1ms;
     std::chrono::steady_clock::time_point lastAckTrackerCheck{};
     // kNoopDelay for Scrooge for non-failures: 500
     uint64_t noop_ack = 0;
+    uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{};
 
     while (not is_test_over())
     {
         // update window information
-        const auto curAck = acknowledgment->getAckIterator();
+        const auto curAck = lastSentAck.value_or(0)+1;//acknowledgment->getAckIterator();
         const auto curQuack = quorumAck->getCurrentQuack();
 
         if (curAck != lastSentAck)
@@ -323,6 +340,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             if (isFirstSender)
             {
                 const auto receiverNode = destinations.at(0);
+                numMessagesSent++;
 
                 if (isPossiblySentLater)
                 {
@@ -383,14 +401,38 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             continue;
         }
         lastAckTrackerCheck = curTime;
+        auto quackVal = quorumAck->getCurrentQuack();
         for (const auto& ackTracker : *ackTrackers)
         {
             const auto activeResendData = ackTracker->getActiveResendData();
+            numResendChecks++;
             if (not activeResendData.has_value())
             {
                 continue;
             }
+            numActiveResends++;
             const auto [resendSequenceNumber, resendNumber] = *activeResendData;
+
+            if (quackVal >= resendSequenceNumber)
+            {
+                continue;
+            }
+            else
+            {
+                quackVal = quorumAck->getCurrentQuack();
+                if (quackVal >= resendSequenceNumber)
+                {
+                    continue;
+                }
+            }
+
+            if (resendSequenceNumber - quackVal.value_or(0ULL - 1ULL) > 512)
+            {
+                continue;
+            }
+
+            numResendsOverQuack++;
+
             auto resendMessageData = resendMessageMap.find(resendSequenceNumber);
 
             if (resendMessageData != resendMessageMap.end())
@@ -421,7 +463,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                     {
                         // Expedite sending of failed message
                         // Check if this helps or hurts performance @Reggie
-                        pipeline->SendToOtherRsm(destination, {}, acknowledgment.get());
+                        //pipeline->SendToOtherRsm(destination, {}, acknowledgment.get());
                     }
 
                     lastSendTime = std::chrono::steady_clock::now();
@@ -446,7 +488,11 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     addMetric("Latency", averageLat());
     addMetric("transfer_strategy", "Scrooge k=" + std::to_string(kListSize) + "+ resends");
     addMetric("resend_msg_map_size", resendMessageMap.size());
+    addMetric("num_msgs_sent_primary", numMessagesSent);
     addMetric("num_msgs_resent", numMessagesResent);
+    addMetric("num_resend_checks", numResendChecks);
+    addMetric("avg_resend_active", (double) numActiveResends / (double)numResendChecks);
+    addMetric("avg_resend_active_over_quack", (double) numResendsOverQuack / (double)numResendChecks);
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
@@ -516,6 +562,39 @@ void updateAckTrackers(const std::optional<uint64_t> curQuack,
     }
 }
 
+struct LameAckData{
+    uint8_t senderId;
+    acknowledgment::AckView<kListSize> senderAckView;
+};
+void lameAckThread(
+    Acknowledgment* const acknowledgment,
+    QuorumAcknowledgment* const quorumAck,
+    std::vector<std::unique_ptr<AcknowledgmentTracker>>* const ackTrackers,
+    moodycamel::BlockingReaderWriterCircularBuffer<LameAckData>* const viewQueue,
+    const NodeConfiguration configuration)
+{
+    SPDLOG_CRITICAL("STARTING LAME THREAD {}", gettid());
+    while (not is_test_over())
+    {
+        LameAckData curData{};
+        while (not viewQueue->wait_dequeue_timed(curData, 1s) && not is_test_over());
+
+        const auto& [senderId, senderAckView] = curData;
+
+        const auto curForeignAck = acknowledgment::getAckIterator(senderAckView);
+
+        const auto senderStake = configuration.kOtherNetworkStakes.at(senderId);
+        if (curForeignAck.has_value())
+        {
+            quorumAck->updateNodeAck(senderId, senderStake, *curForeignAck);
+        }
+
+        const auto currentQuack = quorumAck->getCurrentQuack();
+        updateAckTrackers(currentQuack, senderId, senderStake, senderAckView, ackTrackers);
+    }
+    SPDLOG_CRITICAL("LAME THREAD ENDING");
+}
+
 void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
                       const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
@@ -527,6 +606,9 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
 
     scrooge::CrossChainMessage crossChainMessage;
     auto ackView = std::array<uint64_t, acknowledgment::AckView<kListSize>::kNumInts>{};
+
+    moodycamel::BlockingReaderWriterCircularBuffer<LameAckData> viewQueue(1<<20);
+    std::thread lameThread(lameAckThread, acknowledgment.get(), quorumAck.get(), ackTrackers.get(), &viewQueue, configuration);
 
     while (not is_test_over())
     {
@@ -559,13 +641,6 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 const auto curForeignAck = (crossChainMessage.has_ack_count())
                                                 ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
                                                 : std::nullopt;
-                const auto senderStake = configuration.kOtherNetworkStakes.at(senderId);
-                if (curForeignAck.has_value())
-                {
-                    quorumAck->updateNodeAck(senderId, senderStake, *curForeignAck);
-                }
-
-                const auto currentQuack = quorumAck->getCurrentQuack();
                 assert(ackView.size() == crossChainMessage.ack_set_size() && "AckListSize inconsistent");
                 std::copy_n(
                     crossChainMessage.ack_set().begin(),
@@ -576,7 +651,11 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                     .ackOffset = curForeignAck.value_or(0ULL - 1ULL) + 2,
                     .view = ackView
                 };
-                updateAckTrackers(currentQuack, senderId, senderStake, senderAckView, ackTrackers.get());
+
+                while (
+                    not viewQueue.wait_enqueue_timed({.senderId = (uint8_t) senderId, .senderAckView = senderAckView}, 1s)
+                    && not is_test_over()
+                );
             }
         }
 
@@ -618,6 +697,9 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
     {
         nng_msg_free(receivedMessage.message);
     }
+
+    lameThread.join();
+
     SPDLOG_INFO("ALL MESSAGES RECEIVED : Receive thread exiting");
     addMetric("Average Missing Acks", (double)numMissing /(double) numChecked);
     addMetric("Average KList Size", (double)numChecked / (double)numRecv);

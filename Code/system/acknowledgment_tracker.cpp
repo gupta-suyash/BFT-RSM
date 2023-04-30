@@ -75,7 +75,7 @@ void AcknowledgmentTracker::updateActiveResendData()
     {
         if (curResendData.has_value())
         {
-            mActiveResendData.store(std::nullopt, std::memory_order_relaxed);
+            mActiveResendData.store(std::nullopt, std::memory_order_release);
         }
         return;
     }
@@ -88,7 +88,7 @@ void AcknowledgmentTracker::updateActiveResendData()
     {
         if (curResendData.has_value())
         {
-            mActiveResendData.store(std::nullopt, std::memory_order_relaxed);
+            mActiveResendData.store(std::nullopt, std::memory_order_release);
         }
         return;
     }
@@ -100,12 +100,12 @@ void AcknowledgmentTracker::updateActiveResendData()
     const bool isCurResendDataOutdated = curResendData != potentialNewResendData;
     if (isCurResendDataOutdated)
     {
-        mActiveResendData.store(potentialNewResendData, std::memory_order_relaxed);
+        mActiveResendData.store(potentialNewResendData, std::memory_order_release);
     }
 }
 
 std::optional<acknowledgment_tracker::ResendData> AcknowledgmentTracker::getActiveResendData() const
 {
     // TODO check if std::memory_order_acquire is too expensive (probably won't be with crypto)
-    return mActiveResendData.load(std::memory_order_relaxed);
+    return mActiveResendData.load(std::memory_order_acquire);
 }

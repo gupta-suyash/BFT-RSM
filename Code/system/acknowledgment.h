@@ -68,9 +68,9 @@ class Acknowledgment
     template<uint64_t kViewSize>
     acknowledgment::AckView<kViewSize> getAckView() const
     {
-      std::scoped_lock lock{mMutex};
+      // std::scoped_lock lock{mMutex};
       acknowledgment::AckView<kViewSize> ackView{};
-      const auto ackOffset = mAckValue.value_or(0ULL - 1) + 2;
+      const auto ackOffset = mAckValue.load(std::memory_order_acquire).value_or(0ULL - 1) + 2;
       ackView.ackOffset = ackOffset;
 
       const uint64_t initialAckValue = ackOffset % kWindowSize;
@@ -124,8 +124,8 @@ class Acknowledgment
     static constexpr uint64_t kWindowSize = 2ULL * (1ULL<<30);
     static_assert(kWindowSize % 64 == 0, "kWindowSize Must be a multiple of 64 (word size)");
 
-    mutable std::mutex mMutex;
+    // mutable std::mutex mMutex;
 
-    std::optional<uint64_t> mAckValue{std::nullopt};
+    std::atomic<std::optional<uint32_t>> mAckValue{std::nullopt};
     std::vector<uint64_t> mAckWindow = std::vector<uint64_t>(kWindowSize / 64);
 };
