@@ -21,7 +21,7 @@ struct NodeAckData
 struct ResendData
 {
     uint32_t sequenceNumber{};
-    uint32_t resendNumber{}; // counts from 1
+    uint16_t resendNumber{}; // counts from 1
     bool operator==(const ResendData &) const = default;
 };
 #pragma pack(pop)
@@ -51,6 +51,6 @@ class AcknowledgmentTracker
     const uint64_t kOtherNetworkMaxFailedStake{};
     std::vector<acknowledgment_tracker::NodeAckData> mNodeData;
     std::optional<uint64_t> mCurStuckQuorumAck{};
-    uint64_t curUnstuckStake{}; // will disable resend data if this > failedStake
+    uint64_t mCurUnstuckStake{}; // will disable resend data if this > failedStake
     QuorumAcknowledgment staleAckQuorumCounter;
 };
