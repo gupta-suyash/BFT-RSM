@@ -33,12 +33,12 @@ TEST_SOURCES_OBJ = $(TEST_SOURCES:.cpp=.o)
 FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 
 .PHONY: all clean format test proto
-all: client scrooge
+all: scrooge
 
 scrooge : $(SOURCES_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
-client : $(CLIENT_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
+# client : $(CLIENT_OBJ)
+# 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} -o $@ $<
 
