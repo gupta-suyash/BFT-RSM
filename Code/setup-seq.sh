@@ -1,7 +1,7 @@
 # nng installation
 #tar -xzf nng-1.5.2.tar.gz
 echo "untar of nng successful"
-cd /proj/ove-PG0/suyash/BFT-RSM/Code/nng-1.5.2
+cd /proj/ove-PG0/murray/BFT-RSM/Code/nng-1.5.2
 #mkdir build
 cd build
 echo "build directory creation successful"
@@ -14,7 +14,7 @@ cd ..
 # protobuf installation
 #tar -xzf protobuf-cpp-3.10.0.tar.gz
 echo "untar of protobuf successful"
-cd /proj/ove-PG0/suyash/BFT-RSM/Code/protobuf-3.10.0
+cd /proj/ove-PG0/murray/BFT-RSM/Code/protobuf-3.10.0
 ./configure
 make clean
 make -j$(nproc)
