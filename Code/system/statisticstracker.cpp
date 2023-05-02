@@ -4,17 +4,12 @@
 uint64_t ack_count = 0;
 long double tot_lat = 0;
 boost::circular_buffer<std::pair<uint64_t, std::chrono::steady_clock::time_point>> latency_map(3 * (1<<20));
-std::optional<std::chrono::steady_clock::time_point> firstMeasurement{};
 
 // Functions
 void startTimer(uint64_t seq_num, std::chrono::steady_clock::time_point now)
 {
     if (is_test_recording())
     {
-        if (not firstMeasurement)
-        {
-            firstMeasurement = now;
-        }
         latency_map.push_back(std::make_pair(seq_num, now));
     }
 }
@@ -42,13 +37,12 @@ double averageLat()
 
 void allToall(std::chrono::steady_clock::time_point start_time)
 {
-    if (not firstMeasurement.has_value())
+    if (not is_test_recording())
     {
-        SPDLOG_CRITICAL("Never recorded a latency");
-        std::abort();
+        return;
     }
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<long double> diff = end - firstMeasurement.value();
+    const auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<long double> diff = end - start_time;
     tot_lat += diff.count();
     ack_count++;
 }
