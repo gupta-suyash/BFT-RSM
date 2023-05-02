@@ -1,17 +1,16 @@
-#include <chrono>
-#include <fstream>
-#include <iostream>
-#include <unordered_map>
-#include <vector>
-
 #include "global.h"
 
-extern uint64_t ack_count;
-extern double tot_lat;
-extern std::unordered_map<uint64_t, std::chrono::high_resolution_clock::time_point> latency_map; // TODO fixed size
+#include <chrono>
+#include <utility>
 
-void startTimer(uint64_t packet_num);
-void recordLatency(uint64_t lastQuack, uint64_t curQuack);
-void removeTimeStamp(uint64_t packet_num);
+#include <boost/circular_buffer.hpp>
+
+
+extern uint64_t ack_count;
+extern long double tot_lat;
+extern boost::circular_buffer<std::pair<uint64_t, std::chrono::steady_clock::time_point>> latency_map;
+
+void startTimer(uint64_t packet_num, std::chrono::steady_clock::time_point now);
+void recordLatency(uint64_t curQuack, std::chrono::steady_clock::time_point now);
 double averageLat();
-void allToall(std::chrono::high_resolution_clock::time_point start_time);
+void allToall(std::chrono::steady_clock::time_point start_time);

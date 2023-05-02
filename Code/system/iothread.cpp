@@ -179,7 +179,7 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
         while (messageInput->try_dequeue(newMessageData) && not is_test_over())
         {
             const auto curSequenceNumber = newMessageData.sequence_number();
-            auto start_time = std::chrono::high_resolution_clock::now();
+            auto start_time = std::chrono::steady_clock::now();
 
             pipeline->SendToAllOtherRsm(std::move(newMessageData));
             sentMessages.addToAckList(curSequenceNumber);
@@ -216,7 +216,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
         while (messageInput->try_dequeue(newMessageData) && not is_test_over())
         {
             const auto curSequenceNumber = newMessageData.sequence_number();
-            auto start_time = std::chrono::high_resolution_clock::now();
+            auto start_time = std::chrono::steady_clock::now();
 
             pipeline->SendToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr);
             sentMessages.addToAckList(curSequenceNumber);
@@ -309,11 +309,11 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             lastSeq++;
 
             // Start the timer for latency
-            startTimer(sequenceNumber);
+            startTimer(sequenceNumber, curTime);
 
             // Recording latency
             uint64_t checkVal = curQuack.value_or(0);
-            recordLatency(lastQuack, checkVal);
+            recordLatency(checkVal, curTime);
             lastQuack = checkVal;
 
             const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
