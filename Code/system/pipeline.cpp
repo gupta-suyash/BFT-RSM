@@ -455,14 +455,19 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
     }
 }
 
+void bufferedMessageAppend(scrooge::CrossChainMessageData &&messageData,
+                           pipeline::CrossChainMessageBatch *const batch)
+{
+    batch->batchSizeEstimate += messageData.ByteSizeLong();
+    batch->data.mutable_data()->Add(std::move(messageData));
+}
+
 bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                                    pipeline::CrossChainMessageBatch *const batch,
                                    const Acknowledgment * const acknowledgment,
                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue)
 {
-    batch->batchSizeEstimate += message.ByteSizeLong();
-    batch->data.mutable_data()->Add(std::move(message));
-
+    bufferedMessageAppend(std::move(message), batch);
     const auto timeDelta = std::chrono::steady_clock::now() - batch->creationTime;
     bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
     if (not shouldSend)
@@ -473,6 +478,17 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     flushBufferedMessage(batch, acknowledgment, sendingQueue);
     return true;
 }
+
+void Pipeline::AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData)
+{
+    const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
+    const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
+
+    std::scoped_lock lock{destinationBatch->batchMutex};
+    assert(messageData.message_content().size());
+    bufferedMessageAppend(std::move(messageData), destinationBatch);
+}
+
 /* This function is used to send message to a specific node in other RSM.
  *
  * @param nid is the identifier of the node in the other RSM.
@@ -485,6 +501,8 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
 
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
+
+    std::scoped_lock lock{destinationBatch->batchMutex};
 
     if (messageData.message_content().size())
     {

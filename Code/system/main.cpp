@@ -18,6 +18,8 @@ int main(int argc, char *argv[])
     const auto kNetworkZeroConfigPath = kWorkingDir + "network0urls.txt"s;
     const auto kNetworkOneConfigPath = kWorkingDir + "network1urls.txt"s;
 
+    printMetrics(kLogPath);
+
     const auto kOwnNetworkConfiguration =
         parseNetworkUrlsAndStake(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
     const auto kOtherNetworkConfiguration =
@@ -40,7 +42,7 @@ int main(int argc, char *argv[])
     const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
                                                      kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
     const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
-    constexpr auto kNumAckTrackers = kListSize;
+    constexpr auto kNumAckTrackers = kListSize * 2;
     const auto ackTrackers = std::make_shared<std::vector<std::unique_ptr<AcknowledgmentTracker>>>();
     for (uint64_t i = 0; i < kNumAckTrackers; i++)
     {

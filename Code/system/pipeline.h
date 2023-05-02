@@ -9,6 +9,7 @@
 #include <atomic>
 #include <bitset>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -28,9 +29,10 @@ struct ReceivedCrossChainMessage
 
 struct CrossChainMessageBatch
 {
-  scrooge::CrossChainMessage data{};
   std::chrono::steady_clock::time_point creationTime{};
   uint64_t batchSizeEstimate{};
+  std::mutex batchMutex{};
+  scrooge::CrossChainMessage data{};
 };
 
 template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
@@ -46,6 +48,7 @@ class Pipeline
     void startPipeline();
 
     bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment);
+    void AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData);
     bool rebroadcastToOwnRsm(nng_msg *message);
 
     pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();

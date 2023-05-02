@@ -234,20 +234,125 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
 }
 
 void lameResendDataThread(
-    moodycamel::BlockingReaderWriterCircularBuffer<acknowledgment_tracker::ResendData>* const resendOutput,
+    moodycamel::BlockingReaderWriterCircularBuffer<iothread::MessageResendData>* const resendDataInput,
     QuorumAcknowledgment* const quorumAck,
-    const std::vector<std::unique_ptr<AcknowledgmentTracker>>* const ackTrackers
+    const std::vector<std::unique_ptr<AcknowledgmentTracker>>* const ackTrackers,
+    Pipeline* const pipeline
 )
-{
-    // commit your code and add this dumb thing that just resends all active things no batching
-    // optimizations: maybe only send messages this node may resend
-    //                maybe send out things in batches
-    //                maybe keep track of things that have already been stored?
-    //                smallest element in a full sweep left->right of the list is monotonic "quorum ack"
-    // observations: 1-2% of checks will actually have data
-    // this thread can probably make way too many checks for the sending thread though :/
-    // maybe the send thread can message about messages its concerned about? And this thread frees once its monotonic counter is bigger than it?
-    
+{    
+    uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesResent{};
+
+    boost::circular_buffer<iothread::MessageResendData> resendDatas(1<<20);
+    std::vector<acknowledgment_tracker::ResendData> activeResends(ackTrackers->size());
+
+    iothread::MessageResendData newData;
+
+    SPDLOG_CRITICAL("LameResendDataThread starting {}", gettid());
+    while (not is_test_over())
+    {
+        activeResends.clear(); // clear old resend data
+        while (not resendDatas.full() && resendDataInput->try_dequeue(newData))
+        {
+            assert((resendDatas.empty() || resendDatas.back().messageData.sequence_number() < newData.messageData.sequence_number()) && "Resend data nonmonotone");
+            resendDatas.push_back(std::move(newData));
+        }
+
+        if (resendDatas.empty())
+        {
+            continue;
+        }
+
+        const auto curQuack = quorumAck->getCurrentQuack();
+        for (const auto& ackTracker : *ackTrackers)
+        {
+            const auto activeResendData = ackTracker->getActiveResendData();
+            numResendChecks++;
+            if (not activeResendData.has_value())
+            {
+                continue;
+            }
+
+            numActiveResends++;
+            // const auto [resendSequenceNumber, resendNumber] = *activeResendData;
+
+            // if (resendSequenceNumber > 512 + curQuack.value_or(0ULL - 1ULL))
+            // {
+            //     continue;
+            // }
+            //numResendsOverQuack++;
+
+            activeResends.push_back(activeResendData.value());
+        }
+
+        const auto endOfOldData = std::find_if(std::cbegin(resendDatas), std::cend(resendDatas), [&](auto& resendData) -> bool {
+            return resendData.messageData.sequence_number() > curQuack;
+        });
+        const auto numToErase = std::distance(std::cbegin(resendDatas), endOfOldData);
+        resendDatas.erase_begin(numToErase);
+
+        // sort in increasing sequence number order
+        std::sort(std::begin(activeResends), std::end(activeResends), [](const auto a, const auto b) -> bool
+        {
+            return a.sequenceNumber < b.sequenceNumber; 
+        });
+
+        auto startResendDataIt = resendDatas.begin();
+
+        for (auto& activeResend : activeResends)
+        {
+            const auto curResendDataIt  = std::find_if(startResendDataIt, std::end(resendDatas), [&](const iothread::MessageResendData& possibleData) -> bool {
+                return possibleData.messageData.sequence_number() >= activeResend.sequenceNumber;
+            });
+
+            if (curResendDataIt == std::end(resendDatas))
+            {
+                break;
+            }
+
+            startResendDataIt = curResendDataIt;
+
+            const bool noResendDataFound = curResendDataIt->messageData.sequence_number() > activeResend.sequenceNumber;
+            const bool alreadySent = curResendDataIt->messageData.message_content().empty();
+            if (noResendDataFound || alreadySent)
+            {
+                continue;
+            }
+
+            auto& [messageData, firstDestinationResendNumber, numDestinationsSent, destinations] = *curResendDataIt;
+
+            // We got to the message which should be resent
+            const auto curNodeFirstResend = firstDestinationResendNumber;
+            const auto curNodeLastResend = firstDestinationResendNumber + destinations.size() - 1;
+            const auto curNodeCompletedResends = curNodeFirstResend + numDestinationsSent;
+            const auto curFinalDestination = std::min<uint64_t>(curNodeLastResend, activeResend.resendNumber);
+            for (uint64_t resend = curNodeCompletedResends; resend <= curFinalDestination; resend++)
+            {
+                const auto destination = destinations.at(resend - curNodeFirstResend);
+
+                const bool isSentLater = numDestinationsSent + 1 < destinations.size();
+                if (isSentLater)
+                {
+                    scrooge::CrossChainMessageData messageDataCopy;
+                    messageDataCopy.CopyFrom(messageData);
+                    pipeline->AppendToSend(destination, std::move(messageDataCopy));
+                }
+                else
+                {
+                    pipeline->AppendToSend(destination, std::move(messageData));
+                    if (startResendDataIt == std::begin(resendDatas))
+                    {
+                        startResendDataIt = resendDatas.rerase(startResendDataIt);
+                    }
+                }
+                numDestinationsSent++;
+                numMessagesResent += is_test_recording();
+            }
+        }
+    }
+    addMetric("num_resend_checks", numResendChecks);
+    addMetric("avg_resend_active", (double) numActiveResends / (double)numResendChecks);
+    addMetric("avg_resend_active_over_quack", (double) numResendsOverQuack / (double)numResendChecks);
+    addMetric("num_msgs_resent", numMessagesResent);
 }
 
 void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
@@ -270,20 +375,19 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
     const MessageScheduler messageScheduler(configuration);
 
-    uint64_t numMessagesResent{};
-    auto resendMessageMap = std::map<uint64_t, iothread::MessageResendData>{};
+    moodycamel::BlockingReaderWriterCircularBuffer<iothread::MessageResendData>  resendMsgQueue(1<<15);
     auto lastSendTime = std::chrono::steady_clock::now();
     auto lastNoopTime = std::chrono::steady_clock::now();
     uint64_t lastQuack = 0, lastSeq = 0;
-    constexpr uint64_t kQAckWindowSize = 5'000;
+    constexpr uint64_t kQAckWindowSize = 2048;
     // Optimal window size for non-stake: 12*16 and for stake: 12*8
     constexpr auto kMaxMessageDelay = 1us;
     constexpr auto kNoopDelay = 500us;
-    constexpr auto kAckTrackerTimeout = .1ms;
-    std::chrono::steady_clock::time_point lastAckTrackerCheck{};
+
+    std::thread lameResendThread(lameResendDataThread, &resendMsgQueue, quorumAck.get(), ackTrackers.get(), pipeline.get());
+
     // kNoopDelay for Scrooge for non-failures: 500
-    uint64_t noop_ack = 0;
-    uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{};
+    uint64_t noop_ack{}, numMessagesSent{};
 
     while (not is_test_over())
     {
@@ -337,24 +441,34 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
                     if (isPossiblySentLater)
                     {
-                        auto messageDataCopy = newMessageData;
+                        scrooge::CrossChainMessageData messageDataCopy;
+                        messageDataCopy.CopyFrom(newMessageData);
                         pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment.get());
                     }
                     else
                     {
                         pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment.get());
                     }
-                    lastSendTime = std::chrono::steady_clock::now();
+                    lastSendTime = curTime;
                 }
 
                 if (isPossiblySentLater)
                 {
-                    // const uint64_t numDestinationsAlreadySent = isFirstSender;
-                    // resendMessageMap.emplace(
-                    //     sequenceNumber, iothread::MessageResendData{.messageData = std::move(newMessageData),
-                    //                                                 .firstDestinationResendNumber = resendNumber.value(),
-                    //                                                 .numDestinationsSent = numDestinationsAlreadySent,
-                    //                                                 .destinations = destinations});
+                    const uint64_t numDestinationsAlreadySent = isFirstSender;
+
+                    auto resendData = iothread::MessageResendData{.messageData = std::move(newMessageData),
+                                                                    .firstDestinationResendNumber = resendNumber.value(),
+                                                                    .numDestinationsSent = numDestinationsAlreadySent,
+                                                                    .destinations = destinations};
+                    bool push_failed{};
+                    while (not resendMsgQueue.try_enqueue(std::move(resendData)) && not is_test_over())
+                    {
+                        push_failed = true;
+                    }
+                    if (push_failed)
+                    {
+                        //SPDLOG_CRITICAL("FAILED PUSH !!!!!!!!!!");
+                    }
                 }
             }
         }
@@ -368,121 +482,16 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
             lastNoopTime = curTime;
         }
-
-        const auto curQuorumAck = quorumAck->getCurrentQuack();
-
-        // Prune old message resend data
-        for (auto it = resendMessageMap.begin(); it != resendMessageMap.end() && not is_test_over();)
-        {
-            const auto sequenceNumber = it->first;
-
-            const bool isMessageAlreadyDelivered = sequenceNumber <= curQuorumAck;
-            if (isMessageAlreadyDelivered)
-            {
-                it = resendMessageMap.erase(it);
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        // bool shouldSkipAckTrackCheck = curTime - lastAckTrackerCheck <= kAckTrackerTimeout;
-        // if (shouldSkipAckTrackCheck)
-        // {
-        //     continue;
-        // }
-        // lastAckTrackerCheck = curTime;
-        // auto quackVal = quorumAck->getCurrentQuack();
-        // for (const auto& ackTracker : *ackTrackers)
-        // {
-        //     const auto activeResendData = ackTracker->getActiveResendData();
-        //     numResendChecks++;
-        //     if (not activeResendData.has_value())
-        //     {
-        //         continue;
-        //     }
-        //     numActiveResends++;
-        //     const auto [resendSequenceNumber, resendNumber] = *activeResendData;
-
-        //     if (quackVal >= resendSequenceNumber)
-        //     {
-        //         continue;
-        //     }
-        //     else
-        //     {
-        //         quackVal = quorumAck->getCurrentQuack();
-        //         if (quackVal >= resendSequenceNumber)
-        //         {
-        //             continue;
-        //         }
-        //     }
-
-        //     if (resendSequenceNumber - quackVal.value_or(0ULL - 1ULL) > 512)
-        //     {
-        //         continue;
-        //     }
-
-        //     numResendsOverQuack++;
-
-        //     auto resendMessageData = resendMessageMap.find(resendSequenceNumber);
-
-        //     if (resendMessageData != resendMessageMap.end())
-        //     {
-        //         auto &[message, firstDestinationResendNumber, numDestinationsSent, destinations] = resendMessageData->second;
-        //         // We got to the message which should be resent
-        //         const auto curNodeFirstResend = firstDestinationResendNumber;
-        //         const auto curNodeLastResend = firstDestinationResendNumber + destinations.size() - 1;
-        //         const auto curNodeCompletedResends = curNodeFirstResend + numDestinationsSent;
-        //         const auto curFinalDestination = std::min<uint64_t>(curNodeLastResend, activeResendData->resendNumber);
-        //         for (uint64_t resend = curNodeCompletedResends; resend <= curFinalDestination; resend++)
-        //         {
-        //             const auto destination = destinations.at(resend - curNodeFirstResend);
-
-        //             bool wasSent{};
-        //             const bool isSentLater = numDestinationsSent + 1 < destinations.size();
-        //             if (isSentLater)
-        //             {
-        //                 auto messageDataCopy = message;
-        //                 wasSent = pipeline->SendToOtherRsm(destination, std::move(messageDataCopy), acknowledgment.get());
-        //             }
-        //             else
-        //             {
-        //                 wasSent = pipeline->SendToOtherRsm(destination, std::move(message), acknowledgment.get());
-        //             }
-                    
-        //             if (not wasSent)
-        //             {
-        //                 // Expedite sending of failed message
-        //                 // Check if this helps or hurts performance @Reggie
-        //                 //pipeline->SendToOtherRsm(destination, {}, acknowledgment.get());
-        //             }
-
-        //             lastSendTime = std::chrono::steady_clock::now();
-        //             numDestinationsSent++;
-        //             numMessagesResent += is_test_recording();
-        //         }
-
-        //         const auto isComplete = numDestinationsSent == destinations.size();
-        //         if (isComplete)
-        //         {
-        //             resendMessageMap.erase(resendMessageData);
-        //         }
-        //     }
-        // }
     }
+
+    lameResendThread.join();
 
     addMetric("Noop Acks", noop_ack);
     addMetric("Noop Delay",std::chrono::duration<double>(kNoopDelay).count());
     addMetric("Quack Window",std::chrono::duration<double>(kQAckWindowSize).count());
     addMetric("Latency", averageLat());
     addMetric("transfer_strategy", "Scrooge k=" + std::to_string(kListSize) + "+ resends");
-    addMetric("resend_msg_map_size", resendMessageMap.size());
     addMetric("num_msgs_sent_primary", numMessagesSent);
-    addMetric("num_msgs_resent", numMessagesResent);
-    addMetric("num_resend_checks", numResendChecks);
-    addMetric("avg_resend_active", (double) numActiveResends / (double)numResendChecks);
-    addMetric("avg_resend_active_over_quack", (double) numResendsOverQuack / (double)numResendChecks);
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 

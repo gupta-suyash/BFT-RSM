@@ -1,6 +1,6 @@
 #pragma once
 
-//#define NDEBUG
+// #define NDEBUG
 #include <chrono>
 #include <cstdlib>
 #include <string>

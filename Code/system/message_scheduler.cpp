@@ -27,22 +27,13 @@ uint64_t message_scheduler::stakeToNode(uint64_t stakeIndex, const std::vector<u
 {
     const auto nodeIterator =
         std::upper_bound(std::cbegin(networkStakePrefixSum), std::cend(networkStakePrefixSum), stakeIndex);
-    if (nodeIterator == std::cend(networkStakePrefixSum))
-    {
-        SPDLOG_CRITICAL("Requested stake that nobody owns, stakeIndex={} totalNetworkStake={}", stakeIndex,
-                        networkStakePrefixSum.back());
-        std::abort();
-    }
+    assert(nodeIterator != std::cend(networkStakePrefixSum) && "Requested stake that nobody owns, stakeIndex={} totalNetworkStake={}");
     return std::distance(std::cbegin(networkStakePrefixSum), nodeIterator) - 1;
 }
 
 uint64_t message_scheduler::nodeToStake(uint64_t nodeIndex, const std::vector<uint64_t> &networkStakePrefixSum)
 {
-    if (nodeIndex >= networkStakePrefixSum.size())
-    {
-        SPDLOG_CRITICAL("Requested node that doesn't exist, nodeIndex={}", nodeIndex);
-        std::abort();
-    }
+    assert(nodeIndex < networkStakePrefixSum.size() && "Requested node that doesn't exist, nodeIndex={}");
     return networkStakePrefixSum.at(nodeIndex + 1) - networkStakePrefixSum.at(nodeIndex);
 }
 
