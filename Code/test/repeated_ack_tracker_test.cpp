@@ -41,14 +41,14 @@ void updateAckTrackers(const std::optional<uint64_t> curQuack,
 bool hasNoResends(std::vector<std::unique_ptr<AcknowledgmentTracker>>* const ackTrackers)
 {
     return std::none_of(ackTrackers->begin(), ackTrackers->end(), [](const auto& x){
-        return x->getActiveResendData().has_value();
+        return x->getActiveResendData().isActive;
     });
 }
 
 bool hasResends(std::vector<std::unique_ptr<AcknowledgmentTracker>>* const ackTrackers)
 {
     return std::any_of(ackTrackers->begin(), ackTrackers->end(), [](const auto& x){
-        return x->getActiveResendData().has_value();
+        return x->getActiveResendData().isActive;
     });
 }
 
@@ -223,6 +223,32 @@ BOOST_AUTO_TEST_CASE(test_single_tracker_stale_update)
             BOOST_CHECK(hasNoResends(&ackTrackers));
         }
     }
+}
+
+#include <acknowledgment.h>
+BOOST_AUTO_TEST_CASE(test_wtf_in_practice)
+{
+    constexpr auto kListSize = 4096;
+    constexpr auto kNumTrackers = kListSize * 2;
+    constexpr auto kStakePerNode = 1;
+    auto ackTrackers = std::vector<std::unique_ptr<AcknowledgmentTracker>>();
+    for (uint64_t i = 0; i < kNumTrackers; i++)
+    {
+        ackTrackers.push_back(std::make_unique<AcknowledgmentTracker>(
+            kOtherNetworkSize,
+            kOtherNetworkFailedStake
+        ));
+    }
+
+
+    Acknowledgment ack;
+    const auto ackView = ack.getAckView<kListSize>();
+
+    updateAckTrackers(std::nullopt, 0, kStakePerNode, ackView, &ackTrackers);
+    BOOST_CHECK(hasNoResends(&ackTrackers));
+    updateAckTrackers(std::nullopt, 1, kStakePerNode, ackView, &ackTrackers);
+    BOOST_CHECK(hasResends(&ackTrackers));
+
 }
 
 // BOOST_AUTO_TEST_CASE(test_sequential_recovery)

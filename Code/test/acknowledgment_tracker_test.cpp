@@ -10,7 +10,7 @@ BOOST_AUTO_TEST_SUITE(acknowledgment_tracker_test)
 BOOST_AUTO_TEST_CASE(test_empty_tracker)
 {
     AcknowledgmentTracker tracker(10, 5);
-    BOOST_CHECK_EQUAL(0, tracker.getActiveResendData().has_value());
+    BOOST_CHECK_EQUAL(0, tracker.getActiveResendData().isActive);
 }
 
 BOOST_AUTO_TEST_CASE(test_missing_message_zero)
@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(test_missing_message_zero)
     {
         tracker.update(node, 1, std::nullopt, std::nullopt);
     }
-    BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+    BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
     for (uint16_t update = 1; update <= 1000; update++)
     {
@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(test_missing_message_zero)
         {
             tracker.update(node, 1, std::nullopt, std::nullopt);
         }
-        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update};
+        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update, .isActive = 1};
         BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
     }
 }
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(test_byzantine_attack)
     {
         tracker.update(node, 1, std::nullopt, std::nullopt);
     }
-    BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+    BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
     for (uint16_t update = 1; update <= 1000; update++)
     {
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(test_byzantine_attack)
         {
             tracker.update(node, 1, std::nullopt, std::nullopt);
         }
-        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update};
+        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update, .isActive = 1};
         BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
     }
 }
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(test_crash_attack)
     {
         tracker.update(node, 1, std::nullopt, std::nullopt);
     }
-    BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+    BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
     for (uint16_t update = 1; update <= 1000; update++)
     {
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(test_crash_attack)
         {
             tracker.update(node, 1, std::nullopt, std::nullopt);
         }
-        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update};
+        const auto expectedResendData = acknowledgment_tracker::ResendData{.sequenceNumber = 0, .resendNumber = update, .isActive = 1};
         BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
     }
 }
@@ -91,13 +91,13 @@ BOOST_AUTO_TEST_CASE(test_quadratic_updates)
         quorumAck = sequenceNumber; // after 2 updates quorumAck should be set
 
         tracker.update(1, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
         tracker.update(2, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
         tracker.update(3, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
         for (uint16_t update = 1; update <= 1000; update++) // we're stuck at curQuorumAck
         {
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(test_quadratic_updates)
             tracker.update(3, 1, sequenceNumber, quorumAck);
 
             const auto expectedResendData = acknowledgment_tracker::ResendData{
-                .sequenceNumber = sequenceNumber.value_or(-1) + 1, .resendNumber = update};
+                .sequenceNumber = sequenceNumber.value_or(-1) + 1, .resendNumber = update, .isActive = 1};
             BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
         }
     }
@@ -129,13 +129,13 @@ BOOST_AUTO_TEST_CASE(test_quadratic_updates_byzantine)
         quorumAck = sequenceNumber; // after 2 updates quorumAck should be set
 
         tracker.update(1, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
         tracker.update(2, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
         tracker.update(3, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
         for (uint16_t update = 1; update <= 1000; update++) // we're stuck at curQuorumAck
         {
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(test_quadratic_updates_byzantine)
             tracker.update(3, 1, sequenceNumber, quorumAck);
 
             const auto expectedResendData = acknowledgment_tracker::ResendData{
-                .sequenceNumber = sequenceNumber.value_or(-1) + 1, .resendNumber = update};
+                .sequenceNumber = sequenceNumber.value_or(-1) + 1, .resendNumber = update, .isActive = 1};
             BOOST_CHECK(expectedResendData == tracker.getActiveResendData());
         }
     }
@@ -161,17 +161,17 @@ BOOST_AUTO_TEST_CASE(test_good_case)
          sequenceNumber = sequenceNumber.value_or(-1) + 1)
     {
         tracker.update(0, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
         quorumAck = sequenceNumber; // after 2 updates quorumAck should be set
 
         tracker.update(1, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
         tracker.update(2, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
 
         tracker.update(3, 1, sequenceNumber, quorumAck);
-        BOOST_CHECK(std::nullopt == tracker.getActiveResendData());
+        BOOST_CHECK(0 == tracker.getActiveResendData().isActive);
     }
 }
 

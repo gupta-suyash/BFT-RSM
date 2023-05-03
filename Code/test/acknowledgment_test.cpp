@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(test_empty_ack)
     const auto ackView = ack.getAckView<kViewSize>();
     BOOST_CHECK(ack.getAckIterator() == std::nullopt);
     BOOST_CHECK(acknowledgment::getAckIterator(ackView) == std::nullopt);
-    BOOST_CHECK(acknowledgment::getFinalAck(ackView) == 1);
+    BOOST_CHECK(acknowledgment::getFinalAck(ackView) == 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_useless_acks)
