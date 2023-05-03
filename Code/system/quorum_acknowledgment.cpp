@@ -22,7 +22,7 @@ std::optional<uint64_t> QuorumAcknowledgment::updateNodeAck(const uint64_t nodeI
     if (isUpdateStale)
     {
         // The update would decrease or not change the node's current ack value
-        return (curQuorumAck == kNoQuorumValue)? std::nullopt : std::optional{curQuorumAck};
+        return curQuorumAck;
     }
 
     if (isUpdate)
@@ -38,7 +38,7 @@ std::optional<uint64_t> QuorumAcknowledgment::updateNodeAck(const uint64_t nodeI
         }
 
         // Decrement the stake in the quorum
-        if (curQuorumAck == kNoQuorumValue || curQuorumAck <= oldAckValue)
+        if (!curQuorumAck.has_value() || curQuorumAck <= oldAckValue)
         {
             mStakeInCurQuorum -= nodeStake;
         }
@@ -49,27 +49,27 @@ std::optional<uint64_t> QuorumAcknowledgment::updateNodeAck(const uint64_t nodeI
     mAckToStakeCount[ackValue] += nodeStake;
 
     // Update mStakeInCurQuorum
-    if (curQuorumAck == kNoQuorumValue || curQuorumAck <= ackValue)
+    if (!curQuorumAck.has_value() || curQuorumAck <= ackValue)
     {
         mStakeInCurQuorum += nodeStake;
     }
 
-    const auto isFirstQuack = curQuorumAck == kNoQuorumValue && mStakeInCurQuorum >= kQuorumStakeSize;
+    const auto isFirstQuack = not curQuorumAck.has_value() && mStakeInCurQuorum >= kQuorumStakeSize;
     if (isFirstQuack)
     {
         curQuorumAck = mAckToStakeCount.begin()->first;
     }
 
-    const auto isNoQuorumToUpdate = curQuorumAck == kNoQuorumValue;
+    const auto isNoQuorumToUpdate = not curQuorumAck.has_value();
     if (isNoQuorumToUpdate)
     {
         return curQuorumAck;
     }
 
     // This is linear in number of nodes -- could be made log time with a segment tree
-    for (auto nextQuack = mAckToStakeCount.upper_bound(curQuorumAck); nextQuack != mAckToStakeCount.end(); nextQuack++)
+    for (auto nextQuack = mAckToStakeCount.upper_bound(*curQuorumAck); nextQuack != mAckToStakeCount.end(); nextQuack++)
     {
-        const auto stakeAtCurQuack = getStakeAtAck(curQuorumAck);
+        const auto stakeAtCurQuack = getStakeAtAck(curQuorumAck.value());
         const auto nodesAboveCurQuorum = mStakeInCurQuorum - stakeAtCurQuack;
 
         const auto isNewQuorum = nodesAboveCurQuorum >= kQuorumStakeSize;
@@ -90,7 +90,7 @@ void QuorumAcknowledgment::reset()
 {
     mNodeToAck.clear();
     mAckToStakeCount.clear();
-    mQuorumAck.store(kNoQuorumValue, std::memory_order_release);
+    mQuorumAck.store(std::nullopt, std::memory_order_release);
     mStakeInCurQuorum = 0;
 }
 
@@ -122,16 +122,5 @@ std::optional<uint64_t> QuorumAcknowledgment::getNodeAck(const uint64_t nodeId) 
  */
 std::optional<uint64_t> QuorumAcknowledgment::getCurrentQuack() const
 {
-    const auto curQuorum = mQuorumAck.load(std::memory_order_acquire);
-    return (curQuorum == kNoQuorumValue)? std::nullopt : std::optional(curQuorum);
-}
-
-/* Get the value of variable quackValue or nullopt if it doesn't exist.
- *
- * @return mQuorumAck
- */
-std::optional<uint64_t> QuorumAcknowledgment::getCurrentQuackRelaxed() const
-{
-    const auto curQuorum = mQuorumAck.load(std::memory_order_relaxed);
-    return (curQuorum == kNoQuorumValue)? std::nullopt : std::optional(curQuorum);
+    return mQuorumAck.load(std::memory_order_acquire);
 }

@@ -35,6 +35,7 @@ namespace acknowledgment
   template<uint64_t kViewSize>
   uint64_t getFinalAck(const AckView<kViewSize>& ackView)
   {
+    return ackView.ackOffset + ackView.view.size()*64 - 1;
     if constexpr (kViewSize != 0)
     {
       for (int64_t i = ackView.view.size() - 1; i >= 0; i--)
@@ -127,5 +128,6 @@ class Acknowledgment
     // mutable std::mutex mMutex;
 
     std::atomic<std::optional<uint32_t>> mAckValue{std::nullopt};
+    static_assert(std::atomic<std::optional<uint32_t>>{}.is_always_lock_free);
     std::vector<uint64_t> mAckWindow = std::vector<uint64_t>(kWindowSize / 64);
 };

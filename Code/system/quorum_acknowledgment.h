@@ -18,7 +18,6 @@ class QuorumAcknowledgment
     void reset();
     std::optional<uint64_t> getNodeAck(uint64_t nodeId) const;
     std::optional<uint64_t> getCurrentQuack() const;
-    std::optional<uint64_t> getCurrentQuackRelaxed() const;
 
   private:
     uint64_t getStakeAtAck(uint64_t ack) const;
@@ -29,11 +28,11 @@ class QuorumAcknowledgment
     std::unordered_map<uint64_t, uint64_t> mNodeToAck;
     // mAckToStakeCount[AckCount] = \Sum{node.stake | mNodeToAck[node] == AckCount}
     std::map<uint64_t, uint64_t> mAckToStakeCount;
-    static constexpr int64_t kNoQuorumValue = -1;
     // mQuorumAck
     //     = argmax_i {kQuorumSize >= mAckToNodeCount[i] + mAckToNodeCount[i+1] + ... + mAckToNodeCount[inf]}
     // This represents the current acknowledged value of the entire quorum
-    std::atomic<int64_t> mQuorumAck{-1};
+    std::atomic<std::optional<uint32_t>> mQuorumAck{std::nullopt};
+    static_assert(std::atomic<std::optional<uint32_t>>{}.is_always_lock_free);
 
     uint64_t mStakeInCurQuorum = 0;
 };

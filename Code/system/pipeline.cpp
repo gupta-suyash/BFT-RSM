@@ -32,6 +32,7 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
     const auto ackIterator = acknowledgment::getAckIterator(curAckView);
     if (ackIterator.has_value())
     {
+        SPDLOG_CRITICAL("LETS GO BAYBEEE2 {}Z", ackIterator.value());
         message->mutable_ack_count()->set_value(ackIterator.value());
     }
 
@@ -481,7 +482,6 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
 
 void Pipeline::AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData)
 {
-    const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
     std::scoped_lock lock{destinationBatch->batchMutex};

@@ -33,16 +33,17 @@ void AcknowledgmentTracker::updateNodeData(uint64_t nodeId, std::optional<uint64
     bool isStaleAck = curNodeData.acknowledgmentValue > acknowledgmentValue;
     if (isStaleAck)
     {
+        SPDLOG_CRITICAL("BRUH? {} {}", nodeId, acknowledgmentValue.value_or(343434343434343));
         return;
     }
 
     curNodeData.repeatNumber++;
 }
 
-void AcknowledgmentTracker::updateAggregateData(uint64_t nodeId, uint64_t nodeStake,
-                                                std::optional<uint64_t> oldAcknowledgmentValue,
-                                                std::optional<uint64_t> acknowledgmentValue,
-                                                std::optional<uint64_t> curQuackValue)
+void AcknowledgmentTracker::updateAggregateData(const uint64_t nodeId, const uint64_t nodeStake,
+                                                const std::optional<uint64_t> oldAcknowledgmentValue,
+                                                const std::optional<uint64_t> acknowledgmentValue,
+                                                const std::optional<uint64_t> curQuackValue)
 {
     const bool isQuackUnstuck = mCurStuckQuorumAck != curQuackValue;
     if (isQuackUnstuck)
@@ -75,6 +76,7 @@ void AcknowledgmentTracker::updateActiveResendData()
     {
         if (curResendData.isActive)
         {
+            SPDLOG_CRITICAL("TURNING OFF RESEND WITH STAKE, OLD :  {}Z #{}", curResendData.sequenceNumber, curResendData.resendNumber);
             mActiveResendData.store({}, std::memory_order_release);
         }
         return;
@@ -88,6 +90,7 @@ void AcknowledgmentTracker::updateActiveResendData()
     {
         if (curResendData.isActive)
         {
+            SPDLOG_CRITICAL("TURNING OFF RESEND WITH LACK OF REPEATS, OLD :  {}Z #{}", curResendData.sequenceNumber, curResendData.resendNumber);
             mActiveResendData.store({}, std::memory_order_release);
         }
         return;
@@ -102,12 +105,13 @@ void AcknowledgmentTracker::updateActiveResendData()
     const bool isCurResendDataOutdated = curResendData != potentialNewResendData;
     if (isCurResendDataOutdated)
     {
+        if (not curResendData.isActive)
+        {
+            SPDLOG_CRITICAL("TURNING ON RESEND FOR MESSAGE {}Z cur resend={}", potentialNewResendData.sequenceNumber, potentialNewResendData.resendNumber);
+        }
         mActiveResendData.store(potentialNewResendData, std::memory_order_release);
     }
 }
-
-#include <type_traits>
-#include <assert.h>
 
 acknowledgment_tracker::ResendData AcknowledgmentTracker::getActiveResendData() const
 {
