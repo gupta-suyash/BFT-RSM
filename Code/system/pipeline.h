@@ -50,6 +50,7 @@ class Pipeline
     bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment);
     void AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData);
     bool rebroadcastToOwnRsm(nng_msg *message);
+    uint64_t flushBuffers(const Acknowledgment* acknowledgment, std::chrono::steady_clock::time_point now);
 
     pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
     pipeline::ReceivedCrossChainMessage RecvFromOwnRsm();
@@ -75,8 +76,8 @@ class Pipeline
 
     static constexpr uint64_t kMinimumPortNumber = 7'000;
     static constexpr uint64_t kProtobufDefaultSize = kListSize / 8;
-    static constexpr uint64_t kMinimumBatchSize = (1 << 12); // bytes
-    static constexpr auto kMaxBatchCreationTime = 1000ms;
+    static constexpr uint64_t kMinimumBatchSize = (1 << 14); // bytes
+    static constexpr auto kMaxBatchCreationTime = 10ms;
     static constexpr auto kMaxNngBlockingTime = 500ms;
     static constexpr uint64_t kBufferSize = 2048;
 

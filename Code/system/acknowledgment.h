@@ -35,7 +35,7 @@ namespace acknowledgment
   template<uint64_t kViewSize>
   uint64_t getFinalAck(const AckView<kViewSize>& ackView)
   {
-    return ackView.ackOffset + ackView.view.size()*64 - 1;
+    // return ackView.ackOffset + ackView.view.size()*64 - 1;
     if constexpr (kViewSize != 0)
     {
       for (int64_t i = ackView.view.size() - 1; i >= 0; i--)

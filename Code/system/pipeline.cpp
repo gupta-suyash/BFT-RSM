@@ -32,7 +32,7 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
     const auto ackIterator = acknowledgment::getAckIterator(curAckView);
     if (ackIterator.has_value())
     {
-        SPDLOG_CRITICAL("LETS GO BAYBEEE2 {}Z", ackIterator.value());
+        // SPDLOG_CRITICAL("Sending Message With Ack: {}Z", ackIterator.value());
         message->mutable_ack_count()->set_value(ackIterator.value());
     }
 
@@ -485,7 +485,6 @@ void Pipeline::AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessage
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
     std::scoped_lock lock{destinationBatch->batchMutex};
-    assert(messageData.message_content().size());
     bufferedMessageAppend(std::move(messageData), destinationBatch);
 }
 
@@ -621,6 +620,28 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
     remainingDestinations = failedSends;
     
     return remainingDestinations.none();
+}
+
+uint64_t Pipeline::flushBuffers(const Acknowledgment* acknowledgment, const std::chrono::steady_clock::time_point now)
+{
+    uint64_t numBuffersFlushed{};
+    for (uint64_t curDestination{}; curDestination < mForeignMessageBatches.size(); curDestination++)
+    {
+        auto& destinationBuffer = mForeignSendBufs.at(curDestination);
+        const auto destinationBatch = mForeignMessageBatches.data() + curDestination;
+
+        std::scoped_lock lock{destinationBatch->batchMutex};
+
+        const auto timeDelta = now - destinationBatch->creationTime;
+        bool shouldSend = (destinationBatch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
+        if (not shouldSend)
+        {
+            continue;
+        }
+        numBuffersFlushed++;
+        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get());
+    }
+    return numBuffersFlushed;
 }
 
 /* This function is used to receive messages from the other RSM.
