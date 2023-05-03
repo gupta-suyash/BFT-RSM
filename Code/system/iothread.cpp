@@ -239,13 +239,15 @@ void lameResendDataThread(
     const std::vector<std::unique_ptr<AcknowledgmentTracker>>* const ackTrackers,
     Pipeline* const pipeline
 )
-{    
+{
+    bindThreadToCpu(0);
     uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesResent{};
 
     boost::circular_buffer<iothread::MessageResendData> resendDatas(1<<20);
     std::vector<acknowledgment_tracker::ResendData> activeResends(ackTrackers->size());
 
     iothread::MessageResendData newData;
+
 
     SPDLOG_CRITICAL("LameResendDataThread starting {}", gettid());
     while (not is_test_over())
@@ -262,54 +264,70 @@ void lameResendDataThread(
             continue;
         }
 
-        const auto curQuack = quorumAck->getCurrentQuack();
-        for (const auto& ackTracker : *ackTrackers)
-        {
-            const auto activeResendData = ackTracker->getActiveResendData();
-            numResendChecks++;
-            if (not activeResendData.has_value())
-            {
-                continue;
-            }
-
-            numActiveResends++;
-            // const auto [resendSequenceNumber, resendNumber] = *activeResendData;
-
-            // if (resendSequenceNumber > 512 + curQuack.value_or(0ULL - 1ULL))
-            // {
-            //     continue;
-            // }
-            //numResendsOverQuack++;
-
-            activeResends.push_back(activeResendData.value());
-        }
-
+        const auto curQuack = quorumAck->getCurrentQuackRelaxed();
         const auto endOfOldData = std::find_if(std::cbegin(resendDatas), std::cend(resendDatas), [&](auto& resendData) -> bool {
             return resendData.messageData.sequence_number() > curQuack;
         });
         const auto numToErase = std::distance(std::cbegin(resendDatas), endOfOldData);
         resendDatas.erase_begin(numToErase);
 
-        // sort in increasing sequence number order
-        std::sort(std::begin(activeResends), std::end(activeResends), [](const auto a, const auto b) -> bool
+        if (resendDatas.empty())
         {
-            return a.sequenceNumber < b.sequenceNumber; 
-        });
+            continue;
+        }
 
-        auto startResendDataIt = resendDatas.begin();
+        for (const auto& ackTracker : *ackTrackers)
+        {
+            const auto activeResendData = ackTracker->getActiveResendData();
+            numResendChecks++;
+            if (not activeResendData.isActive)
+            {
+                continue;
+            }
+
+            numActiveResends++;
+            const auto [resendSequenceNumber, resendNumber, isActive] = activeResendData;
+
+            const bool isTooLow = resendSequenceNumber < resendDatas.front().messageData.sequence_number();
+            const bool isTooHigh = resendSequenceNumber > resendDatas.back().messageData.sequence_number();
+            if (isTooLow || isTooHigh)
+            {
+                continue;
+            }
+            numResendsOverQuack++;
+
+            activeResends.push_back(activeResendData);
+        }
+
+
+        auto pseudoBegin = std::begin(resendDatas);
+        uint64_t prevActiveResendSequenceNum = 0;
 
         for (auto& activeResend : activeResends)
         {
-            const auto curResendDataIt  = std::find_if(startResendDataIt, std::end(resendDatas), [&](const iothread::MessageResendData& possibleData) -> bool {
-                return possibleData.messageData.sequence_number() >= activeResend.sequenceNumber;
-            });
+            const auto curActiveResendSequenceNum = activeResend.sequenceNumber;
+            const bool isMonotone = prevActiveResendSequenceNum <= curActiveResendSequenceNum;
+            prevActiveResendSequenceNum = curActiveResendSequenceNum;
+            auto curResendDataIt = pseudoBegin;
+            if (isMonotone)
+            {
+                curResendDataIt  = std::find_if(pseudoBegin, std::end(resendDatas), [&](const iothread::MessageResendData& possibleData) -> bool {
+                    return possibleData.messageData.sequence_number() >= activeResend.sequenceNumber;
+                });
+            }
+            else
+            {
+                curResendDataIt  = std::find_if(std::begin(resendDatas), pseudoBegin, [&](const iothread::MessageResendData& possibleData) -> bool {
+                    return possibleData.messageData.sequence_number() >= activeResend.sequenceNumber;
+                });
+            }
+            pseudoBegin = curResendDataIt;
 
             if (curResendDataIt == std::end(resendDatas))
             {
-                break;
+                SPDLOG_CRITICAL("ERROR???");
+                continue;
             }
-
-            startResendDataIt = curResendDataIt;
 
             const bool noResendDataFound = curResendDataIt->messageData.sequence_number() > activeResend.sequenceNumber;
             const bool alreadySent = curResendDataIt->messageData.message_content().empty();
@@ -339,14 +357,15 @@ void lameResendDataThread(
                 else
                 {
                     pipeline->AppendToSend(destination, std::move(messageData));
-                    if (startResendDataIt == std::begin(resendDatas))
-                    {
-                        startResendDataIt = resendDatas.rerase(startResendDataIt);
-                    }
                 }
                 numDestinationsSent++;
                 numMessagesResent += is_test_recording();
             }
+        }
+
+        while (not resendDatas.empty() && resendDatas.front().messageData.message_content().empty())
+        {
+            resendDatas.pop_front();
         }
     }
     addMetric("num_resend_checks", numResendChecks);
@@ -360,6 +379,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                    const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    // bindThreadToCpu(2);
     SPDLOG_CRITICAL("SEND THREAD TID {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
@@ -375,11 +395,13 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
     const MessageScheduler messageScheduler(configuration);
 
-    moodycamel::BlockingReaderWriterCircularBuffer<iothread::MessageResendData>  resendMsgQueue(1<<15);
+    moodycamel::BlockingReaderWriterCircularBuffer<iothread::MessageResendData>  resendMsgQueue(1<<20);
     auto lastSendTime = std::chrono::steady_clock::now();
     auto lastNoopTime = std::chrono::steady_clock::now();
-    uint64_t lastQuack = 0, lastSeq = 0;
-    constexpr uint64_t kQAckWindowSize = 2048;
+    uint64_t lastSeq = 0;
+    std::optional<uint64_t> kLastAckVal{};
+    constexpr uint64_t kAckWindowSize = 2048;
+    constexpr uint64_t kQAckWindowSize = 1'000'000'000ULL;
     // Optimal window size for non-stake: 12*16 and for stake: 12*8
     constexpr auto kMaxMessageDelay = 1us;
     constexpr auto kNoopDelay = 500us;
@@ -392,12 +414,13 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     while (not is_test_over())
     {
         // update window information
+        const auto curTime = std::chrono::steady_clock::now();
         const auto curQuack = quorumAck->getCurrentQuack();
+        recordLatency(curQuack.value_or(0), curTime);
 
         const int64_t pendingSequenceNum = (messageInput->peek()) ? messageInput->peek()->sequence_number()
                                                                   : kQAckWindowSize + curQuack.value_or(0);
         const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
-        const auto curTime = std::chrono::steady_clock::now();
         const bool isNoopTimeoutHit = curTime - std::max(lastNoopTime, lastSendTime) > kNoopDelay;
         const bool isTimeoutHit = curTime - lastSendTime > kMaxMessageDelay;
         const bool shouldDequeue = isTimeoutHit || isSequenceNumberUseful;
@@ -417,8 +440,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
             // Recording latency
             uint64_t checkVal = curQuack.value_or(0);
-            recordLatency(checkVal, curTime);
-            lastQuack = checkVal;
 
             const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
             const auto isMessageNeverSent = not resendNumber.has_value();
@@ -467,7 +488,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                     }
                     if (push_failed)
                     {
-                        //SPDLOG_CRITICAL("FAILED PUSH !!!!!!!!!!");
+                        // SPDLOG_CRITICAL("FAILED PUSH !!!!!!!!!!");
                     }
                 }
             }
@@ -574,6 +595,7 @@ void lameAckThread(
     moodycamel::BlockingReaderWriterCircularBuffer<LameAckData>* const viewQueue,
     const NodeConfiguration configuration)
 {
+    bindThreadToCpu(1);
     SPDLOG_CRITICAL("STARTING LAME THREAD {}", gettid());
     while (not is_test_over())
     {
@@ -600,6 +622,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                       const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    // bindThreadToCpu(3);
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
 
     uint64_t timedMessages{};

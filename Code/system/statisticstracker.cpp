@@ -3,7 +3,7 @@
 // Variables
 uint64_t ack_count = 0;
 long double tot_lat = 0;
-boost::circular_buffer<std::pair<uint64_t, std::chrono::steady_clock::time_point>> latency_map(3 * (1<<20));
+boost::circular_buffer<std::pair<uint64_t, std::chrono::steady_clock::time_point>> latency_map(10 * (1<<20));
 
 // Functions
 void startTimer(uint64_t seq_num, std::chrono::steady_clock::time_point now)

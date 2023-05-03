@@ -78,7 +78,7 @@ class Pipeline
     static constexpr uint64_t kMinimumBatchSize = (1 << 18); // bytes
     static constexpr auto kMaxBatchCreationTime = 1ms;
     static constexpr auto kMaxNngBlockingTime = 500ms;
-    static constexpr uint64_t kBufferSize = 1024;
+    static constexpr uint64_t kBufferSize = 2048;
 
     const NodeConfiguration kOwnConfiguration;
     const std::vector<std::string> kOwnNetworkUrls;
