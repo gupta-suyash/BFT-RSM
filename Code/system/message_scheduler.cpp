@@ -1,6 +1,7 @@
 #include "message_scheduler.h"
 
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 
 uint64_t message_scheduler::trueMod(int64_t value, int64_t modulus)
@@ -59,6 +60,49 @@ void message_scheduler::scaleVector(std::vector<uint64_t> &v, uint64_t factor)
     }
 }
 
+std::vector<uint64_t> message_scheduler::apportionVector(uint64_t totalApportionedShares, const std::vector<uint64_t>& originalShares)
+{
+    std::vector<uint64_t> apportionedShares;
+    std::vector<std::pair<double, uint64_t>> roundingErrToOwner;
+    uint64_t sharesAlreadyApportioned{};
+
+    const auto totalOriginalShares = std::accumulate(std::cbegin(originalShares), std::cend(originalShares), 0);
+
+    for (uint64_t i = 0; i < originalShares.size(); i++)
+    {
+        const auto curShare = originalShares.at(i);
+        const auto curOwner = i;
+
+        const double idealShare = curShare / (double) totalOriginalShares * totalApportionedShares;
+
+        const uint64_t minimalShare = (uint64_t) idealShare;
+        const auto remainder = fmod(idealShare, 1);
+
+        sharesAlreadyApportioned += minimalShare;
+        apportionedShares.push_back(minimalShare);
+        roundingErrToOwner.push_back({remainder, curOwner});
+    }
+    
+    std::sort(std::begin(roundingErrToOwner), std::end(roundingErrToOwner));
+
+    for (uint64_t i{}; sharesAlreadyApportioned < totalApportionedShares; i++)
+    {
+        const auto [remainder, owner] = roundingErrToOwner.at(i);
+
+        apportionedShares.at(owner)++;
+        sharesAlreadyApportioned++;
+    }
+
+    for (auto i : apportionedShares)
+    {
+        assert(i > 0 && "fix apportionment scheduler to round to positive integers");
+    }
+
+    assert(std::accumulate(std::cbegin(apportionedShares), std::cend(apportionedShares), 0) == totalApportionedShares);
+
+    return apportionedShares;
+}
+
 MessageScheduler::MessageScheduler(NodeConfiguration configuration)
 {
     // Scale up stake in both networks to their lcm
@@ -76,6 +120,10 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     const auto stakeInOwnNetwork = message_scheduler::stakeInNetwork(ownNetworkStakePrefixSum);
     const auto stakeInOtherNetwork = message_scheduler::stakeInNetwork(otherNetworkStakePrefixSum);
     const auto networkStakeLcm = std::lcm(stakeInOwnNetwork, stakeInOtherNetwork);
+    const auto ownApportionedStake = stakeInOwnNetwork;
+    const auto otherApportionedStake = stakeInOtherNetwork;
+    const auto ownNetworkApportionedStakes = message_scheduler::apportionVector(ownApportionedStake, configuration.kOwnNetworkStakes);
+    const auto otherNetworkApportionedStakes = message_scheduler::apportionVector(otherApportionedStake, configuration.kOtherNetworkStakes);
 
     const auto ownNetworkScaleFactor = networkStakeLcm / stakeInOwnNetwork;
     const auto otherNetworkScaleFactor = networkStakeLcm / stakeInOtherNetwork;
@@ -94,17 +142,23 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     kMinStakeToSend = scaledOwnNetworkMaxFailedStake + scaledOtherNetworkMaxFailedStake + 1;
     kOwnRsmStakePrefixSum = std::move(ownNetworkStakePrefixSum);
     kOtherRsmStakePrefixSum = std::move(otherNetworkStakePrefixSum);
+    kOwnApportionedStake = ownApportionedStake;
+    kOtherApportionedStake = otherApportionedStake;
+    kOwnRsmApportionedStakePrefixSum = message_scheduler::getStakePrefixSum(ownNetworkApportionedStakes);
+    kOtherRsmApportionedStakePrefixSum = message_scheduler::getStakePrefixSum(otherNetworkApportionedStakes);
 
     bool isImplementationValid = kStakePerRsm >= kOwnMaxNumFailedStake + kOtherMaxNumFailedStake;
-    assert(isImplementationValid && "More than half of one of the network's total stake can fail -- MessageScheduler "
-                                    "cannot efficently support this");
+    assert(isImplementationValid && "More than half of one of the network's total stake can fail -- probably works but not tested");
 }
 
 std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumber) const
 {
-    const auto roundOffset = sequenceNumber / kStakePerRsm;
-    const auto originalSender = sequenceNumber % kStakePerRsm;
-    const auto originalReceiver = (sequenceNumber + roundOffset) % kStakePerRsm;
+    const auto roundOffset = sequenceNumber / kOwnApportionedStake;
+    const auto originalApportionedSendNode = message_scheduler::stakeToNode(sequenceNumber % kOwnApportionedStake, kOwnRsmApportionedStakePrefixSum);
+    const auto originalApportionedRecvNode = message_scheduler::stakeToNode((sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
+
+    const auto originalSender = kOwnRsmApportionedStakePrefixSum.at(originalApportionedSendNode);
+    const auto originalReceiver = kOtherRsmApportionedStakePrefixSum.at(originalApportionedRecvNode);
     const auto ownNodeFirstStake = kOwnRsmStakePrefixSum.at(kOwnNodeId);
     const auto ownNodeLastStake = kOwnRsmStakePrefixSum.at(kOwnNodeId + 1) - 1;
     const auto isNodeFirstSender = ownNodeFirstStake <= originalSender && originalSender <= ownNodeLastStake;
@@ -134,10 +188,13 @@ std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumbe
 
 message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinations(uint64_t sequenceNumber) const
 {
+    const auto roundOffset = sequenceNumber / kOwnApportionedStake;
+    const auto originalApportionedSendNode = message_scheduler::stakeToNode(sequenceNumber % kOwnApportionedStake, kOwnRsmApportionedStakePrefixSum);
+    const auto originalApportionedRecvNode = message_scheduler::stakeToNode((sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
+
     // Algorithm : do all send/recv math with stake, then call stakeToNode
-    const auto roundOffset = sequenceNumber / kStakePerRsm;
-    const auto originalSender = sequenceNumber % kStakePerRsm;
-    const auto originalReceiver = (sequenceNumber + roundOffset) % kStakePerRsm;
+    const auto originalSender = kOwnRsmApportionedStakePrefixSum.at(originalApportionedSendNode);
+    const auto originalReceiver = kOtherRsmApportionedStakePrefixSum.at(originalApportionedRecvNode);
     const auto finalSender = (sequenceNumber + kMinStakeToSend - 1) % kStakePerRsm;
     const auto ownNodeFirstStake = kOwnRsmStakePrefixSum.at(kOwnNodeId);
     const auto ownNodeLastStake = kOwnRsmStakePrefixSum.at(kOwnNodeId + 1) - 1;
