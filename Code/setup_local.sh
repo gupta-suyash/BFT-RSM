@@ -44,7 +44,7 @@ fi
 #apt-get -y install ninja-build
 #echo "built ninja"
 #apt-get -y install libcrypto++-dev libcrypto++-doc libcrypto++-utils
-#
+# pip install -U kaleido
 ## nng installation
 #tar -xzf nng-1.5.2.tar.gz
 echo "untar of nng successful"

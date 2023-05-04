@@ -40,7 +40,9 @@ def make_dataframe(file_names: List[str]) -> pd.DataFrame:
     rows = []
     for file_name in file_names:
         try:
-            rows.append(yaml.safe_load(Path(file_name).read_text()))
+            log_data = yaml.safe_load(Path(file_name).read_text())
+            if len(log_data):
+                rows.append(log_data)
         except:
             usage(f'Unable to parse {file_name} -- is it correct yaml format?')
     return pd.DataFrame.from_dict(rows)
