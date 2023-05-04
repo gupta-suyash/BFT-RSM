@@ -29,9 +29,16 @@ struct ReceivedCrossChainMessage
 
 struct CrossChainMessageBatch
 {
+  static constexpr uint64_t kMaxAckRepeats = 2;
+  static constexpr auto kAckTimeout = 5ms;
+  static constexpr uint64_t kMinimumBatchSize = (1 << 14); // bytes
+  static constexpr uint64_t kMaximumBatchSize = (1 << 18); // bytes
+  static constexpr auto kMaxBatchCreationTime = 500us;
+
   std::chrono::steady_clock::time_point creationTime{};
   uint64_t batchSizeEstimate{};
-  std::mutex batchMutex{};
+  std::optional<uint64_t> lastAck{};
+  uint64_t numAckRepeats{};
   scrooge::CrossChainMessage data{};
 };
 
@@ -47,10 +54,10 @@ class Pipeline
 
     void startPipeline();
 
-    bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment);
-    void AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData);
+    bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment, std::chrono::steady_clock::time_point curTime);
+    void AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, std::optional<uint64_t> curQuorumAck);
     bool rebroadcastToOwnRsm(nng_msg *message);
-    uint64_t flushBuffers(const Acknowledgment* acknowledgment, std::chrono::steady_clock::time_point now);
+    uint64_t flushBuffers(const Acknowledgment* acknowledgment, std::optional<uint64_t> curQuack, std::optional<uint64_t> curAck, std::chrono::steady_clock::time_point curTime);
 
     pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
     pipeline::ReceivedCrossChainMessage RecvFromOwnRsm();
@@ -61,10 +68,12 @@ class Pipeline
     bool bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                              pipeline::CrossChainMessageBatch *const batch,
                              const Acknowledgment * const acknowledgment,
-                             pipeline::MessageQueue<nng_msg *> *const sendingQueue);
+                             pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                             std::chrono::steady_clock::time_point curTime);
     void flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
                               const Acknowledgment* const acknowledgment,
-                              pipeline::MessageQueue<nng_msg *> *const sendingQueue);
+                              pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                              std::chrono::steady_clock::time_point curTime);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
     void runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
                        const uint64_t destNodeId, const bool isLocal);
@@ -76,8 +85,6 @@ class Pipeline
 
     static constexpr uint64_t kMinimumPortNumber = 7'000;
     static constexpr uint64_t kProtobufDefaultSize = kListSize / 8;
-    static constexpr uint64_t kMinimumBatchSize = (1 << 14); // bytes
-    static constexpr auto kMaxBatchCreationTime = 10ms;
     static constexpr auto kMaxNngBlockingTime = 500ms;
     static constexpr uint64_t kBufferSize = 2048;
 
@@ -90,8 +97,8 @@ class Pipeline
     std::atomic_bool mIsPipelineStarted{};
     std::atomic_bool mShouldThreadStop{};
 
-    std::atomic<std::bitset<64>> mAliveNodesLocal{};
-    std::atomic<std::bitset<64>> mAliveNodesForeign{};
+    std::bitset<64> mAliveNodesLocal{};
+    std::bitset<64> mAliveNodesForeign{};
 
     std::vector<std::thread> mLocalSendThreads;
     std::vector<std::thread> mLocalRecvThreads;
@@ -101,6 +108,8 @@ class Pipeline
     std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mLocalRecvBufs{};
     std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignSendBufs{};
     std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignRecvBufs{};
+
+    pipeline::MessageQueue<std::pair<scrooge::CrossChainMessageData, uint64_t>> mResendMessageQueue;
 
     std::vector<pipeline::CrossChainMessageBatch> mForeignMessageBatches{};
 };

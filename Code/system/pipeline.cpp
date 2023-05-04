@@ -39,20 +39,6 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
     *message->mutable_ack_set() = {curAckView.view.begin(), curAckView.view.end()};
 }
 
-template <typename atomic_bitset> void reset_atomic_bit(atomic_bitset &set, uint64_t bit)
-{
-    auto curSet = set.load();
-    while (true)
-    {
-        auto newSet = curSet;
-        newSet.reset(bit);
-        if (set.compare_exchange_weak(curSet, newSet))
-        {
-            return;
-        }
-    }
-}
-
 static nng_socket openReceiveSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
 {
     constexpr auto kResultOpenSuccessful = 0;
@@ -189,16 +175,16 @@ template <typename T> static nng_msg *serializeProtobuf(const T &proto)
 Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::vector<std::string> &otherNetworkUrls,
                    NodeConfiguration ownConfiguration)
     : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(ownNetworkUrls), kOtherNetworkUrls(otherNetworkUrls),
-      mForeignMessageBatches(kOwnConfiguration.kOtherNetworkSize)
+      mResendMessageQueue(1 << 20), mForeignMessageBatches(kOwnConfiguration.kOtherNetworkSize)
 {
     std::bitset<64> foreignAliveNodes{}, localAliveNodes{};
     localAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOwnNetworkSize);
     foreignAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOtherNetworkSize);
-    mAliveNodesLocal.store(localAliveNodes);
-    mAliveNodesForeign.store(foreignAliveNodes);
+    mAliveNodesLocal = localAliveNodes;
+    mAliveNodesForeign = foreignAliveNodes;
 
-    addMetric("Batch Size",kMinimumBatchSize);
-    addMetric("Batch Timeout", std::chrono::duration<double>(kMaxBatchCreationTime).count());
+    addMetric("Batch Size", pipeline::CrossChainMessageBatch::kMinimumBatchSize);
+    addMetric("Batch Timeout", std::chrono::duration<double>(pipeline::CrossChainMessageBatch::kMaxBatchCreationTime).count());
 }
 
 Pipeline::~Pipeline()
@@ -313,14 +299,6 @@ void Pipeline::reportFailedNode(const std::string &nodeUrl, const uint64_t nodeI
     const auto failedNetwork = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_CRITICAL("Node [{} : {}] detected failed Node [{} : {} :: '{}']", ownNodeId, ownNetwork, nodeId,
                     failedNetwork, nodeUrl); // used for detecting configuration issues
-    if (isLocal)
-    {
-        reset_atomic_bit(mAliveNodesLocal, nodeId);
-    }
-    else
-    {
-        reset_atomic_bit(mAliveNodesForeign, nodeId);
-    }
 }
 
 void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
@@ -427,13 +405,27 @@ exit:
 
 void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
                                     const Acknowledgment* const acknowledgment,
-                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue)
+                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                    std::chrono::steady_clock::time_point curTime)
 {
     constexpr auto kSleepTime = 2s;
 
     if (acknowledgment)
     {
         setAckValue(&batch->data, *acknowledgment);
+        const auto lastSentAck = batch->lastAck;
+        if (batch->data.has_ack_count())
+        {
+            batch->lastAck = batch->data.ack_count().value();
+        }
+        if (lastSentAck == batch->lastAck)
+        {
+            batch->numAckRepeats++;
+        }
+        else
+        {
+            batch->numAckRepeats = 0;
+        }
         generateMessageMac(&batch->data);
     }
 
@@ -448,7 +440,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
         ;
 
 
-    batch->creationTime = std::chrono::steady_clock::now();
+    batch->creationTime = curTime;
 
     if (pushFailure)
     {
@@ -463,36 +455,61 @@ void bufferedMessageAppend(scrooge::CrossChainMessageData &&messageData,
     batch->data.mutable_data()->Add(std::move(messageData));
 }
 
+bool shouldSendBufferedMessage(const pipeline::CrossChainMessageBatch& batch, const std::optional<uint64_t> curAck, const std::chrono::steady_clock::time_point curTime)
+{
+    using namespace pipeline;
+    
+    const auto batchSize = batch.data.data_size();
+    const auto timeDelta = curTime - batch.creationTime;
+    const auto isBatchLargeEnough = batch.batchSizeEstimate >= CrossChainMessageBatch::kMinimumBatchSize;
+    const auto isBatchOldEnough = timeDelta >= CrossChainMessageBatch::kMaxBatchCreationTime;
+    const auto isAckFreshEnough = batch.numAckRepeats < CrossChainMessageBatch::kMaxAckRepeats || curAck != batch.lastAck;
+    const auto isMessageTooOld = timeDelta >= CrossChainMessageBatch::kAckTimeout;
+    const auto isMessageTooBig = batch.batchSizeEstimate >= CrossChainMessageBatch::kMaximumBatchSize;
+    const auto isBatchSizable = batchSize;
+
+    return (isAckFreshEnough && (isBatchLargeEnough || (isBatchSizable && isBatchOldEnough))) || isMessageTooOld || isMessageTooBig;
+}
+
 bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                                    pipeline::CrossChainMessageBatch *const batch,
                                    const Acknowledgment * const acknowledgment,
-                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue)
+                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                   std::chrono::steady_clock::time_point curTime)
 {
     bufferedMessageAppend(std::move(message), batch);
-    const auto timeDelta = std::chrono::steady_clock::now() - batch->creationTime;
-    bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
-    if (not shouldSend)
+    if (not shouldSendBufferedMessage(*batch, acknowledgment->getAckIterator(), curTime))
     {
         return false;
     }
 
-    flushBufferedMessage(batch, acknowledgment, sendingQueue);
+    flushBufferedMessage(batch, acknowledgment, sendingQueue, curTime);
     return true;
 }
 
-void Pipeline::AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData)
+void Pipeline::AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, std::optional<uint64_t> curQuorumAck)
 {
-    const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
-
-    std::scoped_lock lock{destinationBatch->batchMutex};
-    bufferedMessageAppend(std::move(messageData), destinationBatch);
+    bool isGood{};
+    SPDLOG_CRITICAL("ATTEMPTING APPEND RESEND OF {} t={}", messageData.sequence_number(), std::chrono::system_clock::now().time_since_epoch().count());
+    if (messageData.sequence_number() != curQuorumAck.value_or(0ULL - 1ULL) + 1)
+    {
+        isGood = mResendMessageQueue.try_enqueue(std::pair{std::move(messageData), receivingNodeId});
+    }
+    else 
+    {
+        isGood = mResendMessageQueue.try_enqueue(std::pair{std::move(messageData), receivingNodeId});
+    }
+    if (not isGood)
+    {
+        SPDLOG_CRITICAL("Failed to push {} curQuack {}", messageData.sequence_number(), curQuorumAck.value_or(0));
+    }
 }
 
 /* This function is used to send message to a specific node in other RSM.
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment)
+bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment, std::chrono::steady_clock::time_point curTime)
 {
     SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
@@ -501,15 +518,13 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
-    std::scoped_lock lock{destinationBatch->batchMutex};
-
     if (messageData.message_content().size())
     {
-        return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get());
+        return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
     }
     else
     {
-        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get());
+        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
         return true;
     }
 }
@@ -529,13 +544,13 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
     batch->mutable_data()->Add(std::move(messageData));
     *batchSize += newDataSize;
 
-    bool shouldSend = *batchSize >= kMinimumBatchSize;
+    bool shouldSend = *batchSize >= pipeline::CrossChainMessageBatch::kMinimumBatchSize;
     if (not shouldSend)
     {
         return;
     }
 
-    auto foreignAliveNodes = mAliveNodesForeign.load(std::memory_order_relaxed);
+    auto foreignAliveNodes = mAliveNodesForeign;
     nng_msg* batchData = serializeProtobuf(*batch);
 
     while (foreignAliveNodes.any() && not is_test_over())
@@ -582,7 +597,7 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
 
     if (not isContinuation)
     {
-        remainingDestinations = mAliveNodesLocal.load(std::memory_order_relaxed);
+        remainingDestinations = mAliveNodesLocal;
         remainingDestinations.reset(kOwnConfiguration.kNodeId);
         curMessage = nullptr;
     }
@@ -622,24 +637,31 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
     return remainingDestinations.none();
 }
 
-uint64_t Pipeline::flushBuffers(const Acknowledgment* acknowledgment, const std::chrono::steady_clock::time_point now)
+uint64_t Pipeline::flushBuffers(const Acknowledgment* acknowledgment, std::optional<uint64_t> curQuack, std::optional<uint64_t> curAck, const std::chrono::steady_clock::time_point curTime)
 {
+    static std::pair<scrooge::CrossChainMessageData, uint64_t> messageData;
+    while (mResendMessageQueue.try_dequeue(messageData))
+    {
+        if (messageData.first.sequence_number() > curQuack)
+        {
+            const auto destinationBatch = mForeignMessageBatches.data() + messageData.second;
+            SPDLOG_CRITICAL("APPENDING RESEND OF {} t={}", messageData.first.sequence_number(), std::chrono::system_clock::now().time_since_epoch().count());
+            bufferedMessageAppend(std::move(messageData.first), destinationBatch);
+        }
+    }
+
     uint64_t numBuffersFlushed{};
     for (uint64_t curDestination{}; curDestination < mForeignMessageBatches.size(); curDestination++)
     {
         auto& destinationBuffer = mForeignSendBufs.at(curDestination);
         const auto destinationBatch = mForeignMessageBatches.data() + curDestination;
 
-        std::scoped_lock lock{destinationBatch->batchMutex};
-
-        const auto timeDelta = now - destinationBatch->creationTime;
-        bool shouldSend = (destinationBatch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
-        if (not shouldSend)
+        if (not shouldSendBufferedMessage(*destinationBatch, curAck, curTime))
         {
             continue;
         }
         numBuffersFlushed++;
-        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get());
+        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
     }
     return numBuffersFlushed;
 }

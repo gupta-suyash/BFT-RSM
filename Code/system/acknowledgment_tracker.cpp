@@ -13,6 +13,8 @@ void AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake, std::opt
     {
         return;
     }
+    // Optimization? if enough stake in quorum and curQuorum == last quorum
+    // return
     updateNodeData(nodeId, acknowledgmentValue);
     updateAggregateData(nodeId, nodeStake, oldAcknowledgmentValue, acknowledgmentValue, curQuackValue);
     updateActiveResendData();
