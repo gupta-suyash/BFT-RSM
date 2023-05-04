@@ -72,6 +72,10 @@ class Acknowledgment
       acknowledgment::AckView<kViewSize> ackView{};
       const auto ackOffset = mAckValue.load(std::memory_order_acquire).value_or(0ULL - 1) + 2;
       ackView.ackOffset = ackOffset;
+      if constexpr (kViewSize == 0)
+      {
+        return ackView;
+      }
 
       const uint64_t initialAckValue = ackOffset % kWindowSize;
       const uint64_t *const mAckWindowData = (uint64_t*) mAckWindow.data();
