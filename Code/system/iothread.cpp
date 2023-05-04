@@ -505,7 +505,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         else if ((isNoopTimeoutHit && isAckUseful) || isMaxTimeoutHit)
         {
             static uint64_t receiver = 0;
-            const auto curAck = acknowledgment->getAckIterator();
             
             bool wasSent = pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, {}, acknowledgment.get());
 

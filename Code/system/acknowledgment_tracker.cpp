@@ -13,6 +13,11 @@ void AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake, std::opt
     {
         return;
     }
+    if (mCurStuckQuorumAck == curQuackValue && mCurUnstuckStake > kOtherNetworkMaxFailedStake)
+    {
+        return;
+    }
+
     updateNodeData(nodeId, acknowledgmentValue);
     updateAggregateData(nodeId, nodeStake, oldAcknowledgmentValue, acknowledgmentValue, curQuackValue);
     updateActiveResendData();

@@ -151,7 +151,10 @@ def executeParallelBlockingDifferentRemoteCommands(hosts, commands, key=None):
         else:
             cmd = "ssh -o StrictHostKeyChecking=no -t -i " + \
                   key + " " + hosts[i] + " '" + commands[i] + "'"
-        cmd += f' 1>node{i} 2>&1'
+        if i == 0 or True:
+            cmd += f' 1>node{i} 2>&1'
+        else:
+            cmd += f' 1>/dev/null 2>&1'
         t = threading.Thread(target=executeCommand, args=(cmd,))
         thread_list.append(t)
     for t in thread_list:
