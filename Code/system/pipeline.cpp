@@ -39,18 +39,36 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
     *message->mutable_ack_set() = {curAckView.view.begin(), curAckView.view.end()};
 }
 
-static nng_socket openReceiveSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
+static nng_socket* open_socket(const uint64_t node)
 {
-    constexpr auto kResultOpenSuccessful = 0;
-
-    nng_socket socket;
-    const auto openResult = nng_pair1_open(&socket);
-    const bool cannotOpenSocket = kResultOpenSuccessful != openResult;
-    if (cannotOpenSocket)
+    static std::mutex mut;
+    static std::map<uint64_t, std::shared_ptr<nng_socket>> map;
+    std::scoped_lock lock{mut};
+    if (map.count(node) == 0)
     {
-        SPDLOG_CRITICAL("Cannot open socket for receiving on URL {} ERROR: {}", url, nng_strerror(openResult));
-        std::abort();
+        map.insert({node, std::make_unique<nng_socket>()});
+        const auto openResult = nng_pair1_open(map[node].get());
+        constexpr auto kResultOpenSuccessful = 0;
+
+        const bool cannotOpenSocket = kResultOpenSuccessful != openResult;
+        if (cannotOpenSocket)
+        {
+            SPDLOG_CRITICAL("Cannot open socket for receiving on node {} ERROR: {}", node, nng_strerror(openResult));
+            std::abort();
+        }
+        else
+        {
+            SPDLOG_CRITICAL("OPENED SOCKET AT {} FOR NODE {}", (uint64_t) map[node].get(), node);
+        }
     }
+
+    return map[node].get();
+}
+
+static nng_socket openReceiveSocket(const uint64_t node, const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
+{
+    nng_socket socket = *open_socket(node);
+    SPDLOG_CRITICAL("RECV SOCKET &{} for node{} URL {}", (uint64_t) &socket, node, url);
 
     const auto nngListenResult = nng_listen(socket, url.c_str(), nullptr, 0);
 
@@ -71,30 +89,21 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
     return socket;
 }
 
-static nng_socket openSendSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
+static nng_socket openSendSocket(const uint64_t node, const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
 {
-    constexpr auto kSuccess = 0;
-
-    nng_socket socket;
-    const auto openResult = nng_pair1_open(&socket);
-
-    const bool cannotOpenSocket = kSuccess != openResult;
-    if (cannotOpenSocket)
-    {
-        SPDLOG_CRITICAL("Cannot open socket for sending on URL {} ERROR: {}", url, nng_strerror(openResult));
-        std::abort();
-    }
+    nng_socket socket = *open_socket(node);
+    SPDLOG_CRITICAL("SEND SOCKET &{} for node{} URL {}", (uint64_t) &socket, node, url);
 
     const auto nngDialResult = nng_dial(socket, url.c_str(), nullptr, NNG_FLAG_NONBLOCK);
 
-    if (nngDialResult != kSuccess)
+    if (nngDialResult != 0)
     {
         SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR SENDING. URL = '{}' Return value {}", url, nng_strerror(nngDialResult));
         std::abort();
     }
 
     bool nngSetTimeoutResult = nng_setopt_ms(socket, NNG_OPT_SENDTIMEO, maxNngBlockingTime.count());
-    if (nngSetTimeoutResult != kSuccess)
+    if (nngSetTimeoutResult != 0)
     {
         SPDLOG_CRITICAL("Cannot set timeout for sending Return value {}", url, nng_strerror(nngSetTimeoutResult));
         std::abort();
@@ -175,7 +184,7 @@ template <typename T> static nng_msg *serializeProtobuf(const T &proto)
 Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::vector<std::string> &otherNetworkUrls,
                    NodeConfiguration ownConfiguration)
     : kOwnConfiguration(ownConfiguration), kOwnNetworkUrls(ownNetworkUrls), kOtherNetworkUrls(otherNetworkUrls),
-      mResendMessageQueue(1 << 20), mForeignMessageBatches(kOwnConfiguration.kOtherNetworkSize)
+      mForeignMessageBatches(kOwnConfiguration.kOtherNetworkSize)
 {
     std::bitset<64> foreignAliveNodes{}, localAliveNodes{};
     localAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOwnNetworkSize);
@@ -310,7 +319,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     constexpr auto kNngSendSuccess = 0;
     constexpr auto kMaxWaitTime = 10s;
 
-    nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
+    nng_socket sendSocket = openSendSocket(destNodeId + isLocal*4, sendUrl, kMaxNngBlockingTime);
     nng_msg *newMessage;
     uint64_t numSent{};
     auto kStartTime = std::chrono::steady_clock::now();
@@ -371,7 +380,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
-    nng_socket recvSocket = openReceiveSocket(recvUrl, kMaxNngBlockingTime);
+    nng_socket recvSocket = openReceiveSocket(sendNodeId + isLocal*4, recvUrl, kMaxNngBlockingTime);
     std::optional<nng_msg *> message;
     uint64_t numRecv{};
 
@@ -440,7 +449,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
         ;
 
 
-    batch->creationTime = curTime;
+    batch->creationTime = std::chrono::steady_clock::now();
 
     if (pushFailure)
     {
@@ -461,14 +470,23 @@ bool shouldSendBufferedMessage(const pipeline::CrossChainMessageBatch& batch, co
     
     const auto batchSize = batch.data.data_size();
     const auto timeDelta = curTime - batch.creationTime;
-    const auto isBatchLargeEnough = batch.batchSizeEstimate >= CrossChainMessageBatch::kMinimumBatchSize;
-    const auto isBatchOldEnough = timeDelta >= CrossChainMessageBatch::kMaxBatchCreationTime;
-    const auto isAckFreshEnough = batch.numAckRepeats < CrossChainMessageBatch::kMaxAckRepeats || curAck != batch.lastAck;
-    const auto isMessageTooOld = timeDelta >= CrossChainMessageBatch::kAckTimeout;
-    const auto isMessageTooBig = batch.batchSizeEstimate >= CrossChainMessageBatch::kMaximumBatchSize;
-    const auto isBatchSizable = batchSize;
+    const uint64_t isBatchLargeEnough = batch.batchSizeEstimate >= CrossChainMessageBatch::kMinimumBatchSize;
+    const uint64_t isBatchOldEnough = timeDelta >= CrossChainMessageBatch::kMaxBatchCreationTime;
+    const uint64_t isAckFreshEnough = batch.numAckRepeats < CrossChainMessageBatch::kMaxAckRepeats || curAck != batch.lastAck;
+    const uint64_t isMessageTooOld = timeDelta >= CrossChainMessageBatch::kAckTimeout;
+    const uint64_t isMessageTooBig = batch.batchSizeEstimate >= CrossChainMessageBatch::kMaximumBatchSize;
+    const uint64_t isBatchSizable = batchSize;
 
-    return (isAckFreshEnough && (isBatchLargeEnough || (isBatchSizable && isBatchOldEnough))) || isMessageTooOld || isMessageTooBig;
+    // const auto res = (isAckFreshEnough && (isBatchLargeEnough || (isBatchSizable && isBatchOldEnough))) || isMessageTooOld || isMessageTooBig;
+    const auto res = (isAckFreshEnough && isBatchSizable && isBatchOldEnough) || isBatchLargeEnough || isMessageTooOld || isMessageTooBig;
+
+    if (res)
+    {
+        SPDLOG_CRITICAL("{} timeDelta{} isBatchLargeEnough{}, isBatchOldEnough{}, isAckFreshEnough{}, isMessageTooOld{}, isMessageTooBig{}, batchSize{}",
+                     res, std::chrono::duration<double>{timeDelta}.count(), isBatchLargeEnough, isBatchOldEnough, isAckFreshEnough, isMessageTooOld, isMessageTooBig, batchSize);
+    }
+
+    return res;
 }
 
 bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
@@ -487,22 +505,11 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     return true;
 }
 
-void Pipeline::AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, std::optional<uint64_t> curQuorumAck)
+void Pipeline::AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData)
 {
-    bool isGood{};
-    SPDLOG_CRITICAL("ATTEMPTING APPEND RESEND OF {} t={}", messageData.sequence_number(), std::chrono::system_clock::now().time_since_epoch().count());
-    if (messageData.sequence_number() != curQuorumAck.value_or(0ULL - 1ULL) + 1)
-    {
-        isGood = mResendMessageQueue.try_enqueue(std::pair{std::move(messageData), receivingNodeId});
-    }
-    else 
-    {
-        isGood = mResendMessageQueue.try_enqueue(std::pair{std::move(messageData), receivingNodeId});
-    }
-    if (not isGood)
-    {
-        SPDLOG_CRITICAL("Failed to push {} curQuack {}", messageData.sequence_number(), curQuorumAck.value_or(0));
-    }
+    const auto curBatch = mForeignMessageBatches.data() + receivingNodeId;
+    std::scoped_lock lock{curBatch->batchLock};
+    bufferedMessageAppend(std::move(messageData), curBatch);
 }
 
 /* This function is used to send message to a specific node in other RSM.
@@ -517,6 +524,8 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
 
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
+
+    std::scoped_lock lock{destinationBatch->batchLock};
 
     if (messageData.message_content().size())
     {
@@ -639,23 +648,13 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
 
 uint64_t Pipeline::flushBuffers(const Acknowledgment* acknowledgment, std::optional<uint64_t> curQuack, std::optional<uint64_t> curAck, const std::chrono::steady_clock::time_point curTime)
 {
-    static std::pair<scrooge::CrossChainMessageData, uint64_t> messageData;
-    while (mResendMessageQueue.try_dequeue(messageData))
-    {
-        if (messageData.first.sequence_number() > curQuack)
-        {
-            const auto destinationBatch = mForeignMessageBatches.data() + messageData.second;
-            SPDLOG_CRITICAL("APPENDING RESEND OF {} t={}", messageData.first.sequence_number(), std::chrono::system_clock::now().time_since_epoch().count());
-            bufferedMessageAppend(std::move(messageData.first), destinationBatch);
-        }
-    }
-
     uint64_t numBuffersFlushed{};
     for (uint64_t curDestination{}; curDestination < mForeignMessageBatches.size(); curDestination++)
     {
         auto& destinationBuffer = mForeignSendBufs.at(curDestination);
         const auto destinationBatch = mForeignMessageBatches.data() + curDestination;
 
+        std::scoped_lock lock{destinationBatch->batchLock};
         if (not shouldSendBufferedMessage(*destinationBatch, curAck, curTime))
         {
             continue;

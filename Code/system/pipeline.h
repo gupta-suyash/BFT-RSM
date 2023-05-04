@@ -30,16 +30,17 @@ struct ReceivedCrossChainMessage
 struct CrossChainMessageBatch
 {
   static constexpr uint64_t kMaxAckRepeats = 2;
-  static constexpr auto kAckTimeout = 5ms;
-  static constexpr uint64_t kMinimumBatchSize = (1 << 14); // bytes
+  static constexpr auto kAckTimeout = 50ms;
+  static constexpr uint64_t kMinimumBatchSize = (1 << 8); // bytes
   static constexpr uint64_t kMaximumBatchSize = (1 << 18); // bytes
-  static constexpr auto kMaxBatchCreationTime = 500us;
+  static constexpr auto kMaxBatchCreationTime = 1ms;
 
   std::chrono::steady_clock::time_point creationTime{};
   uint64_t batchSizeEstimate{};
   std::optional<uint64_t> lastAck{};
   uint64_t numAckRepeats{};
   scrooge::CrossChainMessage data{};
+  std::mutex batchLock{};
 };
 
 template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
@@ -55,7 +56,7 @@ class Pipeline
     void startPipeline();
 
     bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment, std::chrono::steady_clock::time_point curTime);
-    void AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, std::optional<uint64_t> curQuorumAck);
+    void AppendToSend(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData);
     bool rebroadcastToOwnRsm(nng_msg *message);
     uint64_t flushBuffers(const Acknowledgment* acknowledgment, std::optional<uint64_t> curQuack, std::optional<uint64_t> curAck, std::chrono::steady_clock::time_point curTime);
 
@@ -86,7 +87,7 @@ class Pipeline
     static constexpr uint64_t kMinimumPortNumber = 7'000;
     static constexpr uint64_t kProtobufDefaultSize = kListSize / 8;
     static constexpr auto kMaxNngBlockingTime = 500ms;
-    static constexpr uint64_t kBufferSize = 2048;
+    static constexpr uint64_t kBufferSize = 2;
 
     const NodeConfiguration kOwnConfiguration;
     const std::vector<std::string> kOwnNetworkUrls;
@@ -109,7 +110,7 @@ class Pipeline
     std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignSendBufs{};
     std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignRecvBufs{};
 
-    pipeline::MessageQueue<std::pair<scrooge::CrossChainMessageData, uint64_t>> mResendMessageQueue;
+    // pipeline::MessageQueue<std::pair<scrooge::CrossChainMessageData, uint64_t>> mResendMessageQueue;
 
     std::vector<pipeline::CrossChainMessageBatch> mForeignMessageBatches{};
 };
