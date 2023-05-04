@@ -8,18 +8,12 @@
     "local_compile_script": "/proj/ove-PG0/murray/BFT-RSM/Code/build.sh",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
-      "10.10.1.8",
-      "10.10.1.7",
-      "10.10.1.6",
       "10.10.1.5",
       "10.10.1.4",
       "10.10.1.3",
       "10.10.1.2"
     ],
     "clusterOneIps": [
-      "10.10.1.15",
-      "10.10.1.14",
-      "10.10.1.13",
       "10.10.1.12",
       "10.10.1.11",
       "10.10.1.10",
@@ -82,9 +76,9 @@
       }
     }
   },
-  "increase_packet_size": {
+  "increase_packet_size_replica_4": {
     "experiment_name": "increase_packet_size",
-    "nb_rounds": 4,
+    "nb_rounds": 5,
     "simulate_latency": 0,
     "duration": 2,
     "scrooge_args": {
@@ -95,18 +89,18 @@
       },
       "cluster_0": {
         "local_num_nodes": [
-          7,
-          7,
-          7,
-          7,
-          7
+          4,
+          4,
+          4,
+          4,
+          4
         ],
         "foreign_num_nodes": [
-          7,
-          7,
-          7,
-          7,
-          7
+          4,
+          4,
+          4,
+          4,
+          4
         ],
         "local_max_nodes_fail": [
           1,
@@ -139,18 +133,18 @@
       },
       "cluster_1": {
         "local_num_nodes": [
-          7,
-          7,
-          7,
-          7,
-          7
+          4,
+          4,
+          4,
+          4,
+          4
         ],
         "foreign_num_nodes": [
-          7,
-          7,
-          7,
-          7,
-          7
+          4,
+          4,
+          4,
+          4,
+          4
         ],
         "local_max_nodes_fail": [
           1,
