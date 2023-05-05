@@ -65,12 +65,12 @@ static nng_socket* open_socket(const uint64_t node)
     return map[node].get();
 }
 
-static nng_socket openReceiveSocket(const uint64_t node, const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
+static nng_socket* openReceiveSocket(const uint64_t node, const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
 {
-    nng_socket socket = *open_socket(node);
-    SPDLOG_CRITICAL("RECV SOCKET &{} for node{} URL {}", (uint64_t) &socket, node, url);
+    nng_socket* socket = open_socket(node);
+    SPDLOG_CRITICAL("RECV SOCKET &{} for node{} URL {}", (uint64_t) socket, node, url);
 
-    const auto nngListenResult = nng_listen(socket, url.c_str(), nullptr, 0);
+    const auto nngListenResult = nng_listen(*socket, url.c_str(), nullptr, 0);
 
     if (nngListenResult != 0)
     {
@@ -79,7 +79,7 @@ static nng_socket openReceiveSocket(const uint64_t node, const std::string &url,
         std::abort();
     }
 
-    bool nngSetTimeoutResult = nng_setopt_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
+    bool nngSetTimeoutResult = nng_setopt_ms(*socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
     if (nngSetTimeoutResult != 0)
     {
         SPDLOG_CRITICAL("Cannot set timeout for listening Return value {}", url, nng_strerror(nngSetTimeoutResult));
@@ -89,12 +89,12 @@ static nng_socket openReceiveSocket(const uint64_t node, const std::string &url,
     return socket;
 }
 
-static nng_socket openSendSocket(const uint64_t node, const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
+static nng_socket* openSendSocket(const uint64_t node, const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
 {
-    nng_socket socket = *open_socket(node);
-    SPDLOG_CRITICAL("SEND SOCKET &{} for node{} URL {}", (uint64_t) &socket, node, url);
+    nng_socket* socket = open_socket(node);
+    SPDLOG_CRITICAL("SEND SOCKET &{} for node{} URL {}", (uint64_t) socket, node, url);
 
-    const auto nngDialResult = nng_dial(socket, url.c_str(), nullptr, NNG_FLAG_NONBLOCK);
+    const auto nngDialResult = nng_dial(*socket, url.c_str(), nullptr, NNG_FLAG_NONBLOCK);
 
     if (nngDialResult != 0)
     {
@@ -102,7 +102,7 @@ static nng_socket openSendSocket(const uint64_t node, const std::string &url, st
         std::abort();
     }
 
-    bool nngSetTimeoutResult = nng_setopt_ms(socket, NNG_OPT_SENDTIMEO, maxNngBlockingTime.count());
+    bool nngSetTimeoutResult = nng_setopt_ms(*socket, NNG_OPT_SENDTIMEO, maxNngBlockingTime.count());
     if (nngSetTimeoutResult != 0)
     {
         SPDLOG_CRITICAL("Cannot set timeout for sending Return value {}", url, nng_strerror(nngSetTimeoutResult));
@@ -319,7 +319,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     constexpr auto kNngSendSuccess = 0;
     constexpr auto kMaxWaitTime = 10s;
 
-    nng_socket sendSocket = openSendSocket(destNodeId + isLocal*4, sendUrl, kMaxNngBlockingTime);
+    nng_socket* sendSocket = openSendSocket(destNodeId + isLocal*7, sendUrl, kMaxNngBlockingTime);
     nng_msg *newMessage;
     uint64_t numSent{};
     auto kStartTime = std::chrono::steady_clock::now();
@@ -334,7 +334,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     }
 
     kStartTime = std::chrono::steady_clock::now();
-    while (sendMessage(sendSocket, newMessage) != kNngSendSuccess)
+    while (sendMessage(*sendSocket, newMessage) != kNngSendSuccess)
     {
         if (std::chrono::steady_clock::now() - kStartTime > kMaxWaitTime ||
             mShouldThreadStop.load(std::memory_order_relaxed))
@@ -356,7 +356,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
                 goto exit;
             }
         }
-        while (sendMessage(sendSocket, newMessage) != kNngSendSuccess)
+        while (sendMessage(*sendSocket, newMessage) != kNngSendSuccess)
         {
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
@@ -371,7 +371,7 @@ exit:
     SPDLOG_CRITICAL("Sent {} many to [{} : {}] : URL={}", numSent, destNodeId, nodenet, sendUrl);
     SPDLOG_INFO("Pipeline Sending Thread Exiting");
     const auto finishTime = std::chrono::steady_clock::now();
-    closeSocket(sendSocket, finishTime);
+    closeSocket(*sendSocket, finishTime);
 }
 
 void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
@@ -380,13 +380,13 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
-    nng_socket recvSocket = openReceiveSocket(sendNodeId + isLocal*4, recvUrl, kMaxNngBlockingTime);
+    nng_socket* recvSocket = openReceiveSocket(sendNodeId + isLocal*7, recvUrl, kMaxNngBlockingTime);
     std::optional<nng_msg *> message;
     uint64_t numRecv{};
 
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
-        while (not(message = receiveMessage(recvSocket)).has_value())
+        while (not(message = receiveMessage(*recvSocket)).has_value())
         {
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
@@ -409,7 +409,7 @@ exit:
     SPDLOG_CRITICAL("Recv {} many from [{} : {}] : URL={}", numRecv, sendNodeId, nodenet, recvUrl);
     SPDLOG_INFO("Pipeline Recv Thread Exiting");
     const auto finishTime = std::chrono::steady_clock::now();
-    closeSocket(recvSocket, finishTime);
+    closeSocket(*recvSocket, finishTime);
 }
 
 void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
@@ -482,8 +482,8 @@ bool shouldSendBufferedMessage(const pipeline::CrossChainMessageBatch& batch, co
 
     if (res)
     {
-        SPDLOG_CRITICAL("{} timeDelta{} isBatchLargeEnough{}, isBatchOldEnough{}, isAckFreshEnough{}, isMessageTooOld{}, isMessageTooBig{}, batchSize{}",
-                     res, std::chrono::duration<double>{timeDelta}.count(), isBatchLargeEnough, isBatchOldEnough, isAckFreshEnough, isMessageTooOld, isMessageTooBig, batchSize);
+        // SPDLOG_CRITICAL("{} timeDelta{} isBatchLargeEnough{}, isBatchOldEnough{}, isAckFreshEnough{}, isMessageTooOld{}, isMessageTooBig{}, batchSize{}",
+        //              res, std::chrono::duration<double>{timeDelta}.count(), isBatchLargeEnough, isBatchOldEnough, isAckFreshEnough, isMessageTooOld, isMessageTooBig, batchSize);
     }
 
     return res;

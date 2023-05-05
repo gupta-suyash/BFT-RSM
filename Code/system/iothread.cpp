@@ -395,7 +395,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
     moodycamel::BlockingReaderWriterCircularBuffer<iothread::MessageResendData>  resendMsgQueue(1<<20);
     uint64_t numMsgsFlushed{};
-    const uint64_t kQAckWindowSize = 8'000ULL;
+    const uint64_t kQAckWindowSize = 1'000'000'000ULL;
     const uint64_t kMaxQAckAckOffset = 5'000'000'000ULL;
     std::chrono::steady_clock::time_point lastDequeueTime{};
 

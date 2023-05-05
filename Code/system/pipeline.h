@@ -30,8 +30,8 @@ struct ReceivedCrossChainMessage
 struct CrossChainMessageBatch
 {
   static constexpr uint64_t kMaxAckRepeats = 2;
-  static constexpr auto kAckTimeout = 50ms;
-  static constexpr uint64_t kMinimumBatchSize = (1 << 8); // bytes
+  static constexpr auto kAckTimeout = 100ms;
+  static constexpr uint64_t kMinimumBatchSize = (1 << 16); // bytes
   static constexpr uint64_t kMaximumBatchSize = (1 << 18); // bytes
   static constexpr auto kMaxBatchCreationTime = 1ms;
 

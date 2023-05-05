@@ -40,7 +40,7 @@ def main():
     elif is_float(value):
         value = float(value)
         
-    files = [file for file in sys.argv[3:] if os.path.isfile(file) and file.startswith("log_") and file.endswith(".yaml")]
+    files = [file for file in sys.argv[3:] if os.path.isfile(file) and file.endswith(".yaml")]
     if len(files) == 0:
         usage('You must input at least one log file')
     
