@@ -8,22 +8,22 @@
     "local_compile_script": "/proj/ove-PG0/murray/BFT-RSM/Code/build.sh",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
-      "10.10.1.5",
-      "10.10.1.4",
+      "10.10.1.2",
       "10.10.1.3",
-      "10.10.1.2"
+      "10.10.1.4",
+      "10.10.1.5"
     ],
     "clusterOneIps": [
-      "10.10.1.12",
-      "10.10.1.11",
-      "10.10.1.10",
+      "10.10.1.6",
+      "10.10.1.7",
+      "10.10.1.8",
       "10.10.1.9"
     ],
     "client_regions": [
       "US"
     ]
   },
-  "increase_packet_size_nb_one": {
+  "increase_packet_size_algo_resdb": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 1,
     "simulate_latency": 0,
@@ -36,47 +36,47 @@
       },
       "cluster_0": {
         "local_num_nodes": [
-          2
+          4
         ],
         "foreign_num_nodes": [
-          2
+          4
         ],
         "local_max_nodes_fail": [
-          0
+          1
         ],
         "foreign_max_nodes_fail": [
-          0
+          1
         ],
         "num_packets": [
           1000
         ],
         "packet_size": [
-          100000
+          1000000
         ]
       },
       "cluster_1": {
         "local_num_nodes": [
-          2
+          4
         ],
         "foreign_num_nodes": [
-          2
+          4
         ],
         "local_max_nodes_fail": [
-          0
+          1
         ],
         "foreign_max_nodes_fail": [
-          0
+          1
         ],
         "num_packets": [
           1000
         ],
         "packet_size": [
-          100000
+          1000000
         ]
       }
     }
   },
-  "increase_packet_size_replica_4": {
+  "increase_packet_size_replica_7_stake": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 5,
     "simulate_latency": 0,
@@ -172,6 +172,112 @@
           1000,
           10000,
           100000,
+          1000000
+        ]
+      }
+    }
+  },
+  "failures_klist": {
+    "experiment_name": "change_k_list",
+    "nb_rounds": 1,
+    "simulate_latency": 0,
+    "duration": 2,
+    "scrooge_args": {
+      "general": {
+        "use_debug_logs_bool": 0,
+        "log_path": "/proj/ove-PG0/murray/BFT-RSM/Code/experiments/results/",
+        "max_num_packets": 10000
+      },
+      "cluster_0": {
+        "local_num_nodes": [
+          4
+        ],
+        "foreign_num_nodes": [
+          4
+        ],
+        "local_max_nodes_fail": [
+          1
+        ],
+        "foreign_max_nodes_fail": [
+          1
+        ],
+        "num_packets": [
+          1000
+        ],
+        "packet_size": [
+          100
+        ]
+      },
+      "cluster_1": {
+        "local_num_nodes": [
+          4
+        ],
+        "foreign_num_nodes": [
+          4
+        ],
+        "local_max_nodes_fail": [
+          1
+        ],
+        "foreign_max_nodes_fail": [
+          1
+        ],
+        "num_packets": [
+          1000
+        ],
+        "packet_size": [
+          100
+        ]
+      }
+    }
+  },
+  "increase_packet_size_algo_resdb_replica_stake": {
+    "experiment_name": "alg_resdb_stake_num",
+    "nb_rounds": 1,
+    "simulate_latency": 0,
+    "duration": 2,
+    "scrooge_args": {
+      "general": {
+        "use_debug_logs_bool": 0,
+        "log_path": "/proj/ove-PG0/murray/BFT-RSM/Code/experiments/results/",
+        "max_num_packets": 10000
+      },
+      "cluster_0": {
+        "local_num_nodes": [
+          4
+        ],
+        "foreign_num_nodes": [
+          4
+        ],
+        "local_max_nodes_fail": [
+          1
+        ],
+        "foreign_max_nodes_fail": [
+          1
+        ],
+        "num_packets": [
+          1000
+        ],
+        "packet_size": [
+          100
+        ]
+      },
+      "cluster_1": {
+        "local_num_nodes": [
+          4
+        ],
+        "foreign_num_nodes": [
+          4
+        ],
+        "local_max_nodes_fail": [
+          0
+        ],
+        "foreign_max_nodes_fail": [
+          0
+        ],
+        "num_packets": [
+          100
+        ],
+        "packet_size": [
           1000000
         ]
       }

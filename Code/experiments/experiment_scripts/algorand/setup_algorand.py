@@ -14,15 +14,15 @@ setup_dir = os.path.realpath(os.path.dirname(__file__))
 sys.path.append(setup_dir + "/util/")
 from ssh_util import *
 
-# clusterOne = ["10.10.1.2", "10.10.1.3", "10.10.1.4", "10.10.1.5"]
-# clusterTwo = ["10.10.1.6", "10.10.1.7", "10.10.1.8", "10.10.1.9"]
-# relay = ["10.10.1.11"]
-# relay2 = ["10.10.1.13"]
+clusterOne = ["10.10.1.2", "10.10.1.3", "10.10.1.4", "10.10.1.5"]
+clusterTwo = ["10.10.1.6", "10.10.1.7", "10.10.1.8", "10.10.1.9"]
+relay = ["10.10.1.11"]
+relay2 = ["10.10.1.13"]
 
-clusterOne = ["10.10.1.2", "10.10.1.3", "10.10.1.4", "10.10.1.5", "10.10.1.10", "10.10.1.6", "10.10.1.7"]
-clusterTwo = []
-relay = ["10.10.1.8"]
-relay2 = []
+# clusterOne = ["10.10.1.2", "10.10.1.3", "10.10.1.4", "10.10.1.5", "10.10.1.10", "10.10.1.6", "10.10.1.7"]
+# clusterTwo = []
+# relay = ["10.10.1.8"]
+# relay2 = []
 
 def main():
     if len(sys.argv) != 2:
@@ -46,7 +46,7 @@ def main():
     ssh_command_list = []
     thread_list = list()
     for i in range(0, len(clusterOne)):
-        cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/participation_rsm1.sh " + str(i) # TODO CHANGE IT BACK
+        cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/participation_rsm1.sh " + str(i + 1)
         cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterOne[i] + " '" + cmd + "'"
         ssh_command_list.append(cmd_ssh)
     for i in range(0, len(clusterOne)):
@@ -88,10 +88,5 @@ def main():
     for t in thread_list:
         t.join()
 
-    # cmd = "/proj/ove-PG0/murray/resdb/scrooge-resdb.sh"
-    # executeCommand(cmd)
- 
-    # cmd = "/proj/ove-PG0/murray/resdb/resdb-kill.sh"
-    # executeCommand(cmd)
 if __name__ == "__main__":
     main()
