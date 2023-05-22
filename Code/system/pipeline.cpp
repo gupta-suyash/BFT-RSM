@@ -205,7 +205,7 @@ Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::ve
 Pipeline::~Pipeline()
 {
     addMetric("num-timeout-hits", numTimeoutHits);
-    addMetric("num-size-hits", numTimeoutHits);
+    addMetric("num-size-hits", numSizeHits);
     addMetric("avg-num-msgs-in-batch", (double)totalBatchedMessages/totalBatchesSent);
     const auto joinThread = [](std::thread &thread) { thread.join(); };
     const auto emptyQueue = [](auto &queue) {
@@ -515,18 +515,24 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
 {
     constexpr auto kSleepTime = 2s;
 
+    auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
     auto batch = &mForeignMessageBatches.front().data;
     auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
 
     const auto newDataSize = messageData.ByteSizeLong();
+    const auto curTime = std::chrono::steady_clock::now();
     batch->mutable_data()->Add(std::move(messageData));
     *batchSize += newDataSize;
 
-    bool shouldSend = *batchSize >= kMinimumBatchSize;
+    bool shouldSend = *batchSize >= kMinimumBatchSize || kMaxBatchCreationTime < curTime - *batchCreationTime;
     if (not shouldSend)
     {
         return;
     }
+    totalBatchesSent++;
+    totalBatchedMessages += batch->data_size();
+    numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
+    numSizeHits += *batchSize >= kMinimumBatchSize;
 
     auto foreignAliveNodes = mAliveNodesForeign.load(std::memory_order_relaxed);
     nng_msg* batchData = serializeProtobuf(*batch);
@@ -564,6 +570,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
     }
     batch->Clear();
     *batchSize = 0;
+    *batchCreationTime = std::chrono::steady_clock::now();
 }
 
 bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
