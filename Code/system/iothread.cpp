@@ -258,12 +258,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
-    const bool isFirstNode = configuration.kNodeId == 0 && get_rsm_id() == 0;
-    if (isFirstNode)
-    {
-        SPDLOG_CRITICAL("Send TID == {}", gettid());
-    }
-
     // bindThreadToCpu(0);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
