@@ -7,6 +7,8 @@
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 
+int64_t numTimeoutHits{}, numSizeHits{}, totalBatchedMessages{}, totalBatchesSent{};
+
 static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
     if (!message.has_ack_count())
@@ -202,6 +204,9 @@ Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::ve
 
 Pipeline::~Pipeline()
 {
+    addMetric("num-timeout-hits", numTimeoutHits);
+    addMetric("num-size-hits", numTimeoutHits);
+    addMetric("avg-num-msgs-in-batch", (double)totalBatchedMessages/totalBatchesSent);
     const auto joinThread = [](std::thread &thread) { thread.join(); };
     const auto emptyQueue = [](auto &queue) {
         nng_msg *msg;
@@ -436,6 +441,9 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
         generateMessageMac(&batch->data);
     }
 
+    totalBatchesSent++;
+    totalBatchedMessages += batch->data.data_size();
+
     nng_msg* batchData = serializeProtobuf(batch->data);
     batch->data.Clear();
     batch->batchSizeEstimate = kProtobufDefaultSize;
@@ -465,6 +473,8 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
 
     const auto timeDelta = std::chrono::steady_clock::now() - batch->creationTime;
     bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
+    numTimeoutHits += timeDelta >= kMaxBatchCreationTime;
+    numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
     if (not shouldSend)
     {
         return false;
