@@ -41,6 +41,7 @@ bool isMessageDataValid(const scrooge::CrossChainMessageData &message)
 void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
                               const NodeConfiguration configuration)
 {
+    bindThreadToCpu(3);
     const auto kMessageSize = get_packet_size();
 
     for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
@@ -49,8 +50,10 @@ void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> mess
         fakeData.set_message_content(std::string(kMessageSize, 'L'));
         fakeData.set_sequence_number(curSequenceNumber);
 
-        while (not messageOutput->wait_enqueue_timed(std::move(fakeData), 100ms) && not is_test_over())
-            ;
+        while (not messageOutput->try_enqueue(std::move(fakeData)) && not is_test_over())
+        {
+            std::this_thread::sleep_for(10us);
+        }
     }
 }
 

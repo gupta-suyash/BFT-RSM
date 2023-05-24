@@ -330,6 +330,7 @@ void Pipeline::reportFailedNode(const std::string &nodeUrl, const uint64_t nodeI
 void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
                              const uint64_t destNodeId, const bool isLocal)
 {
+    bindThreadAboveCpu(2);
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
 
@@ -342,7 +343,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     auto kStartTime = std::chrono::steady_clock::now();
 
     // Check if socket is being listened to
-    while (not sendBuffer->wait_dequeue_timed(newMessage, 500ms))
+    while (not sendBuffer->try_dequeue(newMessage))
     {
         if (mShouldThreadStop.load(std::memory_order_relaxed))
         {
@@ -366,7 +367,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     // steady state
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
-        while (not sendBuffer->wait_dequeue_timed(newMessage, 500ms))
+        while (not sendBuffer->try_dequeue(newMessage))
         {
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
@@ -394,6 +395,7 @@ exit:
 void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
                              const uint64_t sendNodeId, const bool isLocal)
 {
+    bindThreadAboveCpu(2);
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
@@ -411,7 +413,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
             }
         }
 
-        while (not recvBuffer->wait_enqueue_timed(*message, 500ms))
+        while (not recvBuffer->try_enqueue(*message))
         {
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
@@ -433,8 +435,6 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
                                     const Acknowledgment* const acknowledgment,
                                     pipeline::MessageQueue<nng_msg *> *const sendingQueue)
 {
-    constexpr auto kSleepTime = 2s;
-
     if (acknowledgment)
     {
         setAckValue(&batch->data, *acknowledgment);
@@ -450,7 +450,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 
     bool pushFailure{};
 
-    while ((pushFailure = not sendingQueue->wait_enqueue_timed(batchData, kSleepTime)) &&
+    while ((pushFailure = not sendingQueue->try_enqueue(batchData)) &&
            not is_test_over())
         ;
 
@@ -513,8 +513,6 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
  */
 void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
 {
-    constexpr auto kSleepTime = 2s;
-
     auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
     auto batch = &mForeignMessageBatches.front().data;
     auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
@@ -553,7 +551,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
             curMessage = batchData;
         }
 
-        while (not curBuffer->wait_enqueue_timed(curMessage, kSleepTime))
+        while (not curBuffer->try_enqueue(curMessage))
         {
             if (is_test_over())
             {

@@ -63,6 +63,8 @@ void set_packet_size(uint64_t packet_size);
 // Will terminate program with error msg if there are not enough CPUs or if operation fails
 void bindThreadToCpu(int cpu);
 
+void bindThreadAboveCpu(const int cpu);
+
 void addMetric(std::string key, std::string value);
 
 template <typename NumericType, std::enable_if_t<std::is_arithmetic_v<NumericType>, bool> = true>

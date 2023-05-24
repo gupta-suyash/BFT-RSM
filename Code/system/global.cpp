@@ -181,6 +181,26 @@ void bindThreadToCpu(const int cpu)
     }
 }
 
+void bindThreadAboveCpu(const int cpu)
+{
+    const auto numCores = get_nprocs();
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    for (int i=cpu + 1; i < numCores; i++)
+    {
+        CPU_SET(i, &cpuset);
+    }
+
+    int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (rc != 0)
+    {
+        SPDLOG_CRITICAL("Cannot bind this thread above desired core error={}, num_cores={}, requested={}", rc, numCores,
+                        cpu);
+        std::abort();
+    }
+}
+
 void addMetric(std::string key, std::string value)
 {
     std::scoped_lock lock{metricsMutex};
