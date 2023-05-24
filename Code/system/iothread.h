@@ -18,9 +18,10 @@ using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<scrooge::Cro
 
 struct MessageResendData
 {
-    scrooge::CrossChainMessageData messageData;
+    uint64_t sequenceNumber{};
     uint64_t firstDestinationResendNumber{};
     uint64_t numDestinationsSent{};
+    scrooge::CrossChainMessageData messageData;
     message_scheduler::CompactDestinationList destinations{};
 };
 }; // namespace iothread

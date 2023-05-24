@@ -78,9 +78,9 @@ void AcknowledgmentTracker::updateActiveResendData()
 
     if (mCurUnstuckStake > kOtherNetworkMaxFailedStake)
     {
-        if (curResendData.has_value())
+        if (curResendData.isActive)
         {
-            mActiveResendData.store(std::nullopt, std::memory_order_release);
+            mActiveResendData.store({}, std::memory_order_release);
         }
         return;
     }
@@ -91,16 +91,16 @@ void AcknowledgmentTracker::updateActiveResendData()
     const bool isNoResendNeeded = numRepeatedAckQuorums < 1;
     if (isNoResendNeeded)
     {
-        if (curResendData.has_value())
+        if (curResendData.isActive)
         {
-            mActiveResendData.store(std::nullopt, std::memory_order_release);
+            mActiveResendData.store({}, std::memory_order_release);
         }
         return;
     }
 
     // Small ints are so that reading/writing to the atomic doesn't use locks -- easy to remove
     const auto potentialNewResendData = acknowledgment_tracker::ResendData{
-        .sequenceNumber = (uint32_t)sequenceNumberToResend, .resendNumber = (uint16_t)numRepeatedAckQuorums.value()};
+        .sequenceNumber = (uint32_t)sequenceNumberToResend, .resendNumber = (uint16_t)numRepeatedAckQuorums.value(), .isActive = true};
 
     const bool isCurResendDataOutdated = curResendData != potentialNewResendData;
     if (isCurResendDataOutdated)
@@ -109,7 +109,7 @@ void AcknowledgmentTracker::updateActiveResendData()
     }
 }
 
-std::optional<acknowledgment_tracker::ResendData> AcknowledgmentTracker::getActiveResendData() const
+acknowledgment_tracker::ResendData AcknowledgmentTracker::getActiveResendData() const
 {
     // TODO check if std::memory_order_acquire is too expensive (probably won't be with crypto)
     return mActiveResendData.load(std::memory_order_acquire);
