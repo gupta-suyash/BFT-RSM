@@ -313,7 +313,7 @@ void Pipeline::startPipeline()
 void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
                              const uint64_t destNodeId, const bool isLocal)
 {
-    bindThreadAboveCpu(2);
+    bindThreadAboveCpu(3);
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
 
@@ -377,7 +377,7 @@ exit:
 void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
                              const uint64_t sendNodeId, const bool isLocal)
 {
-    bindThreadAboveCpu(2);
+    bindThreadAboveCpu(3);
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
