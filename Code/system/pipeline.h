@@ -86,8 +86,8 @@ class Pipeline
     std::atomic_bool mIsPipelineStarted{};
     std::atomic_bool mShouldThreadStop{};
 
-    std::atomic<std::bitset<64>> mAliveNodesLocal{};
-    std::atomic<std::bitset<64>> mAliveNodesForeign{};
+    std::bitset<64> mAliveNodesLocal{};
+    std::bitset<64> mAliveNodesForeign{};
 
     std::vector<std::thread> mLocalSendThreads;
     std::vector<std::thread> mLocalRecvThreads;

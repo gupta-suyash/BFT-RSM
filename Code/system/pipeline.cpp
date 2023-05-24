@@ -195,8 +195,8 @@ Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::ve
     std::bitset<64> foreignAliveNodes{}, localAliveNodes{};
     localAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOwnNetworkSize);
     foreignAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOtherNetworkSize);
-    mAliveNodesLocal.store(localAliveNodes);
-    mAliveNodesForeign.store(foreignAliveNodes);
+    mAliveNodesLocal = localAliveNodes;
+    mAliveNodesForeign = foreignAliveNodes;
 
     addMetric("Batch Size",kMinimumBatchSize);
     addMetric("Batch Timeout", std::chrono::duration<double>(kMaxBatchCreationTime).count());
@@ -310,23 +310,6 @@ void Pipeline::startPipeline()
     }
 }
 
-void Pipeline::reportFailedNode(const std::string &nodeUrl, const uint64_t nodeId, const bool isLocal)
-{
-    const auto ownNodeId = kOwnConfiguration.kNodeId;
-    const auto ownNetwork = get_rsm_id();
-    const auto failedNetwork = (isLocal) ? get_rsm_id() : get_other_rsm_id();
-    SPDLOG_CRITICAL("Node [{} : {}] detected failed Node [{} : {} :: '{}']", ownNodeId, ownNetwork, nodeId,
-                    failedNetwork, nodeUrl); // used for detecting configuration issues
-    if (isLocal)
-    {
-        reset_atomic_bit(mAliveNodesLocal, nodeId);
-    }
-    else
-    {
-        reset_atomic_bit(mAliveNodesForeign, nodeId);
-    }
-}
-
 void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
                              const uint64_t destNodeId, const bool isLocal)
 {
@@ -357,7 +340,6 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
         if (std::chrono::steady_clock::now() - kStartTime > kMaxWaitTime ||
             mShouldThreadStop.load(std::memory_order_relaxed))
         {
-            reportFailedNode(sendUrl, destNodeId, isLocal);
             nng_msg_free(newMessage);
             goto exit;
         }
@@ -532,7 +514,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
     numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
     numSizeHits += *batchSize >= kMinimumBatchSize;
 
-    auto foreignAliveNodes = mAliveNodesForeign.load(std::memory_order_relaxed);
+    auto foreignAliveNodes = mAliveNodesForeign;
     nng_msg* batchData = serializeProtobuf(*batch);
 
     while (foreignAliveNodes.any() && not is_test_over())
@@ -580,7 +562,7 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
 
     if (not isContinuation)
     {
-        remainingDestinations = mAliveNodesLocal.load(std::memory_order_relaxed);
+        remainingDestinations = mAliveNodesLocal;
         remainingDestinations.reset(kOwnConfiguration.kNodeId);
         curMessage = nullptr;
     }
