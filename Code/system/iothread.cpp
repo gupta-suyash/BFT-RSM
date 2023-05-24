@@ -115,6 +115,7 @@ void runGenerateMessageThreadWithIpc()
 void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
                               NodeConfiguration kNodeConfiguration)
 {
+    bindThreadToCpu(3);
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
@@ -150,8 +151,8 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
             auto newMessageRequest = newRequest.send_message_request();
             receivedMessages.addToAckList(newMessageRequest.content().sequence_number());
 
-            while (not messageOutput->wait_enqueue_timed(std::move(*(newMessageRequest.mutable_content())), 1ms) && not is_test_over())
-                ;
+            while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) && not is_test_over())
+                std::this_thread::sleep_for(10us);
             break;
         }
         default: {
