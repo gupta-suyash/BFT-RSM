@@ -585,7 +585,7 @@ void lameAckThread(
     while (not is_test_over())
     {
         LameAckData curData{};
-        while (not viewQueue->wait_dequeue_timed(curData, 1s) && not is_test_over());
+        while (not viewQueue->try_dequeue(curData) && not is_test_over());
 
         const auto& [senderId, senderAckView] = curData;
 
@@ -616,7 +616,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
     scrooge::CrossChainMessage crossChainMessage;
     auto ackView = std::array<uint64_t, acknowledgment::AckView<kListSize>::kNumInts>{};
 
-    moodycamel::BlockingReaderWriterCircularBuffer<LameAckData> viewQueue(1<<20);
+    moodycamel::BlockingReaderWriterCircularBuffer<LameAckData> viewQueue(1<<12);
     std::thread lameThread(lameAckThread, acknowledgment.get(), quorumAck.get(), ackTrackers.get(), &viewQueue, configuration);
 
     while (not is_test_over())
@@ -662,7 +662,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 };
 
                 while (
-                    not viewQueue.wait_enqueue_timed({.senderId = (uint8_t) senderId, .senderAckView = senderAckView}, 1s)
+                    not viewQueue.try_enqueue({.senderId = (uint8_t) senderId, .senderAckView = senderAckView})
                     && not is_test_over()
                 );
             }
@@ -725,7 +725,6 @@ void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
                               const NodeConfiguration configuration)
 {
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
-    // bindThreadToCpu(1);
     uint64_t timedMessages{};
     scrooge::CrossChainMessage crossChainMessage;
 
