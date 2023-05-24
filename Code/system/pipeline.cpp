@@ -325,28 +325,6 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     uint64_t numSent{};
     auto kStartTime = std::chrono::steady_clock::now();
 
-    // Check if socket is being listened to
-    while (not sendBuffer->try_dequeue(newMessage))
-    {
-        if (mShouldThreadStop.load(std::memory_order_relaxed))
-        {
-            goto exit;
-        }
-    }
-
-    kStartTime = std::chrono::steady_clock::now();
-    while (sendMessage(sendSocket, newMessage) != kNngSendSuccess)
-    {
-        if (std::chrono::steady_clock::now() - kStartTime > kMaxWaitTime ||
-            mShouldThreadStop.load(std::memory_order_relaxed))
-        {
-            nng_msg_free(newMessage);
-            goto exit;
-        }
-    }
-    numSent++;
-
-    // steady state
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
         while (not sendBuffer->try_dequeue(newMessage))
@@ -415,7 +393,8 @@ exit:
 
 void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
                                     const Acknowledgment* const acknowledgment,
-                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue)
+                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                    std::chrono::steady_clock::time_point curTime)
 {
     if (acknowledgment)
     {
@@ -437,7 +416,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
         ;
 
 
-    batch->creationTime = std::chrono::steady_clock::now();
+    batch->creationTime = curTime;
 
     if (pushFailure)
     {
@@ -448,12 +427,13 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                                    pipeline::CrossChainMessageBatch *const batch,
                                    const Acknowledgment * const acknowledgment,
-                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue)
+                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                   std::chrono::steady_clock::time_point curTime)
 {
     batch->batchSizeEstimate += message.ByteSizeLong();
     batch->data.mutable_data()->Add(std::move(message));
 
-    const auto timeDelta = std::chrono::steady_clock::now() - batch->creationTime;
+    const auto timeDelta = curTime - batch->creationTime;
     bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
     numTimeoutHits += timeDelta >= kMaxBatchCreationTime;
     numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
@@ -462,14 +442,14 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
         return false;
     }
 
-    flushBufferedMessage(batch, acknowledgment, sendingQueue);
+    flushBufferedMessage(batch, acknowledgment, sendingQueue, curTime);
     return true;
 }
 /* This function is used to send message to a specific node in other RSM.
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment)
+bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment, std::chrono::steady_clock::time_point curTime)
 {
     SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
@@ -480,11 +460,11 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
 
     if (messageData.message_content().size())
     {
-        return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get());
+        return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
     }
     else
     {
-        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get());
+        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
         return true;
     }
 }
@@ -493,14 +473,13 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
+void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData, std::chrono::steady_clock::time_point curTime)
 {
     auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
     auto batch = &mForeignMessageBatches.front().data;
     auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
 
     const auto newDataSize = messageData.ByteSizeLong();
-    const auto curTime = std::chrono::steady_clock::now();
     batch->mutable_data()->Add(std::move(messageData));
     *batchSize += newDataSize;
 
@@ -550,7 +529,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
     }
     batch->Clear();
     *batchSize = 0;
-    *batchCreationTime = std::chrono::steady_clock::now();
+    *batchCreationTime = curTime;
 }
 
 bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)

@@ -183,14 +183,14 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
         while (messageInput->try_dequeue(newMessageData) && not is_test_over())
         {
             const auto curSequenceNumber = newMessageData.sequence_number();
-            auto start_time = std::chrono::steady_clock::now();
+            auto curTime = std::chrono::steady_clock::now();
 
-            pipeline->SendToAllOtherRsm(std::move(newMessageData));
+            pipeline->SendToAllOtherRsm(std::move(newMessageData), curTime);
             sentMessages.addToAckList(curSequenceNumber);
             quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
 
-            allToall(start_time);
+            allToall(curTime);
         }
     }
 
@@ -220,14 +220,14 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
         while (messageInput->try_dequeue(newMessageData) && not is_test_over())
         {
             const auto curSequenceNumber = newMessageData.sequence_number();
-            auto start_time = std::chrono::steady_clock::now();
+            auto curTime = std::chrono::steady_clock::now();
 
-            pipeline->SendToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr);
+            pipeline->SendToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
             sentMessages.addToAckList(curSequenceNumber);
             quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
 
-            allToall(start_time);
+            allToall(curTime);
         }
     }
 
@@ -351,13 +351,13 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 if (isPossiblySentLater)
                 {
                     auto messageDataCopy = newMessageData;
-                    numMsgsSentWithLastAck += pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment.get());
+                    numMsgsSentWithLastAck += pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment.get(), curTime);
                 }
                 else
                 {
-                    numMsgsSentWithLastAck += pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment.get());
+                    numMsgsSentWithLastAck += pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment.get(), curTime);
                 }
-                lastSendTime = std::chrono::steady_clock::now();
+                lastSendTime = curTime;
             }
 
             // if (isPossiblySentLater)
@@ -374,12 +374,12 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         {
             static uint64_t receiver = 0;
             
-            pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, {}, acknowledgment.get());
+            pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, {}, acknowledgment.get(), curTime);
             receiver++;
             numMsgsSentWithLastAck++;
             noop_ack++;
 
-            lastSendTime = std::chrono::steady_clock::now();
+            lastSendTime = curTime;
         }
 
         // const auto curQuorumAck = quorumAck->getCurrentQuack();

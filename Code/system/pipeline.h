@@ -45,22 +45,24 @@ class Pipeline
 
     void startPipeline();
 
-    bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment);
+    bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment, std::chrono::steady_clock::time_point curTime);
     bool rebroadcastToOwnRsm(nng_msg *message);
 
     pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
     pipeline::ReceivedCrossChainMessage RecvFromOwnRsm();
 
-    void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message);
+    void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
 
   private:
     bool bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                              pipeline::CrossChainMessageBatch *const batch,
                              const Acknowledgment * const acknowledgment,
-                             pipeline::MessageQueue<nng_msg *> *const sendingQueue);
+                             pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                             std::chrono::steady_clock::time_point curTime);
     void flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
                               const Acknowledgment* const acknowledgment,
-                              pipeline::MessageQueue<nng_msg *> *const sendingQueue);
+                              pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                              std::chrono::steady_clock::time_point curTime);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
     void runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
                        const uint64_t destNodeId, const bool isLocal);
