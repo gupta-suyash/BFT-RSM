@@ -258,7 +258,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
-    // bindThreadToCpu(0);
+    bindThreadToCpu(2);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
     const MessageScheduler messageScheduler(configuration);
@@ -580,6 +580,7 @@ void lameAckThread(
     moodycamel::BlockingReaderWriterCircularBuffer<LameAckData>* const viewQueue,
     const NodeConfiguration configuration)
 {
+    bindThreadToCpu(1);
     SPDLOG_CRITICAL("STARTING LAME THREAD {}", gettid());
     while (not is_test_over())
     {
@@ -606,6 +607,7 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                       const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                       const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+    bindThreadToCpu(0);
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
 
     uint64_t timedMessages{};
