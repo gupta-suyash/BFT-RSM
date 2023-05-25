@@ -318,7 +318,6 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
 
     constexpr auto kNngSendSuccess = 0;
-    constexpr auto kMaxWaitTime = 10s;
 
     nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
     nng_msg *newMessage;
