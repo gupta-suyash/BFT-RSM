@@ -269,7 +269,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
     uint64_t numMessagesResent{};
     
-    boost::circular_buffer<iothread::MessageResendData> resendDatas(1<<20);
+    boost::circular_buffer<iothread::MessageResendData> resendDatas(1<<16);
     std::vector<acknowledgment_tracker::ResendData> activeResends(ackTrackers->size());
 
     auto lastSendTime = std::chrono::steady_clock::now();
