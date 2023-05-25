@@ -383,6 +383,12 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
             lastSendTime = curTime;
         }
 
+        constexpr auto kResendBlockSize = 4096;
+        if (resendDatas.size() > kResendBlockSize && resendDatas.at(kResendBlockSize).sequenceNumber <= curQuack)
+        {
+            resendDatas.erase_begin(kResendBlockSize);
+        }
+
         // Check resends
         if (curTime - lastAckTrackerCheck < kAckTrackerTimeout && not resendDatas.full())
         {
@@ -391,12 +397,6 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
 
         lastAckTrackerCheck = curTime;
         activeResends.clear();
-
-        const auto endOfOldData = std::find_if(std::cbegin(resendDatas), std::cend(resendDatas), [&](auto& resendData) -> bool {
-            return resendData.sequenceNumber > curQuack;
-        });
-        const auto numToErase = std::distance(std::cbegin(resendDatas), endOfOldData);
-        resendDatas.erase_begin(numToErase);
 
         if (resendDatas.empty())
         {
@@ -484,18 +484,19 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
                 numDestinationsSent++;
                 numMessagesResent += is_test_recording();
             }
-            // while (destinationsToFlush.any())
-            // {
-            //     const auto curDestination = std::countr_zero(destinationsToFlush.to_ulong());
-            //     destinationsToFlush.reset(curDestination);
-            //     pipeline->SendToOtherRsm(curDestination, {}, acknowledgment.get(), curTime);
-            // }
         }
 
-        while (not resendDatas.empty() && resendDatas.front().messageData.message_content().empty())
+        uint64_t numDeletes = 0;
+        for (; numDeletes < resendDatas.size(); numDeletes++)
         {
-            resendDatas.pop_front();
+            const auto& curResend = resendDatas[numDeletes];
+            if (curResend.numDestinationsSent != curResend.destinations.size())
+            {
+                break;
+            }
         }
+        if (numDeletes > 64)
+            resendDatas.erase_begin(numDeletes);
     }
 
     addMetric("Noop Acks", noop_ack);
