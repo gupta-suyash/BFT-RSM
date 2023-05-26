@@ -45,22 +45,24 @@ class Pipeline
 
     void startPipeline();
 
-    bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment);
+    bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment, std::chrono::steady_clock::time_point curTime);
     bool rebroadcastToOwnRsm(nng_msg *message);
 
     pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
     pipeline::ReceivedCrossChainMessage RecvFromOwnRsm();
 
-    void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message);
+    void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
 
   private:
     bool bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                              pipeline::CrossChainMessageBatch *const batch,
                              const Acknowledgment * const acknowledgment,
-                             pipeline::MessageQueue<nng_msg *> *const sendingQueue);
+                             pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                             std::chrono::steady_clock::time_point curTime);
     void flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
                               const Acknowledgment* const acknowledgment,
-                              pipeline::MessageQueue<nng_msg *> *const sendingQueue);
+                              pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                              std::chrono::steady_clock::time_point curTime);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
     void runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
                        const uint64_t destNodeId, const bool isLocal);
@@ -72,10 +74,10 @@ class Pipeline
 
     static constexpr uint64_t kMinimumPortNumber = 7'000;
     static constexpr uint64_t kProtobufDefaultSize = kListSize / 8;
-    static constexpr uint64_t kMinimumBatchSize = (1 << 18); // bytes
-    static constexpr auto kMaxBatchCreationTime = 1ms;
+    static constexpr uint64_t kMinimumBatchSize = (8500); // bytes
+    static constexpr auto kMaxBatchCreationTime = .8ms;
     static constexpr auto kMaxNngBlockingTime = 500ms;
-    static constexpr uint64_t kBufferSize = 100024;
+    static constexpr uint64_t kBufferSize = 1 << 12;
 
     const NodeConfiguration kOwnConfiguration;
     const std::vector<std::string> kOwnNetworkUrls;
@@ -86,8 +88,12 @@ class Pipeline
     std::atomic_bool mIsPipelineStarted{};
     std::atomic_bool mShouldThreadStop{};
 
-    std::atomic<std::bitset<64>> mAliveNodesLocal{};
-    std::atomic<std::bitset<64>> mAliveNodesForeign{};
+    std::bitset<64> mAliveNodesLocal{};
+    std::bitset<64> mAliveNodesForeign{};
+
+    std::thread garbageCollector;
+    pipeline::MessageQueue<scrooge::CrossChainMessage> garbageQueue = pipeline::MessageQueue<scrooge::CrossChainMessage>(1<<12);
+    void runGarbageCollector();
 
     std::vector<std::thread> mLocalSendThreads;
     std::vector<std::thread> mLocalRecvThreads;

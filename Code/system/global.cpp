@@ -24,8 +24,8 @@ std::unordered_map<uint64_t, std::string> keyOwnCluster;
 std::unordered_map<uint64_t, std::string> keyOtherCluster;
 
 static std::chrono::steady_clock::time_point g_start_time{};
-static constexpr auto kWarmupDuration = 15s;
-static constexpr auto kTestDuration = 60s;
+static constexpr auto kWarmupDuration = 10s;
+static constexpr auto kTestDuration = 30s;
 
 static std::atomic_bool isTestOver{};
 static std::atomic_bool isTestRecording{};
@@ -176,6 +176,26 @@ void bindThreadToCpu(const int cpu)
     if (rc != 0)
     {
         SPDLOG_CRITICAL("Cannot bind this thread to desired core error={}, num_cores={}, requested={}", rc, numCores,
+                        cpu);
+        std::abort();
+    }
+}
+
+void bindThreadAboveCpu(const int cpu)
+{
+    const auto numCores = get_nprocs();
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    for (int i=cpu + 1; i < numCores; i++)
+    {
+        CPU_SET(i, &cpuset);
+    }
+
+    int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (rc != 0)
+    {
+        SPDLOG_CRITICAL("Cannot bind this thread above desired core error={}, num_cores={}, requested={}", rc, numCores,
                         cpu);
         std::abort();
     }

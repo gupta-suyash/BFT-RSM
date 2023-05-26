@@ -7,8 +7,7 @@
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 
-uint64_t batch_size = 0;
-uint64_t count_timeout_batch = 0;
+int64_t numTimeoutHits{}, numSizeHits{}, totalBatchedMessages{}, totalBatchesSent{};
 
 static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
@@ -196,15 +195,19 @@ Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::ve
     std::bitset<64> foreignAliveNodes{}, localAliveNodes{};
     localAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOwnNetworkSize);
     foreignAliveNodes |= -1ULL ^ (-1ULL << kOwnConfiguration.kOtherNetworkSize);
-    mAliveNodesLocal.store(localAliveNodes);
-    mAliveNodesForeign.store(foreignAliveNodes);
+    mAliveNodesLocal = localAliveNodes;
+    mAliveNodesForeign = foreignAliveNodes;
 
     addMetric("Batch Size",kMinimumBatchSize);
     addMetric("Batch Timeout", std::chrono::duration<double>(kMaxBatchCreationTime).count());
+    garbageCollector = std::thread(&Pipeline::runGarbageCollector, this);
 }
 
 Pipeline::~Pipeline()
 {
+    addMetric("num-timeout-hits", numTimeoutHits);
+    addMetric("num-size-hits", numSizeHits);
+    addMetric("avg-num-msgs-in-batch", (double)totalBatchedMessages/totalBatchesSent);
     const auto joinThread = [](std::thread &thread) { thread.join(); };
     const auto emptyQueue = [](auto &queue) {
         nng_msg *msg;
@@ -216,6 +219,7 @@ Pipeline::~Pipeline()
 
     mShouldThreadStop = true;
     
+    garbageCollector.join();
     std::for_each(mLocalSendThreads.begin(), mLocalSendThreads.end(), joinThread);
     std::for_each(mForeignSendThreads.begin(), mForeignSendThreads.end(), joinThread);
     std::for_each(mLocalRecvThreads.begin(), mLocalRecvThreads.end(), joinThread);
@@ -311,63 +315,33 @@ void Pipeline::startPipeline()
     }
 }
 
-void Pipeline::reportFailedNode(const std::string &nodeUrl, const uint64_t nodeId, const bool isLocal)
+void Pipeline::runGarbageCollector()
 {
-    const auto ownNodeId = kOwnConfiguration.kNodeId;
-    const auto ownNetwork = get_rsm_id();
-    const auto failedNetwork = (isLocal) ? get_rsm_id() : get_other_rsm_id();
-    SPDLOG_CRITICAL("Node [{} : {}] detected failed Node [{} : {} :: '{}']", ownNodeId, ownNetwork, nodeId,
-                    failedNetwork, nodeUrl); // used for detecting configuration issues
-    if (isLocal)
+    bindThreadToCpu(4);
+    while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
-        reset_atomic_bit(mAliveNodesLocal, nodeId);
-    }
-    else
-    {
-        reset_atomic_bit(mAliveNodesForeign, nodeId);
+        scrooge::CrossChainMessage garbage;
+        garbageQueue.try_dequeue(garbage);
     }
 }
 
 void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
                              const uint64_t destNodeId, const bool isLocal)
 {
+    bindThreadAboveCpu(4);
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
 
     constexpr auto kNngSendSuccess = 0;
-    constexpr auto kMaxWaitTime = 10s;
 
     nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
     nng_msg *newMessage;
     uint64_t numSent{};
     auto kStartTime = std::chrono::steady_clock::now();
 
-    // Check if socket is being listened to
-    while (not sendBuffer->wait_dequeue_timed(newMessage, 500ms))
-    {
-        if (mShouldThreadStop.load(std::memory_order_relaxed))
-        {
-            goto exit;
-        }
-    }
-
-    kStartTime = std::chrono::steady_clock::now();
-    while (sendMessage(sendSocket, newMessage) != kNngSendSuccess)
-    {
-        if (std::chrono::steady_clock::now() - kStartTime > kMaxWaitTime ||
-            mShouldThreadStop.load(std::memory_order_relaxed))
-        {
-            reportFailedNode(sendUrl, destNodeId, isLocal);
-            nng_msg_free(newMessage);
-            goto exit;
-        }
-    }
-    numSent++;
-
-    // steady state
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
-        while (not sendBuffer->wait_dequeue_timed(newMessage, 500ms))
+        while (not sendBuffer->try_dequeue(newMessage))
         {
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
@@ -395,6 +369,7 @@ exit:
 void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
                              const uint64_t sendNodeId, const bool isLocal)
 {
+    bindThreadAboveCpu(4);
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
@@ -412,7 +387,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
             }
         }
 
-        while (not recvBuffer->wait_enqueue_timed(*message, 500ms))
+        while (not recvBuffer->try_enqueue(*message))
         {
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
@@ -432,28 +407,33 @@ exit:
 
 void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
                                     const Acknowledgment* const acknowledgment,
-                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue)
+                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                    std::chrono::steady_clock::time_point curTime)
 {
-    constexpr auto kSleepTime = 2s;
-
     if (acknowledgment)
     {
         setAckValue(&batch->data, *acknowledgment);
         generateMessageMac(&batch->data);
     }
 
+    totalBatchesSent++;
+    totalBatchedMessages += batch->data.data_size();
+
     nng_msg* batchData = serializeProtobuf(batch->data);
-    batch->data.Clear();
+    if (not garbageQueue.try_enqueue(std::move(batch->data)))
+    {
+        batch->data.Clear();
+    }
     batch->batchSizeEstimate = kProtobufDefaultSize;
 
     bool pushFailure{};
 
-    while ((pushFailure = not sendingQueue->wait_enqueue_timed(batchData, kSleepTime)) &&
+    while ((pushFailure = not sendingQueue->try_enqueue(batchData)) &&
            not is_test_over())
         ;
 
 
-    batch->creationTime = std::chrono::steady_clock::now();
+    batch->creationTime = curTime;
 
     if (pushFailure)
     {
@@ -464,28 +444,29 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                                    pipeline::CrossChainMessageBatch *const batch,
                                    const Acknowledgment * const acknowledgment,
-                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue)
+                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                   std::chrono::steady_clock::time_point curTime)
 {
     batch->batchSizeEstimate += message.ByteSizeLong();
     batch->data.mutable_data()->Add(std::move(message));
 
-    const auto timeDelta = std::chrono::steady_clock::now() - batch->creationTime;
+    const auto timeDelta = curTime - batch->creationTime;
     bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
-    count_timeout_batch += timeDelta >= kMaxBatchCreationTime;
-    batch_size += (batch->batchSizeEstimate >= kMinimumBatchSize);
+    numTimeoutHits += timeDelta >= kMaxBatchCreationTime;
+    numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
     if (not shouldSend)
     {
         return false;
     }
 
-    flushBufferedMessage(batch, acknowledgment, sendingQueue);
+    flushBufferedMessage(batch, acknowledgment, sendingQueue, curTime);
     return true;
 }
 /* This function is used to send message to a specific node in other RSM.
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment)
+bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData, const Acknowledgment * const acknowledgment, std::chrono::steady_clock::time_point curTime)
 {
     SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
@@ -496,11 +477,11 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
 
     if (messageData.message_content().size())
     {
-        return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get());
+        return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
     }
     else
     {
-        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get());
+        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
         return true;
     }
 }
@@ -509,10 +490,9 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
+void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData, std::chrono::steady_clock::time_point curTime)
 {
-    constexpr auto kSleepTime = 2s;
-
+    auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
     auto batch = &mForeignMessageBatches.front().data;
     auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
 
@@ -520,13 +500,17 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
     batch->mutable_data()->Add(std::move(messageData));
     *batchSize += newDataSize;
 
-    bool shouldSend = *batchSize >= kMinimumBatchSize;
+    bool shouldSend = *batchSize >= kMinimumBatchSize || kMaxBatchCreationTime < curTime - *batchCreationTime;
     if (not shouldSend)
     {
         return;
     }
+    totalBatchesSent++;
+    totalBatchedMessages += batch->data_size();
+    numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
+    numSizeHits += *batchSize >= kMinimumBatchSize;
 
-    auto foreignAliveNodes = mAliveNodesForeign.load(std::memory_order_relaxed);
+    auto foreignAliveNodes = mAliveNodesForeign;
     nng_msg* batchData = serializeProtobuf(*batch);
 
     while (foreignAliveNodes.any() && not is_test_over())
@@ -545,7 +529,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
             curMessage = batchData;
         }
 
-        while (not curBuffer->wait_enqueue_timed(curMessage, kSleepTime))
+        while (not curBuffer->try_enqueue(curMessage))
         {
             if (is_test_over())
             {
@@ -560,8 +544,12 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData)
             }
         }
     }
-    batch->Clear();
+    if (not garbageQueue.try_enqueue(std::move(*batch)))
+    {
+        batch->Clear();
+    }
     *batchSize = 0;
+    *batchCreationTime = curTime;
 }
 
 bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
@@ -573,7 +561,7 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
 
     if (not isContinuation)
     {
-        remainingDestinations = mAliveNodesLocal.load(std::memory_order_relaxed);
+        remainingDestinations = mAliveNodesLocal;
         remainingDestinations.reset(kOwnConfiguration.kNodeId);
         curMessage = nullptr;
     }

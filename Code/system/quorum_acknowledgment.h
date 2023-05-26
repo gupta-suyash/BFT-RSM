@@ -31,7 +31,8 @@ class QuorumAcknowledgment
     // mQuorumAck
     //     = argmax_i {kQuorumSize >= mAckToNodeCount[i] + mAckToNodeCount[i+1] + ... + mAckToNodeCount[inf]}
     // This represents the current acknowledged value of the entire quorum
-    std::atomic<std::optional<uint64_t>> mQuorumAck{std::nullopt};
+    std::atomic<std::optional<uint32_t>> mQuorumAck{std::nullopt}; // only uint32_t for easy lockfree atomic optional
+    static_assert(std::atomic<std::optional<uint32_t>>{}.is_always_lock_free);
 
     uint64_t mStakeInCurQuorum = 0;
 };

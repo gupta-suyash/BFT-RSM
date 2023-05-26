@@ -12,6 +12,8 @@
 
 int main(int argc, char *argv[])
 {
+    std::string path;
+    {
     const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId, kLogPath,
                  kWorkingDir] = kCommandLineArguments;
@@ -32,6 +34,7 @@ int main(int argc, char *argv[])
         "kLogPath= '{}'",
         kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId, get_rsm_id(),
         get_number_of_packets(), get_packet_size(), kLogPath);
+    printMetrics(kLogPath); // Deletes the metrics!
 
     const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
     constexpr auto kMessageBufferSize = 256;
@@ -123,6 +126,8 @@ int main(int argc, char *argv[])
     addMetric("foreign_stake_total", kOtherMaxNumFailedStake);
     addMetric("local_stake", kNodeConfiguration.kOwnNetworkStakes.at(kNodeId));
     addMetric("kList_size", kListSize);
-    printMetrics(kLogPath);
+    path = kLogPath;
+    }
+    printMetrics(path);
     return 0;
 }
