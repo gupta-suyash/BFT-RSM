@@ -7,6 +7,9 @@
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 
+uint64_t batch_size = 0;
+uint64_t count_timeout_batch = 0;
+
 static int64_t getLogAck(const scrooge::CrossChainMessage &message)
 {
     if (!message.has_ack_count())
@@ -222,6 +225,9 @@ Pipeline::~Pipeline()
     std::for_each(mForeignSendBufs.begin(), mForeignSendBufs.end(), emptyQueue);
     std::for_each(mLocalRecvBufs.begin(), mLocalRecvBufs.end(), emptyQueue);
     std::for_each(mForeignRecvBufs.begin(), mForeignRecvBufs.end(), emptyQueue);
+
+    addMetric("Actual Batch Size",batch_size);
+    addMetric("Actual Timeout Hit",count_timeout_batch);
 }
 
 /* Returns the port the current node will use to receive from senderId
@@ -465,6 +471,8 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
 
     const auto timeDelta = std::chrono::steady_clock::now() - batch->creationTime;
     bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
+    count_timeout_batch += timeDelta >= kMaxBatchCreationTime;
+    batch_size += (batch->batchSizeEstimate >= kMinimumBatchSize);
     if (not shouldSend)
     {
         return false;

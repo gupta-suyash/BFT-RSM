@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 # replace with your directory
-#cd /proj/ove-PG0/reggie/BFT-RSM/Code
+cd /proj/ove-PG0/murray/BFT-RSM/Code
 
 ## install packages
 #apt-get -y update

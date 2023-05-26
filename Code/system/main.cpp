@@ -83,9 +83,9 @@ int main(int argc, char *argv[])
     SPDLOG_INFO("Created Generate message relay thread");
 
     auto sendThread =
-        std::thread(runSendThread, messageBuffer, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
+        std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
     auto receiveThread =
-        std::thread(runReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
+        std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
     SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
     std::this_thread::sleep_until(testStartRecordTime);
