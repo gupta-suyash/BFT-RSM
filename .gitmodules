@@ -1,0 +1,3 @@
+[submodule "raftexample/etcd"]
+	path = raftexample/etcd
+	url = git@github.com:etcd-io/etcd.git
