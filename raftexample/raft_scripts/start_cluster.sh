@@ -28,9 +28,14 @@ function runcmd() {
 }
 
 commands=(
+  # kill user process running on $RAFT_PORT (potentially old raft instance)
   "sudo fuser -n tcp -k \$RAFT_PORT"
+
+  # delete snapshots so that cluster starts freshly from term 0
   "./clear_snap.sh"
+
   "cd ~/go/src/go.etcd.io/etcd/contrib/raftexample"
+
   "./raftexample --id \$CLUSTER_ID --cluster http://10.10.1.1:12379,http://10.10.1.2:22379,http://10.10.1.3:32379 --port \$KV_PORT"
 )
 
