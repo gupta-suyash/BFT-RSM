@@ -1,6 +1,7 @@
 #! /bin/sh
 
-kv_ip="128.110.218.117:12380"
+put_kvip="128.110.218.95:16380"
+leader_kvip="128.110.218.105:11380"
 
 # take number from command line argument, and write from (key-1, 1) to (key-$num, $num) 
 # to remote raft system
@@ -20,6 +21,6 @@ fi
 
 for ((i = 1; i <= num; i++)); do
     echo "\nwriting (key-"$i", $i) to remote raft system"
-    curl -L http://"$kv_ip"/key-"$i" -XPUT -d $i
-    curl -L http://"$kv_ip"/key-"$i"
+    curl -L http://"$put_kvip"/key-"$i" -XPUT -d $i
+    curl -L http://"$leader_kvip"/key-"$i"
 done

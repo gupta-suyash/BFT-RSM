@@ -15,7 +15,6 @@ export GOPATH=$(go env GOPATH)
 mkdir -p ~/go/src/go.etcd.io
 cd ~/go/src/go.etcd.io
 GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no' git clone git@github.com:etcd-io/etcd.git
-wait
 cd ~/go/src/go.etcd.io/etcd/contrib/raftexample
 go build -o raftexample
 
