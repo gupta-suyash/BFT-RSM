@@ -18,7 +18,12 @@ import (
 	"flag"
 	"strings"
 
+	"github.com/algorand/go-algorand/ipc-pkg"
 	"go.etcd.io/raft/v3/raftpb"
+)
+
+const (
+	path_to_pipe = "/tmp/scrooge-input"
 )
 
 func main() {
@@ -39,6 +44,20 @@ func main() {
 	commitC, errorC, snapshotterReady := newRaftNode(*id, strings.Split(*cluster, ","), *join, getSnapshot, proposeC, confChangeC)
 
 	kvs = newKVStore(<-snapshotterReady, proposeC, commitC, errorC)
+
+	// Other setup functions
+	err = ipc.CreatePipe(path_to_algorand)
+	if err != nil {
+		print("UNABLE TO CREATE PIPE: %v", err)
+	}
+	print("Pipe created for input!")
+	// Create Pipe and channel here
+	err = ipc.OpenPipeWriter(path_to_algorand, rawData)
+	if err != nil {
+		print("Unable to open pipe writer: %v", err)
+	}
+	// Here is how to start a timer - not sure you need it atm tho
+	// start := time.Now()
 
 	// the key-value http handler will propose updates to raft
 	serveHTTPKVAPI(kvs, *kvport, confChangeC, errorC)

@@ -22,16 +22,22 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/algorand/go-algorand/scrooge"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
 	"go.etcd.io/raft/v3/raftpb"
+	"google.golang.org/protobuf/proto"
 )
+
+// tbh not sure if this will work, test it and see
 
 // a key-value store backed by raft
 type kvstore struct {
-	proposeC    chan<- string // channel for proposing updates
-	mu          sync.RWMutex
-	kvStore     map[string]string // current committed key-value pairs
-	snapshotter *snap.Snapshotter
+	proposeC       chan<- string // channel for proposing updates
+	rawData        chan<- []byte // channel for scrooge
+	mu             sync.RWMutex
+	kvStore        map[string]string // current committed key-value pairs
+	snapshotter    *snap.Snapshotter
+	sequenceNumber int
 }
 
 type kv struct {
@@ -39,8 +45,8 @@ type kv struct {
 	Val string
 }
 
-func newKVStore(snapshotter *snap.Snapshotter, proposeC chan<- string, commitC <-chan *commit, errorC <-chan error) *kvstore {
-	s := &kvstore{proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter}
+func newKVStore(snapshotter *snap.Snapshotter, rawData chan<- []byte, proposeC chan<- string, commitC <-chan *commit, errorC <-chan error, seq int) *kvstore {
+	s := &kvstore{rawData: rawData, proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter, sequenceNumber: seq}
 	snapshot, err := s.loadSnapshot()
 	if err != nil {
 		log.Panic(err)
@@ -90,6 +96,25 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 
 		for _, data := range commit.data {
 			var dataKv kv
+
+			request := &scrooge.ScroogeRequest{
+				Request: &scrooge.ScroogeRequest_SendMessageRequest{
+					SendMessageRequest: &scrooge.SendMessageRequest{
+						Content: &scrooge.CrossChainMessageData{
+							MessageContent: data, //payload of some sort
+							SequenceNumber: uint64(sequenceNumber),
+						},
+						ValidityProof: []byte("substitute valididty proof"),
+					},
+				},
+			}
+			print("Payload successfully loaded! It is size: %v", len(data))
+			requestBytes, err := proto.Marshal(request)
+			if err == nil {
+				rawData <- requestBytes
+				print("Bytes sent over the ipc NEW!")
+			}
+
 			dec := gob.NewDecoder(bytes.NewBufferString(data))
 			if err := dec.Decode(&dataKv); err != nil {
 				log.Fatalf("raftexample: could not decode message (%v)", err)
@@ -97,6 +122,7 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 			s.mu.Lock()
 			s.kvStore[dataKv.Key] = dataKv.Val
 			s.mu.Unlock()
+			sequenceNumber += 1
 		}
 		close(commit.applyDoneC)
 	}
