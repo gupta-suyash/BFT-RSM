@@ -43,7 +43,9 @@ func main() {
 	getSnapshot := func() ([]byte, error) { return kvs.getSnapshot() }
 	commitC, errorC, snapshotterReady := newRaftNode(*id, strings.Split(*cluster, ","), *join, getSnapshot, proposeC, confChangeC)
 
-	kvs = newKVStore(<-snapshotterReady, proposeC, commitC, errorC)
+	rawData := make(chan []byte)
+
+	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
 
 	// Other setup functions
 	err = ipc.CreatePipe(path_to_algorand)

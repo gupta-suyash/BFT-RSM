@@ -102,7 +102,7 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 					SendMessageRequest: &scrooge.SendMessageRequest{
 						Content: &scrooge.CrossChainMessageData{
 							MessageContent: data, //payload of some sort
-							SequenceNumber: uint64(sequenceNumber),
+							SequenceNumber: uint64(s.sequenceNumber),
 						},
 						ValidityProof: []byte("substitute valididty proof"),
 					},
@@ -111,7 +111,7 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 			print("Payload successfully loaded! It is size: %v", len(data))
 			requestBytes, err := proto.Marshal(request)
 			if err == nil {
-				rawData <- requestBytes
+				s.rawData <- requestBytes
 				print("Bytes sent over the ipc NEW!")
 			}
 
@@ -122,7 +122,7 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 			s.mu.Lock()
 			s.kvStore[dataKv.Key] = dataKv.Val
 			s.mu.Unlock()
-			sequenceNumber += 1
+			s.sequenceNumber += 1
 		}
 		close(commit.applyDoneC)
 	}
