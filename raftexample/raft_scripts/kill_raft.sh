@@ -35,33 +35,23 @@ raft_ports=(
   "17379" 
   "18379" 
 )
-kv_ports=(
-  "11380" 
-  "12380" 
-  "13380"
-  "14380" 
-  "15380" 
-  "16380"
-  "17380" 
-  "18380" 
-)
 
 deploy_hostlist=("${hosts[@]}")
 echo "deploying to: ${deploy_hostlist[@]}"
 
 # Commands functions
-function start_cluster() {
+function kill_raft() {
     for i in "${!deploy_hostlist[@]}";
     do 
-      cluster_id=$((i+1))
       hostname="${deploy_hostlist[$i]}"
       raft_port="${raft_ports[$i]}"
-      kv_port="${kv_ports[$i]}"
       (
-        echo "Running Raft on host with username: ${username}, hostname: ${hostname}, cluster id: ${cluster_id}, raft port: ${raft_port}, kv port: ${kv_port}"
-        ssh -A -v -n -o BatchMode=yes -o StrictHostKeyChecking=no ${username}@${hostname} "export CLUSTER_ID=${cluster_id}; export PRIVATE_IPS=${private_ips[@]}; export RAFT_PORT=${raft_port}; export KV_PORT=${kv_port}; $1; $2; $3; $4"
+        echo "Killing Raft on host with username: ${username}, hostname: ${hostname}, raft port: ${raft_port}"
+        ssh -A -v -n -o BatchMode=yes -o StrictHostKeyChecking=no ${username}@${hostname} "export CLUSTER_ID=${cluster_id}; export PRIVATE_IPS=${private_ips[@]}; export RAFT_PORT=${raft_port}; $1; $2;"
       ) &
     done
+
+    wait
 }
 
 commands=(
@@ -70,10 +60,6 @@ commands=(
 
   # delete snapshots so that cluster starts freshly from term 0
   "./clear_snap.sh"
-
-  "cd ~/go/src/go.etcd.io/etcd/contrib/raftexample"
-
-  "./raftexample --id \$CLUSTER_ID --cluster http://10.10.1.1:11379,http://10.10.1.2:12379,http://10.10.1.3:13379,http://10.10.1.4:14379,http://10.10.1.5:15379,http://10.10.1.6:16379,http://10.10.1.7:17379,http://10.10.1.8:18379 --port \$KV_PORT"
 )
 
-start_cluster "${commands[@]}"
+kill_raft "${commands[@]}"

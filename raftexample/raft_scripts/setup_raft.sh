@@ -25,7 +25,7 @@ deploy_hostlist=("${hosts[@]}")
 echo "setting up: ${deploy_hostlist[@]}"
 
 # Commands functions
-function runcmd() {
+function setup_raft() {
     
     # Completion status array to track progress of each remote node
     completion_status=()
@@ -62,4 +62,4 @@ commands=(
     "\$(\$HOME/setup.sh)"
 )
 
-runcmd "${commands[@]}"
+setup_raft "${commands[@]}"

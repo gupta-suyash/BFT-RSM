@@ -1,7 +1,10 @@
 #! /bin/sh
 
-put_kvip="128.110.218.95:16380"
-leader_kvip="128.110.218.105:11380"
+# put_kvip="128.110.218.101:13380"
+# leader_kvip="128.110.218.105:11380"
+
+put_kvip="128.110.218.104:18380"
+leader_kvip="128.110.218.89:15380"
 
 # take number from command line argument, and write from (key-1, 1) to (key-$num, $num) 
 # to remote raft system

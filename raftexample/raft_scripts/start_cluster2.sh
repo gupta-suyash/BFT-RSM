@@ -6,40 +6,24 @@ export SSH_AUTH_SOCK
 
 username="ethanxu"
 hosts=(
-  "hp066.utah.cloudlab.us" 
-  "hp055.utah.cloudlab.us" 
-  "hp062.utah.cloudlab.us"
-  "hp051.utah.cloudlab.us" 
   "hp050.utah.cloudlab.us" 
   "hp056.utah.cloudlab.us"
   "hp064.utah.cloudlab.us" 
   "hp065.utah.cloudlab.us"
 )
-private_ips=(
-  "10.10.1.1" 
-  "10.10.1.2" 
-  "10.10.1.3"
-  "10.10.1.4" 
+private_ips=( 
   "10.10.1.5" 
   "10.10.1.6"
   "10.10.1.7" 
   "10.10.1.8" 
 )
 raft_ports=(
-  "11379" 
-  "12379" 
-  "13379"
-  "14379" 
   "15379" 
   "16379"
   "17379" 
   "18379" 
 )
 kv_ports=(
-  "11380" 
-  "12380" 
-  "13380"
-  "14380" 
   "15380" 
   "16380"
   "17380" 
@@ -50,7 +34,7 @@ deploy_hostlist=("${hosts[@]}")
 echo "deploying to: ${deploy_hostlist[@]}"
 
 # Commands functions
-function start_cluster() {
+function runcmd() {
     for i in "${!deploy_hostlist[@]}";
     do 
       cluster_id=$((i+1))
@@ -73,7 +57,7 @@ commands=(
 
   "cd ~/go/src/go.etcd.io/etcd/contrib/raftexample"
 
-  "./raftexample --id \$CLUSTER_ID --cluster http://10.10.1.1:11379,http://10.10.1.2:12379,http://10.10.1.3:13379,http://10.10.1.4:14379,http://10.10.1.5:15379,http://10.10.1.6:16379,http://10.10.1.7:17379,http://10.10.1.8:18379 --port \$KV_PORT"
+  "./raftexample --id \$CLUSTER_ID --cluster http://10.10.1.5:15379,http://10.10.1.6:16379,http://10.10.1.7:17379,http://10.10.1.8:18379 --port \$KV_PORT"
 )
 
-start_cluster "${commands[@]}"
+runcmd "${commands[@]}"
