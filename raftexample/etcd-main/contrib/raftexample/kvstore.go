@@ -22,7 +22,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/algorand/go-algorand/scrooge"
+	"github.com/raftexample/scrooge"
+
 	"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
 	"go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/proto"

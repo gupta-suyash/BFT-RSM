@@ -18,7 +18,8 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/algorand/go-algorand/ipc-pkg"
+	"raftexample/ipc-pkg"
+
 	"go.etcd.io/raft/v3/raftpb"
 )
 
@@ -48,7 +49,8 @@ func main() {
 	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
 
 	// Other setup functions
-	err = ipc.CreatePipe(path_to_algorand)
+
+	err = ipc - pkg.CreatePipe(path_to_algorand)
 	if err != nil {
 		print("UNABLE TO CREATE PIPE: %v", err)
 	}
