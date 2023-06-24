@@ -22,12 +22,15 @@ import (
 	"strings"
 	"sync"
 
-	//"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
+	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
 	"go.etcd.io/etcd/v3/contrib/raftexample/scrooge"
 
 	"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
 	"go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/proto"
+
+	//Writer imports
+	"bufio"
 )
 
 // tbh not sure if this will work, test it and see
@@ -40,6 +43,7 @@ type kvstore struct {
 	kvStore        map[string]string // current committed key-value pairs
 	snapshotter    *snap.Snapshotter
 	sequenceNumber int
+	writer         *bufio.Writer // local writer TODO
 }
 
 type kv struct {
@@ -60,8 +64,13 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 		}
 	}
 	// read commits from raft into kvStore map until error
+
 	go s.readCommits(commitC, errorC)
 	return s
+}
+
+func (s *kvstore) FetchWriter(Fwriter *bufio.Writer) {
+	s.writer = Fwriter
 }
 
 func (s *kvstore) Lookup(key string) (string, bool) {
@@ -137,7 +146,12 @@ func (s *kvstore) sendScrooge(dataK kv) {
 	if err == nil {
 		s.rawData <- requestBytes
 		print("Bytes sent over to the ipc writer NEW!")
+		err = ipc.UsePipeWriter(s.writer, s.rawData)
+		if err != nil {
+			print("Unable to use pipe writer", err)
+		}
 	}
+
 }
 
 func (s *kvstore) getSnapshot() ([]byte, error) {

@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
-
 	"go.etcd.io/raft/v3/raftpb"
 )
 
@@ -46,31 +45,48 @@ func main() {
 
 	rawData := make(chan []byte)
 
+	rdtest := make(chan []byte, 1)
+	byteArray := []byte{97, 98, 99, 100, 101, 102}
+	rdtest <- byteArray
+
+	var err error
+
+	writer, err := ipc.OpenPipeWriter(path_to_pipe, rdtest)
+	if err != nil {
+		print("Unable to open pipe writer: %v", err, "\n")
+	}
+	for data := range rdtest {
+		print(data, "\n")
+	}
+	kvs.FetchWriter(writer)
+
 	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
 
 	// setup functions
-	var err error
 
 	//create pipe
-	err = ipc.CreatePipe(path_to_pipe)
+	/*err = ipc.CreatePipe(path_to_pipe)
 	if err != nil {
 		print("UNABLE TO CREATE PIPE: %v", err)
 	}
-	print("Pipe created for input!")
+	print("Pipe created for input!")*/
 
 	// open writer
-	writer, err := ipc.OpenPipeWriter(path_to_pipe, kvs.rawData)
+	/*writer, err := ipc.OpenPipeWriter(path_to_pipe, kvs.rawData)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err)
-	}
+	}*/
 
-	err = ipc.UsePipeWriter(writer, kvs.rawData)
+	//kvs.FetchWriter(writer)
+
+	/*err = ipc.UsePipeWriter(writer, kvs.rawData)
 	if err != nil {
 		print("Unable to use pipe writer", err)
-	}
+	}*/
 
 	// figure out how to http handle and flush the pipe at the same time
 
 	// the key-value http handler will propose updates to raft
+
 	serveHTTPKVAPI(kvs, *kvport, confChangeC, errorC)
 }
