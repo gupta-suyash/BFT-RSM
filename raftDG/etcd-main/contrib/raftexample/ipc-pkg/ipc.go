@@ -71,9 +71,9 @@ func OpenPipeReader(pipePath string, pipeData chan<- []byte) {
 // Blocking call that will continously write the data pipeInput into pipePath
 // Byte strings will be written as [size uint64, bytes []byte] where len(bytes) == size and (bytes := <-pipeInput)
 // All data is in little endian format
-func OpenPipeWriter(pipePath string, pipeInput <-chan []byte) error {
+func OpenPipeWriter(pipePath string, pipeInput <-chan []byte) (bufio.Writer, error) {
 	if !doesFileExist(pipePath) {
-		return errors.New("File doesn't exitst")
+		return *bufio.NewWriter(nil), errors.New("File doesn't exist")
 	}
 
 	go func(pipeChannel <-chan []byte) {
@@ -86,18 +86,31 @@ func OpenPipeWriter(pipePath string, pipeInput <-chan []byte) error {
 		defer pipe.Close()
 
 		writer := bufio.NewWriter(pipe)
+		return writer, nil
 
-		for data := range pipeInput {
+		/*for data := range pipeInput {
 			var writeSizeBytes [8]byte
 			binary.LittleEndian.PutUint64(writeSizeBytes[:], uint64(len(data)))
 
 			loggedWrite(writer, writeSizeBytes[:])
 			loggedWrite(writer, data)
 			writer.Flush()
-		}
+		}*/
 
 	}(pipeInput)
 
+	return *bufio.NewWriter(nil), nil
+}
+
+func UsePipeWriter(writer *bufio.Writer, pipeInput <-chan []byte) error {
+	for data := range pipeInput {
+		var writeSizeBytes [8]byte
+		binary.LittleEndian.PutUint64(writeSizeBytes[:], uint64(len(data)))
+
+		loggedWrite(writer, writeSizeBytes[:])
+		loggedWrite(writer, data)
+		writer.Flush()
+	}
 	return nil
 }
 

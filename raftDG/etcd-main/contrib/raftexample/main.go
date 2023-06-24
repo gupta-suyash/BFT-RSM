@@ -18,7 +18,7 @@ import (
 	"flag"
 	"strings"
 
-	ipc "raftexample/ipc-pkg"
+	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
 
 	"go.etcd.io/raft/v3/raftpb"
 )
@@ -48,20 +48,28 @@ func main() {
 
 	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
 
-	// Other setup functions
+	// setup functions
+	var err error
 
+	//create pipe
 	err = ipc.CreatePipe(path_to_pipe)
 	if err != nil {
 		print("UNABLE TO CREATE PIPE: %v", err)
 	}
 	print("Pipe created for input!")
-	// Create Pipe and channel here
-	err = ipc.OpenPipeWriter(path_to_pipe, rawData)
+
+	// open writer
+	writer, err := ipc.OpenPipeWriter(path_to_pipe, kvs.rawData)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err)
 	}
-	// Here is how to start a timer - not sure you need it atm tho
-	// start := time.Now()
+
+	err = ipc.UsePipeWriter(writer, kvs.rawData)
+	if err != nil {
+		print("Unable to use pipe writer", err)
+	}
+
+	// figure out how to http handle and flush the pipe at the same time
 
 	// the key-value http handler will propose updates to raft
 	serveHTTPKVAPI(kvs, *kvport, confChangeC, errorC)
