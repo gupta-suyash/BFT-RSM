@@ -18,7 +18,7 @@ import (
 	"flag"
 	"strings"
 
-	"raftexample/ipc-pkg"
+	ipc "raftexample/ipc-pkg"
 
 	"go.etcd.io/raft/v3/raftpb"
 )
