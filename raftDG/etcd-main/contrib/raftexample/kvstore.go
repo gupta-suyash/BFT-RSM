@@ -22,7 +22,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/raftexample/scrooge"
+	"raftexample/etcd-main/contrib/raftexample/scrooge"
 
 	"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
 	"go.etcd.io/raft/v3/raftpb"
@@ -98,6 +98,11 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 		for _, data := range commit.data {
 			var dataKv kv
 
+			dec := gob.NewDecoder(bytes.NewBufferString(data))
+			if err := dec.Decode(&dataKv); err != nil {
+				log.Fatalf("raftexample: could not decode message (%v)", err)
+			}
+
 			request := &scrooge.ScroogeRequest{
 				Request: &scrooge.ScroogeRequest_SendMessageRequest{
 					SendMessageRequest: &scrooge.SendMessageRequest{
@@ -116,10 +121,6 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 				print("Bytes sent over the ipc NEW!")
 			}
 
-			dec := gob.NewDecoder(bytes.NewBufferString(data))
-			if err := dec.Decode(&dataKv); err != nil {
-				log.Fatalf("raftexample: could not decode message (%v)", err)
-			}
 			s.mu.Lock()
 			s.kvStore[dataKv.Key] = dataKv.Val
 			s.mu.Unlock()

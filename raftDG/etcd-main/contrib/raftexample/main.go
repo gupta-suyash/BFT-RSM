@@ -50,13 +50,13 @@ func main() {
 
 	// Other setup functions
 
-	err = ipc - pkg.CreatePipe(path_to_algorand)
+	err = ipc.CreatePipe(path_to_pipe)
 	if err != nil {
 		print("UNABLE TO CREATE PIPE: %v", err)
 	}
 	print("Pipe created for input!")
 	// Create Pipe and channel here
-	err = ipc.OpenPipeWriter(path_to_algorand, rawData)
+	err = ipc.OpenPipeWriter(path_to_pipe, rawData)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err)
 	}

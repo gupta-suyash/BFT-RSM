@@ -175,6 +175,7 @@ func TestPutAndGetKeyValue(t *testing.T) {
 	clusters := []string{"http://127.0.0.1:9021"}
 
 	proposeC := make(chan string)
+	rawData := make(chan []byte)
 	defer close(proposeC)
 
 	confChangeC := make(chan raftpb.ConfChange)
@@ -184,7 +185,7 @@ func TestPutAndGetKeyValue(t *testing.T) {
 	getSnapshot := func() ([]byte, error) { return kvs.getSnapshot() }
 	commitC, errorC, snapshotterReady := newRaftNode(1, clusters, false, getSnapshot, proposeC, confChangeC)
 
-	kvs = newKVStore(<-snapshotterReady, proposeC, commitC, errorC)
+	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
 
 	srv := httptest.NewServer(&httpKVAPI{
 		store:       kvs,
