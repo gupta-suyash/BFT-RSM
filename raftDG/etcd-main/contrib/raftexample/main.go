@@ -55,6 +55,12 @@ func main() {
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")
 	}
+
+	/*err = ipc.UsePipeWriter(writer, rdtest)
+	if err != nil {
+		print("Unable to use pipe writer", err)
+	}*/
+
 	for data := range rdtest {
 		print(data, "\n")
 	}
