@@ -1,0 +1,430 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "server/etcdserver/api/v3election/v3electionpb/v3election.proto",
+    "version": "version not set"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v3/election/campaign": {
+      "post": {
+        "summary": "Campaign waits to acquire leadership in an election, returning a LeaderKey\nrepresenting the leadership if successful. The LeaderKey can then be used\nto issue new values on the election, transactionally guard API requests on\nleadership still being held, and resign from the election.",
+        "operationId": "Election_Campaign",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v3electionpbCampaignResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v3electionpbCampaignRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Election"
+        ]
+      }
+    },
+    "/v3/election/leader": {
+      "post": {
+        "summary": "Leader returns the current election proclamation, if any.",
+        "operationId": "Election_Leader",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v3electionpbLeaderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v3electionpbLeaderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Election"
+        ]
+      }
+    },
+    "/v3/election/observe": {
+      "post": {
+        "summary": "Observe streams election proclamations in-order as made by the election's\nelected leaders.",
+        "operationId": "Election_Observe",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "result": {
+                  "$ref": "#/definitions/v3electionpbLeaderResponse"
+                },
+                "error": {
+                  "$ref": "#/definitions/runtimeStreamError"
+                }
+              },
+              "title": "Stream result of v3electionpbLeaderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v3electionpbLeaderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Election"
+        ]
+      }
+    },
+    "/v3/election/proclaim": {
+      "post": {
+        "summary": "Proclaim updates the leader's posted value with a new value.",
+        "operationId": "Election_Proclaim",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v3electionpbProclaimResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v3electionpbProclaimRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Election"
+        ]
+      }
+    },
+    "/v3/election/resign": {
+      "post": {
+        "summary": "Resign releases election leadership so other campaigners may acquire\nleadership on the election.",
+        "operationId": "Election_Resign",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v3electionpbResignResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v3electionpbResignRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Election"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "etcdserverpbResponseHeader": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "type": "string",
+          "format": "uint64",
+          "description": "cluster_id is the ID of the cluster which sent the response."
+        },
+        "member_id": {
+          "type": "string",
+          "format": "uint64",
+          "description": "member_id is the ID of the member which sent the response."
+        },
+        "revision": {
+          "type": "string",
+          "format": "int64",
+          "description": "revision is the key-value store revision when the request was applied, and it's\nunset (so 0) in case of calls not interacting with key-value store.\nFor watch progress responses, the header.revision indicates progress. All future events\nreceived in this stream are guaranteed to have a higher revision number than the\nheader.revision number."
+        },
+        "raft_term": {
+          "type": "string",
+          "format": "uint64",
+          "description": "raft_term is the raft term when the request was applied."
+        }
+      }
+    },
+    "mvccpbKeyValue": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "format": "byte",
+          "description": "key is the key in bytes. An empty key is not allowed."
+        },
+        "create_revision": {
+          "type": "string",
+          "format": "int64",
+          "description": "create_revision is the revision of last creation on this key."
+        },
+        "mod_revision": {
+          "type": "string",
+          "format": "int64",
+          "description": "mod_revision is the revision of last modification on this key."
+        },
+        "version": {
+          "type": "string",
+          "format": "int64",
+          "description": "version is the version of the key. A deletion resets\nthe version to zero and any modification of the key\nincreases its version."
+        },
+        "value": {
+          "type": "string",
+          "format": "byte",
+          "description": "value is the value held by the key, in bytes."
+        },
+        "lease": {
+          "type": "string",
+          "format": "int64",
+          "description": "lease is the ID of the lease that attached to key.\nWhen the attached lease expires, the key will be deleted.\nIf lease is 0, then no lease is attached to the key."
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string",
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+        },
+        "value": {
+          "type": "string",
+          "format": "byte",
+          "description": "Must be a valid serialized protocol buffer of the above specified type."
+        }
+      },
+      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := ptypes.MarshalAny(foo)\n     ...\n     foo := \u0026pb.Foo{}\n     if err := ptypes.UnmarshalAny(any, foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "runtimeStreamError": {
+      "type": "object",
+      "properties": {
+        "grpc_code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "http_code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "http_status": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v3electionpbCampaignRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "byte",
+          "description": "name is the election's identifier for the campaign."
+        },
+        "lease": {
+          "type": "string",
+          "format": "int64",
+          "description": "lease is the ID of the lease attached to leadership of the election. If the\nlease expires or is revoked before resigning leadership, then the\nleadership is transferred to the next campaigner, if any."
+        },
+        "value": {
+          "type": "string",
+          "format": "byte",
+          "description": "value is the initial proclaimed value set when the campaigner wins the\nelection."
+        }
+      }
+    },
+    "v3electionpbCampaignResponse": {
+      "type": "object",
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/etcdserverpbResponseHeader"
+        },
+        "leader": {
+          "$ref": "#/definitions/v3electionpbLeaderKey",
+          "description": "leader describes the resources used for holding leadereship of the election."
+        }
+      }
+    },
+    "v3electionpbLeaderKey": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "byte",
+          "description": "name is the election identifier that correponds to the leadership key."
+        },
+        "key": {
+          "type": "string",
+          "format": "byte",
+          "description": "key is an opaque key representing the ownership of the election. If the key\nis deleted, then leadership is lost."
+        },
+        "rev": {
+          "type": "string",
+          "format": "int64",
+          "description": "rev is the creation revision of the key. It can be used to test for ownership\nof an election during transactions by testing the key's creation revision\nmatches rev."
+        },
+        "lease": {
+          "type": "string",
+          "format": "int64",
+          "description": "lease is the lease ID of the election leader."
+        }
+      }
+    },
+    "v3electionpbLeaderRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "byte",
+          "description": "name is the election identifier for the leadership information."
+        }
+      }
+    },
+    "v3electionpbLeaderResponse": {
+      "type": "object",
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/etcdserverpbResponseHeader"
+        },
+        "kv": {
+          "$ref": "#/definitions/mvccpbKeyValue",
+          "description": "kv is the key-value pair representing the latest leader update."
+        }
+      }
+    },
+    "v3electionpbProclaimRequest": {
+      "type": "object",
+      "properties": {
+        "leader": {
+          "$ref": "#/definitions/v3electionpbLeaderKey",
+          "description": "leader is the leadership hold on the election."
+        },
+        "value": {
+          "type": "string",
+          "format": "byte",
+          "description": "value is an update meant to overwrite the leader's current value."
+        }
+      }
+    },
+    "v3electionpbProclaimResponse": {
+      "type": "object",
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/etcdserverpbResponseHeader"
+        }
+      }
+    },
+    "v3electionpbResignRequest": {
+      "type": "object",
+      "properties": {
+        "leader": {
+          "$ref": "#/definitions/v3electionpbLeaderKey",
+          "description": "leader is the leadership to relinquish by resignation."
+        }
+      }
+    },
+    "v3electionpbResignResponse": {
+      "type": "object",
+      "properties": {
+        "header": {
+          "$ref": "#/definitions/etcdserverpbResponseHeader"
+        }
+      }
+    }
+  }
+}
