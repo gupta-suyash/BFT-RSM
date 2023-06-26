@@ -43,11 +43,14 @@ func main() {
 	getSnapshot := func() ([]byte, error) { return kvs.getSnapshot() }
 	commitC, errorC, snapshotterReady := newRaftNode(*id, strings.Split(*cluster, ","), *join, getSnapshot, proposeC, confChangeC)
 
-	rawData := make(chan []byte)
+	rawData := make(chan []byte, 1)
 
-	rdtest := make(chan []byte, 1)
 	byteArray := []byte{97, 98, 99, 100, 101, 102}
-	rdtest <- byteArray
+	rawData <- byteArray
+
+	for data := range rawData {
+		print(data, "\n")
+	}
 
 	var err error
 
@@ -56,31 +59,27 @@ func main() {
 		print("Unable to open pipe: %v", err, "\n")
 	}
 	print("Pipe made", "\n")
-	writer, err := ipc.OpenPipeWriter(path_to_pipe, rdtest)
+	writer, err := ipc.OpenPipeWriter(path_to_pipe, rawData)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")
 	}
+	print("passed the openpipewriter ", "\n")
+
+	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
+
+	kvs.FetchWriter(writer)
+
+	serveHTTPKVAPI(kvs, *kvport, confChangeC, errorC)
+
+	/*err = ipc.UsePipeWriter(writer, kvs.rawData)
+	if err != nil {
+		print("Unable to use pipe writer", err)
+	}*/
 
 	/*err = ipc.UsePipeWriter(writer, rdtest)
 	if err != nil {
 		print("Unable to use pipe writer", err)
 	}*/
-
-	for data := range rdtest {
-		print(data, "\n")
-	}
-	kvs.FetchWriter(writer)
-
-	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
-
-	// setup functions
-
-	//create pipe
-	/*err = ipc.CreatePipe(path_to_pipe)
-	if err != nil {
-		print("UNABLE TO CREATE PIPE: %v", err)
-	}
-	print("Pipe created for input!")*/
 
 	// open writer
 	/*writer, err := ipc.OpenPipeWriter(path_to_pipe, kvs.rawData)
@@ -90,14 +89,7 @@ func main() {
 
 	//kvs.FetchWriter(writer)
 
-	/*err = ipc.UsePipeWriter(writer, kvs.rawData)
-	if err != nil {
-		print("Unable to use pipe writer", err)
-	}*/
-
 	// figure out how to http handle and flush the pipe at the same time
 
 	// the key-value http handler will propose updates to raft
-
-	serveHTTPKVAPI(kvs, *kvport, confChangeC, errorC)
 }
