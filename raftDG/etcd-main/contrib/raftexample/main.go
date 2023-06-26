@@ -43,33 +43,34 @@ func main() {
 	getSnapshot := func() ([]byte, error) { return kvs.getSnapshot() }
 	commitC, errorC, snapshotterReady := newRaftNode(*id, strings.Split(*cluster, ","), *join, getSnapshot, proposeC, confChangeC)
 
-	rawData := make(chan []byte, 1)
+	rawData := make(chan []byte)
+	rdtest := make(chan []byte, 1)
 
 	byteArray := []byte{97, 98, 99, 100, 101, 102}
-	rawData <- byteArray
-
-	for data := range rawData {
-		print(data, "\n")
-	}
+	rdtest <- byteArray
 
 	var err error
+	print("passes error", "\n")
 
 	err = ipc.CreatePipe(path_to_pipe)
 	if err != nil {
 		print("Unable to open pipe: %v", err, "\n")
 	}
 	print("Pipe made", "\n")
-	writer, err := ipc.OpenPipeWriter(path_to_pipe, rawData)
+
+	writer, err := ipc.OpenPipeWriter(path_to_pipe, rdtest)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")
 	}
 	print("passed the openpipewriter ", "\n")
 
-	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
+	for data := range rdtest {
+		print(data, "\n")
+	}
 
 	kvs.FetchWriter(writer)
 
-	serveHTTPKVAPI(kvs, *kvport, confChangeC, errorC)
+	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
 
 	/*err = ipc.UsePipeWriter(writer, kvs.rawData)
 	if err != nil {
@@ -92,4 +93,5 @@ func main() {
 	// figure out how to http handle and flush the pipe at the same time
 
 	// the key-value http handler will propose updates to raft
+	serveHTTPKVAPI(kvs, *kvport, confChangeC, errorC)
 }
