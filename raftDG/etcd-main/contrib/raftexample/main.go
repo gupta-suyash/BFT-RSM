@@ -51,6 +51,11 @@ func main() {
 
 	var err error
 
+	err = ipc.CreatePipe(path_to_pipe)
+	if err != nil {
+		print("Unable to open pipe: %v", err, "\n")
+	}
+	print("Pipe made", "\n")
 	writer, err := ipc.OpenPipeWriter(path_to_pipe, rdtest)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")

@@ -72,6 +72,7 @@ func OpenPipeReader(pipePath string, pipeData chan<- []byte) {
 // Byte strings will be written as [size uint64, bytes []byte] where len(bytes) == size and (bytes := <-pipeInput)
 // All data is in little endian format
 func OpenPipeWriter(pipePath string, pipeInput <-chan []byte) (*bufio.Writer, error) {
+	print("passednothing")
 	if !doesFileExist(pipePath) {
 		return bufio.NewWriter(nil), errors.New("file doesn't exist")
 	}
