@@ -43,11 +43,11 @@ func main() {
 	getSnapshot := func() ([]byte, error) { return kvs.getSnapshot() }
 	commitC, errorC, snapshotterReady := newRaftNode(*id, strings.Split(*cluster, ","), *join, getSnapshot, proposeC, confChangeC)
 
-	rawData := make(chan []byte)
-	rdtest := make(chan []byte, 1)
+	rawData := make(chan []byte, 1)
+	//rdtest := make(chan []byte, 1)
 
 	byteArray := []byte{97, 98, 99, 100, 101, 102}
-	rdtest <- byteArray
+	rawData <- byteArray
 
 	var err error
 	print("passes error", "\n")
@@ -58,15 +58,15 @@ func main() {
 	}
 	print("Pipe made", "\n")
 
-	writer, err := ipc.OpenPipeWriter(path_to_pipe, rdtest)
+	writer, err := ipc.OpenPipeWriter(path_to_pipe, rawData)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")
 	}
 	print("passed the openpipewriter ", "\n")
 
-	for data := range rdtest {
+	/*for data := range rawData {
 		print(data, "\n")
-	}
+	}*/
 
 	kvs.FetchWriter(writer)
 

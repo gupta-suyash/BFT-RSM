@@ -70,7 +70,9 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 }
 
 func (s *kvstore) FetchWriter(Fwriter *bufio.Writer) {
+	print("fectch called", "\n")
 	s.writer = Fwriter
+	print("fectch executed", "\n")
 }
 
 func (s *kvstore) Lookup(key string) (string, bool) {

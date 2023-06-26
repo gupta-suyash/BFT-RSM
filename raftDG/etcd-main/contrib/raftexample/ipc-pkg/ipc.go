@@ -87,7 +87,8 @@ func OpenPipeWriter(pipePath string, pipeInput <-chan []byte) (*bufio.Writer, er
 	fmt.Println("passedfe")
 	defer pipe.Close()
 	fmt.Println("passedcl")
-	return bufio.NewWriter(pipe), nil
+	writer := bufio.NewWriter(pipe)
+	return writer, nil
 
 	/*go func(pipeChannel <-chan []byte) (bufio.Writer){
 		setupCloseHandler() // TODO
