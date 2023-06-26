@@ -23,7 +23,7 @@ def main():
         sys.exit(1)
     
     print("Argument: ", int(sys.argv[1]))
-    cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/compile.sh"
+    cmd = ". /proj/ove-PG0/ethanxu/BFT-RSM/Code/experiments/experiment_scripts/compile.sh"
     hostname=socket.gethostname()   
     IPAddr=socket.gethostbyname(hostname)
     ssh_command_list = []
@@ -44,7 +44,7 @@ def main():
         print("Cluster Two")
         ssh_command_list = []
         for i in range(0, len(clusterTwo)):
-            cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/compile.sh"
+            cmd = ". /proj/ove-PG0/ethanxu/BFT-RSM/Code/experiments/experiment_scripts/compile.sh"
             cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterTwo[i] + " '" + cmd + "'"
             ssh_command_list.append(cmd_ssh)
         for i in range(0, len(clusterTwo)):
@@ -55,10 +55,10 @@ def main():
                 print("Host is: ", IPAddr)
                 continue
             subprocess.check_call(ssh_command_list[i], shell=True)
-    # cmd = "/proj/ove-PG0/murray/resdb/scrooge-resdb.sh"
+    # cmd = "/proj/ove-PG0/ethanxu/resdb/scrooge-resdb.sh"
     # executeCommand(cmd)
  
-    # cmd = "/proj/ove-PG0/murray/resdb/resdb-kill.sh"
+    # cmd = "/proj/ove-PG0/ethanxu/resdb/resdb-kill.sh"
     # executeCommand(cmd)
 if __name__ == "__main__":
     main()

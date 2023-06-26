@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /proj/ove-PG0/murray/
+cd /proj/ove-PG0/ethanxu/
 echo "Starting ResDB RSM1"
 cd resilientdb/deploy/config
 echo $PWD
@@ -35,7 +35,7 @@ bazel run //example:kv_server_tools -- $PWD/config_out/client.config set test 12
 #stress -c 3 -m 3
 
 
-cd /proj/ove-PG0/murray/BFT-RSM/Code
+cd /proj/ove-PG0/ethanxu/BFT-RSM/Code
 echo $PWD
 
 echo "Starting Scrooge"
@@ -46,5 +46,5 @@ echo "Starting Scrooge"
 #make proto
 #make scrooge -j
 
-./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_json/experiments.json increase_packet_size_nb_one > myout.txt
+./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/ethanxu/BFT-RSM/Code/experiments/experiment_json/experiments.json increase_packet_size_nb_one > myout.txt
 

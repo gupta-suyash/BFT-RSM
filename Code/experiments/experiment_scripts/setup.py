@@ -52,8 +52,9 @@ def setup(configJson):
     ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
     print(ip_list)
     # Run function to install all appropriate packages on servers
-    subprocess.call(localSetupFile)
-    executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
+    # subprocess.call(localSetupFile)
+    # executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
+    executeSequenceBlockingRemoteCommand(ip_list, localSetupFile)
 
 if __name__ == "__main__":
     main()

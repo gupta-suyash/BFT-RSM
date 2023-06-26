@@ -31,12 +31,12 @@ def main():
     
     print("Argument: ", int(sys.argv[1]))
     # Start Cluster 1 - always do!
-    relay_cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/relay.sh"
+    relay_cmd = ". /proj/ove-PG0/ethanxu/BFT-RSM/Code/experiments/experiment_scripts/relay.sh"
     cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + relay[0] + " '" + relay_cmd + "'"
     executeCommand(cmd_ssh)
 
     if int(sys.argv[1]):
-        relay2_cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/relay2.sh"
+        relay2_cmd = ". /proj/ove-PG0/ethanxu/BFT-RSM/Code/experiments/experiment_scripts/relay2.sh"
         cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + relay2[0] + " '" + relay2_cmd + "'"
         print("Cluster 2 execute command!")
         executeCommand(cmd_ssh)
@@ -46,7 +46,7 @@ def main():
     ssh_command_list = []
     thread_list = list()
     for i in range(0, len(clusterOne)):
-        cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/participation_rsm1.sh " + str(i) # TODO CHANGE IT BACK
+        cmd = ". /proj/ove-PG0/ethanxu/BFT-RSM/Code/experiments/experiment_scripts/participation_rsm1.sh " + str(i) # TODO CHANGE IT BACK
         cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterOne[i] + " '" + cmd + "'"
         ssh_command_list.append(cmd_ssh)
     for i in range(0, len(clusterOne)):
@@ -64,7 +64,7 @@ def main():
         print("Cluster Two")
         ssh_command_list = []
         for i in range(0, len(clusterTwo)):
-            cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/participation_rsm2.sh " + str(i+6)
+            cmd = ". /proj/ove-PG0/ethanxu/BFT-RSM/Code/experiments/experiment_scripts/participation_rsm2.sh " + str(i+6)
             cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterTwo[i] + " '" + cmd + "'"
             ssh_command_list.append(cmd_ssh)
         for i in range(0, len(clusterTwo)):
@@ -76,8 +76,8 @@ def main():
                 continue
             t = threading.Thread(target=executeCommand, args=(ssh_command_list[i],))
             thread_list.append(t)
-    # cd_cmd = "cd /proj/ove-PG0/murray/BFT-RSM/Code/"
-    # cmd = "./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_json/experiments.json increase_packet_size_nb_one > myout.txt"
+    # cd_cmd = "cd /proj/ove-PG0/ethanxu/BFT-RSM/Code/"
+    # cmd = "./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/ethanxu/BFT-RSM/Code/experiments/experiment_json/experiments.json increase_packet_size_nb_one > myout.txt"
     # executeCommand(cd_cmd)
     # executeCommand(cmd)
     for t in thread_list:
@@ -88,10 +88,10 @@ def main():
     for t in thread_list:
         t.join()
 
-    # cmd = "/proj/ove-PG0/murray/resdb/scrooge-resdb.sh"
+    # cmd = "/proj/ove-PG0/ethanxu/resdb/scrooge-resdb.sh"
     # executeCommand(cmd)
  
-    # cmd = "/proj/ove-PG0/murray/resdb/resdb-kill.sh"
+    # cmd = "/proj/ove-PG0/ethanxu/resdb/resdb-kill.sh"
     # executeCommand(cmd)
 if __name__ == "__main__":
     main()

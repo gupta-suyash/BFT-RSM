@@ -1,8 +1,10 @@
+cd /proj/ove-PG0/ethanxu/BFT-RSM/Code
+
 # nng installation
-#tar -xzf nng-1.5.2.tar.gz
+# tar -xzf nng-1.5.2.tar.gz
 echo "untar of nng successful"
-cd /proj/ove-PG0/murray/BFT-RSM/Code/nng-1.5.2
-#mkdir build
+cd /proj/ove-PG0/ethanxu/BFT-RSM/Code/nng-1.5.2
+# mkdir build
 cd build
 echo "build directory creation successful"
 cmake -G Ninja -S ..
@@ -12,9 +14,9 @@ cd ..
 cd ..
 
 # protobuf installation
-#tar -xzf protobuf-cpp-3.10.0.tar.gz
+# tar -xzf protobuf-cpp-3.10.0.tar.gz
 echo "untar of protobuf successful"
-cd /proj/ove-PG0/murray/BFT-RSM/Code/protobuf-3.10.0
+cd /proj/ove-PG0/ethanxu/BFT-RSM/Code/protobuf-3.10.0
 ./configure
 make clean
 make -j$(nproc)
@@ -24,12 +26,12 @@ cd ..
 
 # Go 1.20 install
 #sudo wget https://go.dev/dl/go1.20.1.linux-386.tar.gz
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.20.1.linux-386.tar.gz
-echo "export PATH=\$PATH:/usr/local/go/bin" >> $HOME/.profile
-source $HOME/.profile
-echo "export PATH=\$PATH:`go env GOPATH`/bin" >> $HOME/.profile
-source $HOME/.profile
+#sudo rm -rf /usr/local/go
+#sudo tar -C /usr/local -xzf go1.20.1.linux-386.tar.gz
+#echo "export PATH=\$PATH:/usr/local/go/bin" >> $HOME/.profile
+#source $HOME/.profile
+#echo "export PATH=\$PATH:`go env GOPATH`/bin" >> $HOME/.profile
+#source $HOME/.profile
 
 # Insatall go protoc extension
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+#go install google.golang.org/protobuf/cmd/protoc-gen-go@latest

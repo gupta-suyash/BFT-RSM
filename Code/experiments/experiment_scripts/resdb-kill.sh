@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /proj/ove-PG0/murray
+cd /proj/ove-PG0/ethanxu
 echo "Starting ResDB RSM1"
 cd resilientdb/deploy/config
 echo $PWD
