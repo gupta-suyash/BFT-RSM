@@ -18,12 +18,11 @@ import (
 	"flag"
 	"strings"
 
-	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
 	"go.etcd.io/raft/v3/raftpb"
 )
 
 const (
-	path_to_pipe = "/tmp/scrooge-input"
+	path_to_pipe = "/Users/dhruv/Desktop/tmp1/scrooge-input"
 )
 
 func main() {
@@ -45,31 +44,40 @@ func main() {
 
 	/*rawData := make(chan []byte, 1)
 	//rdtest := make(chan []byte, 1)
+	/*
+		byteArray := []byte{97, 98, 99, 100, 101, 102}
+		rawData <- byteArray
 
-	byteArray := []byte{97, 98, 99, 100, 101, 102}
-	rawData <- byteArray
+		var err error
+		print("passes error", "\n")
 
-	var err error
-	print("passes error", "\n")
+		err = ipc.CreatePipe(path_to_pipe)
+		if err != nil {
+			print("Unable to open pipe: %v", err, "\n")
+		}
+		print("Pipe made", "\n")
 
-	err = ipc.CreatePipe(path_to_pipe)
-	if err != nil {
-		print("Unable to open pipe: %v", err, "\n")
-	}
-	print("Pipe made", "\n")
+		writer, err := ipc.OpenPipeWriter(path_to_pipe, rawData)
+		if err != nil {
+			print("Unable to open pipe writer: %v", err, "\n")
+		}
+		print("passed the openpipewriter ", "\n")
 
-	writer, err := ipc.OpenPipeWriter(path_to_pipe, rawData)
-	if err != nil {
-		print("Unable to open pipe writer: %v", err, "\n")
-	}
-	print("passed the openpipewriter ", "\n")
-
+		err = ipc.UsePipeWriter(writer, rawData)
+		if err != nil {
+			print("Unable to use pipe writer", err)
+		}
+	*/
 	/*for data := range rawData {
 		print(data, "\n")
 	}
 
+<<<<<<< HEAD
 	kvs.FetchWriter(writer)
 	*/
+=======
+	//kvs.FetchWriter(writer)
+>>>>>>> 75d6a579e40e777425ae2e430e8047ec1b6639a3
 
 	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
 

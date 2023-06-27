@@ -18,16 +18,17 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
 
 	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
 	"go.etcd.io/etcd/v3/contrib/raftexample/scrooge"
+	"google.golang.org/protobuf/proto"
 
 	"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
 	"go.etcd.io/raft/v3/raftpb"
-	"google.golang.org/protobuf/proto"
 
 	//Writer imports
 	"bufio"
@@ -64,6 +65,26 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 		}
 	}
 	// read commits from raft into kvStore map until error
+	// rdtest := make(chan []byte, 1)
+	//byteArray := []byte{97, 98, 99, 100, 101, 102}
+	//s.rawData <- byteArray
+
+	err = ipc.CreatePipe(path_to_pipe)
+	if err != nil {
+		print("Unable to open pipe: %v", err, "\n")
+	}
+	print("Pipe made", "\n")
+
+	s.writer, err = ipc.OpenPipeWriter(path_to_pipe)
+	if err != nil {
+		print("Unable to open pipe writer: %v", err, "\n")
+	}
+	print("passed the openpipewriter ", "\n")
+
+	/*err = ipc.UsePipeWriter(s.writer, rdtest)
+	if err != nil {
+		print("Unable to use pipe writer", err)
+	}*/
 
 	go s.readCommits(commitC, errorC)
 	return s
@@ -115,7 +136,9 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 				log.Fatalf("raftexample: could not decode message (%v)", err)
 			}
 
+			print("call sendscrooge", "\n")
 			s.sendScrooge(dataKv)
+			print("end sendscrooge", "\n")
 
 			s.mu.Lock()
 			s.kvStore[dataKv.Key] = dataKv.Val
@@ -129,9 +152,8 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 	}
 }
 
-//110 has kv ; pass dataKv
-
 func (s *kvstore) sendScrooge(dataK kv) {
+	fmt.Println("startedSScr")
 	request := &scrooge.ScroogeRequest{
 		Request: &scrooge.ScroogeRequest_SendMessageRequest{
 			SendMessageRequest: &scrooge.SendMessageRequest{
@@ -143,12 +165,13 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			},
 		},
 	}
-	print("Payload successfully loaded! It is size: %v", len(dataK.Key)+len(dataK.Val))
+	print("Payload successfully loaded! It is size: %v", len(dataK.Val), "\n")
+	var err error
 	requestBytes, err := proto.Marshal(request)
 	if err == nil {
-		s.rawData <- requestBytes
-		print("Bytes sent over to the ipc writer NEW!")
-		err = ipc.UsePipeWriter(s.writer, s.rawData)
+		fmt.Println("datareq:", requestBytes, "\n", "dataK:", dataK.Val)
+		err = ipc.UsePipeWriter(s.writer, requestBytes, []byte(dataK.Val))
+		fmt.Println("Writing done")
 		if err != nil {
 			print("Unable to use pipe writer", err)
 		}
