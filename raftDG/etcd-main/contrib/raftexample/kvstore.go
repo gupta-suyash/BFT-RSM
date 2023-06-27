@@ -102,7 +102,8 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 		print("Unable to use pipe writer", err)
 	}*/
 
-	go s.readCommits(commitC, errorC)
+	go s.readCommits(commitC, errorC) // go routine for sending input to Scrooge
+	// go s.receiveScrooge() // go routine for receiving output from Scrooge
 	return s
 }
 
@@ -196,7 +197,16 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			print("Unable to use pipe writer", err)
 		}
 	}
+}
 
+func (s *kvstore) receiveScrooge() {
+	for true {
+		ipc.UsePipeReader(s.reader)
+		fmt.Println("Reading done")
+		// if err != nil {
+		// 	print("Unable to use pipe reader")
+		// }
+	}
 }
 
 func (s *kvstore) getSnapshot() ([]byte, error) {
