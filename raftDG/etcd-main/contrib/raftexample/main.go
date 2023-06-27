@@ -42,7 +42,7 @@ func main() {
 	getSnapshot := func() ([]byte, error) { return kvs.getSnapshot() }
 	commitC, errorC, snapshotterReady := newRaftNode(*id, strings.Split(*cluster, ","), *join, getSnapshot, proposeC, confChangeC)
 
-	/*rawData := make(chan []byte, 1)
+	rawData := make(chan []byte, 1)
 	//rdtest := make(chan []byte, 1)
 	/*
 		byteArray := []byte{97, 98, 99, 100, 101, 102}
@@ -70,14 +70,9 @@ func main() {
 	*/
 	/*for data := range rawData {
 		print(data, "\n")
-	}
+	}*/
 
-<<<<<<< HEAD
-	kvs.FetchWriter(writer)
-	*/
-=======
 	//kvs.FetchWriter(writer)
->>>>>>> 75d6a579e40e777425ae2e430e8047ec1b6639a3
 
 	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
 
