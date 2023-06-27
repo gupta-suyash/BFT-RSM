@@ -47,6 +47,8 @@ type kvstore struct {
 	sequenceNumber int
 	writer         *bufio.Writer // local writer TODO
 	openPipe	   *os.File // pipe for writing to Scrooge
+	reader         *bufio.Reader // local reader TODO
+	openOutputPipe *os.File // pipe for reading to Scrooge
 }
 
 type kv struct {
@@ -73,15 +75,27 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 
 	err = ipc.CreatePipe(path_to_pipe)
 	if err != nil {
-		print("Unable to open pipe: %v", err, "\n")
+		print("Unable to open input pipe: %v", err, "\n")
 	}
-	print("Pipe made", "\n")
+	print("Input pipe made", "\n")
+
+	err = ipc.CreatePipe(path_to_opipe)
+	if err != nil {
+		print("Unable to open output pipe: %v", err, "\n")
+	}
+	print("Output pipe made", "\n")
 
 	s.writer, s.openPipe, err = ipc.OpenPipeWriter(path_to_pipe)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")
 	}
 	print("passed the openpipewriter ", "\n")
+
+	s.reader, s.openOutputPipe, err = ipc.OpenPipeReader(path_to_opipe)
+	if err != nil {
+		print("Unable to open pipe reader: %v", err, "\n")
+	}
+	print("passed the openpipereader ", "\n")
 
 	/*err = ipc.UsePipeWriter(s.writer, rdtest)
 	if err != nil {

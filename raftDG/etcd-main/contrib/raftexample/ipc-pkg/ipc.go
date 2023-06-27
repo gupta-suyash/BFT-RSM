@@ -35,8 +35,26 @@ func CreatePipe(pipePath string) error {
 // Blocking call to output the data pipePath into pipeData
 // Reads data from the pipe in format [size uint64, bytes []byte] where len(bytes) == size and (pipeData <- bytes)
 // All data is in little endian format
-func OpenPipeReader(pipePath string, pipeData chan<- []byte) {
+func OpenPipeReader(pipePath string) (*bufio.Reader, *os.File, error) {
+	fmt.Println("passednothing")
 	if !doesFileExist(pipePath) {
+		return bufio.NewReader(nil), nil, errors.New("file doesn't exist")
+	}
+
+	fmt.Println("passedfc")
+	setupCloseHandler()
+	pipe, fileErr := os.OpenFile(pipePath, os.O_RDONLY, 0777)
+	if fileErr != nil {
+		fmt.Println("Cannot open pipe for reading:", fileErr)
+	}
+
+	fmt.Println("passedfe")
+
+	reader := bufio.NewReader(pipe)
+
+	/*fmt.Println("returning writer, so pipe is closing!")*/
+	return reader, pipe, nil
+	/*if !doesFileExist(pipePath) {
 		fmt.Println("File doesn't exist")
 	}
 
@@ -65,7 +83,7 @@ func OpenPipeReader(pipePath string, pipeData chan<- []byte) {
 			break
 		}
 		pipeData <- readData
-	}
+	}*/
 }
 
 // Blocking call that will continously write the data pipeInput into pipePath
