@@ -71,7 +71,7 @@ func OpenPipeReader(pipePath string, pipeData chan<- []byte) {
 // Blocking call that will continously write the data pipeInput into pipePath
 // Byte strings will be written as [size uint64, bytes []byte] where len(bytes) == size and (bytes := <-pipeInput)
 // All data is in little endian format
-func OpenPipeWriter(pipePath string, pipeInput <-chan []byte) (*bufio.Writer, error) {
+func OpenPipeWriter(pipePath string) (*bufio.Writer, error) {
 	fmt.Println("passednothing")
 	if !doesFileExist(pipePath) {
 		return bufio.NewWriter(nil), errors.New("file doesn't exist")
@@ -116,15 +116,24 @@ func OpenPipeWriter(pipePath string, pipeInput <-chan []byte) (*bufio.Writer, er
 	//return *bufio.NewWriter(nil), nil
 }
 
-func UsePipeWriter(writer *bufio.Writer, pipeInput <-chan []byte) error {
-	for data := range pipeInput {
-		var writeSizeBytes [8]byte
-		binary.LittleEndian.PutUint64(writeSizeBytes[:], uint64(len(data)))
+func UsePipeWriter(writer *bufio.Writer, request []byte, pipeInput []byte) error {
+	//fmt.Println("for loop opened")
+	data := pipeInput
+	//for data := range pipeInput {
+	fmt.Println(data)
 
-		loggedWrite(writer, writeSizeBytes[:])
-		loggedWrite(writer, data)
-		writer.Flush()
-	}
+	var writeSizeBytes [8]byte
+	binary.LittleEndian.PutUint64(writeSizeBytes[:], uint64(len(data)))
+
+	fmt.Println("Before logged write")
+	loggedWrite(writer, request)
+	fmt.Println("Between")
+	loggedWrite(writer, data)
+	fmt.Println("after logged write")
+
+	writer.Flush()
+	fmt.Println("afterflush")
+	//}
 	return nil
 }
 
@@ -141,12 +150,14 @@ func loggedRead(reader io.Reader, numBytes uint64) []byte {
 }
 
 func loggedWrite(writer io.Writer, data []byte) {
+	fmt.Println("LWBefore")
 	bytesWritten, writeErr := writer.Write(data)
-
+	fmt.Println("LWAfter")
 	if writeErr != nil {
-		os.Exit(1)
 		fmt.Println("Pipe Writing Error: ", writeErr, "[Desired Write size = ", len(data), " Actually written size = ", bytesWritten, "]")
+		os.Exit(1)
 	}
+	fmt.Println("LWEND")
 }
 
 // SetupCloseHandler creates a 'listener' on a new goroutine which will notify the
