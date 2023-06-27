@@ -1,4 +1,6 @@
 #! /bin/bash
 
-# Delete all snapshots stored in a raftexample instance
-rm -rf ~/go/src/go.etcd.io/etcd/contrib/raftexample/raftexample-*
+# Delete all snapshots and WAL stored in a raftexample instance
+rm -rf /proj/ove-PG0/ethanxu/BFT-RSM/raftDG/etcd-main/contrib/raftexample/raftexample-*
+
+echo "cleared snap!"

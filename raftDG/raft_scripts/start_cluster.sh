@@ -1,4 +1,6 @@
 #! /bin/sh
+
+# Used to start Raft on all 8 nodes from local machine.
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/cloudlab_rsa
 ssh-add ~/.ssh/id_ed25519

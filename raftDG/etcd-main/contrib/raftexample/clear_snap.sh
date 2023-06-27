@@ -1,6 +1,6 @@
-#! /bin/sh
+#! /bin/bash
 
-rm -rf raftexample-1
-rm -rf raftexample-1-snap
+# Delete all snapshots and WAL stored in a raftexample instance
+rm -rf /proj/ove-PG0/ethanxu/BFT-RSM/raftDG/etcd-main/contrib/raftexample/raftexample-*
 
 echo "cleared snap!"
