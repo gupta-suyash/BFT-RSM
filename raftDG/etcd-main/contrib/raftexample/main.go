@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	path_to_pipe = "/Users/qx/Desktop/tmp/scrooge-input"
+	path_to_pipe  = "/tmp/scrooge-input"
+	path_to_opipe = "/tmp/scrooge-output"
 )
 
 func main() {

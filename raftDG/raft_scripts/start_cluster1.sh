@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/cloudlab_rsa
 ssh-add ~/.ssh/id_ed25519

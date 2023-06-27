@@ -20,9 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
-	"os"
 
 	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
 	"go.etcd.io/etcd/v3/contrib/raftexample/scrooge"
@@ -46,7 +46,9 @@ type kvstore struct {
 	snapshotter    *snap.Snapshotter
 	sequenceNumber int
 	writer         *bufio.Writer // local writer TODO
-	openPipe	   *os.File // pipe for writing to Scrooge
+	openPipe       *os.File      // pipe for writing to Scrooge
+	reader         *bufio.Reader // local reader TODO
+	openOutputPipe *os.File      // pipe for reading to Scrooge
 }
 
 type kv struct {
@@ -73,9 +75,15 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 
 	err = ipc.CreatePipe(path_to_pipe)
 	if err != nil {
-		print("Unable to open pipe: %v", err, "\n")
+		print("Unable to open input pipe: %v", err, "\n")
 	}
-	print("Pipe made", "\n")
+	print("Input pipe made", "\n")
+
+	/*err = ipc.CreatePipe(path_to_opipe)
+	if err != nil {
+		print("Unable to open output pipe: %v", err, "\n")
+	}
+	print("Output pipe made", "\n")*/
 
 	s.writer, s.openPipe, err = ipc.OpenPipeWriter(path_to_pipe)
 	if err != nil {
@@ -83,12 +91,19 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 	}
 	print("passed the openpipewriter ", "\n")
 
+	/*s.reader, s.openOutputPipe, err = ipc.OpenPipeReader(path_to_opipe)
+	if err != nil {
+		print("Unable to open pipe reader: %v", err, "\n")
+	}
+	print("passed the openpipereader ", "\n")*/
+
 	/*err = ipc.UsePipeWriter(s.writer, rdtest)
 	if err != nil {
 		print("Unable to use pipe writer", err)
 	}*/
 
-	go s.readCommits(commitC, errorC)
+	go s.readCommits(commitC, errorC) // go routine for sending input to Scrooge
+	// go s.receiveScrooge() // go routine for receiving output from Scrooge
 	return s
 }
 
@@ -182,7 +197,16 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			print("Unable to use pipe writer", err)
 		}
 	}
+}
 
+func (s *kvstore) receiveScrooge() {
+	for true {
+		ipc.UsePipeReader(s.reader)
+		fmt.Println("Reading done")
+		// if err != nil {
+		// 	print("Unable to use pipe reader")
+		// }
+	}
 }
 
 func (s *kvstore) getSnapshot() ([]byte, error) {
