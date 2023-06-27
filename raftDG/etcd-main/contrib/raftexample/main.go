@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	path_to_pipe = "/Users/dhruv/Desktop/tmp1/scrooge-input"
+	path_to_pipe = "/Users/qx/Desktop/tmp/scrooge-input"
 )
 
 func main() {

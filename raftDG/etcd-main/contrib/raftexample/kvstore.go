@@ -22,6 +22,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"os"
 
 	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
 	"go.etcd.io/etcd/v3/contrib/raftexample/scrooge"
@@ -45,6 +46,7 @@ type kvstore struct {
 	snapshotter    *snap.Snapshotter
 	sequenceNumber int
 	writer         *bufio.Writer // local writer TODO
+	openPipe	   *os.File // pipe for writing to Scrooge
 }
 
 type kv struct {
@@ -75,7 +77,7 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 	}
 	print("Pipe made", "\n")
 
-	s.writer, err = ipc.OpenPipeWriter(path_to_pipe)
+	s.writer, s.openPipe, err = ipc.OpenPipeWriter(path_to_pipe)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")
 	}
@@ -150,6 +152,10 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 	if err, ok := <-errorC; ok {
 		log.Fatal(err)
 	}
+	fmt.Println("kv store stops reading commit, closing pipe!")
+	if err := s.openPipe.Close(); err != nil {
+		log.Fatalf("kv store could not close opened pipe: ", err)
+	}
 }
 
 func (s *kvstore) sendScrooge(dataK kv) {
@@ -165,7 +171,7 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			},
 		},
 	}
-	print("Payload successfully loaded! It is size: %v", len(dataK.Val), "\n")
+	fmt.Printf("Payload successfully loaded! It is size: %v\n", len(dataK.Val))
 	var err error
 	requestBytes, err := proto.Marshal(request)
 	if err == nil {
