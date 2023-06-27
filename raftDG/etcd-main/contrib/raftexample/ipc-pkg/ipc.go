@@ -28,7 +28,7 @@ func CreatePipe(pipePath string) error {
 			return err
 		}
 	}
-	fmt.Println("Pipe created!")
+	fmt.Printf("Pipe created at path: %s\n", pipePath)
 	return syscall.Mkfifo(pipePath, 0777)
 }
 
@@ -71,10 +71,10 @@ func OpenPipeReader(pipePath string, pipeData chan<- []byte) {
 // Blocking call that will continously write the data pipeInput into pipePath
 // Byte strings will be written as [size uint64, bytes []byte] where len(bytes) == size and (bytes := <-pipeInput)
 // All data is in little endian format
-func OpenPipeWriter(pipePath string) (*bufio.Writer, error) {
+func OpenPipeWriter(pipePath string) (*bufio.Writer, *os.File, error) {
 	fmt.Println("passednothing")
 	if !doesFileExist(pipePath) {
-		return bufio.NewWriter(nil), errors.New("file doesn't exist")
+		return bufio.NewWriter(nil), nil, errors.New("file doesn't exist")
 	}
 
 	fmt.Println("passedfc")
@@ -85,10 +85,12 @@ func OpenPipeWriter(pipePath string) (*bufio.Writer, error) {
 	}
 
 	fmt.Println("passedfe")
-	defer pipe.Close()
+	/*defer pipe.Close()*/
 	fmt.Println("passedcl")
 	writer := bufio.NewWriter(pipe)
-	return writer, nil
+
+	/*fmt.Println("returning writer, so pipe is closing!")*/
+	return writer, pipe, nil
 
 	/*go func(pipeChannel <-chan []byte) (bufio.Writer){
 		setupCloseHandler() // TODO
