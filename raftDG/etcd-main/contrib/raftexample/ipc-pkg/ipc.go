@@ -15,11 +15,6 @@ import (
 
 const O_NONBLOCK = syscall.O_NONBLOCK
 
-// Dummy function to isolate errors
-func sayHi() {
-	fmt.Println("hello world")
-}
-
 // Creates a pipe at pipePath, deletes a previous file with the same name if it exists
 func CreatePipe(pipePath string) error {
 	if doesFileExist(pipePath) {
@@ -36,19 +31,15 @@ func CreatePipe(pipePath string) error {
 // Reads data from the pipe in format [size uint64, bytes []byte] where len(bytes) == size and (pipeData <- bytes)
 // All data is in little endian format
 func OpenPipeReader(pipePath string) (*bufio.Reader, *os.File, error) {
-	fmt.Println("passednothing")
 	if !doesFileExist(pipePath) {
 		return bufio.NewReader(nil), nil, errors.New("file doesn't exist")
 	}
 
-	fmt.Println("passedfc")
 	setupCloseHandler()
 	pipe, fileErr := os.OpenFile(pipePath, os.O_RDONLY, 0777)
 	if fileErr != nil {
 		fmt.Println("Cannot open pipe for reading:", fileErr)
 	}
-
-	fmt.Println("passedfe")
 
 	reader := bufio.NewReader(pipe)
 
@@ -90,15 +81,13 @@ func UsePipeReader(reader *bufio.Reader) {
 	fmt.Println("Begin reading from Scrooge")
 	const numSizeBytes = 64 / 8
 
-	fmt.Println("Before logged read1")
+	fmt.Println("Start logged read sizeBytes and data")
 	readSizeBytes := loggedRead(reader, numSizeBytes)
 	if readSizeBytes == nil {
 		fmt.Println("Error: no size bytes")
 	}
-	fmt.Println("After logged read1: ", readSizeBytes)
 	readSize := binary.LittleEndian.Uint64(readSizeBytes[:])
 
-	fmt.Println("Before logged read2: ", readSize)
 	readData := loggedRead(reader, readSize)
 	if readData == nil {
 		fmt.Println("Error: no data bytes")
@@ -110,21 +99,16 @@ func UsePipeReader(reader *bufio.Reader) {
 // Byte strings will be written as [size uint64, bytes []byte] where len(bytes) == size and (bytes := <-pipeInput)
 // All data is in little endian format
 func OpenPipeWriter(pipePath string) (*bufio.Writer, *os.File, error) {
-	fmt.Println("passednothing")
 	if !doesFileExist(pipePath) {
 		return bufio.NewWriter(nil), nil, errors.New("file doesn't exist")
 	}
 
-	fmt.Println("passedfc")
 	setupCloseHandler()
 	pipe, fileErr := os.OpenFile(pipePath, os.O_WRONLY, 0777)
 	if fileErr != nil {
 		fmt.Println("Cannot open pipe for writing:", fileErr)
 	}
 
-	fmt.Println("passedfe")
-	/*defer pipe.Close()*/
-	fmt.Println("passedcl")
 	writer := bufio.NewWriter(pipe)
 
 	/*fmt.Println("returning writer, so pipe is closing!")*/
@@ -162,13 +146,9 @@ func UsePipeWriter(writer *bufio.Writer, requestBytes []byte) error {
 	var writeSizeBytes [8]byte
 	binary.LittleEndian.PutUint64(writeSizeBytes[:], uint64(len(requestBytes)))
 
-	fmt.Println("Before logged write request size bytes")
+	fmt.Println("Start logged write sizeBytes and requestBytes")
 	loggedWrite(writer, writeSizeBytes[:])
-	fmt.Println("After logged write request size bytes")
-
-	fmt.Println("Before logged write actual request")
 	loggedWrite(writer, requestBytes)
-	fmt.Println("After logged write actual request")
 
 	writer.Flush()
 	fmt.Println("After write flush")
@@ -177,9 +157,7 @@ func UsePipeWriter(writer *bufio.Writer, requestBytes []byte) error {
 }
 
 func loggedRead(reader io.Reader, numBytes uint64) []byte {
-	fmt.Println("Starting to read data")
 	readData := make([]byte, numBytes)
-	fmt.Println("make read data buffer")
 
 	bytesRead, readErr := io.ReadFull(reader, readData)
 	fmt.Println("start read data: ", readData, " bytes read: ", bytesRead)
@@ -194,14 +172,11 @@ func loggedRead(reader io.Reader, numBytes uint64) []byte {
 }
 
 func loggedWrite(writer io.Writer, data []byte) {
-	fmt.Println("LWBefore")
 	bytesWritten, writeErr := writer.Write(data)
-	fmt.Println("LWAfter")
 	if writeErr != nil {
 		fmt.Println("Pipe Writing Error: ", writeErr, "[Desired Write size = ", len(data), " Actually written size = ", bytesWritten, "]")
 		os.Exit(1)
 	}
-	fmt.Println("LWEND")
 }
 
 // SetupCloseHandler creates a 'listener' on a new goroutine which will notify the

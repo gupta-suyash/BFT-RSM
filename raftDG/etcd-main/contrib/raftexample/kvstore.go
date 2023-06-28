@@ -186,7 +186,6 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 }
 
 func (s *kvstore) sendScrooge(dataK kv) {
-	fmt.Println("startedSScr")
 
 	// creating payload in format [ size uint64, data []byte ]
 	/*var writeSizeBytes [8]byte
@@ -206,16 +205,15 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			},
 		},
 	}
-	fmt.Printf("ScroogeRequest created. Actual payload size: %v\n", len(payload))
+	fmt.Printf("ScroogeRequest created.\n Actual data: %v\n Actual payload size: %v\n", dataK.Val, len(payload))
 	
 	var err error
 	requestBytes, err := proto.Marshal(request)
-	fmt.Println("Request bytes size: ", len(requestBytes))
 
 	if err == nil {
-		fmt.Println("datareq:", requestBytes, "\n", "dataK:", dataK.Val)
+		fmt.Println("Request bytes:", requestBytes)
+		fmt.Println("Request bytes size: ", len(requestBytes))
 		err = ipc.UsePipeWriter(s.writer, requestBytes)
-		fmt.Println("Writing done")
 		if err != nil {
 			print("Unable to use pipe writer", err)
 		}
