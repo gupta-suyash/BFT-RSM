@@ -78,10 +78,10 @@ func OpenPipeReader(pipePath string) (*bufio.Reader, *os.File, error) {
 }
 
 func UsePipeReader(reader *bufio.Reader) {
-	fmt.Println("Begin reading from Scrooge")
+	// fmt.Println("Begin reading from Scrooge")
 	const numSizeBytes = 64 / 8
 
-	fmt.Println("Start logged read sizeBytes and data")
+	// fmt.Println("Start logged read sizeBytes and data")
 	readSizeBytes := loggedRead(reader, numSizeBytes)
 	if readSizeBytes == nil {
 		fmt.Println("Error: no size bytes")
@@ -92,7 +92,7 @@ func UsePipeReader(reader *bufio.Reader) {
 	if readData == nil {
 		fmt.Println("Error: no data bytes")
 	}
-	fmt.Println("Read Data: ", readData)
+	// fmt.Println("Read Data: ", readData)
 }
 
 // Blocking call that will continously write the data pipeInput into pipePath
@@ -141,17 +141,17 @@ func OpenPipeWriter(pipePath string) (*bufio.Writer, *os.File, error) {
 }
 
 func UsePipeWriter(writer *bufio.Writer, requestBytes []byte) error {
-	fmt.Println("request bytes: ", requestBytes)
+	// fmt.Println("request bytes: ", requestBytes)
 
 	var writeSizeBytes [8]byte
 	binary.LittleEndian.PutUint64(writeSizeBytes[:], uint64(len(requestBytes)))
 
-	fmt.Println("Start logged write sizeBytes and requestBytes")
+	// fmt.Println("Start logged write sizeBytes and requestBytes")
 	loggedWrite(writer, writeSizeBytes[:])
 	loggedWrite(writer, requestBytes)
 
 	writer.Flush()
-	fmt.Println("After write flush")
+	// fmt.Println("After write flush")
 
 	return nil
 }

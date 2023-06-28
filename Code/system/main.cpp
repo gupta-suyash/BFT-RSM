@@ -78,8 +78,8 @@ int main(int argc, char *argv[])
 
     // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
     auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-    // auto relayTransactionThread =
-        // std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+    auto relayTransactionThread =
+        std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
     SPDLOG_CRITICAL("Created Generate message relay thread");
 
     auto sendThread =
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     sendThread.join();
     receiveThread.join();
     relayRequestThread.join();
-    // relayTransactionThread.join();
+    relayTransactionThread.join();
     
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
                 "kMaxNumLocalFailedNodes = {}, "

@@ -103,11 +103,11 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 func (s *kvstore) ScroogeReader(path_to_opipe string) {
 	var err error
 	// create read pipe
-	/*err = ipc.CreatePipe(path_to_opipe)
+	err = ipc.CreatePipe(path_to_opipe)
 	if err != nil {
 		fmt.Printf("Unable to open output pipe: %v", err, "\n")
 	}
-	print("Output pipe made", "\n")*/
+	print("Output pipe made", "\n")
 
 	// open pipe reader
 	s.reader, s.openOutputPipe, err = ipc.OpenPipeReader(path_to_opipe)
@@ -205,7 +205,7 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			},
 		},
 	}
-	fmt.Printf("ScroogeRequest created.\n Actual data: %v\n Actual payload size: %v\n", dataK.Val, len(payload))
+	fmt.Printf("Actual data: %v\n Actual payload size: %v\n", dataK.Val, len(payload))
 	
 	var err error
 	requestBytes, err := proto.Marshal(request)
