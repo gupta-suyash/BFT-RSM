@@ -76,17 +76,17 @@ int main(int argc, char *argv[])
     //     return 0;
     // }
 
-    auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-    // auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+    // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+    auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
     // auto relayTransactionThread =
         // std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
-    SPDLOG_INFO("Created Generate message relay thread");
+    SPDLOG_CRITICAL("Created Generate message relay thread");
 
     auto sendThread =
         std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
     auto receiveThread =
         std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
-    SPDLOG_INFO("Created Receiver Thread with ID={} ");
+    SPDLOG_CRITICAL("Created Receiver Thread with ID={} ");
 
     std::this_thread::sleep_until(testStartRecordTime);
     const auto trueTestStartTime = std::chrono::steady_clock::now();
@@ -94,14 +94,16 @@ int main(int argc, char *argv[])
     addMetric("starting_quack", quorumAck->getCurrentQuack().value_or(0));
     addMetric("starting_ack", acknowledgment->getAckIterator().value_or(0));
 
+    SPDLOG_CRITICAL("starting pipeline");
+
     std::this_thread::sleep_until(testEndTime);
     const auto trueTestEndTime = std::chrono::steady_clock::now();
     end_test();
 
-    messageRelayThread.join();
+    // messageRelayThread.join();
     sendThread.join();
     receiveThread.join();
-    // relayRequestThread.join();
+    relayRequestThread.join();
     // relayTransactionThread.join();
     
     SPDLOG_CRITICAL("SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "

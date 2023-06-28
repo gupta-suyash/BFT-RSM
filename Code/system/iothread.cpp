@@ -116,7 +116,12 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
 
+    SPDLOG_CRITICAL("Entered RequestThread");
+
     createPipe(kScroogeInputPath);
+
+    SPDLOG_CRITICAL("Pipe Created");
+
     std::ifstream pipe{kScroogeInputPath};
     if (!pipe.is_open())
     {
@@ -127,8 +132,12 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
         SPDLOG_CRITICAL("Reader Open Success");
     }
 
+    SPDLOG_CRITICAL("Pipe Opened");
+
     while (not is_test_over())
     {
+        SPDLOG_CRITICAL("Entered while");
+
         auto messageBytes = readMessage(pipe);
 
         scrooge::ScroogeRequest newRequest;
