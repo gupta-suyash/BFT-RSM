@@ -38,16 +38,12 @@ function runcmd() {
 
 commands=(
   # kill user process running on $RAFT_PORT (potentially old raft instance)
-#   "sudo fuser -n tcp -k \$RAFT_PORT"
+  "sudo fuser -n tcp -k \$RAFT_PORT"
 
   "cd /proj/ove-PG0/ethanxu/BFT-RSM/raftDG/etcd-main/contrib/raftexample"
 
   # delete snapshots so that cluster starts freshly from term 0
-#   "./clear_snap.sh"
-
-  "go build -o raftexample"
-
-  "./raftexample --id \$CLUSTER_ID --cluster http://10.10.1.1:11379,http://10.10.1.2:12379,http://10.10.1.3:13379,http://10.10.1.4:14379 --port \$KV_PORT"
+  "./clear_snap.sh"
 )
 
 runcmd "${commands[@]}"
