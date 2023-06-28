@@ -73,38 +73,50 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 	//byteArray := []byte{97, 98, 99, 100, 101, 102}
 	//s.rawData <- byteArray
 
+	go s.ScroogeReader(path_to_opipe)
+
+	// create write pipe
 	err = ipc.CreatePipe(path_to_pipe)
 	if err != nil {
 		print("Unable to open input pipe: %v", err, "\n")
 	}
 	print("Input pipe made", "\n")
 
-	/*err = ipc.CreatePipe(path_to_opipe)
-	if err != nil {
-		print("Unable to open output pipe: %v", err, "\n")
-	}
-	print("Output pipe made", "\n")*/
-
+	// open pipe writer
 	s.writer, s.openPipe, err = ipc.OpenPipeWriter(path_to_pipe)
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")
 	}
 	print("passed the openpipewriter ", "\n")
 
-	/*s.reader, s.openOutputPipe, err = ipc.OpenPipeReader(path_to_opipe)
-	if err != nil {
-		print("Unable to open pipe reader: %v", err, "\n")
-	}
-	print("passed the openpipereader ", "\n")*/
-
+	// use pipe writer
 	/*err = ipc.UsePipeWriter(s.writer, rdtest)
 	if err != nil {
 		print("Unable to use pipe writer", err)
 	}*/
 
 	go s.readCommits(commitC, errorC) // go routine for sending input to Scrooge
-	// go s.receiveScrooge() // go routine for receiving output from Scrooge
+	
 	return s
+}
+
+func (s *kvstore) ScroogeReader(path_to_opipe string) {
+	var err error
+	// create read pipe
+	/*err = ipc.CreatePipe(path_to_opipe)
+	if err != nil {
+		fmt.Printf("Unable to open output pipe: %v", err, "\n")
+	}
+	print("Output pipe made", "\n")*/
+
+	// open pipe reader
+	s.reader, s.openOutputPipe, err = ipc.OpenPipeReader(path_to_opipe)
+	if err != nil {
+		print("Unable to open pipe reader: %v", err, "\n")
+	}
+	print("passed the openpipereader ", "\n")
+
+	s.receiveScrooge() // go routine for receiving output from Scrooge
 }
 
 func (s *kvstore) FetchWriter(Fwriter *bufio.Writer) {
@@ -175,23 +187,34 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 
 func (s *kvstore) sendScrooge(dataK kv) {
 	fmt.Println("startedSScr")
+
+	// creating payload in format [ size uint64, data []byte ]
+	/*var writeSizeBytes [8]byte
+	data := []byte(dataK.Val)
+	binary.LittleEndian.PutUint64(writeSizeBytes[:], uint64(len(data)))
+	payload := append(writeSizeBytes, data)*/
+	payload := []byte(dataK.Val)
+
 	request := &scrooge.ScroogeRequest{
 		Request: &scrooge.ScroogeRequest_SendMessageRequest{
 			SendMessageRequest: &scrooge.SendMessageRequest{
 				Content: &scrooge.CrossChainMessageData{
-					MessageContent: []byte(dataK.Val), //payload of some sort, check type
+					MessageContent: payload,
 					SequenceNumber: uint64(s.sequenceNumber),
 				},
 				ValidityProof: []byte("substitute valididty proof"),
 			},
 		},
 	}
-	fmt.Printf("Payload successfully loaded! It is size: %v\n", len(dataK.Val))
+	fmt.Printf("ScroogeRequest created. Actual payload size: %v\n", len(payload))
+	
 	var err error
 	requestBytes, err := proto.Marshal(request)
+	fmt.Println("Request bytes size: ", len(requestBytes))
+
 	if err == nil {
 		fmt.Println("datareq:", requestBytes, "\n", "dataK:", dataK.Val)
-		err = ipc.UsePipeWriter(s.writer, requestBytes, []byte(dataK.Val))
+		err = ipc.UsePipeWriter(s.writer, requestBytes)
 		fmt.Println("Writing done")
 		if err != nil {
 			print("Unable to use pipe writer", err)
@@ -202,7 +225,7 @@ func (s *kvstore) sendScrooge(dataK kv) {
 func (s *kvstore) receiveScrooge() {
 	for true {
 		ipc.UsePipeReader(s.reader)
-		fmt.Println("Reading done")
+		// fmt.Println("Reading done")
 		// if err != nil {
 		// 	print("Unable to use pipe reader")
 		// }

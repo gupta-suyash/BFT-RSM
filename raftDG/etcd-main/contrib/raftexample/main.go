@@ -23,7 +23,7 @@ import (
 
 const (
 	path_to_pipe  = "/tmp/scrooge-input"
-	path_to_opipe = "/tmp/scrooge-output"
+	path_to_opipe = "/tmp/scrooge-input"
 )
 
 func main() {
