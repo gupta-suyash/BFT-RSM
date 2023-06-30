@@ -96,7 +96,7 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 	}*/
 
 	go s.readCommits(commitC, errorC) // go routine for sending input to Scrooge
-	
+
 	return s
 }
 
@@ -173,6 +173,7 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 			s.kvStore[dataKv.Key] = dataKv.Val
 			s.mu.Unlock()
 			s.sequenceNumber += 1
+			print("the commit number = ", s.sequenceNumber, "\n")
 		}
 		close(commit.applyDoneC)
 	}
@@ -206,7 +207,7 @@ func (s *kvstore) sendScrooge(dataK kv) {
 		},
 	}
 	fmt.Printf("Actual data: %v\n Actual payload size: %v\n", dataK.Val, len(payload))
-	
+
 	var err error
 	requestBytes, err := proto.Marshal(request)
 
