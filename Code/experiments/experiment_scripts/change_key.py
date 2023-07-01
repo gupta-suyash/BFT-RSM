@@ -16,12 +16,12 @@ def usage(err):
 
 def is_int(string: str) -> bool:
     pattern = r"[-+]?\d+"
-    match = re.match(pattern, string)
+    match = re.fullmatch(pattern, string)
     return bool(match)
  
 def is_float(string: str) -> bool:
     pattern = r"[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?"
-    match = re.match(pattern, string)
+    match = re.fullmatch(pattern, string)
     return bool(match)
 
 def change_key(file_name: str, key: str, value: Union[str, float, int]) -> None:

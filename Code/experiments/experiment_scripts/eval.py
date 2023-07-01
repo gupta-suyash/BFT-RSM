@@ -45,7 +45,8 @@ def make_dataframe(file_names: List[str]) -> pd.DataFrame:
                 rows.append(log_data)
         except:
             usage(f'Unable to parse {file_name} -- is it correct yaml format?')
-    return pd.DataFrame.from_dict(rows)
+    basic_df =  pd.DataFrame.from_dict(rows)
+    return basic_df.replace("[+-]?[Nn][Aa][Nn]", np.NaN, regex=True)
 
 # modifies dataframe in place
 def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
@@ -173,6 +174,9 @@ def make_fig(graph: Graph) -> go.Figure:
         yaxis_title = graph.y_axis_name,
         showlegend = True
     )
+
+    fig.update_xaxes(type="log")
+    fig.update_yaxes(type="log")
     
     return fig
 
