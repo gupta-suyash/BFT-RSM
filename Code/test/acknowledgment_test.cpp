@@ -7,7 +7,7 @@
 namespace acknowledgment_test
 {
 
-constexpr auto kViewSize = (1<<14)+64;
+constexpr auto kViewSize = (1 << 14) + 64;
 
 BOOST_AUTO_TEST_SUITE(acknowledgment_test)
 
@@ -46,12 +46,12 @@ BOOST_AUTO_TEST_CASE(test_consecutive_acks)
         BOOST_CHECK(ack.getAckIterator() == i);
         const auto ackView = ack.getAckView<kViewSize>();
         BOOST_CHECK(acknowledgment::getAckIterator(ackView) == i);
-        BOOST_CHECK(ackView.ackOffset == i+2);
-        for (uint64_t ack = std::max<uint64_t>(0,i-100); ack <= i; ack++)
+        BOOST_CHECK(ackView.ackOffset == i + 2);
+        for (uint64_t ack = std::max<uint64_t>(0, i - 100); ack <= i; ack++)
         {
             BOOST_CHECK(acknowledgment::testAckView(ackView, ack));
         }
-        for (int noAck = i + 1; noAck < i+100; noAck++)
+        for (int noAck = i + 1; noAck < i + 100; noAck++)
         {
             BOOST_CHECK(not acknowledgment::testAckView(ackView, noAck));
         }
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(test_nonconsecutive_acks)
     const auto ackView = ack.getAckView<kViewSize>();
     BOOST_CHECK(acknowledgment::getAckIterator(ackView) == jumpSize);
     BOOST_CHECK(ackView.ackOffset == jumpSize + 2);
-    BOOST_CHECK_EQUAL(acknowledgment::getFinalAck(ackView), jumpSize+1);
+    BOOST_CHECK_EQUAL(acknowledgment::getFinalAck(ackView), jumpSize + 1);
 
     for (uint64_t i = 0; i <= jumpSize; i++)
     {
@@ -127,12 +127,9 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const acknowl
 BOOST_AUTO_TEST_CASE(test_serilization)
 {
     scrooge::CrossChainMessage msg;
-    auto trueAckView = acknowledgment::AckView<kViewSize>{
-        .ackOffset = 12345,
-        .view = {}
-    };
+    auto trueAckView = acknowledgment::AckView<kViewSize>{.ackOffset = 12345, .view = {}};
     uint64_t curVal = 1526354;
-    for (auto& x : trueAckView.view)
+    for (auto &x : trueAckView.view)
     {
         x = curVal;
         curVal *= curVal;
@@ -142,13 +139,8 @@ BOOST_AUTO_TEST_CASE(test_serilization)
 
     auto resultAckView = acknowledgment::AckView<kViewSize>{};
 
-    const auto curForeignAck = (msg.has_ack_count())
-        ? std::optional<uint64_t>(msg.ack_count().value())
-        : std::nullopt;
-    std::copy_n(msg.ack_set().begin(),
-                resultAckView.view.size(),
-                resultAckView.view.begin()
-            );
+    const auto curForeignAck = (msg.has_ack_count()) ? std::optional<uint64_t>(msg.ack_count().value()) : std::nullopt;
+    std::copy_n(msg.ack_set().begin(), resultAckView.view.size(), resultAckView.view.begin());
     resultAckView.ackOffset = curForeignAck.value_or(0ULL - 1ULL) + 2;
 
     BOOST_CHECK_EQUAL(resultAckView.ackOffset, trueAckView.ackOffset);

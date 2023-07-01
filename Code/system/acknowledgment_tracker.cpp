@@ -1,7 +1,8 @@
 #include "acknowledgment_tracker.h"
 
 AcknowledgmentTracker::AcknowledgmentTracker(uint64_t otherNetworkSize, uint64_t otherNetworkMaxFailedStake)
-    : kOtherNetworkMaxFailedStake(otherNetworkMaxFailedStake), mNodeData(otherNetworkSize), staleAckQuorumCounter(otherNetworkMaxFailedStake + 1)
+    : kOtherNetworkMaxFailedStake(otherNetworkMaxFailedStake), mNodeData(otherNetworkSize),
+      staleAckQuorumCounter(otherNetworkMaxFailedStake + 1)
 {
 }
 
@@ -99,8 +100,10 @@ void AcknowledgmentTracker::updateActiveResendData()
     }
 
     // Small ints are so that reading/writing to the atomic doesn't use locks -- easy to remove
-    const auto potentialNewResendData = acknowledgment_tracker::ResendData{
-        .sequenceNumber = (uint32_t)sequenceNumberToResend, .resendNumber = (uint16_t)numRepeatedAckQuorums.value(), .isActive = true};
+    const auto potentialNewResendData =
+        acknowledgment_tracker::ResendData{.sequenceNumber = (uint32_t)sequenceNumberToResend,
+                                           .resendNumber = (uint16_t)numRepeatedAckQuorums.value(),
+                                           .isActive = true};
 
     const bool isCurResendDataOutdated = curResendData != potentialNewResendData;
     if (isCurResendDataOutdated)

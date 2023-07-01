@@ -35,7 +35,8 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
                                   NodeConfiguration kNodeConfiguration);
 
 void runSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
-                   std::shared_ptr<Acknowledgment> acknowledgment, std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
+                   std::shared_ptr<Acknowledgment> acknowledgment,
+                   std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runAllToAllSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,

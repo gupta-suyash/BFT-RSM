@@ -20,7 +20,7 @@ uint64_t stakeToNode(uint64_t stakeIndex, const std::vector<uint64_t> &networkSt
 uint64_t nodeToStake(uint64_t nodeIndex, const std::vector<uint64_t> &networkStakePrefixSum);
 uint64_t stakeInNetwork(const std::vector<uint64_t> &networkStakePrefixSum);
 void scaleVector(std::vector<uint64_t> &v, uint64_t factor);
-std::vector<uint64_t> apportionVector(uint64_t totalApportionedShares, const std::vector<uint64_t>& originalShares);
+std::vector<uint64_t> apportionVector(uint64_t totalApportionedShares, const std::vector<uint64_t> &originalShares);
 }; // namespace message_scheduler
 
 class MessageScheduler

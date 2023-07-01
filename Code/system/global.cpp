@@ -187,7 +187,7 @@ void bindThreadAboveCpu(const int cpu)
 
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    for (int i=cpu + 1; i < numCores; i++)
+    for (int i = cpu + 1; i < numCores; i++)
     {
         CPU_SET(i, &cpuset);
     }

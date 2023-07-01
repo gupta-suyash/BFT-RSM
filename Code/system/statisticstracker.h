@@ -5,7 +5,6 @@
 
 #include <boost/circular_buffer.hpp>
 
-
 extern uint64_t ack_count;
 extern long double tot_lat;
 extern boost::circular_buffer<std::pair<uint64_t, std::chrono::steady_clock::time_point>> latency_map;

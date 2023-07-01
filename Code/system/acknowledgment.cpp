@@ -16,12 +16,11 @@ void Acknowledgment::addToAckList(const uint64_t ack)
     const auto ackLocation = ack & (kWindowSize - 1);
     mAckWindow[ackLocation / 64] |= 1ULL << (ackLocation % 64);
 
-
     auto curWindowBaseline = curAckValue.value_or(0ULL - 1) + 1;
     while (mAckWindow[curWindowBaseline / 64] & (1ULL << (curWindowBaseline % 64)))
     {
         // mAckWindow[curWindowBaseline / 64] ^= 1ULL << (curWindowBaseline % 64);
-        curWindowBaseline = (curWindowBaseline + 1 == kWindowSize)? 0 : curWindowBaseline + 1;
+        curWindowBaseline = (curWindowBaseline + 1 == kWindowSize) ? 0 : curWindowBaseline + 1;
     }
     const auto highestAcked = curWindowBaseline - 1;
     if (highestAcked != curAckValue.value_or(0ULL - 1))
