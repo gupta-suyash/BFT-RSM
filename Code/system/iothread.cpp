@@ -20,15 +20,15 @@
 
 #include <nng/nng.h>
 
-bool checkMessageMac(const scrooge::CrossChainMessage *const message)
+bool checkMessageMac(const scrooge::CrossChainMessage& message)
 {
     // Verification TODO
-    const auto mstr = message->ack_count().SerializeAsString();
+    const auto mstr = message.ack_count().SerializeAsString();
     // Fetch the sender key
     // const auto senderKey = get_other_rsm_key(nng_message.senderId);
     const auto senderKey = get_priv_key();
     // Verify the message
-    return CmacVerifyString(senderKey, mstr, message->validity_proof());
+    return CmacVerifyString(senderKey, mstr, message.validity_proof());
 }
 
 bool isMessageDataValid(const scrooge::CrossChainMessageData &message)
@@ -654,6 +654,16 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 if (not success)
                 {
                     SPDLOG_CRITICAL("Cannot parse foreign message");
+                }
+                
+                bool isMessageValid = checkMessageMac(crossChainMessage);
+                if (not isMessageValid)
+                {
+                    SPDLOG_CRITICAL("Received invalid mac");
+                    nng_msg_free(receivedMessage.message);
+                    receivedMessage.message = nullptr;
+                    receivedMessage.senderId = 0;
+                    continue;
                 }
 
                 for (const auto &messageData : crossChainMessage.data())
