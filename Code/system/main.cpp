@@ -77,16 +77,16 @@ int main(int argc, char *argv[])
         //     return 0;
         // }
 
-        // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-            std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+        // auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        // auto relayTransactionThread =
+        //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 
-        auto sendThread = std::thread(runOneToOneSendThread /*runAllToAllSendThread*/, messageBuffer, pipeline,
+        auto sendThread = std::thread(runSendThread /*runAllToAllSendThread*/, messageBuffer, pipeline,
                                       acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
         auto receiveThread =
-            std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
+            std::thread(runReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
         std::this_thread::sleep_until(testStartRecordTime);
@@ -99,11 +99,11 @@ int main(int argc, char *argv[])
         const auto trueTestEndTime = std::chrono::steady_clock::now();
         end_test();
 
-        // messageRelayThread.join();
+        messageRelayThread.join();
         sendThread.join();
         receiveThread.join();
-        relayRequestThread.join();
-        relayTransactionThread.join();
+        // relayRequestThread.join();
+        // relayTransactionThread.join();
 
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
