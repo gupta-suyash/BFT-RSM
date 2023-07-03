@@ -12,9 +12,15 @@ void AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake, std::opt
     const auto oldAcknowledgmentValue = mNodeData.at(nodeId).acknowledgmentValue;
     if (oldAcknowledgmentValue > curQuackValue)
     {
+        // the node you're updating is unstuck
         return;
     }
     if (mCurStuckQuorumAck == curQuackValue && mCurUnstuckStake > kOtherNetworkMaxFailedStake)
+    {
+        // this message is already delivered
+        return;
+    }
+    if (mActiveResendData.load(std::memory_order_relaxed).isActive && mActiveResendData.load(std::memory_order_relaxed).resendNumber > 2)
     {
         return;
     }
