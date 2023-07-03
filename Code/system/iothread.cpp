@@ -278,22 +278,6 @@ void runUnfairOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> m
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
-void lameResendDataThread(
-    moodycamel::BlockingReaderWriterCircularBuffer<acknowledgment_tracker::ResendData> *const resendOutput,
-    const std::vector<std::unique_ptr<AcknowledgmentTracker>> *const ackTrackers)
-{
-    // commit your code and add this dumb thing that just resends all active things no batching
-    // optimizations: maybe only send messages this node may resend
-    //                maybe send out things in batches
-    //                maybe keep track of things that have already been stored?
-    //                smallest element in a full sweep left->right of the list is monotonic "quorum ack"
-    // observations: 1-2% of checks will actually have data
-    // this thread can probably make way too many checks for the sending thread though :/
-    // maybe the send thread can message about messages its concerned about? And this thread frees once its monotonic
-    // counter is bigger than it?
-    //
-}
-
 void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, const std::shared_ptr<Pipeline> pipeline,
                    const std::shared_ptr<Acknowledgment> acknowledgment,
                    const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
