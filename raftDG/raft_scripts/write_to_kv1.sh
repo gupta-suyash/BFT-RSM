@@ -1,11 +1,5 @@
 #! /bin/bash
 
-# put_kvip="128.110.218.101:13380"
-# leader_kvip="128.110.218.105:11380"
-
-# put_kvip="128.110.218.104:18380"
-# leader_kvip="128.110.218.89:15380"
-
 put_kvip="10.10.1.9:12380"
 leader_kvip="10.10.1.9:12380"
 
@@ -25,12 +19,13 @@ if ! [[ "$num" =~ ^[0-9]+$ ]]; then
     exit 1
 fi
 
-for ((i = 1; i <= num; i++)); do
-    echo "writing (key-"$i", $i) to remote raft system"
-    curl -L http://"$put_kvip"/key-"$i" -XPUT -d $i
-    # curl -L http://"$leader_kvip"/key-"$i"
+for ((c = 0; c < 5; c++)); do
+    for ((i = 1; i <= num; i++)); do
+        data=$((i + $c * $num))
+        echo "writing (key-"$data", $data) to remote raft system"
+        curl -L http://"$put_kvip"/key-"$data" -XPUT -d $data
+        # curl -L http://"$leader_kvip"/key-"$i"
+    done &
 done
 
-function sendRequests() {
-    echo ""
-}
+wait
