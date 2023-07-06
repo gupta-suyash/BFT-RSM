@@ -23,6 +23,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
 	"go.etcd.io/etcd/v3/contrib/raftexample/scrooge"
@@ -35,7 +36,9 @@ import (
 	"bufio"
 )
 
-// tbh not sure if this will work, test it and see
+// Global counter and counter lock
+var counter = 0
+var counterLock sync.Mutex
 
 // a key-value store backed by raft
 type kvstore struct {
@@ -44,11 +47,15 @@ type kvstore struct {
 	mu             sync.RWMutex
 	kvStore        map[string]string // current committed key-value pairs
 	snapshotter    *snap.Snapshotter
-	sequenceNumber int
+	// sequenceNumber int
 	writer         *bufio.Writer // local writer TODO
 	openPipe       *os.File      // pipe for writing to Scrooge
 	reader         *bufio.Reader // local reader TODO
 	openOutputPipe *os.File      // pipe for reading to Scrooge
+
+	startTime	   []time.Time
+	elapsedTime	   []time.Duration
+	keyMap 		   map[string]int // Maps distinct keys to corresponding sequence number
 }
 
 type kv struct {
@@ -56,8 +63,17 @@ type kv struct {
 	Val string
 }
 
-func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC chan<- string, commitC <-chan *commit, errorC <-chan error, seq int) *kvstore {
-	s := &kvstore{rawData: rawData, proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter, sequenceNumber: seq}
+func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC chan<- string, commitC <-chan *commit, errorC <-chan error) *kvstore {
+	s := &kvstore{
+		rawData: 	 	rawData, 
+		proposeC:    	proposeC, 
+		kvStore:     	make(map[string]string), 
+		snapshotter: 	snapshotter, 
+		// sequenceNumber: 0,
+		startTime: 		make([]time.Time, 10000),
+		elapsedTime:	make([]time.Duration, 10000),
+		keyMap:			make(map[string]int),
+	}
 	snapshot, err := s.loadSnapshot()
 	if err != nil {
 		log.Panic(err)
@@ -68,10 +84,6 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 			log.Panic(err)
 		}
 	}
-	// read commits from raft into kvStore map until error
-	// rdtest := make(chan []byte, 1)
-	//byteArray := []byte{97, 98, 99, 100, 101, 102}
-	//s.rawData <- byteArray
 
 	go s.ScroogeReader(path_to_opipe)
 
@@ -89,14 +101,8 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 	}
 	print("passed the openpipewriter ", "\n")
 
-	// use pipe writer
-	/*err = ipc.UsePipeWriter(s.writer, rdtest)
-	if err != nil {
-		print("Unable to use pipe writer", err)
-	}*/
-
 	go s.readCommits(commitC, errorC) // go routine for sending input to Scrooge
-	
+
 	return s
 }
 
@@ -119,12 +125,6 @@ func (s *kvstore) ScroogeReader(path_to_opipe string) {
 	s.receiveScrooge() // go routine for receiving output from Scrooge
 }
 
-func (s *kvstore) FetchWriter(Fwriter *bufio.Writer) {
-	print("fectch called", "\n")
-	s.writer = Fwriter
-	print("fectch executed", "\n")
-}
-
 func (s *kvstore) Lookup(key string) (string, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -137,10 +137,22 @@ func (s *kvstore) Propose(k string, v string) {
 	if err := gob.NewEncoder(&buf).Encode(kv{k, v}); err != nil {
 		log.Fatal(err)
 	}
+
+	counterLock.Lock()
+	localCounter := counter
+	counter = counter + 1
+	counterLock.Unlock()
+
+	// Record start time of client request
+	// Assume all keys are distinct
+	s.startTime[localCounter] = time.Now()
+	s.keyMap[k] = localCounter
+
 	s.proposeC <- buf.String()
 }
 
 func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
+
 	for commit := range commitC {
 		if commit == nil {
 			// signaled to load snapshot
@@ -159,7 +171,7 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 
 		for _, data := range commit.data {
 			var dataKv kv
-
+			
 			dec := gob.NewDecoder(bytes.NewBufferString(data))
 			if err := dec.Decode(&dataKv); err != nil {
 				log.Fatalf("raftexample: could not decode message (%v)", err)
@@ -172,7 +184,17 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 			s.mu.Lock()
 			s.kvStore[dataKv.Key] = dataKv.Val
 			s.mu.Unlock()
-			s.sequenceNumber += 1
+
+			fmt.Printf("-------- Latency Data starts --------\n\n\n")
+			sequenceNumber := s.keyMap[dataKv.Key]
+			startTime := s.startTime[sequenceNumber]
+			fmt.Printf("Start time: ", startTime)
+
+			s.elapsedTime[sequenceNumber] = time.Since(startTime)
+			fmt.Println("Request number ", sequenceNumber, " took: ", s.elapsedTime[sequenceNumber])
+
+			fmt.Printf("\n\n\n-------- Latency Data ends --------\n")
+			
 		}
 		close(commit.applyDoneC)
 	}
@@ -199,14 +221,14 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			SendMessageRequest: &scrooge.SendMessageRequest{
 				Content: &scrooge.CrossChainMessageData{
 					MessageContent: payload,
-					SequenceNumber: uint64(s.sequenceNumber),
+					SequenceNumber: uint64(s.keyMap[dataK.Key]),
 				},
 				ValidityProof: []byte("substitute valididty proof"),
 			},
 		},
 	}
-	fmt.Printf("Actual data: %v\n Actual payload size: %v\n", dataK.Val, len(payload))
-	
+	fmt.Printf("Actual data: %v\nActual payload size: %v\n", dataK.Val, len(payload))
+
 	var err error
 	requestBytes, err := proto.Marshal(request)
 
@@ -257,3 +279,4 @@ func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
 	s.kvStore = store
 	return nil
 }
+

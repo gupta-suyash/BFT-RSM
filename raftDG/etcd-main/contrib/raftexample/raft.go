@@ -420,6 +420,9 @@ func (rc *raftNode) serveChannels() {
 		for rc.proposeC != nil && rc.confChangeC != nil {
 			select {
 			case prop, ok := <-rc.proposeC:
+				// timeReceiveRequest := time.Now()
+				// fmt.Println("Received client request at: ", timeReceiveRequest)
+
 				if !ok {
 					rc.proposeC = nil
 				} else {

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"go.etcd.io/etcd/v3/contrib/raftexample/scrooge"
 )
 
 const O_NONBLOCK = syscall.O_NONBLOCK
@@ -92,7 +93,19 @@ func UsePipeReader(reader *bufio.Reader) {
 	if readData == nil {
 		fmt.Println("Error: no data bytes")
 	}
-	// fmt.Println("Read Data: ", readData)
+
+	// Determines type of Scrooge response
+	/*data := scrooge.ScroogeTransfer(readData)
+	isCommitAcknowledgment := isCommitAcknowledgment(data)
+	isUnvalidatedCrossChainMessage := isUnvalidatedCrossChainMessage(data)
+
+	if isCommitAcknowledgment {
+		fmt.Println("data is CommitAcknowledgment")
+	} else if isUnvalidatedCrossChainMessage {
+		fmt.Println("data is UnvalidatedCrossChainMessage")
+	} else {
+		log.Fatal("Data received from Scrooge has unknown type")
+	}*/
 }
 
 // Blocking call that will continously write the data pipeInput into pipePath
@@ -195,4 +208,19 @@ func doesFileExist(fileName string) bool {
 	_, error := os.Stat(fileName)
 
 	return !os.IsNotExist(error)
+}
+
+// Helper functions that determine whether data read from Scrooge is a CommitAcknowledgment or an UnvalidatedCrossChainMessage.
+func isCommitAcknowledgment(data scrooge.ScroogeTransfer) bool {
+	if data.GetCommitAcknowledgment() != nil && data.GetUnvalidatedCrossChainMessage() == nil {
+		return true;
+	}
+	return false;
+}
+
+func isUnvalidatedCrossChainMessage(data scrooge.ScroogeTransfer) bool {
+	if data.GetCommitAcknowledgment() == nil && data.GetUnvalidatedCrossChainMessage() != nil {
+		return true;
+	}
+	return false;
 }

@@ -23,7 +23,9 @@ import (
 
 const (
 	path_to_pipe  = "/tmp/scrooge-input"
-	path_to_opipe = "/tmp/scrooge-output"
+	path_to_opipe = "/tmp/scrooge-input"
+	// path_to_pipe  = "/Users/qx/Desktop/tmp/scrooge-input"
+	// path_to_opipe = "/Users/qx/Desktop/tmp/scrooge-input"
 )
 
 func main() {
@@ -38,13 +40,15 @@ func main() {
 	confChangeC := make(chan raftpb.ConfChange)
 	defer close(confChangeC)
 
+	// startTimeC := make(chan time.Time)
+	// defer close(startTimeC)
+	
 	// raft provides a commit stream for the proposals from the http api
 	var kvs *kvstore
 	getSnapshot := func() ([]byte, error) { return kvs.getSnapshot() }
 	commitC, errorC, snapshotterReady := newRaftNode(*id, strings.Split(*cluster, ","), *join, getSnapshot, proposeC, confChangeC)
 
 	rawData := make(chan []byte, 1)
-	//rdtest := make(chan []byte, 1)
 	/*
 		byteArray := []byte{97, 98, 99, 100, 101, 102}
 		rawData <- byteArray
@@ -73,30 +77,6 @@ func main() {
 		print(data, "\n")
 	}*/
 
-	//kvs.FetchWriter(writer)
-
-	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC, 0)
-
-	/*err = ipc.UsePipeWriter(writer, kvs.rawData)
-	if err != nil {
-		print("Unable to use pipe writer", err)
-	}*/
-
-	/*err = ipc.UsePipeWriter(writer, rdtest)
-	if err != nil {
-		print("Unable to use pipe writer", err)
-	}*/
-
-	// open writer
-	/*writer, err := ipc.OpenPipeWriter(path_to_pipe, kvs.rawData)
-	if err != nil {
-		print("Unable to open pipe writer: %v", err)
-	}*/
-
-	//kvs.FetchWriter(writer)
-
-	// figure out how to http handle and flush the pipe at the same time
-
-	// the key-value http handler will propose updates to raft
+	kvs = newKVStore(<-snapshotterReady, rawData, proposeC, commitC, errorC)
 	serveHTTPKVAPI(kvs, *kvport, confChangeC, errorC)
 }
