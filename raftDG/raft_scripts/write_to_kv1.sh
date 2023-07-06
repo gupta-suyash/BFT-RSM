@@ -26,7 +26,11 @@ if ! [[ "$num" =~ ^[0-9]+$ ]]; then
 fi
 
 for ((i = 1; i <= num; i++)); do
-    echo "\nwriting (key-"$i", $i) to remote raft system"
+    echo "writing (key-"$i", $i) to remote raft system"
     curl -L http://"$put_kvip"/key-"$i" -XPUT -d $i
     # curl -L http://"$leader_kvip"/key-"$i"
 done
+
+function sendRequests() {
+    echo ""
+}

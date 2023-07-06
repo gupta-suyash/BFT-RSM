@@ -23,6 +23,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.etcd.io/etcd/v3/contrib/raftexample/ipc-pkg"
@@ -37,7 +38,7 @@ import (
 )
 
 // Global counter and counter lock
-var counter = 0
+var counter uint64 = 0
 var counterLock sync.Mutex
 
 // a key-value store backed by raft
@@ -55,7 +56,7 @@ type kvstore struct {
 
 	startTime	   []time.Time
 	elapsedTime	   []time.Duration
-	keyMap 		   map[string]int // Maps distinct keys to corresponding sequence number
+	keyMap 		   map[string]uint64 // Maps distinct keys to corresponding sequence number
 }
 
 type kv struct {
@@ -72,7 +73,7 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 		// sequenceNumber: 0,
 		startTime: 		make([]time.Time, 10000),
 		elapsedTime:	make([]time.Duration, 10000),
-		keyMap:			make(map[string]int),
+		keyMap:			make(map[string]uint64),
 	}
 	snapshot, err := s.loadSnapshot()
 	if err != nil {
@@ -138,10 +139,12 @@ func (s *kvstore) Propose(k string, v string) {
 		log.Fatal(err)
 	}
 
-	counterLock.Lock()
+	/*counterLock.Lock()
 	localCounter := counter
 	counter = counter + 1
-	counterLock.Unlock()
+	counterLock.Unlock()*/
+
+	localCounter := atomic.AddUint64(&counter, 1) - 1
 
 	// Record start time of client request
 	// Assume all keys are distinct
