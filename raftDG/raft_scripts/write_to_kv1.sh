@@ -21,7 +21,7 @@ fi
 
 for ((c = 0; c < 5; c++)); do
     for ((i = 1; i <= num; i++)); do
-        data=$((i + $c * $num))
+        data=$((i + c * num))
         echo "writing (key-"$data", $data) to remote raft system"
         curl -L http://"$put_kvip"/key-"$data" -XPUT -d $data
         # curl -L http://"$leader_kvip"/key-"$i"

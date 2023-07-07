@@ -38,8 +38,7 @@ import (
 )
 
 // Global counter and counter lock
-var counter uint64 = 0
-var counterLock sync.Mutex
+var sequenceNumber uint64 = 0
 
 // a key-value store backed by raft
 type kvstore struct {
@@ -54,14 +53,17 @@ type kvstore struct {
 	reader         *bufio.Reader // local reader TODO
 	openOutputPipe *os.File      // pipe for reading to Scrooge
 
-	startTime	   []time.Time
-	elapsedTime	   []time.Duration
-	keyMap 		   map[string]uint64 // Maps distinct keys to corresponding sequence number
+	// startTime	   []time.Time
+	// elapsedTime	   []time.Duration
+	totalTime	   time.Duration
+	// keyMap 		   map[string]uint64 // Maps distinct keys to corresponding sequence number
 }
 
 type kv struct {
-	Key string
-	Val string
+	Key 	  string
+	Val 	  string
+	startTime time.Time
+	seqNo	  uint64
 }
 
 func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC chan<- string, commitC <-chan *commit, errorC <-chan error) *kvstore {
@@ -71,9 +73,9 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 		kvStore:     	make(map[string]string), 
 		snapshotter: 	snapshotter, 
 		// sequenceNumber: 0,
-		startTime: 		make([]time.Time, 10000),
-		elapsedTime:	make([]time.Duration, 10000),
-		keyMap:			make(map[string]uint64),
+		// startTime: 		make([]time.Time, 10000),
+		// elapsedTime:	make([]time.Duration, 10000),
+		// keyMap:			make(map[string]uint64),
 	}
 	snapshot, err := s.loadSnapshot()
 	if err != nil {
@@ -104,7 +106,40 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 
 	go s.readCommits(commitC, errorC) // go routine for sending input to Scrooge
 
+	go s.timeTracker()
+
 	return s
+}
+
+func (s *kvstore) timeTracker() {
+	TT := 180 * time.Second // Total experiment time
+	WT := 30 * time.Second // Warm up time
+	// ET := TT - WT // Experiment time
+
+	timerTT := time.NewTimer(TT)
+	timerWT := time.NewTimer(WT)
+	fmt.Println("Start warm up")
+	// start := time.Now()
+	
+	var warmupCount uint64
+	var totalCount uint64
+	go func() {
+		<-timerWT.C
+		warmupCount = atomic.LoadUint64(&sequenceNumber)
+		// fmt.Println("Total requests at end of warm up: ", warmupCount)
+	}()
+
+	go func() {
+		<-timerTT.C
+		totalCount = atomic.LoadUint64(&sequenceNumber)
+		fmt.Println("Total experiment time: ", TT, " Warm up time: ", WT)
+		fmt.Println("Total requests at end of warm up: ", warmupCount)
+		fmt.Println("Total requests at end of experiment: ", totalCount)
+		fmt.Println("Total elapsed time: ", s.totalTime)
+		fmt.Println("Average latency: ", time.Duration(int64(s.totalTime) / int64(totalCount)))
+
+		os.Exit(0)
+	}()
 }
 
 func (s *kvstore) ScroogeReader(path_to_opipe string) {
@@ -135,7 +170,9 @@ func (s *kvstore) Lookup(key string) (string, bool) {
 
 func (s *kvstore) Propose(k string, v string) {
 	var buf strings.Builder
-	if err := gob.NewEncoder(&buf).Encode(kv{k, v}); err != nil {
+
+	startTime := time.Now()
+	if err := gob.NewEncoder(&buf).Encode(kv{k, v, startTime}); err != nil {
 		log.Fatal(err)
 	}
 
@@ -144,12 +181,13 @@ func (s *kvstore) Propose(k string, v string) {
 	counter = counter + 1
 	counterLock.Unlock()*/
 
-	localCounter := atomic.AddUint64(&counter, 1) - 1
+	// @ethan
+	// localCounter := atomic.AddUint64(&counter, 1) - 1
 
 	// Record start time of client request
 	// Assume all keys are distinct
-	s.startTime[localCounter] = time.Now()
-	s.keyMap[k] = localCounter
+	// s.startTime[localCounter] = time.Now()
+	// s.keyMap[k] = localCounter
 
 	s.proposeC <- buf.String()
 }
@@ -180,23 +218,27 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 				log.Fatalf("raftexample: could not decode message (%v)", err)
 			}
 
-			print("call sendscrooge", "\n")
-			s.sendScrooge(dataKv)
-			print("end sendscrooge", "\n")
-
+			// Why mutex since only one thread reading commits?
 			s.mu.Lock()
 			s.kvStore[dataKv.Key] = dataKv.Val
+			dataKv.seqNo = sequenceNumber
+			sequenceNumber++
 			s.mu.Unlock()
 
-			fmt.Printf("-------- Latency Data starts --------\n\n\n")
-			sequenceNumber := s.keyMap[dataKv.Key]
-			startTime := s.startTime[sequenceNumber]
-			fmt.Printf("Start time: ", startTime)
+			s.sendScrooge(dataKv)
 
-			s.elapsedTime[sequenceNumber] = time.Since(startTime)
-			fmt.Println("Request number ", sequenceNumber, " took: ", s.elapsedTime[sequenceNumber])
+			// fmt.Printf("-------- Latency Data starts --------\n\n\n")
+			// sequenceNumber := s.keyMap[dataKv.Key]
+			// startTime := s.startTime[sequenceNumber]
+			elapsedTime := time.Since(dataKv.startTime)
+			// fmt.Printf("Start time: ", startTime)
 
-			fmt.Printf("\n\n\n-------- Latency Data ends --------\n")
+			s.totalTime += elapsedTime
+			// s.elapsedTime[sequenceNumber] = time.Since(startTime)
+			// fmt.Println("Request number ", sequenceNumber, " took: ", elapsedTime)
+			// fmt.Println("Total elapsed time: ", s.totalTime)
+
+			// fmt.Printf("\n\n\n-------- Latency Data ends --------\n")
 			
 		}
 		close(commit.applyDoneC)
@@ -211,12 +253,6 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 }
 
 func (s *kvstore) sendScrooge(dataK kv) {
-
-	// creating payload in format [ size uint64, data []byte ]
-	/*var writeSizeBytes [8]byte
-	data := []byte(dataK.Val)
-	binary.LittleEndian.PutUint64(writeSizeBytes[:], uint64(len(data)))
-	payload := append(writeSizeBytes, data)*/
 	payload := []byte(dataK.Val)
 
 	request := &scrooge.ScroogeRequest{
@@ -224,7 +260,7 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			SendMessageRequest: &scrooge.SendMessageRequest{
 				Content: &scrooge.CrossChainMessageData{
 					MessageContent: payload,
-					SequenceNumber: uint64(s.keyMap[dataK.Key]),
+					SequenceNumber: dataK.seqNo,
 				},
 				ValidityProof: []byte("substitute valididty proof"),
 			},
