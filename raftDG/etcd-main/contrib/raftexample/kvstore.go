@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
+	// "strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -47,23 +47,19 @@ type kvstore struct {
 	mu             sync.RWMutex
 	kvStore        map[string]string // current committed key-value pairs
 	snapshotter    *snap.Snapshotter
-	// sequenceNumber int
 	writer         *bufio.Writer // local writer TODO
 	openPipe       *os.File      // pipe for writing to Scrooge
 	reader         *bufio.Reader // local reader TODO
 	openOutputPipe *os.File      // pipe for reading to Scrooge
 
-	// startTime	   []time.Time
-	// elapsedTime	   []time.Duration
 	totalTime	   time.Duration
-	// keyMap 		   map[string]uint64 // Maps distinct keys to corresponding sequence number
 }
 
 type kv struct {
 	Key 	  string
 	Val 	  string
-	startTime time.Time
-	seqNo	  uint64
+	StartTime time.Time
+	SeqNo	  uint64
 }
 
 func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC chan<- string, commitC <-chan *commit, errorC <-chan error) *kvstore {
@@ -102,7 +98,7 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 	if err != nil {
 		print("Unable to open pipe writer: %v", err, "\n")
 	}
-	print("passed the openpipewriter ", "\n")
+	// print("passed the openpipewriter ", "\n")
 
 	go s.readCommits(commitC, errorC) // go routine for sending input to Scrooge
 
@@ -112,21 +108,20 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 }
 
 func (s *kvstore) timeTracker() {
-	TT := 180 * time.Second // Total experiment time
+	TT := 120 * time.Second // Total experiment time
 	WT := 30 * time.Second // Warm up time
-	// ET := TT - WT // Experiment time
+
+
 
 	timerTT := time.NewTimer(TT)
 	timerWT := time.NewTimer(WT)
-	fmt.Println("Start warm up")
-	// start := time.Now()
+	// fmt.Println("Start warm up")
 	
 	var warmupCount uint64
 	var totalCount uint64
 	go func() {
 		<-timerWT.C
 		warmupCount = atomic.LoadUint64(&sequenceNumber)
-		// fmt.Println("Total requests at end of warm up: ", warmupCount)
 	}()
 
 	go func() {
@@ -156,9 +151,9 @@ func (s *kvstore) ScroogeReader(path_to_opipe string) {
 	if err != nil {
 		print("Unable to open pipe reader: %v", err, "\n")
 	}
-	print("passed the openpipereader ", "\n")
+	// print("passed the openpipereader ", "\n")
 
-	s.receiveScrooge() // go routine for receiving output from Scrooge
+	s.receiveScrooge()
 }
 
 func (s *kvstore) Lookup(key string) (string, bool) {
@@ -169,25 +164,24 @@ func (s *kvstore) Lookup(key string) (string, bool) {
 }
 
 func (s *kvstore) Propose(k string, v string) {
-	var buf strings.Builder
+	// fmt.Println("Propose key: ", k)
 
+	var buf bytes.Buffer
+
+	// layout := "15:04:05.999"
+	// startTimeString := time.Now().Format(layout)
+	// startTime, _ := time.Parse(layout, startTimeString)
 	startTime := time.Now()
-	if err := gob.NewEncoder(&buf).Encode(kv{k, v, startTime}); err != nil {
-		log.Fatal(err)
+
+	newKv := kv{
+		Key:		k,
+		Val:		v,
+		StartTime:  startTime,
 	}
 
-	/*counterLock.Lock()
-	localCounter := counter
-	counter = counter + 1
-	counterLock.Unlock()*/
-
-	// @ethan
-	// localCounter := atomic.AddUint64(&counter, 1) - 1
-
-	// Record start time of client request
-	// Assume all keys are distinct
-	// s.startTime[localCounter] = time.Now()
-	// s.keyMap[k] = localCounter
+	if err := gob.NewEncoder(&buf).Encode(newKv); err != nil {
+		log.Fatal(err)
+	}
 
 	s.proposeC <- buf.String()
 }
@@ -213,25 +207,31 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 		for _, data := range commit.data {
 			var dataKv kv
 			
-			dec := gob.NewDecoder(bytes.NewBufferString(data))
+			dec := gob.NewDecoder(bytes.NewBuffer([]byte(data)))
 			if err := dec.Decode(&dataKv); err != nil {
 				log.Fatalf("raftexample: could not decode message (%v)", err)
 			}
 
 			// Why mutex since only one thread reading commits?
-			s.mu.Lock()
-			s.kvStore[dataKv.Key] = dataKv.Val
-			dataKv.seqNo = sequenceNumber
-			sequenceNumber++
-			s.mu.Unlock()
+			// s.mu.Lock()
+			// s.kvStore[dataKv.Key] = dataKv.Val
+			// seqNo := sequenceNumber
+			// sequenceNumber++
+			// s.mu.Unlock()
 
-			s.sendScrooge(dataKv)
+			seqNo := atomic.AddUint64(&sequenceNumber, 1) - 1
+
+			s.sendScrooge(dataKv, seqNo)
 
 			// fmt.Printf("-------- Latency Data starts --------\n\n\n")
-			// sequenceNumber := s.keyMap[dataKv.Key]
-			// startTime := s.startTime[sequenceNumber]
-			elapsedTime := time.Since(dataKv.startTime)
-			// fmt.Printf("Start time: ", startTime)
+			// layout := "15:04:05.999"
+			// endTimeString := time.Now().Format(layout)
+			// endTime, _ := time.Parse(layout, endTimeString)
+			// elapsedTime := endTime.Sub(dataKv.StartTime)
+
+			elapsedTime := time.Since(dataKv.StartTime)
+			// fmt.Println("Start time: ", dataKv.StartTime)
+			// fmt.Println("Elapsed time: ", elapsedTime)
 
 			s.totalTime += elapsedTime
 			// s.elapsedTime[sequenceNumber] = time.Since(startTime)
@@ -246,13 +246,13 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 	if err, ok := <-errorC; ok {
 		log.Fatal(err)
 	}
-	fmt.Println("kv store stops reading commit, closing pipe!")
+	// fmt.Println("kv store stops reading commit, closing pipe!")
 	if err := s.openPipe.Close(); err != nil {
 		log.Fatalf("kv store could not close opened pipe: ", err)
 	}
 }
 
-func (s *kvstore) sendScrooge(dataK kv) {
+func (s *kvstore) sendScrooge(dataK kv, seqNo uint64) {
 	payload := []byte(dataK.Val)
 
 	request := &scrooge.ScroogeRequest{
@@ -260,20 +260,20 @@ func (s *kvstore) sendScrooge(dataK kv) {
 			SendMessageRequest: &scrooge.SendMessageRequest{
 				Content: &scrooge.CrossChainMessageData{
 					MessageContent: payload,
-					SequenceNumber: dataK.seqNo,
+					SequenceNumber: seqNo,
 				},
 				ValidityProof: []byte("substitute valididty proof"),
 			},
 		},
 	}
-	fmt.Printf("Actual data: %v\nActual payload size: %v\n", dataK.Val, len(payload))
+	// fmt.Printf("Actual data: %v\nActual payload size: %v\n", dataK.Val, len(payload))
 
 	var err error
 	requestBytes, err := proto.Marshal(request)
 
 	if err == nil {
-		fmt.Println("Request bytes:", requestBytes)
-		fmt.Println("Request bytes size: ", len(requestBytes))
+		// fmt.Println("Request bytes:", requestBytes)
+		// fmt.Println("Request bytes size: ", len(requestBytes))
 		err = ipc.UsePipeWriter(s.writer, requestBytes)
 		if err != nil {
 			print("Unable to use pipe writer", err)

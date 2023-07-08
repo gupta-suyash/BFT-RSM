@@ -173,7 +173,7 @@ func loggedRead(reader io.Reader, numBytes uint64) []byte {
 	readData := make([]byte, numBytes)
 
 	bytesRead, readErr := io.ReadFull(reader, readData)
-	fmt.Println("start read data: ", readData, " bytes read: ", bytesRead)
+	// fmt.Println("start read data: ", readData, " bytes read: ", bytesRead)
 	// fmt.Println("After logged read")
 
 	if readErr != nil {

@@ -19,7 +19,7 @@ if ! [[ "$num" =~ ^[0-9]+$ ]]; then
     exit 1
 fi
 
-for ((c = 0; c < 5; c++)); do
+for ((c = 0; c < 8; c++)); do
     for ((i = 1; i <= num; i++)); do
         data=$((i + c * num))
         echo "writing (key-"$data", $data) to remote raft system"
