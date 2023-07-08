@@ -1,0 +1,841 @@
+scrooge 212054 227466.837882:          1 cycles: 
+	ffffffffb9dfecd4 event_function+0xa4 ([kernel.kallsyms])
+	ffffffffb9df9693 remote_function+0x43 ([kernel.kallsyms])
+	ffffffffb9d3f4f2 flush_smp_call_function_queue+0x52 ([kernel.kallsyms])
+	ffffffffb9d40043 generic_smp_call_function_single_interrupt+0x13 ([kernel.kallsyms])
+	ffffffffba8026ce smp_call_function_single_interrupt+0x3e ([kernel.kallsyms])
+	ffffffffba801d0f call_function_single_interrupt+0xf ([kernel.kallsyms])
+	          45d1da scrooge::CrossChainMessageData::InternalSwap+0xa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227466.837892:          1 cycles: 
+	ffffffffb9dfecd4 event_function+0xa4 ([kernel.kallsyms])
+	ffffffffb9df9693 remote_function+0x43 ([kernel.kallsyms])
+	ffffffffb9d3f4f2 flush_smp_call_function_queue+0x52 ([kernel.kallsyms])
+	ffffffffb9d40043 generic_smp_call_function_single_interrupt+0x13 ([kernel.kallsyms])
+	ffffffffba8026ce smp_call_function_single_interrupt+0x3e ([kernel.kallsyms])
+	ffffffffba801d0f call_function_single_interrupt+0xf ([kernel.kallsyms])
+	          45d1da scrooge::CrossChainMessageData::InternalSwap+0xa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227466.837895:        125 cycles: 
+	ffffffffb9dfecd4 event_function+0xa4 ([kernel.kallsyms])
+	ffffffffb9df9693 remote_function+0x43 ([kernel.kallsyms])
+	ffffffffb9d3f4f2 flush_smp_call_function_queue+0x52 ([kernel.kallsyms])
+	ffffffffb9d40043 generic_smp_call_function_single_interrupt+0x13 ([kernel.kallsyms])
+	ffffffffba8026ce smp_call_function_single_interrupt+0x3e ([kernel.kallsyms])
+	ffffffffba801d0f call_function_single_interrupt+0xf ([kernel.kallsyms])
+	          45d1da scrooge::CrossChainMessageData::InternalSwap+0xa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227466.837899:      48523 cycles: 
+	ffffffffb9dfecd4 event_function+0xa4 ([kernel.kallsyms])
+	ffffffffb9df9693 remote_function+0x43 ([kernel.kallsyms])
+	ffffffffb9d3f4f2 flush_smp_call_function_queue+0x52 ([kernel.kallsyms])
+	ffffffffb9d40043 generic_smp_call_function_single_interrupt+0x13 ([kernel.kallsyms])
+	ffffffffba8026ce smp_call_function_single_interrupt+0x3e ([kernel.kallsyms])
+	ffffffffba801d0f call_function_single_interrupt+0xf ([kernel.kallsyms])
+	          45d1da scrooge::CrossChainMessageData::InternalSwap+0xa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227466.837918:   19326819 cycles: 
+	ffffffffba801d00 call_function_single_interrupt+0x0 ([kernel.kallsyms])
+	    7f230a59ed7e _int_malloc+0x30e (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227466.844132:  958632535 cycles: 
+	    7f230a5a13a1 malloc+0x2c1 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227466.959297:   54304579 cycles: 
+	    7f230a59ecb4 _int_malloc+0x244 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227466.976118:   45352579 cycles: 
+	          449f91 moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0x11 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227466.989775:   41420742 cycles: 
+	    7f230a5a1128 malloc+0x48 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.002760:   38322583 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.014260:   36767774 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.025242:   35788000 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.035933:   35150939 cycles: 
+	          449fac moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0x2c (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.046612:   34804941 cycles: 
+	    7f230a59ed46 _int_malloc+0x2d6 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.057057:   34301871 cycles: 
+	          45d1d4 scrooge::CrossChainMessageData::InternalSwap+0x4 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.067330:   34105968 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.077557:   34005254 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.087770:   33916035 cycles: 
+	    7f230a5a1201 malloc+0x121 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.097863:   33901427 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.107999:   33887602 cycles: 
+	          45c9c7 scrooge::CrossChainMessageData::~CrossChainMessageData+0x27 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.118442:   33837038 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.128749:   33426883 cycles: 
+	    7f230a59eddc _int_malloc+0x36c (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.139120:   33075987 cycles: 
+	    7f230a59ed83 _int_malloc+0x313 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.149012:   33334807 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.159029:   33368046 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.169500:   33084937 cycles: 
+	    7f230a5a1708 cfree@GLIBC_2.2.5+0x38 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.179737:   33058937 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.189704:   33119899 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.200116:   32843244 cycles: 
+	          45c7f1 scrooge::CrossChainMessageData::CrossChainMessageData+0x1 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.209948:   33021735 cycles: 
+	    7f230a8fdf10 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	          45d2ad scrooge::CrossChainMessageData::InternalSwap+0xdd (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.219871:   33255486 cycles: 
+	    7f230a59edb2 _int_malloc+0x342 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.230383:   32800910 cycles: 
+	    7f230a59ed7e _int_malloc+0x30e (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.240295:   33023623 cycles: 
+	    7f230a59ed7e _int_malloc+0x30e (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.250239:   33101090 cycles: 
+	    7f230a8fdf10 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.260643:   32899182 cycles: 
+	          449ae0 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1c0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.270575:   32904488 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.280465:   33219347 cycles: 
+	          45c9b5 scrooge::CrossChainMessageData::~CrossChainMessageData+0x15 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.290950:   33322644 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.301286:   32723341 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.311140:   32886919 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.321051:   33060299 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.331388:   32808872 cycles: 
+	          455dbd google::protobuf::internal::ArenaStringPtr::CreateInstance+0xfd (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          45d2ad scrooge::CrossChainMessageData::InternalSwap+0xdd (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.341421:   32823662 cycles: 
+	          45c825 scrooge::CrossChainMessageData::CrossChainMessageData+0x35 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a06a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xea (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.351192:   33077470 cycles: 
+	          4499ce std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xae (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.361587:   33108799 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.371749:   32908796 cycles: 
+	          45c834 scrooge::CrossChainMessageData::CrossChainMessageData+0x44 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a06a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xea (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.381658:   33018786 cycles: 
+	    7f230a5a12e7 malloc+0x207 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.391722:   33101078 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.402154:   32750421 cycles: 
+	          449fac moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0x2c (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.412020:   33023313 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.422142:   33157471 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.432750:   32601506 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.442553:   32783482 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.452558:   32943171 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.462821:   32719762 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.472842:   32956070 cycles: 
+	          40c990 operator delete@plt+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.483799:   32150778 cycles: 
+	          4499e7 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xc7 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.494578:   31767577 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.505245:   31132366 cycles: 
+	    7f230a5a112f malloc+0x4f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.515680:   30826210 cycles: 
+	          449f80 moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.525254:   31150885 cycles: 
+	    7f230a5a13a1 malloc+0x2c1 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.534745:   31620900 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.544439:   32085277 cycles: 
+	    7f230a59ed7e _int_malloc+0x30e (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.554310:   32190273 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.564204:   32494810 cycles: 
+	    7f230a90db3f operator new+0x1f (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	          45d2ad scrooge::CrossChainMessageData::InternalSwap+0xdd (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.574225:   32458516 cycles: 
+	    7f230a5a1725 cfree@GLIBC_2.2.5+0x55 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.584176:   32697044 cycles: 
+	    7f230a5a13a1 malloc+0x2c1 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.594055:   32810028 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.604071:   32953857 cycles: 
+	          4499f3 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xd3 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.614139:   32901518 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.624081:   33084769 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.633973:   33218539 cycles: 
+	          455dd1 google::protobuf::internal::ArenaStringPtr::CreateInstance+0x111 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          45d2ad scrooge::CrossChainMessageData::InternalSwap+0xdd (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.643908:   33430349 cycles: 
+	    7f230a59d98d _int_free+0x14d (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+	               1 [unknown] ([unknown])
+
+scrooge 212054 227467.653858:   33530009 cycles: 
+	    7f230a59edb2 _int_malloc+0x342 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.663884:   33639048 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.674040:   33586033 cycles: 
+	          45c831 scrooge::CrossChainMessageData::CrossChainMessageData+0x41 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          4499de std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xbe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.684129:   33594569 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.694127:   33656068 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.704263:   33650385 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.714279:   33699360 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.724354:   33751843 cycles: 
+	          449fac moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0x2c (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.734400:   33775718 cycles: 
+	          449fbd moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0x3d (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.744497:   33804426 cycles: 
+	    7f230a5a171c cfree@GLIBC_2.2.5+0x4c (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.754557:   33817555 cycles: 
+	          45d2fd scrooge::CrossChainMessageData::InternalSwap+0x12d (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.764713:   33790555 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.775076:   33711707 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.785312:   33467442 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.795511:   33384780 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.805689:   33277094 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.815664:   33425820 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.825676:   33448977 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.835715:   33573663 cycles: 
+	    7f230a5a10fe malloc+0x1e (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.845801:   33528617 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.855863:   33598189 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.865862:   33659421 cycles: 
+	          45d1da scrooge::CrossChainMessageData::InternalSwap+0xa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.875924:   33727842 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.885961:   33758457 cycles: 
+	    7f230a5a1725 cfree@GLIBC_2.2.5+0x55 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.896054:   33793527 cycles: 
+	    7f230a5a10fe malloc+0x1e (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.906110:   33809503 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.916215:   33828730 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.926494:   33618535 cycles: 
+	    7f230a59edb2 _int_malloc+0x342 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.936544:   33697834 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.946854:   33619506 cycles: 
+	    7f230a59ed7e _int_malloc+0x30e (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.957009:   33490031 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.967061:   33514972 cycles: 
+	          45d2d1 scrooge::CrossChainMessageData::InternalSwap+0x101 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.977316:   33398731 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227467.987391:   33430948 cycles: 
+	          449fac moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0x2c (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227467.997503:   33427298 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.007679:   33388069 cycles: 
+	    7f230a90bd70 operator delete+0x0 (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.017639:   33429219 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.027635:   33572314 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.037626:   33640367 cycles: 
+	    7f230a5a131d malloc+0x23d (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.047873:   33512803 cycles: 
+	    7f230a5a131d malloc+0x23d (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.057846:   33592542 cycles: 
+	          4499ec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xcc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.067938:   33631845 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.077946:   33684450 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.088108:   33669024 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.098128:   33713879 cycles: 
+	    7f230a59eddc _int_malloc+0x36c (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.108255:   33718000 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.118381:   33664940 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.128447:   33729654 cycles: 
+	    7f230a5a1725 cfree@GLIBC_2.2.5+0x55 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.138485:   33759114 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.148577:   33794408 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.158634:   33810430 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.168741:   33828168 cycles: 
+	    7f230a90db3f operator new+0x1f (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	          45d2ad scrooge::CrossChainMessageData::InternalSwap+0xdd (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.179050:   33620773 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.189200:   33616814 cycles: 
+	    7f230a59eddc _int_malloc+0x36c (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.199304:   33589811 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.209447:   33531778 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.219455:   33641332 cycles: 
+	    7f230a59ed7e _int_malloc+0x30e (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.229485:   33691777 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.239648:   33652275 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.249662:   33700790 cycles: 
+	    7f230a5a12e7 malloc+0x207 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.259737:   33754036 cycles: 
+	    7f230a5a1708 cfree@GLIBC_2.2.5+0x38 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.269782:   33779300 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.279925:   33770892 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.290088:   33688038 cycles: 
+	    7f230a59edf2 _int_malloc+0x382 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.300332:   33561965 cycles: 
+	    7f230a59edb2 _int_malloc+0x342 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.310373:   33581298 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.320414:   33674809 cycles: 
+	    7f230a5a131d malloc+0x23d (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.330436:   33716933 cycles: 
+	    7f230a5a1201 malloc+0x121 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.340599:   33725788 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.350633:   33715155 cycles: 
+	          45d23f scrooge::CrossChainMessageData::InternalSwap+0x6f (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.360843:   33626471 cycles: 
+	    7f230a5a13a1 malloc+0x2c1 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.370947:   33632843 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.381169:   33534977 cycles: 
+	    7f230a5a172b cfree@GLIBC_2.2.5+0x5b (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+	          4499c8 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0xa8 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.391296:   33503723 cycles: 
+	          449f91 moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0x11 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.401454:   33429568 cycles: 
+	    7f230a90db2d operator new+0xd (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.411515:   33486145 cycles: 
+	          45d2ce scrooge::CrossChainMessageData::InternalSwap+0xfe (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          44a07a moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::inner_enqueue<(moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData, 512ul>::AllocationMode)1, scrooge::CrossChainMessageData>+0xfa (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	          449aec std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::_M_run+0x1cc (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	    7f230a939de4 [unknown] (/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.28)
+	    7ffed186ebb0 [unknown] ([unknown])
+	          449900 std::thread::_State_impl<std::thread::_Invoker<std::tuple<test_size(unsigned long)::$_0> > >::~_State_impl+0x0 (/proj/ove-PG0/therealmurray/BFT-RSM/Code/scrooge)
+	fffffbf0e9000000 [unknown] ([unknown])
+
+scrooge 212054 227468.421703:   33551284 cycles: 
+	    7f230a5a131d malloc+0x23d (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.431780:   33447702 cycles: 
+	    7f230a5a13a1 malloc+0x2c1 (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+
+scrooge 212054 227468.441734:   33543900 cycles: 
+	    7f230a59ed8f _int_malloc+0x31f (/usr/lib/x86_64-linux-gnu/libc-2.31.so)
+

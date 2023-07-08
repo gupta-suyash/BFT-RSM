@@ -1,18 +1,26 @@
-#include "acknowledgment.h"
-#include "global.h"
-#include "iothread.h"
-#include "parser.h"
-#include "pipeline.h"
-#include "quorum_acknowledgment.h"
+// #include "acknowledgment.h"
+// #include "global.h"
+// #include "iothread.h"
+// #include "parser.h"
+// #include "pipeline.h"
+// #include "quorum_acknowledgment.h"
+// #include "benchmark.h"
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>
 #include <thread>
 
+
 int main(int argc, char *argv[])
 {
-    std::string path;
+    
+
+
+    /* Tests with the Blocking circular buffer*/
+    // BlockingReaderWriterCircularBuffer
+    return 0;
+    /*std::string path;
     {
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
         const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
@@ -83,7 +91,7 @@ int main(int argc, char *argv[])
             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 
-        auto sendThread = std::thread(runOneToOneSendThread /*runAllToAllSendThread*/, messageBuffer, pipeline,
+        auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline,
                                       acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
         auto receiveThread =
             std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
@@ -128,5 +136,5 @@ int main(int argc, char *argv[])
         path = kLogPath;
     }
     printMetrics(path);
-    return 0;
+    return 0;*/
 }

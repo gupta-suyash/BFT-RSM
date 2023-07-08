@@ -4,6 +4,7 @@ import "google/protobuf/wrappers.proto";
 
 package scrooge;
 option go_package="/scrooge";
+option cc_enable_arenas = true;
 
 // Message to identify a specific RSM cluster
 message ClusterIdentifier {

@@ -4,7 +4,7 @@
 #include "global.h"
 #include "readerwritercircularbuffer.h"
 
-#include "scrooge_message.pb.h"
+// #include "scrooge_message.pb.h"
 
 #include <atomic>
 #include <bitset>

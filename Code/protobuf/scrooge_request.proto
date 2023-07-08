@@ -5,6 +5,7 @@ import "scrooge_networking.proto";
 
 package scrooge;
 option go_package="/scrooge";
+option cc_enable_arenas = true;
 
 // Message with data to make the scrooge application do an action
 message ScroogeRequest {

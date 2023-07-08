@@ -10,4 +10,10 @@ How to make code:
 
 Note: You only need to run steps 1 and 2 once per new machine
 
-To run the program (assuming only 2 clusters as of right now): ./scrooge /proj/ove-PG0/murray/Scrooge/Code/experiments/experiment_json/scale_clients.json client_scaling_experiment server_# where # = the number of the machine
+To run the program (assuming only 2 clusters as of right now): /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json increase_packet_size
+
+Setup script: /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/setup.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json
+
+Run algorand: 
+
+Kill all python processes: killall -9 ssh; pkill python

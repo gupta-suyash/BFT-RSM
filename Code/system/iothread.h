@@ -49,6 +49,11 @@ void runOneToOneSendThread(std::shared_ptr<iothread::MessageQueue> messageInput,
                            std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
+void runUnfairOneToOneSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
+                           std::shared_ptr<Acknowledgment> acknowledgment,
+                           std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
+                           std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
+
 void runReceiveThread(std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
                       std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                       std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
