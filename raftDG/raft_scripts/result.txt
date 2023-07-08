@@ -1,0 +1,40 @@
+# 2 clients
+Total experiment time:  2m0s  Warm up time:  30s
+Total requests at end of warm up:  6481
+Total requests at end of experiment:  28964
+Total elapsed time:  17.752922953s
+Average latency:  612.93µs
+
+# 4
+Total experiment time:  2m0s  Warm up time:  30s
+Total requests at end of warm up:  13154
+Total requests at end of experiment:  53115
+Total elapsed time:  34.189454811s
+Average latency:  643.687µs
+
+# 6
+Total experiment time:  2m0s  Warm up time:  30s
+Total requests at end of warm up:  18677
+Total requests at end of experiment:  56462
+Total elapsed time:  35.066120987s
+Average latency:  621.057µs
+
+# 8
+Total experiment time:  2m0s  Warm up time:  30s
+Total requests at end of warm up:  23332
+Total requests at end of experiment:  56462
+Total elapsed time:  2m47.022908494s
+Average latency:  2.958147ms
+
+# 6 clients for each node within a 4-node cluster
+Total experiment time:  2m0s  Warm up time:  30s
+Total requests at end of warm up:  38556
+Total requests at end of experiment:  174738
+Total elapsed time:  14m25.316407894s
+Average latency:  4.952079ms
+
+Total experiment time:  2m0s  Warm up time:  30s
+Total requests at end of warm up:  37623
+Total requests at end of experiment:  174611
+Total elapsed time:  13m53.665328041s
+Average latency:  4.774414ms

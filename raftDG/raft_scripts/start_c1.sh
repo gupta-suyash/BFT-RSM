@@ -47,7 +47,7 @@ commands=(
 
   "go build -o raftexample"
 
-  "./raftexample --id \$CLUSTER_ID --cluster http://10.10.1.1:11379,http://10.10.1.2:12379,http://10.10.1.3:13379,http://10.10.1.4:14379 --port \$KV_PORT"
+  "./raftexample --id \$CLUSTER_ID --cluster http://10.10.1.1:11379,http://10.10.1.2:12379,http://10.10.1.3:13379,http://10.10.1.4:14379 --port \$KV_PORT \> tmpout.txt"
 )
 
 runcmd "${commands[@]}"
