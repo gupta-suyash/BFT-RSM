@@ -1,42 +1,37 @@
 CC=clang++
 CFLAGS=-Wall -g -std=c++20 -O3 -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
+NNMSG=${PWD}/deps/nng
 BOOST=${PWD}/deps/boost_1_80_0
 SANITIZERS=-fsanitize=address -fsanitize=undefined
 
 .SUFFIXES: .o .cpp .h .cc
 
 SRC_DIRS = ./system/ 
-DEPS = -I$(BOOST)
+DEPS = -I$(NNMSG)/include -I$(BOOST)
 
 PROTO_DIR = ./protobuf/
 
 CFLAGS += $(DEPS)
-LDFLAGS = $(CFLAGS)
-LIBS = -lanl -ldl -lprotobuf -lpthread -latomic
+LDFLAGS = -L$(NNMSG)/lib 
+LDFLAGS += $(CFLAGS)
+LIBS = -lnng -lanl -ldl -lprotobuf -lpthread -ljsoncpp -latomic -lcryptopp
 
 PROTO_SOURCES = $(wildcard ./protobuf/*.proto)
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
 SOURCES += $(wildcard ./configuration/*.cpp)
 LIBRARY_SOURCES = $(filter-out ./system/main.cpp, $(SOURCES))
 TEST_SOURCES = $(wildcard ./test/*.cpp ./test/*.cc)
-QUEUE_SOURCES = $(wildcard ./tests/*.cpp ./system/*.cc)
 
 SOURCES_OBJ = $(SOURCES:.cpp=.o)
 LIBRARY_SOURCES_OBJ = $(LIBRARY_SOURCES:.cpp=.o)
 TEST_SOURCES_OBJ = $(TEST_SOURCES:.cpp=.o)
-QUEUE_OBJ = $(QUEUE_SOURCES:.cpp=.o)
 
 FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 
 .PHONY: all clean format test proto
-all: testQueue
+all: scrooge
 
 scrooge : $(SOURCES_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
-%.o : %.cpp
-	$(CC) -c ${CFLAGS} -o $@ $<
-
-testQueue : $(QUEUE_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} -o $@ $<

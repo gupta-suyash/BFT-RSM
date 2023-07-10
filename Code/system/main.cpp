@@ -4,7 +4,7 @@
 // #include "parser.h"
 // #include "pipeline.h"
 // #include "quorum_acknowledgment.h"
-// #include "benchmark.h"
+#include "benchmark.h"
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -14,6 +14,16 @@
 
 int main(int argc, char *argv[])
 {
+    test_integer(12);
+    // test_protobuf_creation_stack(100);
+    // test_protobuf_creation_heap(100);
+    std::cout << "Hi " << std::endl;
+    // test_stack_protobuf_queue_rate(7, 0);
+    // for (size_t i = 2; i <= 6; i++) {
+    //     uint64_t sz = pow(10, i);
+    //     test_stack_protobuf_queue_rate(7, sz);
+    //     test_heap_protobuf_queue_rate(7, sz);
+    // }
     
 
 

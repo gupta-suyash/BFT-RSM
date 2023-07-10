@@ -4,7 +4,6 @@ import "scrooge_message.proto";
 
 package scrooge;
 option go_package="/scrooge";
-option cc_enable_arenas = true;
 
 // Message with data scrooge sends to appliaction/protocol users
 message ScroogeTransfer {
