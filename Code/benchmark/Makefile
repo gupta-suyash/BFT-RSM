@@ -1,5 +1,5 @@
 CC=clang++
-CFLAGS=-Wall -g -std=c++20 -O3 -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
+CFLAGS=-Wall -g -O3 -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 SANITIZERS=-fsanitize=address -fsanitize=undefined
 
 .SUFFIXES: .o .cpp .h .cc
@@ -7,17 +7,17 @@ SANITIZERS=-fsanitize=address -fsanitize=undefined
 SRC_DIRS = ./system/ 
 DEPS = -I$(BOOST)
 
-PROTO_DIR = ./protobuf/
+PROTO_SOURCES = $(wildcard ./protobuf/*.proto)
 
 CFLAGS += $(DEPS)
 LDFLAGS = $(CFLAGS)
-LIBS = -lprotobuf -lpthread -latomic
-QUEUE_SOURCES = $(wildcard ./*.cpp ../system/*.cc)
+LIBS = -lanl -ldl -lprotobuf -lpthread -latomic
+QUEUE_SOURCES = $(wildcard ./*.cpp ./*.cc)
 
 QUEUE_OBJ = $(QUEUE_SOURCES:.cpp=.o)
 
 
-.PHONY: all clean format 
+.PHONY: all clean format proto
 all: testQueue
 
 testQueue : $(QUEUE_OBJ)
@@ -25,8 +25,8 @@ testQueue : $(QUEUE_OBJ)
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} -o $@ $<
 
-clean:
-	rm -f system/*.o configuration/*.o scrooge test/*.o check system/*.pb* client/proto*.pb*
+proto: $(PROTO_SOURCES)
+	protoc -I./protobuf --cpp_out=./ ./protobuf/*
 
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} -I$(SRC_DIRS)  -o $@ $<
