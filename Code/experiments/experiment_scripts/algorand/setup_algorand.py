@@ -68,5 +68,47 @@ def main():
     for t in thread_list:
         t.start()
 
+def create_wallet(wallet_name):
+    hostname=socket.gethostname()   
+    IPAddr=socket.gethostbyname(hostname)
+    ssh_command_list = []
+    thread_list = list()
+    clusters = clusterOne[1:] + clusterTwo[1:]
+    # update jsons: genesis, node
+    for i in range(0, len(clusters)):
+        cmd = base_cmd + str(i) + " 0 " + clusters[0] + ":4161"
+        cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusters[i] + " '" + cmd + "'"
+        print("Host: ", clusters[i])
+        hostname=socket.gethostname()
+        IPAddr=socket.gethostbyname(hostname)
+        if clusterOne[i] == IPAddr:
+            print("Host is: ", IPAddr)
+            continue
+        if int(sys.argv[2]) == 0:
+                executeCommand(cmd_ssh)
+        else:
+            t = threading.Thread(target=executeCommand, args=(cmd_ssh,))
+            thread_list.append(t)
+    if int(sys.argv[1]):
+        print("Cluster Two")
+        ssh_command_list = []
+        for i in range(0, len(clusterTwo)):
+            cmd = base_cmd + str(i) + " 1 " + clusterTwo[0] + ":4161"
+            cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterTwo[i] + " '" + cmd + "'"
+            print("Host: ", clusterTwo[i])
+            hostname=socket.gethostname()
+            IPAddr=socket.gethostbyname(hostname)
+            if clusterTwo[i] == IPAddr:
+                print("Host is: ", IPAddr)
+                continue
+            if int(sys.argv[2]) == 0:
+                executeCommand(cmd_ssh)
+            else:
+                t = threading.Thread(target=executeCommand, args=(cmd_ssh,))
+                thread_list.append(t)
+    for t in thread_list:
+        t.start()
+    
+
 if __name__ == "__main__":
     main()
