@@ -15,7 +15,8 @@
 
 namespace iothread
 {
-using MessageQueue = moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData>;
+template<typename T>
+using MessageQueue = moodycamel::ReaderWriterQueue<T>;
 
 struct MessageResendData
 {
@@ -27,27 +28,25 @@ struct MessageResendData
 };
 }; // namespace iothread
 
-// void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration);
-
-void runRelayIPCRequestThread(std::shared_ptr<iothread::MessageQueue> messageOutput,
+void runRelayIPCRequestThread(std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageOutput,
                               NodeConfiguration kNodeConfiguration);
 
 void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
                                   NodeConfiguration kNodeConfiguration);
 
-void runSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
+void runSendThread(std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput, std::shared_ptr<Pipeline> pipeline,
                    std::shared_ptr<Acknowledgment> acknowledgment,
-                   std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
+                   std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
                    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
-void runAllToAllSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
+void runAllToAllSendThread(std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput, std::shared_ptr<Pipeline> pipeline,
                            std::shared_ptr<Acknowledgment> acknowledgment,
-                           std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
+                           std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
-void runOneToOneSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
+void runOneToOneSendThread(std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput, std::shared_ptr<Pipeline> pipeline,
                            std::shared_ptr<Acknowledgment> acknowledgment,
-                           std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
+                           std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runUnfairOneToOneSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
@@ -56,14 +55,14 @@ void runUnfairOneToOneSendThread(std::shared_ptr<iothread::MessageQueue> message
                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runReceiveThread(std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
-                      std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
+                      std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
                       std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
-void runAllToAllReceiveThread(const std::shared_ptr<Pipeline> pipeline,
-                              const std::shared_ptr<Acknowledgment> acknowledgment,
-                              const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
-                              const std::shared_ptr<QuorumAcknowledgment> quorumAck,
-                              const NodeConfiguration configuration);
+void runAllToAllReceiveThread(std::shared_ptr<Pipeline> pipeline,
+                              std::shared_ptr<Acknowledgment> acknowledgment,
+                              std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
+                              std::shared_ptr<QuorumAcknowledgment> quorumAck,
+                              NodeConfiguration configuration);
 
 void runGenerateMessageThreadWithIpc();
 

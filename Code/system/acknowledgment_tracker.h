@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "global.h"
-#include "quorum_acknowledgment.h"
+#include "relaxed_quorum_acknowledgment.h"
 
 namespace acknowledgment_tracker
 {
@@ -36,7 +36,7 @@ class AcknowledgmentTracker
   public:
     AcknowledgmentTracker(uint64_t otherNetworkSize, uint64_t otherNetworkMaxFailedStake);
 
-    void update(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
+    acknowledgment_tracker::ResendData update(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
                 std::optional<uint64_t> curQuackValue);
     acknowledgment_tracker::ResendData getActiveResendData() const;
 
@@ -44,15 +44,15 @@ class AcknowledgmentTracker
     void updateAggregateData(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> oldAcknowledgmentValue,
                              std::optional<uint64_t> acknowledgmentValue, std::optional<uint64_t> curQuackValue);
     void updateNodeData(uint64_t nodeId, std::optional<uint64_t> acknowledgmentValue);
-    void updateActiveResendData();
+    acknowledgment_tracker::ResendData updateActiveResendData();
 
     // At any instance of time there can only be one message that a node should resend
     // This is because nodes can only be stuck at one quorumAck
-    std::atomic<acknowledgment_tracker::ResendData> mActiveResendData{};
+    acknowledgment_tracker::ResendData mActiveResendData{};
 
     const uint64_t kOtherNetworkMaxFailedStake{};
     std::vector<acknowledgment_tracker::NodeAckData> mNodeData;
     std::optional<uint64_t> mCurStuckQuorumAck{};
     uint64_t mCurUnstuckStake{}; // will disable resend data if this > failedStake
-    QuorumAcknowledgment staleAckQuorumCounter;
+    RelaxedQuorumAcknowledgment staleAckQuorumCounter;
 };

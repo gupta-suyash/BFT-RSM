@@ -56,15 +56,10 @@ int main(int argc, char *argv[])
         const auto acknowledgment = std::make_shared<Acknowledgment>();
         const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
                                                          kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
-        const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
-        constexpr auto kNumAckTrackers = kListSize / 2;
-        const auto ackTrackers = std::make_shared<std::vector<std::unique_ptr<AcknowledgmentTracker>>>();
-        for (uint64_t i = 0; i < kNumAckTrackers; i++)
-        {
-            ackTrackers->push_back(std::make_unique<AcknowledgmentTracker>(kNodeConfiguration.kOtherNetworkSize,
-                                                                           kNodeConfiguration.kOtherMaxNumFailedStake));
-        }
+        const auto messageBuffer = std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
         const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
+        const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(2048);
+
 
         pipeline->startPipeline();
 
@@ -76,6 +71,7 @@ int main(int argc, char *argv[])
         SPDLOG_INFO("Done setting up sockets between nodes.");
 
         set_priv_key();
+
 
         // if (get_rsm_id() == 1 && kNodeId == 0)
         // {
@@ -90,6 +86,7 @@ int main(int argc, char *argv[])
         //     remove(kLogPath.c_str());
         //     return 0;
         // }
+
         // auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         // auto relayTransactionThread =
         //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
@@ -98,7 +95,7 @@ int main(int argc, char *argv[])
         auto sendThread = std::thread(runSendThread, messageBuffer, pipeline,
                                       acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
         auto receiveThread =
-            std::thread(runReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
+            std::thread(runReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
         std::this_thread::sleep_until(testStartRecordTime);
