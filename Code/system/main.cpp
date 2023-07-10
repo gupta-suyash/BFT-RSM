@@ -42,15 +42,10 @@ int main(int argc, char *argv[])
         const auto acknowledgment = std::make_shared<Acknowledgment>();
         const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
                                                          kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
-        const auto messageBuffer = std::make_shared<iothread::MessageQueue>(kMessageBufferSize);
-        constexpr auto kNumAckTrackers = kListSize / 2;
-        const auto ackTrackers = std::make_shared<std::vector<std::unique_ptr<AcknowledgmentTracker>>>();
-        for (uint64_t i = 0; i < kNumAckTrackers; i++)
-        {
-            ackTrackers->push_back(std::make_unique<AcknowledgmentTracker>(kNodeConfiguration.kOtherNetworkSize,
-                                                                           kNodeConfiguration.kOtherMaxNumFailedStake));
-        }
+        const auto messageBuffer = std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
         const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
+        const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(2048);
+
 
         pipeline->startPipeline();
 
@@ -63,19 +58,19 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
-        // if (get_rsm_id() == 1 && kNodeId == 0)
-        // {
-        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
-        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
+        if (get_rsm_id() == 1 && kNodeId == 0)
+        {
+            SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
+            auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
 
-        //     std::this_thread::sleep_until(testEndTime);
-        //     end_test();
+            std::this_thread::sleep_until(testEndTime);
+            end_test();
 
-        //     receiveThread.join();
-        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
-        //     remove(kLogPath.c_str());
-        //     return 0;
-        // }
+            receiveThread.join();
+            SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
+            remove(kLogPath.c_str());
+            return 0;
+        }
 
         auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
         // auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
@@ -84,9 +79,9 @@ int main(int argc, char *argv[])
         SPDLOG_INFO("Created Generate message relay thread");
 
         auto sendThread = std::thread(runSendThread /*runAllToAllSendThread*/, messageBuffer, pipeline,
-                                      acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
+                                      acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
         auto receiveThread =
-            std::thread(runReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
+            std::thread(runReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
         std::this_thread::sleep_until(testStartRecordTime);

@@ -6,28 +6,29 @@ AcknowledgmentTracker::AcknowledgmentTracker(uint64_t otherNetworkSize, uint64_t
 {
 }
 
-void AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
+acknowledgment_tracker::ResendData AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
                                    std::optional<uint64_t> curQuackValue)
 {
     const auto oldAcknowledgmentValue = mNodeData.at(nodeId).acknowledgmentValue;
     if (oldAcknowledgmentValue > curQuackValue)
     {
         // the node you're updating is unstuck
-        return;
+        return {};
     }
     if (mCurStuckQuorumAck == curQuackValue && mCurUnstuckStake > kOtherNetworkMaxFailedStake)
     {
         // this message is already delivered
-        return;
+        return {};
     }
-    if (mActiveResendData.load(std::memory_order_relaxed).isActive && mActiveResendData.load(std::memory_order_relaxed).resendNumber > 2)
+    // TODO: Make this robust (should equal <= f1 + f2 + 1)
+    if (mCurStuckQuorumAck == curQuackValue && mActiveResendData.isActive && mActiveResendData.resendNumber > 2)
     {
-        return;
+        return {};
     }
 
     updateNodeData(nodeId, acknowledgmentValue);
     updateAggregateData(nodeId, nodeStake, oldAcknowledgmentValue, acknowledgmentValue, curQuackValue);
-    updateActiveResendData();
+    return updateActiveResendData();
 }
 
 void AcknowledgmentTracker::updateNodeData(uint64_t nodeId, std::optional<uint64_t> acknowledgmentValue)
@@ -79,17 +80,17 @@ void AcknowledgmentTracker::updateAggregateData(uint64_t nodeId, uint64_t nodeSt
     }
 }
 
-void AcknowledgmentTracker::updateActiveResendData()
+acknowledgment_tracker::ResendData AcknowledgmentTracker::updateActiveResendData()
 {
-    auto curResendData = mActiveResendData.load(std::memory_order_relaxed);
+    auto& curResendData = mActiveResendData;
 
     if (mCurUnstuckStake > kOtherNetworkMaxFailedStake)
     {
         if (curResendData.isActive)
         {
-            mActiveResendData.store({}, std::memory_order_release);
+            mActiveResendData = {};
         }
-        return;
+        return {};
     }
 
     const auto sequenceNumberToResend = mCurStuckQuorumAck.value_or(0ULL - 1) + 1;
@@ -100,9 +101,9 @@ void AcknowledgmentTracker::updateActiveResendData()
     {
         if (curResendData.isActive)
         {
-            mActiveResendData.store({}, std::memory_order_release);
+            mActiveResendData = {};
         }
-        return;
+        return {};
     }
 
     // Small ints are so that reading/writing to the atomic doesn't use locks -- easy to remove
@@ -114,12 +115,14 @@ void AcknowledgmentTracker::updateActiveResendData()
     const bool isCurResendDataOutdated = curResendData != potentialNewResendData;
     if (isCurResendDataOutdated)
     {
-        mActiveResendData.store(potentialNewResendData, std::memory_order_release);
+        mActiveResendData = potentialNewResendData;
+        return mActiveResendData;
     }
+    return {};
 }
 
 acknowledgment_tracker::ResendData AcknowledgmentTracker::getActiveResendData() const
 {
     // TODO check if std::memory_order_acquire is too expensive (probably won't be with crypto)
-    return mActiveResendData.load(std::memory_order_acquire);
+    return mActiveResendData;
 }
