@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Written: Natacha Crooks ncrooks@cs.utexas.edu 2017
-# Edited: Micah Murray m_murray@berekely.edu 2023
+# Edited: Micah Murray micahmurray@berekely.edu 2023
 # Edited: Reginald Frank reginaldfrank77@berkeley.edu 2023
 
 # Setup - Sets up folders/binaries on all machines
@@ -52,7 +52,7 @@ def setup(configJson):
     ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
     print(ip_list)
     # Run function to install all appropriate packages on servers
-    subprocess.call(localSetupFile)
+    # subprocess.call(localSetupFile)
     executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
 
 if __name__ == "__main__":
