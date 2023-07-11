@@ -10,7 +10,7 @@
 #include "readerwriterqueue.h"
 
 const uint64_t min_size_power = 7;
-const uint64_t duration = 30;
+const uint64_t duration = 10;
 
 uint64_t test_integer(uint64_t max_power);
 uint64_t test_stack_protobuf_queue_rate(uint64_t max_power, uint64_t msg_sz);

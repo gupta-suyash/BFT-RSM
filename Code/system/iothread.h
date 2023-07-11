@@ -11,10 +11,11 @@
 #include <memory>
 
 #include "readerwritercircularbuffer.h"
+#include "readerwriterqueue.h"
 
 namespace iothread
 {
-using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<scrooge::CrossChainMessageData>;
+using MessageQueue = moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData>;
 
 struct MessageResendData
 {

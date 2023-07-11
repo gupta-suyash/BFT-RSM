@@ -1,9 +1,9 @@
-// #include "acknowledgment.h"
-// #include "global.h"
-// #include "iothread.h"
-// #include "parser.h"
-// #include "pipeline.h"
-// #include "quorum_acknowledgment.h"
+#include "acknowledgment.h"
+#include "global.h"
+#include "iothread.h"
+#include "parser.h"
+#include "pipeline.h"
+#include "quorum_acknowledgment.h"
 #include "benchmark.h"
 #include <filesystem>
 #include <functional>
@@ -14,23 +14,20 @@
 
 int main(int argc, char *argv[])
 {
-    test_integer(12);
+    // if(argc < 3) {
+    //     std::cout << "2 args plz" << std::endl;
+    //     return -1;
+    // }
+    // std::size_t pos;
+    // uint64_t max_power = std::stoi(argv[1], &pos);
+    // std::size_t posTwo;
+    // uint64_t message_sz = std::stoi(argv[1], &pos);
+    // test_integer(max_power);
     // test_protobuf_creation_stack(100);
     // test_protobuf_creation_heap(100);
-    std::cout << "Hi " << std::endl;
-    // test_stack_protobuf_queue_rate(7, 0);
-    // for (size_t i = 2; i <= 6; i++) {
-    //     uint64_t sz = pow(10, i);
-    //     test_stack_protobuf_queue_rate(7, sz);
-    //     test_heap_protobuf_queue_rate(7, sz);
-    // }
-    
-
-
-    /* Tests with the Blocking circular buffer*/
-    // BlockingReaderWriterCircularBuffer
-    return 0;
-    /*std::string path;
+    // std::cout << "Hi " << std::endl;
+    // test_stack_protobuf_queue_rate(max_power, message_sz);
+    std::string path;
     {
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
         const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
@@ -101,7 +98,7 @@ int main(int argc, char *argv[])
             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 
-        auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline,
+        auto sendThread = std::thread(runUnfairOneToOneSendThread /*runOneToOneSendThread*/, messageBuffer, pipeline,
                                       acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
         auto receiveThread =
             std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
@@ -146,5 +143,5 @@ int main(int argc, char *argv[])
         path = kLogPath;
     }
     printMetrics(path);
-    return 0;*/
+    return 0;
 }

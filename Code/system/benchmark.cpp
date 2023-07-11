@@ -50,8 +50,8 @@ uint64_t test_stack_protobuf_queue_rate(uint64_t max_power, uint64_t msg_sz) {
             while (not shouldStop)
             {
                 scrooge::CrossChainMessageData elem;
-                // elem.set_message_content(std::string(msg_sz, 'L'));
-                // elem.set_sequence_number(sn++);
+                elem.set_message_content(std::string(msg_sz, 'L'));
+                elem.set_sequence_number(sn++);
                 while (not queue.try_enqueue(std::move(elem)) && not shouldStop);
             }
         });
@@ -67,7 +67,7 @@ uint64_t test_stack_protobuf_queue_rate(uint64_t max_power, uint64_t msg_sz) {
             std::cout << "COULD POP " << sn << "  ELEMENTS, total rate of "<< sn/duration<<" elements/second for size " << msg_sz << std::endl;
         });
 
-        std::this_thread::sleep_for(30s);
+        std::this_thread::sleep_for(10s);
         shouldStop = true;
         x.join();
         y.join();
@@ -108,7 +108,7 @@ uint64_t test_heap_protobuf_queue_rate(uint64_t max_power, uint64_t msg_sz) {
             std::cout << "COULD POP " << sn << "  ELEMENTS, total rate of "<< sn/duration<<" elements/second " << std::endl;
         });
 
-        std::this_thread::sleep_for(30s);
+        std::this_thread::sleep_for(10s);
         shouldStop = true;
         x.join();
         y.join();
@@ -136,7 +136,7 @@ uint64_t test_heap_protobuf_queue_rate(uint64_t max_power, uint64_t msg_sz) {
 //         std::cout << "COULD CREATE "<< sn << " ELEMENTS, total rate of " << sn/duration << " elements/second" << std::endl;
 //     });
 
-//     std::this_thread::sleep_for(30s);
+//     std::this_thread::sleep_for(10s);
 //     shouldStop = true;
 //     x.join();
 //     std::cout << "Completed size test for protobuf " << std::endl;
@@ -162,7 +162,7 @@ uint64_t test_heap_protobuf_queue_rate(uint64_t max_power, uint64_t msg_sz) {
 //         std::cout << "COULD CREATE "<<sn << "  ELEMENTS, total rate of "<< sn/duration << " elements/second" << std::endl;
 //     });
 
-//     std::this_thread::sleep_for(30s);
+//     std::this_thread::sleep_for(10s);
 //     shouldStop = true;
 //     x.join();
 //     std::cout << "Completed size test for protobuf " << std::endl;
@@ -181,7 +181,7 @@ uint64_t test_heap_protobuf_queue_rate(uint64_t max_power, uint64_t msg_sz) {
 //         std::cout << "COULD CREATE " << sn << " ELEMENTS, total rate of " << sn/duration << " elements/second"  << std::endl;
 //     });
 
-//     std::this_thread::sleep_for(30s);
+//     std::this_thread::sleep_for(10s);
 //     shouldStop = true;
 //     y.join();
 //     std::cout << "Completed size test for protobuf " << std::endl;
