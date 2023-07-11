@@ -1,0 +1,4 @@
+[2023-07-11 17:01:55.394] [[1m[41mcritical[m] [main.cpp:51] Config set: kNumLocalNodes = 4, kNumForeignNodes = 4, kMaxNumLocalFailedNodes = 1, kMaxNumForeignFailedNodes = 1, kOwnNodeId = 0, g_rsm_id = 1, num_packets = 600000,  packet_size = 20000, kLogPath= '/tmp/log_1_0.yaml'
+[2023-07-11 17:01:55.515] [[1m[41mcritical[m] [iothread.cpp:248] IO Thread Send Thread starting with TID = 132848
+[2023-07-11 17:01:55.515] [[1m[41mcritical[m] [iothread.cpp:777] RECV THREAD TID 132850
+Killed

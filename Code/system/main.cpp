@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
         printMetrics(kLogPath); // Deletes the metrics!
 
         const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
-        constexpr auto kMessageBufferSize = 256;
+        constexpr auto kMessageBufferSize = 1024; // Old value: 256
 
         const auto acknowledgment = std::make_shared<Acknowledgment>();
         const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
@@ -92,11 +92,11 @@ int main(int argc, char *argv[])
         //     return 0;
         // }
 
-        // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-            std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
-        SPDLOG_INFO("Created Generate message relay thread");
+        auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+        // auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        // auto relayTransactionThread =
+        //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        // SPDLOG_INFO("Created Generate message relay thread");
 
         auto sendThread = std::thread(runUnfairOneToOneSendThread /*runOneToOneSendThread*/, messageBuffer, pipeline,
                                       acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
@@ -114,11 +114,11 @@ int main(int argc, char *argv[])
         const auto trueTestEndTime = std::chrono::steady_clock::now();
         end_test();
 
-        // messageRelayThread.join();
+        messageRelayThread.join();
         sendThread.join();
         receiveThread.join();
-        relayRequestThread.join();
-        relayTransactionThread.join();
+        // relayRequestThread.join();
+        // relayTransactionThread.join();
 
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "

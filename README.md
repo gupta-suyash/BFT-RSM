@@ -10,7 +10,7 @@ How to make code:
 
 Note: You only need to run steps 1 and 2 once per new machine
 
-To run the program (assuming only 2 clusters as of right now): /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json increase_packet_size
+To run the program (assuming only 2 clusters as of right now): /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json optimized_unfair_one2one_increase_packet_size
 
 Setup script: /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/setup.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json
 

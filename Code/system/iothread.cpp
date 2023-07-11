@@ -41,7 +41,8 @@ bool isMessageDataValid(const scrooge::CrossChainMessageData &message)
 void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
                               const NodeConfiguration configuration)
 {
-    bindThreadToCpu(3);
+    bindThreadToCpu(0);
+    SPDLOG_CRITICAL("Generate Message Thread starting with TID = {}", gettid());
     const auto kMessageSize = get_packet_size();
 
     for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)

@@ -74,6 +74,8 @@ source $HOME/.profile
 echo "export PATH=\$PATH:`go env GOPATH`/bin" >> $HOME/.profile
 source $HOME/.profile
 
+pip install -U kaleido
+
 # Insatall go protoc extension
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 apt install golang-goprotobuf-dev
