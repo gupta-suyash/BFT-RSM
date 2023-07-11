@@ -153,6 +153,8 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     bool isImplementationValid = kStakePerRsm >= kOwnMaxNumFailedStake + kOtherMaxNumFailedStake;
     assert(isImplementationValid &&
            "More than half of one of the network's total stake can fail -- probably works but not tested");
+    mResendNumberLookup = std::vector<std::vector<std::optional<std::optional<uint64_t>>>>(kOwnNetworkSize, std::vector<std::optional<std::optional<uint64_t>>>(kOtherNetworkSize));
+    mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
 }
 
 std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumber) const
@@ -162,6 +164,13 @@ std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumbe
         message_scheduler::stakeToNode(sequenceNumber % kOwnApportionedStake, kOwnRsmApportionedStakePrefixSum);
     const auto originalApportionedRecvNode = message_scheduler::stakeToNode(
         (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
+
+    std::optional<std::optional<uint64_t>>* const lookupEntry = mResendNumberLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+
+    if (lookupEntry->has_value())
+    {
+        return lookupEntry->value();
+    }
 
     const auto originalSender = kOwnRsmApportionedStakePrefixSum.at(originalApportionedSendNode);
     const auto originalReceiver = kOtherRsmApportionedStakePrefixSum.at(originalApportionedRecvNode);
@@ -175,6 +184,7 @@ std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumbe
     const auto isOwnNodeNotASender = previousStakeSent >= kMinStakeToSend;
     if (isOwnNodeNotASender)
     {
+        *lookupEntry = std::optional<uint64_t>{};
         return std::nullopt;
     }
     const auto ownNodeFirstReceiver = (originalReceiver + previousStakeSent) % kStakePerRsm;
@@ -189,7 +199,8 @@ std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumbe
     const auto priorReceivers =
         message_scheduler::trueMod((int64_t)ownFirstReceiverId - (int64_t)originalReceiverId, kOtherNetworkSize);
 
-    return std::max(priorSenders, priorReceivers);
+    *lookupEntry = std::max(priorSenders, priorReceivers);
+    return lookupEntry->value();
 }
 
 message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinations(uint64_t sequenceNumber) const
@@ -199,6 +210,13 @@ message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinatio
         message_scheduler::stakeToNode(sequenceNumber % kOwnApportionedStake, kOwnRsmApportionedStakePrefixSum);
     const auto originalApportionedRecvNode = message_scheduler::stakeToNode(
         (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
+
+    std::optional<message_scheduler::CompactDestinationList>* const lookupEntry = mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+
+    if (lookupEntry->has_value())
+    {
+        return lookupEntry->value();
+    }
 
     // Algorithm : do all send/recv math with stake, then call stakeToNode
     const auto originalSender = kOwnRsmApportionedStakePrefixSum.at(originalApportionedSendNode);
@@ -214,6 +232,7 @@ message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinatio
     const auto isOwnNodeNotASender = previousStakeSent >= kMinStakeToSend;
     if (isOwnNodeNotASender)
     {
+        *lookupEntry = message_scheduler::CompactDestinationList{};
         return message_scheduler::CompactDestinationList{};
     }
 
@@ -236,5 +255,6 @@ message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinatio
         curReceiverStake = (curReceiverStake + stakeSentToCurReceiver) % kStakePerRsm;
         curReceiverId = (curReceiverId + 1 == kOtherNetworkSize) ? 0 : curReceiverId + 1;
     }
+    *lookupEntry = destinations;
     return destinations;
 }
