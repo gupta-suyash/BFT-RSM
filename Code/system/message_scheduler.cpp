@@ -27,7 +27,10 @@ std::vector<uint64_t> message_scheduler::getStakePrefixSum(const std::vector<uin
 uint64_t message_scheduler::stakeToNode(uint64_t stakeIndex, const std::vector<uint64_t> &networkStakePrefixSum)
 {
     const auto nodeIterator =
-        std::upper_bound(std::cbegin(networkStakePrefixSum), std::cend(networkStakePrefixSum), stakeIndex);
+        std::find_if(std::cbegin(networkStakePrefixSum), std::cend(networkStakePrefixSum), [stakeIndex](const uint64_t x)
+        {
+            return stakeIndex < x;
+        });
     if (nodeIterator == std::cend(networkStakePrefixSum))
     {
         SPDLOG_CRITICAL("Requested stake that nobody owns, stakeIndex={} totalNetworkStake={}", stakeIndex,
