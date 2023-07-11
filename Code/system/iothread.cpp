@@ -238,146 +238,99 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge:
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
-void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput, const std::shared_ptr<Pipeline> pipeline,
-                   const std::shared_ptr<Acknowledgment> acknowledgment,
-                   const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-                   const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+boost::circular_buffer<iothread::MessageResendData> resendDatas(1 << 16);
+boost::circular_buffer<acknowledgment_tracker::ResendData> requestedResends(1 << 16);
+
+auto lastSendTime = std::chrono::steady_clock::now();
+uint64_t numMsgsSentWithLastAck{};
+std::optional<uint64_t> lastSentAck{};
+uint64_t lastQuack = 0;
+constexpr uint64_t kAckWindowSize = 8;
+constexpr uint64_t kQAckWindowSize = kListSize * 30;
+// Optimal window size for non-stake: 12*16 and for stake: 12*8
+constexpr auto kMaxMessageDelay = 2us;
+constexpr auto kNoopDelay = 500us;
+uint64_t noop_ack = 0;
+uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{}, numResendsTooLow{}, searchDistance{}, searchChecks{};
+uint64_t numQuackWindowFails{}, numAckWindowFails{}, numSendChecks{}, numIOTimeoutHits{}, numNoopTimeoutHits{},
+    numTimeoutExclusiveHits{};
+bool isResendDataUpdated{};
+uint64_t maxResendRequest{};
+uint64_t numMessagesResent{};
+
+bool handleNewMessage(std::chrono::steady_clock::time_point curTime,
+                      const MessageScheduler& messageScheduler,
+                      std::optional<uint64_t> curQuack,
+                      Pipeline* const pipeline,
+                      const Acknowledgment* const acknowledgment,
+                      scrooge::CrossChainMessageData&& newMessageData)
 {
-    SPDLOG_CRITICAL("SEND THREAD TID {}", gettid());
-    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
-                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
+    const auto sequenceNumber = newMessageData.sequence_number();
 
-    bindThreadToCpu(1);
-    SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
+    // Start the timer for latency
+    startTimer(sequenceNumber, curTime);
 
-    const MessageScheduler messageScheduler(configuration);
+    // Recording latency
+    uint64_t checkVal = curQuack.value_or(0);
+    recordLatency(checkVal, curTime);
+    lastQuack = checkVal;
 
-    uint64_t numMessagesResent{};
-
-    boost::circular_buffer<iothread::MessageResendData> resendDatas(1 << 16);
-    boost::circular_buffer<acknowledgment_tracker::ResendData> requestedResends(1 << 16);
-
-    auto lastSendTime = std::chrono::steady_clock::now();
-    uint64_t numMsgsSentWithLastAck{};
-    std::optional<uint64_t> lastSentAck{};
-    uint64_t lastQuack = 0;
-    constexpr uint64_t kAckWindowSize = 8;
-    constexpr uint64_t kQAckWindowSize = kListSize * 30;
-    // Optimal window size for non-stake: 12*16 and for stake: 12*8
-    constexpr auto kMaxMessageDelay = 2us;
-    constexpr auto kNoopDelay = 500us;
-    uint64_t noop_ack = 0;
-    uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{}, numResendsTooLow{}, searchDistance{}, searchChecks{};
-    uint64_t numQuackWindowFails{}, numAckWindowFails{}, numSendChecks{}, numTimeoutHits{}, numNoopTimeoutHits{},
-        numTimeoutExclusiveHits{};
-    bool isResendDataUpdated{};
-    uint64_t maxResendRequest{};
-    while (not is_test_over())
+    const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
+    const auto isMessageNeverSent = not resendNumber.has_value();
+    if (isMessageNeverSent)
     {
-        // update window information
-        const auto curAck = acknowledgment->getAckIterator();
-        const auto curQuack = quorumAck->getCurrentQuack();
+        return true;
+    }
 
-        if (curAck != lastSentAck)
+    auto destinations = messageScheduler.getMessageDestinations(sequenceNumber);
+
+    bool isFirstSender = resendNumber == 0;
+    const auto isPossiblySentLater = not isFirstSender || destinations.size() > 1;
+    if (isFirstSender)
+    {
+        const auto receiverNode = destinations.at(0);
+        numMessagesSent++;
+
+        if (isPossiblySentLater)
         {
-            lastSentAck = curAck;
-            numMsgsSentWithLastAck = 0;
+            auto messageDataCopy = newMessageData;
+            const bool isMessageSent = pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy),
+                                                                acknowledgment, curTime);
+            if (isMessageSent)
+            {
+                lastSendTime = curTime;
+                numMsgsSentWithLastAck++;
+            }                                                                       
         }
-
-        const int64_t pendingSequenceNum =
-            (messageInput->peek()) ? messageInput->peek()->sequence_number() : kQAckWindowSize + curQuack.value_or(0);
-        const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
-        const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
-        const auto curTime = std::chrono::steady_clock::now();
-        const bool isNoopTimeoutHit = curTime - lastSendTime > kNoopDelay;
-        const bool isTimeoutHit = curTime - lastSendTime > kMaxMessageDelay;
-        const bool shouldDequeue = isTimeoutHit || (isAckFresh && isSequenceNumberUseful);
-
-        numSendChecks++;
-        numQuackWindowFails += not isSequenceNumberUseful;
-        numAckWindowFails += not isAckFresh;
-        numTimeoutHits += isTimeoutHit;
-        numTimeoutExclusiveHits += isTimeoutHit && not(isSequenceNumberUseful && isAckFresh);
-        numNoopTimeoutHits += isNoopTimeoutHit;
-
-        scrooge::CrossChainMessageData newMessageData;
-        if (not resendDatas.full() && shouldDequeue && messageInput->try_dequeue(newMessageData) && not is_test_over())
+        else
         {
-            const auto sequenceNumber = newMessageData.sequence_number();
-
-            // Start the timer for latency
-            startTimer(sequenceNumber, curTime);
-
-            // Recording latency
-            uint64_t checkVal = curQuack.value_or(0);
-            recordLatency(checkVal, curTime);
-            lastQuack = checkVal;
-
-            const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
-            const auto isMessageNeverSent = not resendNumber.has_value();
-            if (isMessageNeverSent)
+            const bool isMessageSent = pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData),
+                                                                acknowledgment, curTime);
+            if (isMessageSent)
             {
-                continue;
-            }
-
-            auto destinations = messageScheduler.getMessageDestinations(sequenceNumber);
-
-            bool isFirstSender = resendNumber == 0;
-            const auto isPossiblySentLater = not isFirstSender || destinations.size() > 1;
-            if (isFirstSender)
-            {
-                const auto receiverNode = destinations.at(0);
-                numMessagesSent++;
-
-                if (isPossiblySentLater)
-                {
-                    auto messageDataCopy = newMessageData;
-                    const bool isMessageSent = pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy),
-                                                                       acknowledgment.get(), curTime);
-                    if (isMessageSent)
-                    {
-                        lastSendTime = curTime;
-                        numMsgsSentWithLastAck++;
-                    }                                                                       
-                }
-                else
-                {
-                    const bool isMessageSent = pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData),
-                                                                       acknowledgment.get(), curTime);
-                    if (isMessageSent)
-                    {
-                        lastSendTime = curTime;
-                        numMsgsSentWithLastAck++;
-                    }    
-                }
-            }
-
-            if (isPossiblySentLater)
-            {
-                const uint64_t numDestinationsAlreadySent = isFirstSender;
-                // SPDLOG_CRITICAL("ADDING A RESENDDATA S{} #{}", sequenceNumber, destinations.size());
-                resendDatas.push_back(iothread::MessageResendData{.sequenceNumber = sequenceNumber,
-                                                                  .firstDestinationResendNumber = resendNumber.value(),
-                                                                  .numDestinationsSent = numDestinationsAlreadySent,
-                                                                  .messageData = std::move(newMessageData),
-                                                                  .destinations = destinations});
-                isResendDataUpdated |= sequenceNumber <= maxResendRequest;
-            }
+                lastSendTime = curTime;
+                numMsgsSentWithLastAck++;
+            }    
         }
-        else if (isAckFresh && isNoopTimeoutHit)
-        {
-            static uint64_t receiver = 0;
+    }
 
-            pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, {}, acknowledgment.get(), curTime);
+    if (isPossiblySentLater)
+    {
+        const uint64_t numDestinationsAlreadySent = isFirstSender;
+        // SPDLOG_CRITICAL("ADDING A RESENDDATA S{} #{}", sequenceNumber, destinations.size());
+        resendDatas.push_back(iothread::MessageResendData{.sequenceNumber = sequenceNumber,
+                                                            .firstDestinationResendNumber = resendNumber.value(),
+                                                            .numDestinationsSent = numDestinationsAlreadySent,
+                                                            .messageData = std::move(newMessageData),
+                                                            .destinations = destinations});
+        isResendDataUpdated |= sequenceNumber <= maxResendRequest;
+    }
+    return false;
+}
 
-            receiver++;
-            numMsgsSentWithLastAck++;
-            noop_ack++;
-
-            lastSendTime = curTime;
-        }
-
-        // TODO see if this style of bulk check or a bulk erase up to std::find(first useful data) is meaningfully faster
+void updateResendData(iothread::MessageQueue<acknowledgment_tracker::ResendData>* resendDataQueue, std::optional<uint64_t> curQuack)
+{
+    // TODO see if this style of bulk check or a bulk erase up to std::find(first useful data) is meaningfully faster
         // constexpr auto kResendBlockSize = 4096;
         // if (resendDatas.size() > kResendBlockSize && resendDatas.at(kResendBlockSize).sequenceNumber <= curQuack)
         // {
@@ -408,18 +361,18 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
             // SPDLOG_CRITICAL("REMOVING A REQUESTED RESEND S{}, Quack={} minS#={}", requestedResends.front().sequenceNumber, curQuack.value_or(0), minimumResendSequenceNumber);
             requestedResends.pop_front();
         }
+}
 
-        if (not isResendDataUpdated || resendDatas.empty() || requestedResends.empty())
-        {
-            continue;
-        }
+void handleResends(std::chrono::steady_clock::time_point curTime,
+                    Pipeline* const pipeline,
+                    const Acknowledgment* const acknowledgment)
+{
 
-        auto pseudoBegin = std::begin(resendDatas);
-        uint64_t prevActiveResendSequenceNum = 0;
+    auto pseudoBegin = std::begin(resendDatas);
+    uint64_t prevActiveResendSequenceNum = 0;
 
-        std::bitset<32> destinationsToFlush{};
-
-        for (auto& requestedResend : requestedResends)
+    std::bitset<32> destinationsToFlush{};
+    for (auto& requestedResend : requestedResends)
         {
             numResendChecks++;
             if (not requestedResend.isActive)
@@ -501,13 +454,13 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
                     scrooge::CrossChainMessageData messageDataCopy;
                     messageDataCopy.CopyFrom(messageData);
                     bool isFlushed = pipeline->SendToOtherRsm(destination, std::move(messageDataCopy),
-                                                              acknowledgment.get(), curTime);
+                                                              acknowledgment, curTime);
                     destinationsToFlush[destination] = not isFlushed;
                 }
                 else
                 {
                     bool isFlushed =
-                        pipeline->SendToOtherRsm(destination, std::move(messageData), acknowledgment.get(), curTime);
+                        pipeline->SendToOtherRsm(destination, std::move(messageData), acknowledgment, curTime);
                     destinationsToFlush[destination] = not isFlushed;
                     requestedResend.isActive = false;
                     assert(messageData.message_content().empty());
@@ -516,6 +469,81 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
                 numMessagesResent += is_test_recording();
             }
         }
+}
+
+void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput, const std::shared_ptr<Pipeline> pipeline,
+                   const std::shared_ptr<Acknowledgment> acknowledgment,
+                   const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
+                   const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+{
+    SPDLOG_CRITICAL("SEND THREAD TID {}", gettid());
+    const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
+                 kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
+
+    bindThreadToCpu(1);
+    SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
+
+    const MessageScheduler messageScheduler(configuration);
+
+    
+    while (not is_test_over())
+    {
+        // update window information
+        const auto curAck = acknowledgment->getAckIterator();
+        const auto curQuack = quorumAck->getCurrentQuack();
+
+        if (curAck != lastSentAck)
+        {
+            lastSentAck = curAck;
+            numMsgsSentWithLastAck = 0;
+        }
+
+        const int64_t pendingSequenceNum =
+            (messageInput->peek()) ? messageInput->peek()->sequence_number() : kQAckWindowSize + curQuack.value_or(0);
+        const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
+        const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
+        const auto curTime = std::chrono::steady_clock::now();
+        const bool isNoopTimeoutHit = curTime - lastSendTime > kNoopDelay;
+        const bool isTimeoutHit = curTime - lastSendTime > kMaxMessageDelay;
+        const bool shouldDequeue = isTimeoutHit || (isAckFresh && isSequenceNumberUseful);
+
+        numSendChecks++;
+        numQuackWindowFails += not isSequenceNumberUseful;
+        numAckWindowFails += not isAckFresh;
+        numIOTimeoutHits += isTimeoutHit;
+        numTimeoutExclusiveHits += isTimeoutHit && not(isSequenceNumberUseful && isAckFresh);
+        numNoopTimeoutHits += isNoopTimeoutHit;
+
+        scrooge::CrossChainMessageData newMessageData;
+        if (not resendDatas.full() && shouldDequeue && messageInput->try_dequeue(newMessageData) && not is_test_over())
+        {
+            const bool shouldContinue = handleNewMessage(curTime, messageScheduler, curQuack, pipeline.get(), acknowledgment.get(), std::move(newMessageData));
+            if (shouldContinue)
+            {
+                continue;
+            }
+        }
+        else if (isAckFresh && isNoopTimeoutHit)
+        {
+            static uint64_t receiver = 0;
+
+            pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, {}, acknowledgment.get(), curTime);
+
+            receiver++;
+            numMsgsSentWithLastAck++;
+            noop_ack++;
+
+            lastSendTime = curTime;
+        }
+
+        updateResendData(resendDataQueue.get(), curQuack);
+
+        if (not isResendDataUpdated || resendDatas.empty() || requestedResends.empty())
+        {
+            continue;
+        }
+
+        handleResends(curTime, pipeline.get(), acknowledgment.get());
 
         uint64_t numDeletes = 0;
         for (; numDeletes < resendDatas.size(); numDeletes++)
@@ -547,7 +575,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
     addMetric("avg_search_dist", (double) searchDistance / searchChecks);
     addMetric("Quack-Fail", (double)numQuackWindowFails / numSendChecks);
     addMetric("Ack-Fail", (double)numAckWindowFails / numSendChecks);
-    addMetric("Timeout-Hits", (double)numTimeoutHits / numSendChecks);
+    addMetric("Timeout-Hits", (double)numIOTimeoutHits / numSendChecks);
     addMetric("Noop-Hits", (double)numNoopTimeoutHits / numSendChecks);
     addMetric("Timeout-Exclusive-Hits", (double)numTimeoutExclusiveHits / numSendChecks);
 
