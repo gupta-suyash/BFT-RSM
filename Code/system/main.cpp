@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
         // SPDLOG_INFO("Created Generate message relay thread");
 
         auto sendThread = std::thread(runSendThread, messageBuffer, pipeline,
-                                      acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
+                                      acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
         auto receiveThread =
             std::thread(runReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
@@ -108,7 +108,6 @@ int main(int argc, char *argv[])
         const auto trueTestEndTime = std::chrono::steady_clock::now();
         end_test();
 
-        messageRelayThread.join();
         sendThread.join();
         receiveThread.join();
         // relayRequestThread.join();

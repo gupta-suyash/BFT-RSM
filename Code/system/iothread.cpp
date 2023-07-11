@@ -222,7 +222,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge:
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 
-void runUnfairOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput,
+void runUnfairOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
                            const std::shared_ptr<Pipeline> pipeline,
                            const std::shared_ptr<Acknowledgment> acknowledgment,
                            const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
@@ -281,8 +281,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
     uint64_t numMsgsSentWithLastAck{};
     std::optional<uint64_t> lastSentAck{};
     uint64_t lastQuack = 0;
-    constexpr uint64_t kAckWindowSize = 3 * 2 * 4 * 2;
-    constexpr uint64_t kQAckWindowSize = kListSize * 10;
+    constexpr uint64_t kAckWindowSize = 8;
+    constexpr uint64_t kQAckWindowSize = kListSize * 30;
     // Optimal window size for non-stake: 12*16 and for stake: 12*8
     constexpr auto kMaxMessageDelay = 2us;
     constexpr auto kNoopDelay = 500us;
@@ -290,6 +290,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
     uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{}, numResendsTooLow{}, searchDistance{}, searchChecks{};
     uint64_t numQuackWindowFails{}, numAckWindowFails{}, numSendChecks{}, numTimeoutHits{}, numNoopTimeoutHits{},
         numTimeoutExclusiveHits{};
+    bool isResendDataUpdated{};
+    uint64_t maxResendRequest{};
     while (not is_test_over())
     {
         // update window information
@@ -379,6 +381,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
                                                                   .numDestinationsSent = numDestinationsAlreadySent,
                                                                   .messageData = std::move(newMessageData),
                                                                   .destinations = destinations});
+                isResendDataUpdated |= sequenceNumber <= maxResendRequest;
             }
         }
         else if (isAckFresh && isNoopTimeoutHit)
@@ -402,12 +405,15 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
         // }
 
         acknowledgment_tracker::ResendData activeResend;
+        const auto minimumResendSequenceNumber = (resendDatas.size())? resendDatas.front().sequenceNumber : curQuack.value_or(-1ULL) + 1;
         while (not requestedResends.full() && resendDataQueue->try_dequeue(activeResend))
         {
-            if (activeResend.sequenceNumber > curQuack)
+            if (activeResend.sequenceNumber >= minimumResendSequenceNumber)
             {
                 requestedResends.push_back(activeResend);
                 // SPDLOG_CRITICAL("ADDING A REQUESTED RESEND S={} Quack={}", activeResend.sequenceNumber, curQuack.value_or(0));
+                isResendDataUpdated = true;
+                maxResendRequest = std::max<uint64_t>(maxResendRequest, activeResend.sequenceNumber);
             }
         }
 
@@ -417,14 +423,13 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
             resendDatas.pop_front();
         }
 
-        const auto minimumResendSequenceNumber = (resendDatas.size())? resendDatas.front().sequenceNumber : curQuack.value_or(-1ULL) + 1;
         while (requestedResends.size() && (not requestedResends.front().isActive || requestedResends.front().sequenceNumber < minimumResendSequenceNumber))
         {
             // SPDLOG_CRITICAL("REMOVING A REQUESTED RESEND S{}, Quack={} minS#={}", requestedResends.front().sequenceNumber, curQuack.value_or(0), minimumResendSequenceNumber);
             requestedResends.pop_front();
         }
 
-        if (resendDatas.empty() || requestedResends.empty())
+        if (not isResendDataUpdated || resendDatas.empty() || requestedResends.empty())
         {
             continue;
         }
@@ -543,6 +548,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
         }
         if (numDeletes)
             resendDatas.erase_begin(numDeletes);
+        isResendDataUpdated = false;
     }
 
     addMetric("Noop Acks", noop_ack);
@@ -674,7 +680,7 @@ void updateAckTrackers(const std::optional<uint64_t> curQuack, const uint64_t no
         }
         else
         {
-            const auto update = curAckTracker->ackTracker.update(nodeId, nodeStake, virtualQuack.value_or(0ULL - 1ULL) + 1, virtualQuack);
+            curAckTracker->ackTracker.update(nodeId, nodeStake, virtualQuack.value_or(0ULL - 1ULL) + 1, virtualQuack);
             // if (update.isActive)
             // {
             //     SPDLOG_CRITICAL("Active Update N{}: [{} {}], S{}, #[{}<->{}]", nodeId, update.sequenceNumber, update.resendNumber, curMessage, curAckTracker->firstResendNum, curAckTracker->lastResendNum);
