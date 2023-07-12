@@ -1,0 +1,10 @@
+#! /bin/bash
+
+export ETCDCTL_API=3
+HOST_1=10.10.1.1
+HOST_2=10.10.1.2
+HOST_3=10.10.1.3
+ENDPOINTS=$HOST_1:2379,$HOST_2:2379,$HOST_3:2379
+# ENDPOINTS=$HOST_1:2379
+
+etcdctl --endpoints=$ENDPOINTS member list

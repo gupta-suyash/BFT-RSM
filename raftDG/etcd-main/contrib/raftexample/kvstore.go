@@ -102,7 +102,7 @@ func newKVStore(snapshotter *snap.Snapshotter, rawData chan []byte, proposeC cha
 
 	go s.readCommits(commitC, errorC) // go routine for sending input to Scrooge
 
-	go s.timeTracker()
+	// go s.timeTracker()
 
 	return s
 }
@@ -215,27 +215,22 @@ func (s *kvstore) readCommits(commitC <-chan *commit, errorC <-chan error) {
 			// Why mutex since only one thread reading commits?
 			// s.mu.Lock()
 			// s.kvStore[dataKv.Key] = dataKv.Val
-			// seqNo := sequenceNumber
-			// sequenceNumber++
 			// s.mu.Unlock()
 
 			seqNo := atomic.AddUint64(&sequenceNumber, 1) - 1
+			// s.dummy(seqNo)
 
 			s.sendScrooge(dataKv, seqNo)
 
-			// fmt.Printf("-------- Latency Data starts --------\n\n\n")
-			// layout := "15:04:05.999"
-			// endTimeString := time.Now().Format(layout)
-			// endTime, _ := time.Parse(layout, endTimeString)
-			// elapsedTime := endTime.Sub(dataKv.StartTime)
 
-			elapsedTime := time.Since(dataKv.StartTime)
+			// fmt.Printf("-------- Latency Data starts --------\n\n\n")
+
+			// elapsedTime := time.Since(dataKv.StartTime)
 			// fmt.Println("Start time: ", dataKv.StartTime)
+			// fmt.Println("End time: ", time.Now())
 			// fmt.Println("Elapsed time: ", elapsedTime)
 
-			s.totalTime += elapsedTime
-			// s.elapsedTime[sequenceNumber] = time.Since(startTime)
-			// fmt.Println("Request number ", sequenceNumber, " took: ", elapsedTime)
+			// s.totalTime += elapsedTime
 			// fmt.Println("Total elapsed time: ", s.totalTime)
 
 			// fmt.Printf("\n\n\n-------- Latency Data ends --------\n")
@@ -317,5 +312,9 @@ func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
 	defer s.mu.Unlock()
 	s.kvStore = store
 	return nil
+}
+
+func (s *kvstore) dummy(seqNo uint64) {
+	return
 }
 

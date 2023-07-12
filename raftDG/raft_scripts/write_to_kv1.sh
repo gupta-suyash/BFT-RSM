@@ -4,10 +4,12 @@
 # leader_kvip="10.10.1.1:11380"
 
 kv_ips=(
-  "10.10.1.1:11380" 
-  "10.10.1.2:12380" 
-  "10.10.1.3:13380"
-  "10.10.1.4:14380" 
+#   "10.10.1.1:11380" 
+#   "10.10.1.2:12380" 
+#   "10.10.1.3:13380"
+#   "10.10.1.4:14380" 
+
+    "10.10.1.9:12380"
 )
 
 # take number from command line argument, and write from (key-1, 1) to (key-$num, $num) 
@@ -29,8 +31,8 @@ fi
 for n in "${!kv_ips[@]}"; do
     kv_ip="${kv_ips[$n]}"
 
-    # for each node, spawn 6 clients to send kv requests in parallel
-    for ((c = 0; c < 6; c++)); do
+    # for each node, spawn 8 clients to send kv requests in parallel
+    for ((c = 0; c < 8; c++)); do
         for ((i = 1; i <= num; i++)); do
             data=$((i + c * num))
             echo "writing (key-"$data", $data) to remote raft system"

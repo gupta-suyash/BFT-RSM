@@ -591,6 +591,7 @@ func (s *EtcdServer) start() {
 	// TODO: if this is an empty log, writes all peer infos
 	// into the first entry
 	go s.run()
+
 }
 
 func (s *EtcdServer) purgeFile() {
@@ -806,6 +807,7 @@ func (s *EtcdServer) run() {
 			}
 		},
 	}
+
 	s.r.start(rh)
 
 	ep := etcdProgress{
@@ -1113,6 +1115,11 @@ func verifyConsistentIndexIsLatest(lg *zap.Logger, snapshot raftpb.Snapshot, cin
 }
 
 func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *toApply) {
+
+	// @ethan
+	lg := s.Logger()
+	lg.Info("---------- Server applying entries ----------")
+
 	if len(apply.entries) == 0 {
 		return
 	}
@@ -1812,17 +1819,38 @@ func (s *EtcdServer) apply(
 	confState *raftpb.ConfState,
 ) (appliedt uint64, appliedi uint64, shouldStop bool) {
 	s.lg.Debug("Applying entries", zap.Int("num-entries", len(es)))
+
+	//@ethan
+	lg := s.Logger()
+	lg.Info("---------- Applying entries ----------", zap.Int("num-entries", len(es)))
+
 	for i := range es {
 		e := es[i]
+
+		//@ethan
+		lg.Info("Applying entry",
+			zap.Uint64("index", e.Index),
+			zap.Uint64("term", e.Term),
+			zap.Stringer("type", e.Type),
+			zap.String("DATA", string(e.Data)))
+
 		s.lg.Debug("Applying entry",
 			zap.Uint64("index", e.Index),
 			zap.Uint64("term", e.Term),
 			zap.Stringer("type", e.Type))
 		switch e.Type {
 		case raftpb.EntryNormal:
+			//@ethan
+			lg.Info("^^^^ Server applied index BEFORE applyEntryNormal ^^^^",
+				zap.Uint64("applied index before", s.getAppliedIndex()))
+
+			// The AppliedIndex is incremented atommically after entry is applied
 			s.applyEntryNormal(&e)
 			s.setAppliedIndex(e.Index)
 			s.setTerm(e.Term)
+
+			lg.Info("^^^^ Server applied index AFTER applyEntryNormal ^^^^",
+				zap.Uint64("applied index after", s.getAppliedIndex()))
 
 		case raftpb.EntryConfChange:
 			// We need to toApply all WAL entries on top of v2store
@@ -1905,6 +1933,8 @@ func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry) {
 	if raftReq.V2 != nil {
 		req := (*RequestV2)(raftReq.V2)
 		s.w.Trigger(req.ID, s.applyV2Request(req, shouldApplyV3))
+
+		fmt.Println("Server finished applying V2Request!")
 		return
 	}
 

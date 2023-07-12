@@ -1,0 +1,7 @@
+syntax = "proto2";
+option go_package = "github.com/grpc-ecosystem/grpc-gateway/v2/examples/internal/proto/sub";
+package grpc.gateway.examples.internal.proto.sub;
+
+message StringMessage {
+	required string value = 1;
+}

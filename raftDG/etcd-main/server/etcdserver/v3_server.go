@@ -754,6 +754,12 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	defer cancel()
 
 	start := time.Now()
+
+	//@ethan
+	lg := s.Logger()
+	lg.Info("!!!!!!!!!!! Proposing data to underlying Raft !!!!!!!!!! ",
+		zap.String("data", string(data)))
+
 	err = s.r.Propose(cctx, data)
 	if err != nil {
 		proposalsFailed.Inc()

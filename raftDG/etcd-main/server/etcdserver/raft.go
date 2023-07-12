@@ -167,6 +167,8 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 			select {
 			case <-r.ticker.C:
 				r.tick()
+
+			//@ethan: when is the ready signal sent out?
 			case rd := <-r.Ready():
 				if rd.SoftState != nil {
 					newLeader := rd.SoftState.Lead != raft.None && rh.getLead() != rd.SoftState.Lead
@@ -211,6 +213,8 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 				updateCommittedIndex(&ap, rh)
 
 				select {
+
+				//@ethan: send toApply out to server
 				case r.applyc <- ap:
 				case <-r.stopped:
 					return
