@@ -735,7 +735,7 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
     SPDLOG_CRITICAL("STARTING LAME THREAD {}", gettid());
     MessageScheduler messageScheduler{configuration};
 
-    constexpr auto kNumAckTrackers = kListSize;
+    constexpr auto kNumAckTrackers = kListSize * 3;
     std::vector<LameTracker> ackTrackers;
     for (uint64_t i = 0; i < kNumAckTrackers; i++)
     {
@@ -829,8 +829,8 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 const auto curForeignAck = (crossChainMessage.has_ack_count())
                                                ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
                                                : std::nullopt;
-                assert(ackView.size() == crossChainMessage.ack_set_size() && "AckListSize inconsistent");
-                std::copy_n(crossChainMessage.ack_set().begin(), ackView.size(), ackView.begin());
+                // assert(ackView.size() == crossChainMessage.ack_set_size() && "AckListSize inconsistent");
+                std::copy_n(crossChainMessage.ack_set().begin(), crossChainMessage.ack_set_size(), ackView.begin());
                 const auto senderAckView = acknowledgment::AckView<kListSize>{
                     .ackOffset = curForeignAck.value_or(0ULL - 1ULL) + 2, .view = ackView};
 

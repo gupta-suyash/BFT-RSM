@@ -36,8 +36,7 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
     {
         message->mutable_ack_count()->set_value(ackIterator.value());
     }
-
-    *message->mutable_ack_set() = {curAckView.view.begin(), curAckView.view.end()};
+    *message->mutable_ack_set() = {curAckView.view.begin(), std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
 }
 
 template <typename atomic_bitset> void reset_atomic_bit(atomic_bitset &set, uint64_t bit)
