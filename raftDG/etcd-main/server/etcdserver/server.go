@@ -299,6 +299,9 @@ type EtcdServer struct {
 	// Should only be set within apply code path. Used to force snapshot after cluster version downgrade.
 	forceSnapshot     bool
 	corruptionChecker CorruptionChecker
+
+	//@ethan
+	WriteScroogeC chan []byte
 }
 
 // NewServer creates a new EtcdServer from the supplied configuration. The
@@ -340,6 +343,9 @@ func NewServer(cfg config.ServerConfig) (srv *EtcdServer, err error) {
 		consistIndex:          b.storage.backend.ci,
 		firstCommitInTerm:     notify.NewNotifier(),
 		clusterVersionChanged: notify.NewNotifier(),
+
+		//@ethan
+		WriteScroogeC: make(chan []byte, 1),
 	}
 	serverID.With(prometheus.Labels{"server_id": b.cluster.nodeID.String()}).Set(1)
 	srv.cluster.SetVersionChangedNotifier(srv.clusterVersionChanged)
@@ -592,6 +598,9 @@ func (s *EtcdServer) start() {
 	// into the first entry
 	go s.run()
 
+	//@ethan Continuously reads from Scrooge
+	go s.ReadScrooge(path_to_ipipe)
+	go s.WriteScrooge(path_to_opipe)
 }
 
 func (s *EtcdServer) purgeFile() {
@@ -836,6 +845,9 @@ func (s *EtcdServer) run() {
 		s.Cleanup()
 
 		close(s.done)
+
+		//@ethan closes channel for writing to Scrooge
+		close(s.WriteScroogeC)
 	}()
 
 	var expiredLeaseC <-chan []*lease.Lease
@@ -1115,11 +1127,6 @@ func verifyConsistentIndexIsLatest(lg *zap.Logger, snapshot raftpb.Snapshot, cin
 }
 
 func (s *EtcdServer) applyEntries(ep *etcdProgress, apply *toApply) {
-
-	// @ethan
-	lg := s.Logger()
-	lg.Info("---------- Server applying entries ----------")
-
 	if len(apply.entries) == 0 {
 		return
 	}
@@ -1844,10 +1851,12 @@ func (s *EtcdServer) apply(
 			lg.Info("^^^^ Server applied index BEFORE applyEntryNormal ^^^^",
 				zap.Uint64("applied index before", s.getAppliedIndex()))
 
-			// The AppliedIndex is incremented atommically after entry is applied
 			s.applyEntryNormal(&e)
 			s.setAppliedIndex(e.Index)
 			s.setTerm(e.Term)
+
+			// passes data to go rountine that handles writing to Scrooge
+			s.WriteScroogeC <- e.Data
 
 			lg.Info("^^^^ Server applied index AFTER applyEntryNormal ^^^^",
 				zap.Uint64("applied index after", s.getAppliedIndex()))

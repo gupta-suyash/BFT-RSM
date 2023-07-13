@@ -167,8 +167,6 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 			select {
 			case <-r.ticker.C:
 				r.tick()
-
-			//@ethan: when is the ready signal sent out?
 			case rd := <-r.Ready():
 				if rd.SoftState != nil {
 					newLeader := rd.SoftState.Lead != raft.None && rh.getLead() != rd.SoftState.Lead
@@ -261,7 +259,6 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 
 					// gofail: var raftBeforeApplySnap struct{}
 					r.raftStorage.ApplySnapshot(rd.Snapshot)
-					r.lg.Info("applied incoming Raft snapshot", zap.Uint64("snapshot-index", rd.Snapshot.Metadata.Index))
 					// gofail: var raftAfterApplySnap struct{}
 
 					if err := r.storage.Release(rd.Snapshot); err != nil {
