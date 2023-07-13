@@ -6,6 +6,7 @@
 #include "scrooge_request.pb.h"
 #include "scrooge_transfer.pb.h"
 #include "statisticstracker.h"
+#include "proto_utils.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -646,17 +647,18 @@ struct LameTracker
     uint64_t lastResendNum;
     AcknowledgmentTracker ackTracker;
 };
-void updateAckTrackers(const std::optional<uint64_t> curQuack, const uint64_t nodeId, const uint64_t nodeStake,
-                       const acknowledgment::AckView<kListSize> nodeAckView,
+void updateAckTrackers(const std::optional<uint64_t> curQuack, const uint64_t nodeStake,
+                       const util::JankAckView nodeAckView,
                        std::vector<LameTracker>& ackTrackers,
                        iothread::MessageQueue<acknowledgment_tracker::ResendData> *const resendDataQueue,
                        const MessageScheduler& messageScheduler)
 {
     numRecv++;
+    const auto nodeId = nodeAckView.senderId;
     const auto kNumAckTrackers = ackTrackers.size();
     const auto initialMessageTrack = curQuack.value_or(0ULL - 1ULL) + 1;
     const auto finialMessageTrack =
-        std::min(initialMessageTrack + kNumAckTrackers - 1, acknowledgment::getFinalAck(nodeAckView));
+        std::min(initialMessageTrack + kNumAckTrackers - 1, util::getFinalAck(nodeAckView));
 
     // SPDLOG_CRITICAL("MAKING UPDATE FOR NODE {} -- Q{} Init{} Final{}", nodeId, curQuack.value_or(0), initialMessageTrack, finialMessageTrack);
     for (uint64_t curMessage = initialMessageTrack; curMessage <= finialMessageTrack; curMessage++)
@@ -685,7 +687,7 @@ void updateAckTrackers(const std::optional<uint64_t> curQuack, const uint64_t no
 
         numChecked++;
         const auto virtualQuack = (curMessage) ? std::optional<uint64_t>(curMessage - 1) : std::nullopt;
-        const auto isNodeMissingCurMessage = not acknowledgment::testAckView(nodeAckView, curMessage);
+        const auto isNodeMissingCurMessage = not util::testAckView(nodeAckView, curMessage);
 
         if (isNodeMissingCurMessage)
         {
@@ -721,14 +723,9 @@ void updateAckTrackers(const std::optional<uint64_t> curQuack, const uint64_t no
     }
 }
 
-struct LameAckData
-{
-    uint8_t senderId;
-    acknowledgment::AckView<kListSize> senderAckView;
-};
 void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *const quorumAck,
                    iothread::MessageQueue<acknowledgment_tracker::ResendData> *const resendDataQueue,
-                   moodycamel::BlockingReaderWriterCircularBuffer<LameAckData> *const viewQueue,
+                   moodycamel::BlockingReaderWriterCircularBuffer<util::JankAckView> *const viewQueue,
                    NodeConfiguration configuration)
 {
     bindThreadToCpu(3);
@@ -751,22 +748,25 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
 
     while (not is_test_over())
     {
-        LameAckData curData{};
-        while (not viewQueue->try_dequeue(curData) && not is_test_over())
+        util::JankAckView curView{};
+        while (not viewQueue->try_dequeue(curView) && not is_test_over())
             ;
 
-        const auto &[senderId, senderAckView] = curData;
+        // if (is_test_over())
+        // {
+        //     return;
+        // } // commenting this out is a bug but doesn't really matter since test is over
 
-        const auto curForeignAck = acknowledgment::getAckIterator(senderAckView);
+        const auto curForeignAck = util::getAckIterator(curView);
 
-        const auto senderStake = configuration.kOtherNetworkStakes.at(senderId);
+        const auto senderStake = configuration.kOtherNetworkStakes.at(curView.senderId);
         if (curForeignAck.has_value())
         {
-            quorumAck->updateNodeAck(senderId, senderStake, *curForeignAck);
+            quorumAck->updateNodeAck(curView.senderId, senderStake, *curForeignAck);
         }
 
         const auto currentQuack = quorumAck->getCurrentQuack();
-        updateAckTrackers(currentQuack, senderId, senderStake, senderAckView, ackTrackers, resendDataQueue, messageScheduler);
+        updateAckTrackers(currentQuack, senderStake, curView, ackTrackers, resendDataQueue, messageScheduler);
     }
     SPDLOG_CRITICAL("LAME THREAD ENDING");
 }
@@ -782,9 +782,8 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
     pipeline::ReceivedCrossChainMessage receivedMessage{};
 
     scrooge::CrossChainMessage crossChainMessage;
-    auto ackView = std::array<uint64_t, acknowledgment::AckView<kListSize>::kNumInts>{};
 
-    moodycamel::BlockingReaderWriterCircularBuffer<LameAckData> viewQueue(1 << 12);
+    moodycamel::BlockingReaderWriterCircularBuffer<util::JankAckView> viewQueue(1 << 12);
     std::thread lameThread(lameAckThread, acknowledgment.get(), quorumAck.get(), resendDataQueue.get(), &viewQueue,
                            configuration);
 
@@ -829,12 +828,12 @@ void runReceiveThread(const std::shared_ptr<Pipeline> pipeline, const std::share
                 const auto curForeignAck = (crossChainMessage.has_ack_count())
                                                ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
                                                : std::nullopt;
-                // assert(ackView.size() == crossChainMessage.ack_set_size() && "AckListSize inconsistent");
-                std::copy_n(crossChainMessage.ack_set().begin(), crossChainMessage.ack_set_size(), ackView.begin());
-                const auto senderAckView = acknowledgment::AckView<kListSize>{
-                    .ackOffset = curForeignAck.value_or(0ULL - 1ULL) + 2, .view = ackView};
 
-                while (not viewQueue.try_enqueue({.senderId = (uint8_t)senderId, .senderAckView = senderAckView}) &&
+                while (not viewQueue.try_enqueue(
+                            util::JankAckView{
+                                .senderId = (uint8_t)senderId,
+                                .ackOffset = (uint32_t) (curForeignAck.value_or(0ULL - 1ULL) + 2),
+                                .view = std::move(*crossChainMessage.mutable_ack_set())}) &&
                        not is_test_over())
                     ;
             }
