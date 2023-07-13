@@ -156,54 +156,46 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     bool isImplementationValid = kStakePerRsm >= kOwnMaxNumFailedStake + kOtherMaxNumFailedStake;
     assert(isImplementationValid &&
            "More than half of one of the network's total stake can fail -- probably works but not tested");
-    mResendNumberLookup = std::vector<std::vector<std::optional<std::optional<uint64_t>>>>(kOwnNetworkSize, std::vector<std::optional<std::optional<uint64_t>>>(kOtherNetworkSize));
+
+    mResendNumberLookup = std::vector<std::vector<std::optional<ResendNumberType>>>(kOtherNetworkSize,
+            std::vector<std::optional<ResendNumberType>>(kOtherNetworkSize)
+        );
     mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
 }
 
 std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumber) const
 {
-    const auto roundOffset = sequenceNumber / kOwnApportionedStake;
-    const auto originalApportionedSendNode =
-        message_scheduler::stakeToNode(sequenceNumber % kOwnApportionedStake, kOwnRsmApportionedStakePrefixSum);
-    const auto originalApportionedRecvNode = message_scheduler::stakeToNode(
-        (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
+    const auto roundOffset = (sequenceNumber / kOwnApportionedStake) % (kOtherApportionedStake - 1);
+    const auto originalApportionedSendNode = sequenceNumber % kOwnApportionedStake;
 
-    std::optional<std::optional<uint64_t>>* const lookupEntry = mResendNumberLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+    auto lookupEntry = &mResendNumberLookup[originalApportionedSendNode][roundOffset];
 
     if (lookupEntry->has_value())
     {
         return lookupEntry->value();
     }
 
-    const auto originalSender = kOwnRsmApportionedStakePrefixSum.at(originalApportionedSendNode);
-    const auto originalReceiver = kOtherRsmApportionedStakePrefixSum.at(originalApportionedRecvNode);
-    const auto ownNodeFirstStake = kOwnRsmStakePrefixSum.at(kOwnNodeId);
-    const auto ownNodeLastStake = kOwnRsmStakePrefixSum.at(kOwnNodeId + 1) - 1;
-    const auto isNodeFirstSender = ownNodeFirstStake <= originalSender && originalSender <= ownNodeLastStake;
-    const auto ownNodeFirstSentStake = (isNodeFirstSender) ? originalSender : ownNodeFirstStake;
-    const auto previousStakeSent =
-        message_scheduler::trueMod((int64_t)ownNodeFirstSentStake - (int64_t)originalSender, kStakePerRsm);
-
-    const auto isOwnNodeNotASender = previousStakeSent >= kMinStakeToSend;
-    if (isOwnNodeNotASender)
+    if (originalApportionedSendNode == kOwnNodeId)
     {
-        *lookupEntry = std::optional<uint64_t>{};
-        return std::nullopt;
+        *lookupEntry = 0;
+        return 0;
     }
-    const auto ownNodeFirstReceiver = (originalReceiver + previousStakeSent) % kStakePerRsm;
 
-    const auto originalSenderId = message_scheduler::stakeToNode(originalSender, kOwnRsmStakePrefixSum);
-    const auto originalReceiverId = message_scheduler::stakeToNode(originalReceiver, kOtherRsmStakePrefixSum);
-    const auto ownFirstSenderId = kOwnNodeId;
-    const auto ownFirstReceiverId = message_scheduler::stakeToNode(ownNodeFirstReceiver, kOtherRsmStakePrefixSum);
+    const auto firstResender = (originalApportionedSendNode + 1 + roundOffset + (1 + roundOffset)/kOwnApportionedStake)%kOwnApportionedStake;
+    if (firstResender == kOwnNodeId)
+    {
+        *lookupEntry = 1;
+        return 1;
+    }
 
-    const auto priorSenders =
-        message_scheduler::trueMod((int64_t)ownFirstSenderId - (int64_t)originalSenderId, kOwnNetworkSize);
-    const auto priorReceivers =
-        message_scheduler::trueMod((int64_t)ownFirstReceiverId - (int64_t)originalReceiverId, kOtherNetworkSize);
-
-    *lookupEntry = std::max(priorSenders, priorReceivers);
-    return lookupEntry->value();
+    const auto secondResender = (originalApportionedSendNode + 2 + roundOffset + (2 + roundOffset)/kOwnApportionedStake)%kOwnApportionedStake;
+    if (secondResender == kOwnNodeId)
+    {
+        *lookupEntry = 2;
+        return 2;
+    }
+    *lookupEntry = std::optional<uint64_t>{};
+    return std::nullopt;
 }
 
 message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinations(uint64_t sequenceNumber) const

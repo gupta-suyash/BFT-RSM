@@ -48,6 +48,8 @@ class MessageScheduler
     std::vector<uint64_t> kOtherRsmStakePrefixSum{};
     std::vector<uint64_t> kOwnRsmApportionedStakePrefixSum{};
     std::vector<uint64_t> kOtherRsmApportionedStakePrefixSum{};
-    mutable std::vector<std::vector<std::optional<std::optional<uint64_t>>>> mResendNumberLookup{};
-    mutable std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>> mResendDestinationLookup{};
+    using ResendNumberType = std::optional<uint64_t>;
+    using MessageDestinationType = message_scheduler::CompactDestinationList;
+    mutable std::vector<std::vector<std::optional<ResendNumberType>>> mResendNumberLookup{};
+    mutable std::vector<std::vector<std::optional<MessageDestinationType>>> mResendDestinationLookup{};
 };
