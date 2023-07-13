@@ -430,16 +430,16 @@ void handleResends(std::chrono::steady_clock::time_point curTime,
                                                [&](const iothread::MessageResendData &possibleData) -> bool {
                                                    return possibleData.sequenceNumber >= requestedResend.sequenceNumber;
                                                });
+                searchDistance += std::distance(pseudoBegin, curResendDataIt);
             }
             else
             {
-                curResendDataIt = std::find_if(std::begin(resendDatas), pseudoBegin,
+                curResendDataIt = std::find_if(std::make_reverse_iterator(pseudoBegin), std::rend(resendDatas),
                                                [&](const iothread::MessageResendData &possibleData) -> bool {
-                                                   return possibleData.sequenceNumber >= requestedResend.sequenceNumber;
-                                               });
+                                                   return possibleData.sequenceNumber < requestedResend.sequenceNumber;
+                                               }).base();
+                searchDistance += std::distance(curResendDataIt, pseudoBegin);
             }
-
-            searchDistance += (curResendDataIt - pseudoBegin < 0)? curResendDataIt - pseudoBegin + resendDatas.size() : curResendDataIt - pseudoBegin;
             searchChecks++;
 
             pseudoBegin = curResendDataIt;
