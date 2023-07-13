@@ -598,9 +598,10 @@ func (s *EtcdServer) start() {
 	// into the first entry
 	go s.run()
 
-	//@ethan Continuously reads from Scrooge
-	go s.ReadScrooge(path_to_ipipe)
-	go s.WriteScrooge(path_to_opipe)
+	//@ethan Continuously reads from and writes to Scrooge
+	s.CreatePipe()
+	go s.ReadScrooge()
+	go s.WriteScrooge()
 }
 
 func (s *EtcdServer) purgeFile() {
@@ -1828,18 +1829,18 @@ func (s *EtcdServer) apply(
 	s.lg.Debug("Applying entries", zap.Int("num-entries", len(es)))
 
 	//@ethan
-	lg := s.Logger()
-	lg.Info("---------- Applying entries ----------", zap.Int("num-entries", len(es)))
+	// lg := s.Logger()
+	// lg.Info("---------- Applying entries ----------", zap.Int("num-entries", len(es)))
 
 	for i := range es {
 		e := es[i]
 
 		//@ethan
-		lg.Info("Applying entry",
-			zap.Uint64("index", e.Index),
-			zap.Uint64("term", e.Term),
-			zap.Stringer("type", e.Type),
-			zap.String("DATA", string(e.Data)))
+		// lg.Info("Applying entry",
+		// 	zap.Uint64("index", e.Index),
+		// 	zap.Uint64("term", e.Term),
+		// 	zap.Stringer("type", e.Type),
+		// 	zap.String("DATA", string(e.Data)))
 
 		s.lg.Debug("Applying entry",
 			zap.Uint64("index", e.Index),
@@ -1848,18 +1849,17 @@ func (s *EtcdServer) apply(
 		switch e.Type {
 		case raftpb.EntryNormal:
 			//@ethan
-			lg.Info("^^^^ Server applied index BEFORE applyEntryNormal ^^^^",
-				zap.Uint64("applied index before", s.getAppliedIndex()))
+			// lg.Info("^^^^ Server applied index BEFORE applyEntryNormal ^^^^",
+			// 	zap.Uint64("applied index before", s.getAppliedIndex()))
 
 			s.applyEntryNormal(&e)
 			s.setAppliedIndex(e.Index)
 			s.setTerm(e.Term)
 
-			// passes data to go rountine that handles writing to Scrooge
+			//@ethan passes data to go rountine that handles writing to Scrooge
 			s.WriteScroogeC <- e.Data
-
-			lg.Info("^^^^ Server applied index AFTER applyEntryNormal ^^^^",
-				zap.Uint64("applied index after", s.getAppliedIndex()))
+			// lg.Info("^^^^ Server applied index AFTER applyEntryNormal ^^^^",
+			// 	zap.Uint64("applied index after", s.getAppliedIndex()))
 
 		case raftpb.EntryConfChange:
 			// We need to toApply all WAL entries on top of v2store

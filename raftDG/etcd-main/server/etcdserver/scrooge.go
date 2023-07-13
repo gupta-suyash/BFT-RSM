@@ -6,7 +6,6 @@ import (
 
 	"go.etcd.io/etcd/server/v3/etcdserver/ipc-pkg"
 	"go.etcd.io/etcd/server/v3/etcdserver/scrooge"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -24,14 +23,21 @@ const (
 	path_to_opipe = "/tmp/scrooge-input"
 )
 
-func (s *EtcdServer) ReadScrooge(path_to_opipe string) {
-	var err error
-
-	// create read pipe
-	err = ipc.CreatePipe(path_to_opipe)
+func (s *EtcdServer) CreatePipe() {
+	err := ipc.CreatePipe(path_to_ipipe)
 	if err != nil {
 		fmt.Println("Unable to open output pipe: ", err)
 	}
+}
+
+func (s *EtcdServer) ReadScrooge() {
+	var err error
+
+	// create read pipe
+	// err = ipc.CreatePipe(path_to_opipe)
+	// if err != nil {
+	// 	fmt.Println("Unable to open output pipe: ", err)
+	// }
 
 	// open pipe reader
 	openReadPipe, err := ipc.OpenPipeReader(path_to_opipe)
@@ -44,16 +50,16 @@ func (s *EtcdServer) ReadScrooge(path_to_opipe string) {
 	ipc.UsePipeReader(openReadPipe)
 }
 
-func (s *EtcdServer) WriteScrooge(path_to_ipipe string) {
+func (s *EtcdServer) WriteScrooge() {
 	var err error
 
-	lg := s.Logger()
+	// lg := s.Logger()
 
 	// create write pipe
-	err = ipc.CreatePipe(path_to_ipipe)
-	if err != nil {
-		fmt.Println("Unable to open input pipe: ", err)
-	}
+	// err = ipc.CreatePipe(path_to_ipipe)
+	// if err != nil {
+	// 	fmt.Println("Unable to open input pipe: ", err)
+	// }
 
 	// open pipe writer
 	openWritePipe, err := ipc.OpenPipeWriter(path_to_ipipe)
@@ -64,9 +70,9 @@ func (s *EtcdServer) WriteScrooge(path_to_ipipe string) {
 
 	// continously receives data of applied normal entries and subsequently writes the data to Scrooge
 	for data := range s.WriteScroogeC {
-		lg.Info("######## Received data from apply(), Sending to Scrooge ########",
-			zap.String("data", string(data)),
-			zap.Uint64("sequence number", 0))
+		// lg.Info("######## Received data from apply(), Sending to Scrooge ########",
+		// 	zap.String("data", string(data)),
+		// 	zap.Uint64("sequence number", 0))
 
 		sendScrooge(data, 0, openWritePipe)
 		// seqNumber++

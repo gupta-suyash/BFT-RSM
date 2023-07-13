@@ -212,7 +212,6 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 
 				select {
 
-				//@ethan: send toApply out to server
 				case r.applyc <- ap:
 				case <-r.stopped:
 					return
