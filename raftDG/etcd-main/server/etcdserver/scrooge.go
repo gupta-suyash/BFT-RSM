@@ -74,6 +74,7 @@ func (s *EtcdServer) WriteScrooge() {
 		// 	zap.String("data", string(data)),
 		// 	zap.Uint64("sequence number", 0))
 
+		// _ = data
 		sendScrooge(data, 0, openWritePipe)
 		// seqNumber++
 	}

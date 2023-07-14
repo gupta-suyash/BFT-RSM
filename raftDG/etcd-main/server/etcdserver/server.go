@@ -345,7 +345,7 @@ func NewServer(cfg config.ServerConfig) (srv *EtcdServer, err error) {
 		clusterVersionChanged: notify.NewNotifier(),
 
 		//@ethan
-		WriteScroogeC: make(chan []byte, 1),
+		WriteScroogeC: make(chan []byte, 100),
 	}
 	serverID.With(prometheus.Labels{"server_id": b.cluster.nodeID.String()}).Set(1)
 	srv.cluster.SetVersionChangedNotifier(srv.clusterVersionChanged)
@@ -1857,7 +1857,13 @@ func (s *EtcdServer) apply(
 			s.setTerm(e.Term)
 
 			//@ethan passes data to go rountine that handles writing to Scrooge
+
 			s.WriteScroogeC <- e.Data
+
+			// lg.Info("---------- Data length ----------",
+			// 	zap.Int("e.data length", len(e.Data)))
+			// s.WriteScroogeC <- []byte("a")
+
 			// lg.Info("^^^^ Server applied index AFTER applyEntryNormal ^^^^",
 			// 	zap.Uint64("applied index after", s.getAppliedIndex()))
 
