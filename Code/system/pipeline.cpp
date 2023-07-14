@@ -169,8 +169,15 @@ static void closeSocket(nng_socket &socket, std::chrono::steady_clock::time_poin
     nng_close(socket);
 }
 
-template <typename T> static nng_msg *serializeProtobuf(const T &proto)
+static nng_msg *serializeProtobuf(scrooge::CrossChainMessage& proto)
 {
+    static std::string staticData = std::string(get_packet_size(), 'L');
+    for (auto& crossChainData : *(proto.mutable_data()))
+    {
+        // SPDLOG_CRITICAL("Added data again");
+        crossChainData.set_allocated_message_content(&staticData);
+    }
+    // SPDLOG_CRITICAL("Static data is now set: {}", proto.data().size());
     const auto protoSize = proto.ByteSizeLong();
     nng_msg *message;
     const auto allocResult = nng_msg_alloc(&message, protoSize) == 0;
@@ -178,9 +185,15 @@ template <typename T> static nng_msg *serializeProtobuf(const T &proto)
 
     bool success = allocResult && proto.SerializeToArray(messageData, protoSize);
 
+
+    for (auto& crossChainData : *(proto.mutable_data()))
+    {
+        crossChainData.release_message_content();
+    }
+
     if (not success)
     {
-        SPDLOG_CRITICAL("PROTO SERIALIZE FAILED DataSize={} AllocResult={}", protoSize, allocResult);
+        // SPDLOG_CRITICAL("PROTO SERIALIZE FAILED DataSize={} AllocResult={}", protoSize, allocResult);
         std::abort();
     }
 
@@ -402,6 +415,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 
     totalBatchesSent++;
     totalBatchedMessages += batch->data.data_size();
+    // SPDLOG_CRITICAL("totalBatchedMessages: {} and totalBatchesSent: {}", totalBatchedMessages, totalBatchesSent);
 
     nng_msg *batchData = serializeProtobuf(batch->data);
     batch->data.Clear();
@@ -426,7 +440,9 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                    std::chrono::steady_clock::time_point curTime)
 {
-    batch->batchSizeEstimate += message.ByteSizeLong();
+    // SPDLOG_CRITICAL("Message Data List Size: {} ", batch->batchSizeEstimate);
+    batch->batchSizeEstimate += get_packet_size(); // TODO: NOT EXPECTED. Need to add lenght of the message
+    // SPDLOG_CRITICAL("Message Data List Size: {} ", batch->batchSizeEstimate);
     batch->data.mutable_data()->Add(std::move(message));
 
     const auto timeDelta = curTime - batch->creationTime;
@@ -455,8 +471,9 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
-    if (messageData.message_content().size())
+    if (true/*messageData.sequence_number() >= 0*/) // TODO: REFACTOR
     {
+        
         return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(),
                                    curTime);
     }

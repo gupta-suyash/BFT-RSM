@@ -8,6 +8,7 @@ Code/nng-1.5.2/*
 Code/protobuf-*
 Code/scrooge
 Code/check
+Code/*.perf
 Code/node*
 Docs/*.pdf
 Docs/*.aux

@@ -27,7 +27,7 @@ struct MessageResendData
 };
 }; // namespace iothread
 
-void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration);
+// void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration);
 
 void runRelayIPCRequestThread(std::shared_ptr<iothread::MessageQueue> messageOutput,
                               NodeConfiguration kNodeConfiguration);

@@ -92,13 +92,13 @@ int main(int argc, char *argv[])
         //     return 0;
         // }
 
-        auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
+        // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
         // auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         // auto relayTransactionThread =
         //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         // SPDLOG_INFO("Created Generate message relay thread");
 
-        auto sendThread = std::thread(runUnfairOneToOneSendThread /*runOneToOneSendThread*/, messageBuffer, pipeline,
+        auto sendThread = std::thread(runOneToOneSendThread /*runOneToOneSendThread*/, messageBuffer, pipeline,
                                       acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
         auto receiveThread =
             std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
         const auto trueTestEndTime = std::chrono::steady_clock::now();
         end_test();
 
-        messageRelayThread.join();
+        // messageRelayThread.join();
         sendThread.join();
         receiveThread.join();
         // relayRequestThread.join();

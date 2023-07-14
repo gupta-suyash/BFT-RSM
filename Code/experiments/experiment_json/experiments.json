@@ -23,7 +23,7 @@
       "US"
     ]
   },
-  "optimized_unfair_one2one_increase_packet_size": {
+  "optimized_unfair_one2one_ips_hack_4": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 7,
     "simulate_latency": 0,
@@ -82,12 +82,12 @@
         ],
         "packet_size": [
           100,
-          100,
-          100,
-          100,
-          100,
-          100,
-          100
+          333,
+          666,
+          1000,
+          5000,
+          10000,
+          20000
         ]
       },
       "cluster_1": {
@@ -162,7 +162,7 @@
       }
     }
   },
-  "original_unfair_one2one_increase_packet_size": {
+  "normal_one2one_optimized": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 7,
     "simulate_latency": 0,

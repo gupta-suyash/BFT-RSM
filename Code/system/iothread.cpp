@@ -37,26 +37,32 @@ bool isMessageDataValid(const scrooge::CrossChainMessageData &message)
     return true;
 }
 
-// Generates fake messages of a given size for throughput testing
-void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
-                              const NodeConfiguration configuration)
-{
-    bindThreadToCpu(0);
-    SPDLOG_CRITICAL("Generate Message Thread starting with TID = {}", gettid());
-    const auto kMessageSize = get_packet_size();
-
-    for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
-    {
-        scrooge::CrossChainMessageData fakeData;
-        fakeData.set_message_content(std::string(kMessageSize, 'L'));
-        fakeData.set_sequence_number(curSequenceNumber);
-
-        while (not messageOutput->try_enqueue(std::move(fakeData)) && not is_test_over())
-        {
-            std::this_thread::sleep_for(10us);
-        }
-    }
+scrooge::CrossChainMessageData getNext() {
+    static uint64_t curSN{};
+    scrooge::CrossChainMessageData msg;
+    msg.set_sequence_number(curSN++);
+    return msg;
 }
+// Generates fake messages of a given size for throughput testing
+// void runGenerateMessageThread(const std::shared_ptr<iothread::MessageQueue> messageOutput,
+//                               const NodeConfiguration configuration)
+// {
+//     bindThreadToCpu(0); // TODO: MOVE TO DIFFERENT CORE THAN EVERYTHING ELSE
+//     SPDLOG_CRITICAL("Generate Message Thread starting with TID = {}", gettid());
+//     // const auto kMessageSize = get_packet_size();
+
+//     for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
+//     {
+//         scrooge::CrossChainMessageData fakeData;
+//         // fakeData.set_message_content(std::string(kMessageSize, 'L'));
+//         fakeData.set_sequence_number(curSequenceNumber);
+
+//         while (not messageOutput->try_enqueue(std::move(fakeData)) && not is_test_over())
+//         {
+//             // std::this_thread::sleep_for(10us);
+//         }
+//     }
+// }
 
 // Generates fake messages of a given size for throughput testing
 void runGenerateMessageThreadWithIpc()
@@ -181,8 +187,8 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue> message
     Acknowledgment sentMessages{};
     while (not is_test_over())
     {
-        scrooge::CrossChainMessageData newMessageData;
-        while (messageInput->try_dequeue(newMessageData) && not is_test_over())
+        scrooge::CrossChainMessageData newMessageData = getNext();
+        while (/*messageInput->try_dequeue(newMessageData) &&*/ not is_test_over())
         {
             const auto curSequenceNumber = newMessageData.sequence_number();
             auto curTime = std::chrono::steady_clock::now();
@@ -210,7 +216,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     bindThreadToCpu(2);
-    SPDLOG_CRITICAL("Send Thread starting with TID = {}", gettid());
+    SPDLOG_CRITICAL("Normal One to One Send Thread starting with TID = {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
@@ -218,19 +224,16 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> message
     Acknowledgment sentMessages{};
     while (not is_test_over())
     {
-        scrooge::CrossChainMessageData newMessageData;
-        while (messageInput->try_dequeue(newMessageData) && not is_test_over())
-        {
-            const auto curSequenceNumber = newMessageData.sequence_number();
-            auto curTime = std::chrono::steady_clock::now();
+        scrooge::CrossChainMessageData newMessageData = getNext();
+        const auto curSequenceNumber = newMessageData.sequence_number();
+        auto curTime = std::chrono::steady_clock::now();
 
-            pipeline->SendToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
-            sentMessages.addToAckList(curSequenceNumber);
-            quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
-            numMessagesSent++;
+        pipeline->SendToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
+        sentMessages.addToAckList(curSequenceNumber);
+        quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
+        numMessagesSent++;
 
-            allToall(curTime);
-        }
+        allToall(curTime);
     }
 
     addMetric("Latency", averageLat());
@@ -246,7 +249,7 @@ void runUnfairOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> m
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     bindThreadToCpu(2);
-    SPDLOG_CRITICAL("IO Thread Send Thread starting with TID = {}", gettid());
+    SPDLOG_CRITICAL("Unfair One to One Send Thread starting with TID = {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
 
@@ -254,21 +257,19 @@ void runUnfairOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue> m
     Acknowledgment sentMessages{};
     while (not is_test_over())
     {
-        scrooge::CrossChainMessageData newMessageData;
-        while (messageInput->try_dequeue(newMessageData) && not is_test_over())
-        {
-            const auto curSequenceNumber = newMessageData.sequence_number();
-            auto curTime = std::chrono::steady_clock::now();
-            if (curSequenceNumber % kOtherNetworkSize != kNodeId) {
-                continue;
-            }
-            pipeline->SendToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
-            // sentMessages.addToAckList(curSequenceNumber);
-            quorumAck->updateNodeAck(0, 0ULL - 1, curSequenceNumber);
-            numMessagesSent++;
-
-            allToall(curTime);
+        scrooge::CrossChainMessageData newMessageData = getNext();
+        const auto curSequenceNumber = newMessageData.sequence_number();
+        // SPDLOG_CRITICAL("Sequence number in unfair: {} ", curSequenceNumber);
+        auto curTime = std::chrono::steady_clock::now();
+        if (curSequenceNumber % kOtherNetworkSize != kNodeId) {
+            continue;
         }
+        pipeline->SendToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
+        // sentMessages.addToAckList(curSequenceNumber);
+        quorumAck->updateNodeAck(0, 0ULL - 1, curSequenceNumber);
+        numMessagesSent++;
+
+        allToall(curTime);
     }
 
     addMetric("Latency", averageLat());
@@ -357,8 +358,8 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue> messageInput, c
         numTimeoutExclusiveHits += isTimeoutHit && not(isSequenceNumberUseful && isAckFresh);
         numNoopTimeoutHits += isNoopTimeoutHit;
 
-        scrooge::CrossChainMessageData newMessageData;
-        if (not resendDatas.full() && shouldDequeue && messageInput->try_dequeue(newMessageData) && not is_test_over())
+        scrooge::CrossChainMessageData newMessageData = getNext();
+        if (not resendDatas.full() && shouldDequeue /*&& messageInput->try_dequeue(newMessageData)*/ && not is_test_over())
         {
             const auto sequenceNumber = newMessageData.sequence_number();
 
