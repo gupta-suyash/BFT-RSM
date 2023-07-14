@@ -424,12 +424,36 @@ void handleResends(std::chrono::steady_clock::time_point curTime,
             const bool isMonotone = prevActiveResendSequenceNum <= curActiveResendSequenceNum;
             prevActiveResendSequenceNum = curActiveResendSequenceNum;
             auto curResendDataIt = pseudoBegin;
-            if (isMonotone)
+            if (isMonotone && pseudoBegin == std::begin(resendDatas))
+            {
+                while (pseudoBegin+4000 < std::end(resendDatas) && (pseudoBegin+4000)->sequenceNumber < requestedResend.sequenceNumber) {
+                    pseudoBegin += 4000;
+                    searchDistance++;
+                }
+
+                while (pseudoBegin+500 < std::end(resendDatas) && (pseudoBegin+500)->sequenceNumber < requestedResend.sequenceNumber) {
+                    pseudoBegin += 500;
+                    searchDistance++;
+                }
+
+                while (pseudoBegin+50 < std::end(resendDatas) && (pseudoBegin+50)->sequenceNumber < requestedResend.sequenceNumber) {
+                    pseudoBegin += 50;
+                    searchDistance++;
+                }
+                
+                curResendDataIt = std::find_if(pseudoBegin, std::end(resendDatas),
+                                               [&](const iothread::MessageResendData &possibleData) -> bool {
+                                                   return possibleData.sequenceNumber >= requestedResend.sequenceNumber;
+                                               });
+                searchDistance += std::distance(pseudoBegin, curResendDataIt);
+            }
+            else if (isMonotone)
             {
                 curResendDataIt = std::find_if(pseudoBegin, std::end(resendDatas),
                                                [&](const iothread::MessageResendData &possibleData) -> bool {
                                                    return possibleData.sequenceNumber >= requestedResend.sequenceNumber;
                                                });
+                
                 searchDistance += std::distance(pseudoBegin, curResendDataIt);
             }
             else
