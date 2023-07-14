@@ -18,6 +18,6 @@ else
     echo $2
     echo $1
     echo node$2$1
-    # node /proj/ove-PG0/therealmurray/go-algorand/wallet_app/wallet_test.js /proj/ove-PG0/therealmurray/go-algorand/wallet_app/node/node$2$1.json $NAME > wallet$2$1.log
+    node /proj/ove-PG0/therealmurray/go-algorand/wallet_app/wallet_test.js /proj/ove-PG0/therealmurray/go-algorand/wallet_app/node/node$2$1.json $NAME > wallet$2$1.log
     echo "DONE!"
 fi
