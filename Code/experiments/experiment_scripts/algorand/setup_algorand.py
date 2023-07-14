@@ -78,8 +78,8 @@ def setup_cluster(num_nodes, wallet_name):
     vote_key = "vote"
     starting_algos = 10000000000000000
     print("Initializing algorand network with ", num_nodes, " and wallet name ", wallet_name)
-    # generate_cmd = pathname + "create_node.sh"
-    # executeCommand(generate_cmd) # Generates directories
+    generate_cmd = pathname + "create_node.sh"
+    executeCommand(generate_cmd) # Generates directories
     address_arr = []
     for i in range(0, 2):
         address_arr.append([])
@@ -92,11 +92,11 @@ def setup_cluster(num_nodes, wallet_name):
             addr = accountLines[0].strip().split(" ")[len(accountLines[0].strip().split()) - 1]
             genesis_addr = addr
             address_arr[i].append(addr)
-            continue # REMOVE
+            # continue # REMOVE
             # # print(addr)
             # # Add partkeys
-            # partkeyinfo = pathname + "keygen.sh -i " + str(i) + " -j " + str(j) + " -a " + addr
-            # executeCommand(partkeyinfo)
+            partkeyinfo = pathname + "keygen.sh -i " + str(i) + " -j " + str(j) + " -a " + addr
+            executeCommand(partkeyinfo)
 
             # ----- UP TO HERE
             # Read in Partkey json file
@@ -145,8 +145,8 @@ def setup_cluster(num_nodes, wallet_name):
             appFile.close()
 
     # After all this, remove the privatenet information - UPDATE COMMAND
-    # rm_stale_data = pathname + "remove_stale.sh"
-    # executeCommand(rm_stale_data)
+    rm_stale_data = pathname + "remove_stale.sh"
+    executeCommand(rm_stale_data)
 
     # And theoretically...algorand should be ready to run! Run using participation_rsm.sh
     
