@@ -1,6 +1,0 @@
-syntax = "proto3";
-
-message TestMessage {
-	uint64 sequence_number = 1;
-    bytes message_content = 2;
-}
