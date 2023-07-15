@@ -91,8 +91,6 @@ int main(int argc, char *argv[])
         //     remove(kLogPath.c_str());
         //     return 0;
         // }
-
-        // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
         // auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         // auto relayTransactionThread =
         //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);

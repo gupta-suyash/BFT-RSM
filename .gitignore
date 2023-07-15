@@ -9,6 +9,7 @@ Code/protobuf-*
 Code/scrooge
 Code/check
 Code/*.perf
+Code/perf/
 Code/node*
 Docs/*.pdf
 Docs/*.aux
