@@ -3,13 +3,9 @@
 TOKEN=token-333
 CLUSTER_STATE=new
 
-NAMES=("machine-1" "machine-2" "machine-3")
-HOSTS=("10.10.1.1" "10.10.1.2" "10.10.1.3")
-CLUSTER=${NAMES[0]}=http://${HOSTS[0]}:2380,${NAMES[1]}=http://${HOSTS[1]}:2380,${NAMES[2]}=http://${HOSTS[2]}:2380
-
-# NAMES=("machine-3")
-# HOSTS=("10.10.1.3")
-# CLUSTER=${NAMES[0]}=http://${HOSTS[0]}:2380
+NAMES=("machine-1" "machine-2" "machine-3" "machine-4")
+HOSTS=("10.10.1.5" "10.10.1.6" "10.10.1.7" "10.10.1.8")
+CLUSTER=${NAMES[0]}=http://${HOSTS[0]}:2380,${NAMES[1]}=http://${HOSTS[1]}:2380,${NAMES[2]}=http://${HOSTS[2]}:2380,${NAMES[3]}=http://${HOSTS[3]}:2380
 
 function run_etcd() {
     for i in ${!HOSTS[@]}; do
@@ -35,4 +31,3 @@ run_commands=(
 )
 
 run_etcd "${run_commands[@]}"
-
