@@ -45,14 +45,14 @@ def setup(configJson):
         print("Empty config file, failing")
         return
     # Path to setup script
-    localSetupFile = config['experiment_independent_vars']['local_setup_script']
+    localSetupFile = "sudo " + config['experiment_independent_vars']['local_setup_script']
     # Path to setup script for remote machines
     remoteSetupFile = "sudo " + config['experiment_independent_vars']['remote_setup_script']
     # List of IPs for every machine in the cluster
     ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
     print(ip_list)
     # Run function to install all appropriate packages on servers
-    # subprocess.call(localSetupFile)
+    executeCommand(localSetupFile)
     executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
 
 if __name__ == "__main__":
