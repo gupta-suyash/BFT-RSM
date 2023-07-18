@@ -19,6 +19,7 @@ apt install nload
 apt-get -y install autoconf automake libtool curl make g++ clang unzip
 apt-get -y install  libboost-all-dev
 apt-get -y install cmake
+cmake -DCMAKE_BUILD_TYPE="Release" .
 apt-get -y install build-essential
 apt-get -y install re2c
 apt-get -y remove --auto-remove libprotobuf-dev
