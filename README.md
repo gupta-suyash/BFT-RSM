@@ -17,6 +17,6 @@ To run the program (assuming only 2 clusters as of right now): /proj/ove-PG0/the
 
 Setup script: /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/setup.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json
 
-Run algorand: 
+Run algorand: /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/algorand/setup_algorand.py 1 2 4 test1
 
 Kill all python processes: killall -9 ssh; pkill python
