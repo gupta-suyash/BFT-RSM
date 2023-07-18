@@ -4,7 +4,6 @@
 #include "parser.h"
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
-#include "benchmark.h"
 #include <filesystem>
 #include <functional>
 #include <memory>
