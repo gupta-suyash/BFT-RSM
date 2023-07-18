@@ -72,7 +72,6 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
-
         // if (get_rsm_id() == 1 && kNodeId == 0)
         // {
         //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());

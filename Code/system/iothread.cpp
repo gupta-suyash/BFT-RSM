@@ -266,11 +266,11 @@ auto lastSendTime = std::chrono::steady_clock::now();
 uint64_t numMsgsSentWithLastAck{};
 std::optional<uint64_t> lastSentAck{};
 uint64_t lastQuack = 0;
-constexpr uint64_t kAckWindowSize = 8;
-constexpr uint64_t kQAckWindowSize = kListSize * 30;
+constexpr uint64_t kAckWindowSize = 1000;
+constexpr uint64_t kQAckWindowSize = kListSize * 1000;
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
-constexpr auto kMaxMessageDelay = 2us;
-constexpr auto kNoopDelay = 500us;
+constexpr auto kMaxMessageDelay = 1us;
+constexpr auto kNoopDelay = 800us;
 uint64_t noop_ack = 0;
 uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{}, numResendsTooLow{}, searchDistance{}, searchChecks{};
 uint64_t numQuackWindowFails{}, numAckWindowFails{}, numSendChecks{}, numIOTimeoutHits{}, numNoopTimeoutHits{},
