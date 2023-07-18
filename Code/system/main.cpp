@@ -10,8 +10,22 @@
 #include <string>
 #include <thread>
 
+
 int main(int argc, char *argv[])
 {
+    // if(argc < 3) {
+    //     std::cout << "2 args plz" << std::endl;
+    //     return -1;
+    // }
+    // std::size_t pos;
+    // uint64_t max_power = std::stoi(argv[1], &pos);
+    // std::size_t posTwo;
+    // uint64_t message_sz = std::stoi(argv[1], &pos);
+    // test_integer(max_power);
+    // test_protobuf_creation_stack(100);
+    // test_protobuf_creation_heap(100);
+    // std::cout << "Hi " << std::endl;
+    // test_stack_protobuf_queue_rate(max_power, message_sz);
     std::string path;
     {
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
@@ -37,7 +51,7 @@ int main(int argc, char *argv[])
         printMetrics(kLogPath); // Deletes the metrics!
 
         const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
-        constexpr auto kMessageBufferSize = 256;
+        constexpr auto kMessageBufferSize = 1024; // Old value: 256
 
         const auto acknowledgment = std::make_shared<Acknowledgment>();
         const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
@@ -76,14 +90,12 @@ int main(int argc, char *argv[])
         //     remove(kLogPath.c_str());
         //     return 0;
         // }
+        // auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        // auto relayTransactionThread =
+        //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        // SPDLOG_INFO("Created Generate message relay thread");
 
-        // auto messageRelayThread = std::thread(runGenerateMessageThread, messageBuffer, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-            std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
-        SPDLOG_INFO("Created Generate message relay thread");
-
-        auto sendThread = std::thread(runOneToOneSendThread /*runAllToAllSendThread*/, messageBuffer, pipeline,
+        auto sendThread = std::thread(runOneToOneSendThread /*runOneToOneSendThread*/, messageBuffer, pipeline,
                                       acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
         auto receiveThread =
             std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, ackTrackers, quorumAck, kNodeConfiguration);
@@ -102,8 +114,8 @@ int main(int argc, char *argv[])
         // messageRelayThread.join();
         sendThread.join();
         receiveThread.join();
-        relayRequestThread.join();
-        relayTransactionThread.join();
+        // relayRequestThread.join();
+        // relayTransactionThread.join();
 
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "

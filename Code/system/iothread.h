@@ -11,10 +11,11 @@
 #include <memory>
 
 #include "readerwritercircularbuffer.h"
+#include "readerwriterqueue.h"
 
 namespace iothread
 {
-using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<scrooge::CrossChainMessageData>;
+using MessageQueue = moodycamel::ReaderWriterQueue<scrooge::CrossChainMessageData>;
 
 struct MessageResendData
 {
@@ -26,7 +27,7 @@ struct MessageResendData
 };
 }; // namespace iothread
 
-void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration);
+// void runGenerateMessageThread(std::shared_ptr<iothread::MessageQueue> messageOutput, NodeConfiguration configuration);
 
 void runRelayIPCRequestThread(std::shared_ptr<iothread::MessageQueue> messageOutput,
                               NodeConfiguration kNodeConfiguration);
@@ -45,6 +46,11 @@ void runAllToAllSendThread(std::shared_ptr<iothread::MessageQueue> messageInput,
                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
 void runOneToOneSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
+                           std::shared_ptr<Acknowledgment> acknowledgment,
+                           std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
+                           std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
+
+void runUnfairOneToOneSendThread(std::shared_ptr<iothread::MessageQueue> messageInput, std::shared_ptr<Pipeline> pipeline,
                            std::shared_ptr<Acknowledgment> acknowledgment,
                            std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
