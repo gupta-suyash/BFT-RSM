@@ -5,6 +5,8 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
+sudo chsh `whoami` -s /bin/bash
+
 apt-get -y update
 apt-get -y upgrade
 
@@ -19,7 +21,6 @@ apt install nload
 apt-get -y install autoconf automake libtool curl make g++ clang unzip
 apt-get -y install  libboost-all-dev
 apt-get -y install cmake
-cmake -DCMAKE_BUILD_TYPE="Release" .
 apt-get -y install build-essential
 apt-get -y install re2c
 apt-get -y remove --auto-remove libprotobuf-dev
@@ -61,7 +62,6 @@ tar -xzf protobuf-cpp-3.10.0.tar.gz
 echo "untar of protobuf successful"
 cd protobuf-3.10.0
 ./configure
-make clean
 make -j$(nproc)
 make install -j
 ldconfig
@@ -71,16 +71,15 @@ cd ..
 wget https://go.dev/dl/go1.20.1.linux-386.tar.gz
 rm -rf /usr/local/go
 tar -C /usr/local -xzf go1.20.1.linux-386.tar.gz
-echo "export PATH=\$PATH:/usr/local/go/bin" >> $HOME/.profile
-source $HOME/.profile
-echo "export PATH=\$PATH:`go env GOPATH`/bin" >> $HOME/.profile
-source $HOME/.profile
+echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
+source ~/.bashrc
+echo "export PATH=\$PATH:`go env GOPATH`/bin" >> ~/.bashrc
+source ~/.bashrc
 
 pip install -U kaleido
 
 # Insatall go protoc extension
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-apt install golang-goprotobuf-dev
 echo "Script is successful!"
 
 # Install algorand js sdk
