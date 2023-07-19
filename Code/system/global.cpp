@@ -24,7 +24,7 @@ std::unordered_map<uint64_t, std::string> keyOwnCluster;
 std::unordered_map<uint64_t, std::string> keyOtherCluster;
 
 static std::chrono::steady_clock::time_point g_start_time{};
-static constexpr auto kWarmupDuration = 15s;
+static constexpr auto kWarmupDuration = 30s;
 static constexpr auto kTestDuration = 90s;
 
 static std::atomic_bool isTestOver{};

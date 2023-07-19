@@ -60,9 +60,22 @@ func UsePipeReader(openReadPipe *os.File) {
 		readSize := binary.LittleEndian.Uint64(readSizeBytes[:])
 
 		readData := loggedRead(reader, readSize)
+
 		if readData == nil {
-			fmt.Println("Error: no data bytes")
+			fmt.Println("No Data Read!")
 		}
+
+		// unmarshal readData into ScroogeRequest, and print seq num
+		// var req scrooge.ScroogeRequest
+
+		// proto.Unmarshal(readData, &req)
+
+		// payload := string(req.GetSendMessageRequest().GetContent().GetMessageContent())
+		// seqNum := req.GetSendMessageRequest().GetContent().GetSequenceNumber()
+
+		// fmt.Println("Receive Sequence number: ", seqNum)
+		// fmt.Println("Receive Payload: ", payload)
+
 	}
 }
 
@@ -105,7 +118,7 @@ func loggedRead(reader io.Reader, numBytes uint64) []byte {
 	bytesRead, readErr := io.ReadFull(reader, readData)
 
 	if readErr != nil {
-		fmt.Println("Pipe Writing Error: ", readErr, "[Desired Write size = ", numBytes, " Actually written size = ", bytesRead, "]")
+		fmt.Println("Pipe Reading Error: ", readErr, "[Desired Read size = ", numBytes, " Actually read size = ", bytesRead, "]")
 		return nil
 	} else {
 		return readData

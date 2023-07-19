@@ -136,7 +136,7 @@ void runRelayIPCRequestThread(const std::shared_ptr<iothread::MessageQueue> mess
 
     while (not is_test_over())
     {
-        SPDLOG_CRITICAL("Entered while");
+        // SPDLOG_CRITICAL("Entered while");
 
         auto messageBytes = readMessage(pipe);
 

@@ -8,12 +8,12 @@ HOSTS=("10.10.1.5" "10.10.1.6" "10.10.1.7" "10.10.1.8")
 CLUSTER=${NAMES[0]}=http://${HOSTS[0]}:2380,${NAMES[1]}=http://${HOSTS[1]}:2380,${NAMES[2]}=http://${HOSTS[2]}:2380,${NAMES[3]}=http://${HOSTS[3]}:2380
 
 function run_etcd() {
-    for i in ${!HOSTS[@]}; do
+    # for i in ${!HOSTS[@]}; do
 
-        ssh -o StrictHostKeyChecking=no ${HOSTS[$i]} "sudo fuser -n tcp -k 2379 2380; sudo rm -rf \${HOME}/data.etcd; exit" &
+    #     ssh -o StrictHostKeyChecking=no ${HOSTS[$i]} "sudo fuser -n tcp -k 2379 2380; sudo rm -rf \${HOME}/data.etcd; exit" &
 
-    done
-    wait
+    # done
+    # wait
 
     for i in ${!HOSTS[@]}; do
         this_name=${NAMES[$i]}
