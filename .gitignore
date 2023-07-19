@@ -15,7 +15,7 @@ Docs/*.pdf
 Docs/*.aux
 Docs/*.log
 Docs/*.out
-
+Code/experiments/experiment_scripts/cur_results.csv
 ## IGNORE VSCODE ##
 .vscode/
 !.vscode/settings.json

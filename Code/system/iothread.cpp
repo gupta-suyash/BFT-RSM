@@ -168,9 +168,10 @@ void runAllToAllSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge:
     Acknowledgment sentMessages{};
     while (not is_test_over())
     {
-        scrooge::CrossChainMessageData newMessageData = getNext();
-        while (/*messageInput->try_dequeue(newMessageData) &&*/ not is_test_over())
+        
+        while (not is_test_over())
         {
+            scrooge::CrossChainMessageData newMessageData = getNext();
             const auto curSequenceNumber = newMessageData.sequence_number();
             auto curTime = std::chrono::steady_clock::now();
 
