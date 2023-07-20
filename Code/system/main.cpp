@@ -13,19 +13,6 @@
 
 int main(int argc, char *argv[])
 {
-    // if(argc < 3) {
-    //     std::cout << "2 args plz" << std::endl;
-    //     return -1;
-    // }
-    // std::size_t pos;
-    // uint64_t max_power = std::stoi(argv[1], &pos);
-    // std::size_t posTwo;
-    // uint64_t message_sz = std::stoi(argv[1], &pos);
-    // test_integer(max_power);
-    // test_protobuf_creation_stack(100);
-    // test_protobuf_creation_heap(100);
-    // std::cout << "Hi " << std::endl;
-    // test_stack_protobuf_queue_rate(max_power, message_sz);
     std::string path;
     {
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);

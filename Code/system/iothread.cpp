@@ -529,6 +529,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
     const MessageScheduler messageScheduler(configuration);
+    uint64_t peekSN = 0;
 
     
     while (not is_test_over())
@@ -543,8 +544,7 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
             numMsgsSentWithLastAck = 0;
         }
 
-        const int64_t pendingSequenceNum =
-            (messageInput->peek()) ? messageInput->peek()->sequence_number() : kQAckWindowSize + curQuack.value_or(0);
+        const int64_t pendingSequenceNum = peekSN;
         const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
         const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
         const auto curTime = std::chrono::steady_clock::now();
@@ -560,8 +560,10 @@ void runSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossCh
         numNoopTimeoutHits += isNoopTimeoutHit;
 
         scrooge::CrossChainMessageData newMessageData;
-        if (not resendDatas.full() && shouldDequeue && messageInput->try_dequeue(newMessageData) && not is_test_over())
+        if (not resendDatas.full() && shouldDequeue)
         {
+            newMessageData = getNext();
+            peekSN++;
             const bool shouldContinue = handleNewMessage(curTime, messageScheduler, curQuack, pipeline.get(), acknowledgment.get(), std::move(newMessageData));
             if (shouldContinue)
             {
