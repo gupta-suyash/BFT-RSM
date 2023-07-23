@@ -1,15 +1,17 @@
 #include "acknowledgment.h"
+#include "all_to_all.h"
 #include "global.h"
 #include "iothread.h"
+#include "one_to_one.h"
 #include "parser.h"
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
+#include "scrooge.h"
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>
 #include <thread>
-
 
 int main(int argc, char *argv[])
 {
@@ -43,10 +45,10 @@ int main(int argc, char *argv[])
         const auto acknowledgment = std::make_shared<Acknowledgment>();
         const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
                                                          kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
-        const auto messageBuffer = std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
+        const auto messageBuffer =
+            std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
         const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
         const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(2048);
-
 
         pipeline->startPipeline();
 
@@ -78,10 +80,10 @@ int main(int argc, char *argv[])
         //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         // SPDLOG_INFO("Created Generate message relay thread");
 
-        auto sendThread = std::thread(runSendThread, messageBuffer, pipeline,
-                                      acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
-        auto receiveThread =
-            std::thread(runReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
+        auto sendThread = std::thread(runScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+        auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                         kNodeConfiguration);
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
         std::this_thread::sleep_until(testStartRecordTime);

@@ -2,7 +2,6 @@
 
 #include "acknowledgment.h"
 #include "global.h"
-#include "readerwritercircularbuffer.h"
 
 #include "scrooge_message.pb.h"
 
@@ -13,7 +12,7 @@
 #include <thread>
 #include <vector>
 
-#include <boost/circular_buffer.hpp>
+#include "readerwriterqueue.h"
 #include <nng/nng.h>
 
 namespace pipeline
@@ -31,7 +30,7 @@ struct CrossChainMessageBatch
     uint64_t batchSizeEstimate{};
 };
 
-template <typename T> using MessageQueue = moodycamel::BlockingReaderWriterCircularBuffer<T>;
+template <typename T> using MessageQueue = moodycamel::ReaderWriterQueue<T>;
 }; // namespace pipeline
 
 class Pipeline

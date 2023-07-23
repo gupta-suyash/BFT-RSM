@@ -6,8 +6,9 @@ AcknowledgmentTracker::AcknowledgmentTracker(uint64_t otherNetworkSize, uint64_t
 {
 }
 
-acknowledgment_tracker::ResendData AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
-                                   std::optional<uint64_t> curQuackValue)
+acknowledgment_tracker::ResendData AcknowledgmentTracker::update(uint64_t nodeId, uint64_t nodeStake,
+                                                                 std::optional<uint64_t> acknowledgmentValue,
+                                                                 std::optional<uint64_t> curQuackValue)
 {
     const auto oldAcknowledgmentValue = mNodeData.at(nodeId).acknowledgmentValue;
     if (oldAcknowledgmentValue > curQuackValue)
@@ -82,7 +83,7 @@ void AcknowledgmentTracker::updateAggregateData(uint64_t nodeId, uint64_t nodeSt
 
 acknowledgment_tracker::ResendData AcknowledgmentTracker::updateActiveResendData()
 {
-    auto& curResendData = mActiveResendData;
+    auto &curResendData = mActiveResendData;
 
     if (mCurUnstuckStake > kOtherNetworkMaxFailedStake)
     {

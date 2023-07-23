@@ -36,7 +36,8 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
     {
         message->mutable_ack_count()->set_value(ackIterator.value());
     }
-    *message->mutable_ack_set() = {curAckView.view.begin(), std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+    *message->mutable_ack_set() = {curAckView.view.begin(),
+                                   std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
 }
 
 template <typename atomic_bitset> void reset_atomic_bit(atomic_bitset &set, uint64_t bit)
@@ -168,10 +169,10 @@ static void closeSocket(nng_socket &socket, std::chrono::steady_clock::time_poin
     nng_close(socket);
 }
 
-static nng_msg *serializeProtobuf(scrooge::CrossChainMessage& proto)
+static nng_msg *serializeProtobuf(scrooge::CrossChainMessage &proto)
 {
     static std::string staticData = std::string(get_packet_size(), 'L');
-    for (auto& crossChainData : *(proto.mutable_data()))
+    for (auto &crossChainData : *(proto.mutable_data()))
     {
         // SPDLOG_CRITICAL("Added data again");
         crossChainData.set_allocated_message_content(&staticData);
@@ -184,8 +185,7 @@ static nng_msg *serializeProtobuf(scrooge::CrossChainMessage& proto)
 
     bool success = allocResult && proto.SerializeToArray(messageData, protoSize);
 
-
-    for (auto& crossChainData : *(proto.mutable_data()))
+    for (auto &crossChainData : *(proto.mutable_data()))
     {
         crossChainData.release_message_content();
     }
@@ -470,9 +470,9 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
-    if (true/*messageData.sequence_number() >= 0*/) // TODO: REFACTOR
+    if (true /*messageData.sequence_number() >= 0*/) // TODO: REFACTOR
     {
-        
+
         return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(),
                                    curTime);
     }

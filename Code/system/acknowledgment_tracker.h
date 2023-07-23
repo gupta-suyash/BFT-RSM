@@ -36,8 +36,9 @@ class AcknowledgmentTracker
   public:
     AcknowledgmentTracker(uint64_t otherNetworkSize, uint64_t otherNetworkMaxFailedStake);
 
-    acknowledgment_tracker::ResendData update(uint64_t nodeId, uint64_t nodeStake, std::optional<uint64_t> acknowledgmentValue,
-                std::optional<uint64_t> curQuackValue);
+    acknowledgment_tracker::ResendData update(uint64_t nodeId, uint64_t nodeStake,
+                                              std::optional<uint64_t> acknowledgmentValue,
+                                              std::optional<uint64_t> curQuackValue);
     acknowledgment_tracker::ResendData getActiveResendData() const;
 
   private:
