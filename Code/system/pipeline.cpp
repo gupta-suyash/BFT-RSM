@@ -171,6 +171,23 @@ static void closeSocket(nng_socket &socket, std::chrono::steady_clock::time_poin
 
 static nng_msg *serializeProtobuf(scrooge::CrossChainMessage &proto)
 {
+    const auto protoSize = proto.ByteSizeLong();
+    nng_msg *message;
+    const auto allocResult = nng_msg_alloc(&message, protoSize) == 0;
+    char *const messageData = (char *)nng_msg_body(message);
+
+    bool success = allocResult && proto.SerializeToArray(messageData, protoSize);
+
+    if (not success)
+    {
+        SPDLOG_CRITICAL("PROTO SERIALIZE FAILED DataSize={} AllocResult={}", protoSize, allocResult);
+        std::abort();
+    }
+
+    return message;
+}
+static nng_msg *serializeFileProtobuf(scrooge::CrossChainMessage &proto)
+{
     static std::string staticData = std::string(get_packet_size(), 'L');
     for (auto &crossChainData : *(proto.mutable_data()))
     {
@@ -414,7 +431,6 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 
     totalBatchesSent++;
     totalBatchedMessages += batch->data.data_size();
-    // SPDLOG_CRITICAL("totalBatchedMessages: {} and totalBatchesSent: {}", totalBatchedMessages, totalBatchesSent);
 
     nng_msg *batchData = serializeProtobuf(batch->data);
     batch->data.Clear();
@@ -433,15 +449,43 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
     }
 }
 
+void Pipeline::flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const batch,
+                                    const Acknowledgment *const acknowledgment,
+                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                    std::chrono::steady_clock::time_point curTime)
+{
+    if (acknowledgment)
+    {
+        setAckValue(&batch->data, *acknowledgment);
+        generateMessageMac(&batch->data);
+    }
+
+    totalBatchesSent++;
+    totalBatchedMessages += batch->data.data_size();
+
+    nng_msg *batchData = serializeFileProtobuf(batch->data);
+    batch->data.Clear();
+    batch->batchSizeEstimate = kProtobufDefaultSize;
+
+    bool pushFailure{};
+
+    while ((pushFailure = not sendingQueue->try_enqueue(batchData)) && not is_test_over())
+        ;
+
+    batch->creationTime = curTime;
+
+    if (pushFailure)
+    {
+        nng_msg_free(batchData);
+    }
+}
 bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                                    pipeline::CrossChainMessageBatch *const batch,
                                    const Acknowledgment *const acknowledgment,
                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                    std::chrono::steady_clock::time_point curTime)
 {
-    // SPDLOG_CRITICAL("Message Data List Size: {} ", batch->batchSizeEstimate);
-    batch->batchSizeEstimate += get_packet_size(); // TODO: NOT EXPECTED. Need to add lenght of the message
-    // SPDLOG_CRITICAL("Message Data List Size: {} ", batch->batchSizeEstimate);
+    batch->batchSizeEstimate += message.ByteSizeLong();
     batch->data.mutable_data()->Add(std::move(message));
 
     const auto timeDelta = curTime - batch->creationTime;
@@ -456,12 +500,40 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     flushBufferedMessage(batch, acknowledgment, sendingQueue, curTime);
     return true;
 }
+bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
+                                   pipeline::CrossChainMessageBatch *const batch,
+                                   const Acknowledgment *const acknowledgment,
+                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                   std::chrono::steady_clock::time_point curTime)
+{
+    batch->batchSizeEstimate += get_packet_size(); // TODO: NOT EXPECTED. Need to add lenght of the message
+    batch->data.mutable_data()->Add(std::move(message));
+
+    const auto timeDelta = curTime - batch->creationTime;
+    bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
+    numTimeoutHits += timeDelta >= kMaxBatchCreationTime;
+    numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
+    if (not shouldSend)
+    {
+        return false;
+    }
+
+    flushBufferedFileMessage(batch, acknowledgment, sendingQueue, curTime);
+    return true;
+}
 void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
                                    std::chrono::steady_clock::time_point curTime)
 {
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
     flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
+}
+void Pipeline::forceSendFileToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
+                                   std::chrono::steady_clock::time_point curTime)
+{
+    const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
+    const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
+    flushBufferedFileMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
 }
 /* This function is used to send message to a specific node in other RSM.
  *
@@ -485,7 +557,88 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
  *
  * @param nid is the identifier of the node in the other RSM.
  */
+bool Pipeline::FileSendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData,
+                              const Acknowledgment *const acknowledgment, std::chrono::steady_clock::time_point curTime)
+{
+    SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
+                 receivingNodeId, message.data().sequence_number(), getLogAck(message),
+                 message.data().message_content().size());
+
+    const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
+    const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
+
+    return bufferedFileMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(),
+                               curTime);
+}
+
+/* This function is used to send message to a specific node in other RSM.
+ *
+ * @param nid is the identifier of the node in the other RSM.
+ */
 void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
+                                 std::chrono::steady_clock::time_point curTime)
+{
+    auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
+    auto batch = &mForeignMessageBatches.front().data;
+    auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
+
+    const auto newDataSize = messageData.ByteSizeLong();
+    batch->mutable_data()->Add(std::move(messageData));
+    *batchSize += newDataSize;
+
+    bool shouldSend = *batchSize >= kMinimumBatchSize || kMaxBatchCreationTime < curTime - *batchCreationTime;
+    if (not shouldSend)
+    {
+        return;
+    }
+    totalBatchesSent++;
+    totalBatchedMessages += batch->data_size();
+    numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
+    numSizeHits += *batchSize >= kMinimumBatchSize;
+
+    auto foreignAliveNodes = mAliveNodesForeign;
+    nng_msg *batchData = serializeProtobuf(*batch);
+
+    while (foreignAliveNodes.any() && not is_test_over())
+    {
+        const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
+        foreignAliveNodes.reset(curDestination);
+        const auto &curBuffer = mForeignSendBufs.at(curDestination);
+        nng_msg *curMessage;
+
+        if (foreignAliveNodes.any())
+        {
+            nng_msg_dup(&curMessage, batchData);
+        }
+        else
+        {
+            curMessage = batchData;
+        }
+
+        while (not curBuffer->try_enqueue(curMessage))
+        {
+            if (is_test_over())
+            {
+                const bool isLastIteration = foreignAliveNodes.none();
+                if (not isLastIteration)
+                {
+                    nng_msg_free(batchData);
+                }
+                nng_msg_free(curMessage);
+
+                break;
+            }
+        }
+    }
+    batch->Clear();
+    *batchSize = 0;
+    *batchCreationTime = curTime;
+}
+/* This function is used to send message to a specific node in other RSM.
+ *
+ * @param nid is the identifier of the node in the other RSM.
+ */
+void Pipeline::SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
                                  std::chrono::steady_clock::time_point curTime)
 {
     auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
