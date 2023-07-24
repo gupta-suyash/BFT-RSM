@@ -13,7 +13,7 @@ Note: You only need to run steps 1 and 2 once per new machine
 
 For @murray22: 
 
-To run the program (assuming only 2 clusters as of right now): /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json optimized_unfair_one2one_ips_hack_4
+To run the program (assuming only 2 clusters as of right now): /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json one_shot_one2one
 
 Setup script: /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/setup.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json
 

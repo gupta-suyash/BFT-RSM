@@ -78,10 +78,10 @@ int main(int argc, char *argv[])
         //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         // SPDLOG_INFO("Created Generate message relay thread");
 
-        auto sendThread = std::thread(runSendThread, messageBuffer, pipeline,
+        auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline,
                                       acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
         auto receiveThread =
-            std::thread(runReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
+            std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
         std::this_thread::sleep_until(testStartRecordTime);

@@ -12,7 +12,7 @@ import concurrent.futures
 import json
 
 setup_dir = os.path.realpath(os.path.dirname(__file__))
-sys.path.append("/proj/ove-PG0/therealmurray/Scrooge-Experiments/Code/experiments/experiment_scripts/util/")
+sys.path.append("/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/util/")
 from ssh_util import *
 # clusterOne = ["10.10.1.10", "10.10.1.11"]
 clusterOne = ["10.10.1.10", "10.10.1.2", "10.10.1.3", "10.10.1.4", "10.10.1.5"] # first entry is the relay
@@ -25,14 +25,14 @@ def main():
     print("Arguments: ", int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]) # 1 2 4 test1
     base_cmd = ""
     if int(sys.argv[2]) == 0: # Setup all nodes
-        base_cmd = ". /proj/ove-PG0/therealmurray/Scrooge-Experiments/Code/experiments/experiment_scripts/algorand/compile.sh "
+        base_cmd = ". /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/algorand/compile.sh "
     elif int(sys.argv[2]) == 1: # Setup clusters
         setup_cluster(int(sys.argv[3]), sys.argv[4])
         return
     elif int(sys.argv[2]) == 2: # Run all nodes
-        base_cmd = ". /proj/ove-PG0/therealmurray/Scrooge-Experiments/Code/experiments/experiment_scripts/algorand/participation_rsm.sh "
+        base_cmd = ". /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/algorand/participation_rsm.sh "
     else: # Shutdown all nodes
-        base_cmd = ". /proj/ove-PG0/therealmurray/Scrooge-Experiments/Code/experiments/experiment_scripts/algorand/shutdown.sh "
+        base_cmd = ". /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/algorand/shutdown.sh "
 
     hostname=socket.gethostname()   
     IPAddr=socket.gethostbyname(hostname)

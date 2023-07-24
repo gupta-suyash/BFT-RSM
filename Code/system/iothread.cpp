@@ -227,7 +227,7 @@ void runOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge:
 void runUnfairOneToOneSendThread(const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
                            const std::shared_ptr<Pipeline> pipeline,
                            const std::shared_ptr<Acknowledgment> acknowledgment,
-                           const std::shared_ptr<std::vector<std::unique_ptr<AcknowledgmentTracker>>> ackTrackers,
+                           const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
                            const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
     bindThreadToCpu(2);

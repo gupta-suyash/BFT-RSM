@@ -14,16 +14,16 @@
       "10.10.1.5"
     ],
     "clusterOneIps": [
-      "10.10.1.6",
-      "10.10.1.7",
-      "10.10.1.8",
-      "10.10.1.9"
+      "10.10.1.20",
+      "10.10.1.21",
+      "10.10.1.22",
+      "10.10.1.23"
     ],
     "client_regions": [
       "US"
     ]
   },
-  "optimized_unfair_one2one_ips_hack_4": {
+  "one_shot_one2one": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 7,
     "simulate_latency": 0,
@@ -153,7 +153,7 @@
       }
     }
   },
-  "normal_one2one_optimized": {
+  "all2all": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 7,
     "simulate_latency": 0,
@@ -292,7 +292,7 @@
       }
     }
   },
-  "normal_one2one_increase_packet_size": {
+  "scrooge": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 7,
     "simulate_latency": 0,

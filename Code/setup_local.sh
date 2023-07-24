@@ -43,7 +43,7 @@ apt-get -y install ninja-build
 echo "built ninja"
 apt-get -y install libcrypto++-dev libcrypto++-doc libcrypto++-utils
 apt install nodejs
-apt -y install npm
+
 
 tar -xzf nng-1.5.2.tar.gz
 echo "untar of nng successful"
@@ -83,5 +83,6 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 echo "Script is successful!"
 
 # Install algorand js sdk
-cd /proj/ove-PG0/therealmurray/go-algorand/wallet_app
-npm install algosdk
+# cd /proj/ove-PG0/therealmurray/go-algorand/wallet_app
+# apt -y install npm
+# npm install algosdk

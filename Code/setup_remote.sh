@@ -44,7 +44,7 @@ apt-get -y install ninja-build
 echo "built ninja"
 apt-get -y install libcrypto++-dev libcrypto++-doc libcrypto++-utils
 apt -y install nodejs
-apt -y install npm
+
 
 echo "Apt script is successful!"
 
@@ -56,5 +56,6 @@ cd ..
 echo "Protobuf install is good"
 
 # Install algorand js sdk
-cd /proj/ove-PG0/therealmurray/go-algorand/wallet_app
-npm install algosdk
+# cd /proj/ove-PG0/therealmurray/go-algorand/wallet_app
+# apt -y install npm
+# npm install algosdk
