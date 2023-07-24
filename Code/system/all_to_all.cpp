@@ -46,7 +46,8 @@ void runAllToAllReceiveThread(
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
 }
 
-void runAllToAllSendThread(
+template <bool kIsUsingFile>
+static void runAllToAllSendThread(
     const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
     const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
@@ -66,7 +67,14 @@ void runAllToAllSendThread(
             const auto curSequenceNumber = newMessageData.sequence_number();
             auto curTime = std::chrono::steady_clock::now();
 
-            pipeline->SendToAllOtherRsm(std::move(newMessageData), curTime);
+            if constexpr (kIsUsingFile)
+            {
+                pipeline->SendFileToAllOtherRsm(std::move(newMessageData), curTime);
+            }
+            else
+            {
+                pipeline->SendToAllOtherRsm(std::move(newMessageData), curTime);
+            }
             sentMessages.addToAckList(curSequenceNumber);
             quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
@@ -77,4 +85,25 @@ void runAllToAllSendThread(
     addMetric("num_msgs_sent", numMessagesSent);
     // addMetric("max_quack", quorumAck->getCurrentQuack().value_or(0));
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
+}
+
+void runFileAllToAllSendThread(
+    std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
+    std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
+    std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
+    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration)
+{
+    constexpr bool kIsUsingFile = true;
+    runAllToAllSendThread<kIsUsingFile>(messageInput, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                        configuration);
+}
+
+void runAllToAllSendThread(std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
+                           std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
+                           std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
+                           std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration)
+{
+    constexpr bool kIsUsingFile = false;
+    runAllToAllSendThread<kIsUsingFile>(messageInput, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                        configuration);
 }

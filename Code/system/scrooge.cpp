@@ -50,6 +50,7 @@ scrooge::CrossChainMessageData getNext()
     return msg;
 }
 
+template <bool kIsUsingFile>
 bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const MessageScheduler &messageScheduler,
                       std::optional<uint64_t> curQuack, Pipeline *const pipeline,
                       const Acknowledgment *const acknowledgment, scrooge::CrossChainMessageData &&newMessageData)
@@ -78,8 +79,17 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
         if (isPossiblySentLater)
         {
             auto messageDataCopy = newMessageData;
-            const bool isMessageSent =
-                pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment, curTime);
+            bool isMessageSent;
+            if constexpr (kIsUsingFile)
+            {
+                isMessageSent =
+                    pipeline->SendFileToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment, curTime);
+            }
+            else
+            {
+                isMessageSent =
+                    pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment, curTime);
+            }
             if (isMessageSent)
             {
                 lastSendTime = curTime;
@@ -88,8 +98,17 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
         }
         else
         {
-            const bool isMessageSent =
-                pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment, curTime);
+            bool isMessageSent;
+            if constexpr (kIsUsingFile)
+            {
+                isMessageSent =
+                    pipeline->SendFileToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment, curTime);
+            }
+            else
+            {
+                isMessageSent =
+                    pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment, curTime);
+            }
             if (isMessageSent)
             {
                 lastSendTime = curTime;
@@ -154,6 +173,7 @@ void updateResendData(iothread::MessageQueue<acknowledgment_tracker::ResendData>
     }
 }
 
+template <bool kIsUsingFile>
 void handleResends(std::chrono::steady_clock::time_point curTime, Pipeline *const pipeline,
                    const Acknowledgment *const acknowledgment)
 {
@@ -276,13 +296,29 @@ void handleResends(std::chrono::steady_clock::time_point curTime, Pipeline *cons
                 // SPDLOG_CRITICAL("Yo What?? S#{}", sequenceNumber);
                 scrooge::CrossChainMessageData messageDataCopy;
                 messageDataCopy.CopyFrom(messageData);
-                bool isFlushed =
+                bool isFlushed{};
+                if constexpr (kIsUsingFile)
+                {
+                    pipeline->SendFileToOtherRsm(destination, std::move(messageDataCopy), acknowledgment, curTime);
+                }
+                else
+                {
                     pipeline->SendToOtherRsm(destination, std::move(messageDataCopy), acknowledgment, curTime);
+                }
                 destinationsToFlush[destination] = not isFlushed;
             }
             else
             {
-                bool isFlushed = pipeline->SendToOtherRsm(destination, std::move(messageData), acknowledgment, curTime);
+                bool isFlushed;
+                if constexpr (kIsUsingFile)
+                {
+                    isFlushed =
+                        pipeline->SendFileToOtherRsm(destination, std::move(messageData), acknowledgment, curTime);
+                }
+                else
+                {
+                    isFlushed = pipeline->SendToOtherRsm(destination, std::move(messageData), acknowledgment, curTime);
+                }
                 destinationsToFlush[destination] = not isFlushed;
                 requestedResend.isActive = false;
                 assert(messageData.message_content().empty());
@@ -293,7 +329,8 @@ void handleResends(std::chrono::steady_clock::time_point curTime, Pipeline *cons
     }
 }
 
-void runScroogeSendThread(
+template <bool kIsUsingFile>
+static void runScroogeSendThread(
     const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
     const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
@@ -321,7 +358,12 @@ void runScroogeSendThread(
             numMsgsSentWithLastAck = 0;
         }
 
-        const int64_t pendingSequenceNum = peekSN;
+        int64_t pendingSequenceNum = peekSN;
+        if constexpr (not kIsUsingFile)
+        {
+            pendingSequenceNum = pendingSequenceNum = (messageInput->peek()) ? messageInput->peek()->sequence_number()
+                                                                             : kQAckWindowSize + curQuack.value_or(0);
+        }
         const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
         const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
         const auto curTime = std::chrono::steady_clock::now();
@@ -337,12 +379,25 @@ void runScroogeSendThread(
         numNoopTimeoutHits += isNoopTimeoutHit;
 
         scrooge::CrossChainMessageData newMessageData;
-        if (not resendDatas.full() && shouldDequeue)
+        bool shouldHandleNewMessage;
+        if constexpr (kIsUsingFile)
         {
-            newMessageData = getNext();
+            shouldHandleNewMessage = not resendDatas.full() && shouldDequeue;
+        }
+        else
+        {
+            shouldHandleNewMessage = not resendDatas.full() && shouldDequeue &&
+                                     messageInput->try_dequeue(newMessageData) && not is_test_over();
+        }
+        if (shouldHandleNewMessage)
+        {
+            if constexpr (kIsUsingFile)
+            {
+                newMessageData = getNext();
+            }
             peekSN++;
-            const bool shouldContinue = handleNewMessage(curTime, messageScheduler, curQuack, pipeline.get(),
-                                                         acknowledgment.get(), std::move(newMessageData));
+            const bool shouldContinue = handleNewMessage<kIsUsingFile>(
+                curTime, messageScheduler, curQuack, pipeline.get(), acknowledgment.get(), std::move(newMessageData));
             if (shouldContinue)
             {
                 continue;
@@ -352,7 +407,14 @@ void runScroogeSendThread(
         {
             static uint64_t receiver = 0;
 
-            pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
+            if constexpr (kIsUsingFile)
+            {
+                pipeline->forceSendFileToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
+            }
+            else
+            {
+                pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
+            }
 
             receiver++;
             numMsgsSentWithLastAck++;
@@ -368,7 +430,7 @@ void runScroogeSendThread(
             continue;
         }
 
-        handleResends(curTime, pipeline.get(), acknowledgment.get());
+        handleResends<kIsUsingFile>(curTime, pipeline.get(), acknowledgment.get());
 
         uint64_t numDeletes = 0;
         for (; numDeletes < resendDatas.size(); numDeletes++)
@@ -404,6 +466,27 @@ void runScroogeSendThread(
     addMetric("Timeout-Exclusive-Hits", (double)numTimeoutExclusiveHits / numSendChecks);
 
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
+}
+
+void runScroogeSendThread(std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
+                          std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
+                          std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
+                          std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration)
+{
+    constexpr bool kIsUsingFile = false;
+    runScroogeSendThread<kIsUsingFile>(messageInput, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                       configuration);
+}
+
+void runFileScroogeSendThread(
+    std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
+    std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
+    std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
+    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration)
+{
+    constexpr bool kIsUsingFile = true;
+    runScroogeSendThread<kIsUsingFile>(messageInput, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                       configuration);
 }
 
 uint64_t numMissing = 0;

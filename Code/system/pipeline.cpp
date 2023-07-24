@@ -450,9 +450,9 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 }
 
 void Pipeline::flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const batch,
-                                    const Acknowledgment *const acknowledgment,
-                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue,
-                                    std::chrono::steady_clock::time_point curTime)
+                                        const Acknowledgment *const acknowledgment,
+                                        pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                        std::chrono::steady_clock::time_point curTime)
 {
     if (acknowledgment)
     {
@@ -501,10 +501,10 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     return true;
 }
 bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
-                                   pipeline::CrossChainMessageBatch *const batch,
-                                   const Acknowledgment *const acknowledgment,
-                                   pipeline::MessageQueue<nng_msg *> *const sendingQueue,
-                                   std::chrono::steady_clock::time_point curTime)
+                                       pipeline::CrossChainMessageBatch *const batch,
+                                       const Acknowledgment *const acknowledgment,
+                                       pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                       std::chrono::steady_clock::time_point curTime)
 {
     batch->batchSizeEstimate += get_packet_size(); // TODO: NOT EXPECTED. Need to add lenght of the message
     batch->data.mutable_data()->Add(std::move(message));
@@ -529,7 +529,7 @@ void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgmen
     flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
 }
 void Pipeline::forceSendFileToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
-                                   std::chrono::steady_clock::time_point curTime)
+                                       std::chrono::steady_clock::time_point curTime)
 {
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
@@ -557,8 +557,9 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
  *
  * @param nid is the identifier of the node in the other RSM.
  */
-bool Pipeline::FileSendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData,
-                              const Acknowledgment *const acknowledgment, std::chrono::steady_clock::time_point curTime)
+bool Pipeline::SendFileToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData,
+                                  const Acknowledgment *const acknowledgment,
+                                  std::chrono::steady_clock::time_point curTime)
 {
     SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
                  receivingNodeId, message.data().sequence_number(), getLogAck(message),
@@ -568,7 +569,7 @@ bool Pipeline::FileSendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainM
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
     return bufferedFileMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(),
-                               curTime);
+                                   curTime);
 }
 
 /* This function is used to send message to a specific node in other RSM.
@@ -639,7 +640,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
  * @param nid is the identifier of the node in the other RSM.
  */
 void Pipeline::SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
-                                 std::chrono::steady_clock::time_point curTime)
+                                     std::chrono::steady_clock::time_point curTime)
 {
     auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
     auto batch = &mForeignMessageBatches.front().data;
