@@ -661,7 +661,7 @@ void Pipeline::SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&messageDat
     numSizeHits += *batchSize >= kMinimumBatchSize;
 
     auto foreignAliveNodes = mAliveNodesForeign;
-    nng_msg *batchData = serializeProtobuf(*batch);
+    nng_msg *batchData = serializeFileProtobuf(*batch);
 
     while (foreignAliveNodes.any() && not is_test_over())
     {
