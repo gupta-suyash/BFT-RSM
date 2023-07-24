@@ -26,11 +26,8 @@ std::vector<uint64_t> message_scheduler::getStakePrefixSum(const std::vector<uin
 
 uint64_t message_scheduler::stakeToNode(uint64_t stakeIndex, const std::vector<uint64_t> &networkStakePrefixSum)
 {
-    const auto nodeIterator =
-        std::find_if(std::cbegin(networkStakePrefixSum), std::cend(networkStakePrefixSum), [stakeIndex](const uint64_t x)
-        {
-            return stakeIndex < x;
-        });
+    const auto nodeIterator = std::find_if(std::cbegin(networkStakePrefixSum), std::cend(networkStakePrefixSum),
+                                           [stakeIndex](const uint64_t x) { return stakeIndex < x; });
     if (nodeIterator == std::cend(networkStakePrefixSum))
     {
         SPDLOG_CRITICAL("Requested stake that nobody owns, stakeIndex={} totalNetworkStake={}", stakeIndex,
@@ -157,10 +154,10 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     assert(isImplementationValid &&
            "More than half of one of the network's total stake can fail -- probably works but not tested");
 
-    mResendNumberLookup = std::vector<std::vector<std::optional<ResendNumberType>>>(kOtherNetworkSize,
-            std::vector<std::optional<ResendNumberType>>(kOtherNetworkSize)
-        );
-    mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
+    mResendNumberLookup = std::vector<std::vector<std::optional<ResendNumberType>>>(
+        kOtherNetworkSize, std::vector<std::optional<ResendNumberType>>(kOtherNetworkSize));
+    mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(
+        kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
 }
 
 std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumber) const
@@ -181,14 +178,18 @@ std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumbe
         return 0;
     }
 
-    const auto firstResender = (originalApportionedSendNode + 1 + roundOffset + (1 + roundOffset)/kOwnApportionedStake)%kOwnApportionedStake;
+    const auto firstResender =
+        (originalApportionedSendNode + 1 + roundOffset + (1 + roundOffset) / kOwnApportionedStake) %
+        kOwnApportionedStake;
     if (firstResender == kOwnNodeId)
     {
         *lookupEntry = 1;
         return 1;
     }
 
-    const auto secondResender = (originalApportionedSendNode + 2 + roundOffset + (2 + roundOffset)/kOwnApportionedStake)%kOwnApportionedStake;
+    const auto secondResender =
+        (originalApportionedSendNode + 2 + roundOffset + (2 + roundOffset) / kOwnApportionedStake) %
+        kOwnApportionedStake;
     if (secondResender == kOwnNodeId)
     {
         *lookupEntry = 2;
@@ -206,7 +207,8 @@ message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinatio
     const auto originalApportionedRecvNode = message_scheduler::stakeToNode(
         (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
 
-    std::optional<message_scheduler::CompactDestinationList>* const lookupEntry = mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+    std::optional<message_scheduler::CompactDestinationList> *const lookupEntry =
+        mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
 
     if (lookupEntry->has_value())
     {
@@ -219,7 +221,7 @@ message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinatio
         *lookupEntry = message_scheduler::CompactDestinationList{};
         return lookupEntry->value();
     }
-    const auto destination = (originalApportionedRecvNode + resendNum.value())%4;
+    const auto destination = (originalApportionedRecvNode + resendNum.value()) % 4;
 
     *lookupEntry = message_scheduler::CompactDestinationList{(uint16_t)destination};
     return lookupEntry->value();

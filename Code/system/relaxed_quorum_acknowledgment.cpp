@@ -2,7 +2,8 @@
 
 #include <assert.h>
 
-RelaxedQuorumAcknowledgment::RelaxedQuorumAcknowledgment(const uint64_t quorumStakeSize) : kQuorumStakeSize(quorumStakeSize)
+RelaxedQuorumAcknowledgment::RelaxedQuorumAcknowledgment(const uint64_t quorumStakeSize)
+    : kQuorumStakeSize(quorumStakeSize)
 {
 }
 
@@ -12,7 +13,7 @@ RelaxedQuorumAcknowledgment::RelaxedQuorumAcknowledgment(const uint64_t quorumSt
  * @param ackValue is the ack value of the node.
  */
 std::optional<uint64_t> RelaxedQuorumAcknowledgment::updateNodeAck(const uint64_t nodeId, const uint64_t nodeStake,
-                                                            const uint64_t ackValue)
+                                                                   const uint64_t ackValue)
 {
     const auto curNodeEntry = mNodeToAck.find(nodeId);
     auto curQuorumAck = mQuorumAck;

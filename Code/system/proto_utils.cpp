@@ -1,5 +1,7 @@
 #include "proto_utils.h"
 
+#include "crypto.h"
+
 namespace util
 {
 bool testAckView(const JankAckView &ackView, const uint64_t ack)
@@ -35,5 +37,30 @@ std::optional<uint64_t> getAckIterator(const JankAckView &ackView)
 {
     const auto ackIterator = (ackView.ackOffset > 1) ? std::optional<uint64_t>(ackView.ackOffset - 2) : std::nullopt;
     return ackIterator;
+}
+
+bool checkMessageMac(const scrooge::CrossChainMessage &message)
+{
+    // Verification TODO
+    const auto mstr = message.ack_count().SerializeAsString();
+    // Fetch the sender key
+    // const auto senderKey = get_other_rsm_key(nng_message.senderId);
+    const auto senderKey = get_priv_key();
+    // Verify the message
+    return CmacVerifyString(senderKey, mstr, message.validity_proof());
+}
+
+bool isMessageDataValid(const scrooge::CrossChainMessageData &message)
+{
+    // no signature checking currently
+    return true;
+}
+
+scrooge::CrossChainMessageData getNextMessage()
+{
+    static uint64_t curSN{};
+    scrooge::CrossChainMessageData msg;
+    msg.set_sequence_number(curSN++);
+    return msg;
 }
 }; // namespace util
