@@ -352,7 +352,7 @@ void runScroogeSendThread(
         {
             static uint64_t receiver = 0;
 
-            pipeline->SendToOtherRsm(receiver % kOtherNetworkSize, {}, acknowledgment.get(), curTime);
+            pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
 
             receiver++;
             numMsgsSentWithLastAck++;

@@ -456,6 +456,13 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     flushBufferedMessage(batch, acknowledgment, sendingQueue, curTime);
     return true;
 }
+void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
+                                   std::chrono::steady_clock::time_point curTime)
+{
+    const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
+    const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
+    flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
+}
 /* This function is used to send message to a specific node in other RSM.
  *
  * @param nid is the identifier of the node in the other RSM.
@@ -470,17 +477,8 @@ bool Pipeline::SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessa
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
-    if (true /*messageData.sequence_number() >= 0*/) // TODO: REFACTOR
-    {
-
-        return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(),
-                                   curTime);
-    }
-    else
-    {
-        flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
-        return true;
-    }
+    return bufferedMessageSend(std::move(messageData), destinationBatch, acknowledgment, destinationBuffer.get(),
+                               curTime);
 }
 
 /* This function is used to send message to a specific node in other RSM.

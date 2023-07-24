@@ -44,6 +44,8 @@ class Pipeline
 
     bool SendToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainMessageData &&messageData,
                         const Acknowledgment *const acknowledgment, std::chrono::steady_clock::time_point curTime);
+    void forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
+                             std::chrono::steady_clock::time_point curTime);
     bool rebroadcastToOwnRsm(nng_msg *message);
 
     pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
