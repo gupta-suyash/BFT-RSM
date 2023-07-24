@@ -25,9 +25,10 @@ static void runOneToOneSendThread(
         }
         else
         {
-            while (messageInput->try_dequeue(newMessageData) && not is_test_over());
+            while (messageInput->try_dequeue(newMessageData) && not is_test_over())
+                ;
         }
-         
+
         const auto curSequenceNumber = newMessageData.sequence_number();
         auto curTime = std::chrono::steady_clock::now();
 
@@ -94,7 +95,8 @@ static void runUnfairOneToOneSendThread(
         }
         else
         {
-            while (messageInput->try_dequeue(newMessageData) && not is_test_over());
+            while (messageInput->try_dequeue(newMessageData) && not is_test_over())
+                ;
         }
         const auto curSequenceNumber = newMessageData.sequence_number();
         // SPDLOG_CRITICAL("Sequence number in unfair: {} ", curSequenceNumber);

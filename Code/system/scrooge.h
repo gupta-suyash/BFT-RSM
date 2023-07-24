@@ -33,12 +33,6 @@ void runFileScroogeSendThread(
     std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
     std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
 
-void runFileScroogeSendThread(
-    std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
-    std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
-    std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
-
 void runScroogeReceiveThread(
     std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
     std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
