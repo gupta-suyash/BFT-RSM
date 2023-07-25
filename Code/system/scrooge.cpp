@@ -42,14 +42,6 @@ bool isResendDataUpdated{};
 uint64_t maxResendRequest{};
 uint64_t numMessagesResent{};
 
-scrooge::CrossChainMessageData getNext()
-{
-    static uint64_t curSN{};
-    scrooge::CrossChainMessageData msg;
-    msg.set_sequence_number(curSN++);
-    return msg;
-}
-
 template <bool kIsUsingFile>
 bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const MessageScheduler &messageScheduler,
                       std::optional<uint64_t> curQuack, Pipeline *const pipeline,
@@ -393,7 +385,7 @@ static void runScroogeSendThread(
         {
             if constexpr (kIsUsingFile)
             {
-                newMessageData = getNext();
+                newMessageData = util::getNextMessage();
             }
             peekSN++;
             const bool shouldContinue = handleNewMessage<kIsUsingFile>(
