@@ -26,8 +26,11 @@ std::vector<uint64_t> message_scheduler::getStakePrefixSum(const std::vector<uin
 
 uint64_t message_scheduler::stakeToNode(uint64_t stakeIndex, const std::vector<uint64_t> &networkStakePrefixSum)
 {
-    const auto nodeIterator = std::find_if(std::cbegin(networkStakePrefixSum), std::cend(networkStakePrefixSum),
-                                           [stakeIndex](const uint64_t x) { return stakeIndex < x; });
+    const auto nodeIterator =
+        std::find_if(std::cbegin(networkStakePrefixSum), std::cend(networkStakePrefixSum), [stakeIndex](const uint64_t x)
+        {
+            return stakeIndex < x;
+        });
     if (nodeIterator == std::cend(networkStakePrefixSum))
     {
         SPDLOG_CRITICAL("Requested stake that nobody owns, stakeIndex={} totalNetworkStake={}", stakeIndex,
@@ -153,50 +156,54 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     bool isImplementationValid = kStakePerRsm >= kOwnMaxNumFailedStake + kOtherMaxNumFailedStake;
     assert(isImplementationValid &&
            "More than half of one of the network's total stake can fail -- probably works but not tested");
-
-    mResendNumberLookup = std::vector<std::vector<std::optional<ResendNumberType>>>(
-        kOtherNetworkSize, std::vector<std::optional<ResendNumberType>>(kOtherNetworkSize));
-    mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(
-        kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
+    mResendNumberLookup = std::vector<std::vector<std::optional<std::optional<uint64_t>>>>(kOwnNetworkSize, std::vector<std::optional<std::optional<uint64_t>>>(kOtherNetworkSize));
+    mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
 }
 
 std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumber) const
 {
-    const auto roundOffset = (sequenceNumber / kOwnApportionedStake) % (kOtherApportionedStake - 1);
-    const auto originalApportionedSendNode = sequenceNumber % kOwnApportionedStake;
+    const auto roundOffset = sequenceNumber / kOwnApportionedStake;
+    const auto originalApportionedSendNode =
+        message_scheduler::stakeToNode(sequenceNumber % kOwnApportionedStake, kOwnRsmApportionedStakePrefixSum);
+    const auto originalApportionedRecvNode = message_scheduler::stakeToNode(
+        (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
 
-    auto lookupEntry = &mResendNumberLookup[originalApportionedSendNode][roundOffset];
+    std::optional<std::optional<uint64_t>>* const lookupEntry = mResendNumberLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
 
     if (lookupEntry->has_value())
     {
         return lookupEntry->value();
     }
 
-    if (originalApportionedSendNode == kOwnNodeId)
-    {
-        *lookupEntry = 0;
-        return 0;
-    }
+    const auto originalSender = kOwnRsmApportionedStakePrefixSum.at(originalApportionedSendNode);
+    const auto originalReceiver = kOtherRsmApportionedStakePrefixSum.at(originalApportionedRecvNode);
+    const auto ownNodeFirstStake = kOwnRsmStakePrefixSum.at(kOwnNodeId);
+    const auto ownNodeLastStake = kOwnRsmStakePrefixSum.at(kOwnNodeId + 1) - 1;
+    const auto isNodeFirstSender = ownNodeFirstStake <= originalSender && originalSender <= ownNodeLastStake;
+    const auto ownNodeFirstSentStake = (isNodeFirstSender) ? originalSender : ownNodeFirstStake;
+    const auto previousStakeSent =
+        message_scheduler::trueMod((int64_t)ownNodeFirstSentStake - (int64_t)originalSender, kStakePerRsm);
 
-    const auto firstResender =
-        (originalApportionedSendNode + 1 + roundOffset + (1 + roundOffset) / kOwnApportionedStake) %
-        kOwnApportionedStake;
-    if (firstResender == kOwnNodeId)
+    const auto isOwnNodeNotASender = previousStakeSent >= kMinStakeToSend;
+    if (isOwnNodeNotASender)
     {
-        *lookupEntry = 1;
-        return 1;
+        *lookupEntry = std::optional<uint64_t>{};
+        return std::nullopt;
     }
+    const auto ownNodeFirstReceiver = (originalReceiver + previousStakeSent) % kStakePerRsm;
 
-    const auto secondResender =
-        (originalApportionedSendNode + 2 + roundOffset + (2 + roundOffset) / kOwnApportionedStake) %
-        kOwnApportionedStake;
-    if (secondResender == kOwnNodeId)
-    {
-        *lookupEntry = 2;
-        return 2;
-    }
-    *lookupEntry = std::optional<uint64_t>{};
-    return std::nullopt;
+    const auto originalSenderId = message_scheduler::stakeToNode(originalSender, kOwnRsmStakePrefixSum);
+    const auto originalReceiverId = message_scheduler::stakeToNode(originalReceiver, kOtherRsmStakePrefixSum);
+    const auto ownFirstSenderId = kOwnNodeId;
+    const auto ownFirstReceiverId = message_scheduler::stakeToNode(ownNodeFirstReceiver, kOtherRsmStakePrefixSum);
+
+    const auto priorSenders =
+        message_scheduler::trueMod((int64_t)ownFirstSenderId - (int64_t)originalSenderId, kOwnNetworkSize);
+    const auto priorReceivers =
+        message_scheduler::trueMod((int64_t)ownFirstReceiverId - (int64_t)originalReceiverId, kOtherNetworkSize);
+
+    *lookupEntry = std::max(priorSenders, priorReceivers);
+    return lookupEntry->value();
 }
 
 message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinations(uint64_t sequenceNumber) const
@@ -207,22 +214,50 @@ message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinatio
     const auto originalApportionedRecvNode = message_scheduler::stakeToNode(
         (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
 
-    std::optional<message_scheduler::CompactDestinationList> *const lookupEntry =
-        mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+    std::optional<message_scheduler::CompactDestinationList>* const lookupEntry = mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
 
     if (lookupEntry->has_value())
     {
         return lookupEntry->value();
     }
 
-    const auto resendNum = getResendNumber(sequenceNumber);
-    if (not resendNum.has_value())
+    // Algorithm : do all send/recv math with stake, then call stakeToNode
+    const auto originalSender = kOwnRsmApportionedStakePrefixSum.at(originalApportionedSendNode);
+    const auto originalReceiver = kOtherRsmApportionedStakePrefixSum.at(originalApportionedRecvNode);
+    const auto finalSender = (sequenceNumber + kMinStakeToSend - 1) % kStakePerRsm;
+    const auto ownNodeFirstStake = kOwnRsmStakePrefixSum.at(kOwnNodeId);
+    const auto ownNodeLastStake = kOwnRsmStakePrefixSum.at(kOwnNodeId + 1) - 1;
+    const auto isNodeFirstSender = ownNodeFirstStake <= originalSender && originalSender <= ownNodeLastStake;
+    const auto ownNodeFirstSentStake = (isNodeFirstSender) ? originalSender : ownNodeFirstStake;
+    const auto previousStakeSent =
+        message_scheduler::trueMod((int64_t)ownNodeFirstSentStake - (int64_t)originalSender, kStakePerRsm);
+
+    const auto isOwnNodeNotASender = previousStakeSent >= kMinStakeToSend;
+    if (isOwnNodeNotASender)
     {
         *lookupEntry = message_scheduler::CompactDestinationList{};
-        return lookupEntry->value();
+        return message_scheduler::CompactDestinationList{};
     }
-    const auto destination = (originalApportionedRecvNode + resendNum.value()) % 4;
 
-    *lookupEntry = message_scheduler::CompactDestinationList{(uint16_t)destination};
-    return lookupEntry->value();
+    const auto isNodeCutoff = (ownNodeFirstSentStake <= finalSender && finalSender < ownNodeLastStake);
+    const auto ownNodeFinalSentStake = (isNodeCutoff) ? finalSender : ownNodeLastStake;
+    const auto stakeSentByOwnNode = ownNodeFinalSentStake - ownNodeFirstSentStake + 1;
+    message_scheduler::CompactDestinationList destinations{};
+
+    int64_t stakeLeftToSend = stakeSentByOwnNode;
+    auto curReceiverStake = (originalReceiver + previousStakeSent) % kStakePerRsm;
+    auto curReceiverId = message_scheduler::stakeToNode(curReceiverStake, kOtherRsmStakePrefixSum);
+    while (stakeLeftToSend > 0)
+    {
+        // using uint16_t is a petty optimization and can be removed anytime :whistling:
+        destinations.push_back((uint16_t)curReceiverId);
+
+        const auto stakeSentToCurReceiver = kOtherRsmStakePrefixSum.at(curReceiverId + 1) - curReceiverStake;
+
+        stakeLeftToSend -= stakeSentToCurReceiver;
+        curReceiverStake = (curReceiverStake + stakeSentToCurReceiver) % kStakePerRsm;
+        curReceiverId = (curReceiverId + 1 == kOtherNetworkSize) ? 0 : curReceiverId + 1;
+    }
+    *lookupEntry = destinations;
+    return destinations;
 }
