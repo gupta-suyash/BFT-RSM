@@ -8,8 +8,8 @@ fi
 # replace with your directory
 #cd /proj/ove-PG0/suyash/BFT-RSM/Code
 
-# apt-get -y update
-# apt-get -y upgrade
+apt-get -y update
+apt-get -y upgrade
 
 # install performance packages
 apt install valgrind
