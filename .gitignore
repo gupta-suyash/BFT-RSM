@@ -11,6 +11,9 @@ Code/check
 Code/*.perf
 Code/perf/
 Code/node*
+Code/Equal Stake Confirmation Throughput.png
+Code/cur_results.csv
+Code/perf.data
 Docs/*.pdf
 Docs/*.aux
 Docs/*.log
