@@ -1,20 +1,20 @@
 This is the list of experiments we have right now in order of priority. Please leave any comments about experiments that should be added/removed/prioritized differently.
-File 4, 10 replicas: scrooge <-> scrooge, all <-> all, N-shot, 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k [f=1, 3 node in each cluster is marked to fail]
-File 4, 10 replicas: scrooge <-> scrooge with stakes in both clusters set as 1,2,3 and 4 [f=1,3 node in each cluster is marked to fail]
-File 4, 10 replicas: scrooge <-> scrooge with stakes in both clusters set as 7,1,1,1 [f=1,3 node in each cluster is marked to fail]
-File 4, 10 replicas: scrooge <-> scrooge with stakes in one cluster set as 7,1,1,1 other cluster eq stake [f=1, 3 node in each cluster is marked to fail]
-File 4, 10 replicas: Singular failure run for k-list length = 0
-File 4, 10 replicas: Failures with k-list varying k-list value [64, 128, 512, 1024, 2048, 4096] and 100 byte messages [f=1,3 node in one cluster is marked to fail]
-Resdb <> Resdb 4, 10 replicas: scrooge, all-to-all, N-shot, and 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k [f=1 node in both cluster is marked to fail]
-Algo <> Algo 4, 10 replicas: scrooge  all-to-all, N-shot, and 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k [f=1 node in one cluster is marked to fail]
-Algo <> Algo 4, 10 replicas: scrooge , all-to-all, N-shot, and 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k both clusters stake 1,2,3,4 [scaled up] [f=1 node in one cluster is marked to fail]
-Algo <> Algo 4, 10 replicas: scrooge , all-to-all, N-shot, and 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k one cluster stake 1,2,3,4 [scaled up] other cluster eq stake [f=1 node in one cluster is marked to fail]
-Resdb <> Algo 4, 10 replica:  scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1M message sizes [f=1, 3 node in one cluster is marked to fail]
-Resdb <> Algo 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1M message sizes with Algorand stake 1,2,3,4 [scaled up] [f=1, 3 node in one cluster is marked to fail]
-Raft <> Raft 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1000, 10k, 100k, 1000k [f=1, 3 node in each cluster is marked to fail]
-Georeplicated experiment between Algo <> ResDB 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1M message sizes with Algorand stake 1,2,3,4 [scaled up] [f=1, 3 node in one cluster is marked to fail]
-Raft <> Algo 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1000, 10k, 100k, 1000k [f=1, 3 node in each cluster is marked to fail]
-Raft <> Resdb 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1000, 10k, 100k, 1000k [f=1, 3 node in each cluster is marked to fail]
+[] File 4 replicas: scrooge, all, 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k 
+[] File 4 replicas: scrooge with stakes in both clusters set as 1,2,3 and 4
+[] File 4 replicas: scrooge with stakes in both clusters set as 7,1,1,1
+[] File 4 replicas: scrooge with stakes in one cluster set as 7,1,1,1 other cluster eq stake
+[] File 4, 10 replicas: Singular failure run for k-list length = 0
+[] File 4, 10 replicas: Failures with k-list varying k-list value [64, 128, 512, 1024, 2048, 4096] and 100 byte messages [f=1,3 node in one cluster is marked to fail]
+[] Resdb <> Resdb 4, 10 replicas: scrooge, all-to-all, N-shot, and 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k [f=1 node in both cluster is marked to fail]
+[] Algo <> Algo 4, 10 replicas: scrooge  all-to-all, N-shot, and 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k [f=1 node in one cluster is marked to fail]
+[] Algo <> Algo 4, 10 replicas: scrooge , all-to-all, N-shot, and 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k both clusters stake 1,2,3,4 [scaled up] [f=1 node in one cluster is marked to fail]
+[] Algo <> Algo 4, 10 replicas: scrooge , all-to-all, N-shot, and 1-shot with message sizes: 100, 1000, 10k, 100k, 1000k one cluster stake 1,2,3,4 [scaled up] other cluster eq stake [f=1 node in one cluster is marked to fail]
+[] Resdb <> Algo 4, 10 replica:  scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1M message sizes [f=1, 3 node in one cluster is marked to fail]
+[] Resdb <> Algo 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1M message sizes with Algorand stake 1,2,3,4 [scaled up] [f=1, 3 node in one cluster is marked to fail]
+[] Raft <> Raft 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1000, 10k, 100k, 1000k [f=1, 3 node in each cluster is marked to fail]
+[] Georeplicated experiment between Algo <> ResDB 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1M message sizes with Algorand stake 1,2,3,4 [scaled up] [f=1, 3 node in one cluster is marked to fail]
+[] Raft <> Algo 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1000, 10k, 100k, 1000k [f=1, 3 node in each cluster is marked to fail]
+[] Raft <> Resdb 4, 10 replica: scrooge , all-to-all, N-shot, and 1-shot with 100 bytes, 1000, 10k, 100k, 1000k [f=1, 3 node in each cluster is marked to fail]
 
 Notes:
 N-shot and 1-shot are variations of one-to-one. All plots should only show 1-shot
