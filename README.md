@@ -13,9 +13,17 @@ Note: You only need to run steps 1 and 2 once per new machine
 
 For @murray22: 
 
-To run the program (assuming only 2 clusters as of right now): /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json one_shot_one2one
+To run the program (assuming only 2 clusters as of right now): 
+
+/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json one2one
+
+/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json one2one_10_replica
 
 Setup script: /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/setup.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_json/experiments.json
+
+Add key to yaml: ./experiments/experiment_scripts/change_key.py "transfer_strategy" "all2all" /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/scale_clients/one2one/
+
+Generate graphs: ./experiments/experiment_scripts/eval.py /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/scale_clients/one2one/* /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/scale_clients/all2all/* /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/scale_clients/scrooge/*
 
 Run algorand: /proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/algorand/setup_algorand.py 1 2 4 test1
 

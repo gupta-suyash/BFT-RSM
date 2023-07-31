@@ -1,0 +1,1 @@
+All file tests except those explicity labelled "file_7_*" are done with 4 nodes

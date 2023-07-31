@@ -177,7 +177,7 @@ static nng_msg *serializeProtobuf(scrooge::CrossChainMessage &proto)
     char *const messageData = (char *)nng_msg_body(message);
 
     bool success = allocResult && proto.SerializeToArray(messageData, protoSize);
-
+    // SPDLOG_CRITICAL("Static data is now set: {} and the ByteSizeLong() is {}", proto.data().size(), protoSize);
     if (not success)
     {
         SPDLOG_CRITICAL("PROTO SERIALIZE FAILED DataSize={} AllocResult={}", protoSize, allocResult);
@@ -196,6 +196,7 @@ static nng_msg *serializeFileProtobuf(scrooge::CrossChainMessage &proto)
     }
     // SPDLOG_CRITICAL("Static data is now set: {}", proto.data().size());
     const auto protoSize = proto.ByteSizeLong();
+    // SPDLOG_CRITICAL("Static data is now set: {} and the ByteSizeLong() is {}", proto.data().size(), protoSize);
     nng_msg *message;
     const auto allocResult = nng_msg_alloc(&message, protoSize) == 0;
     char *const messageData = (char *)nng_msg_body(message);
@@ -506,7 +507,7 @@ bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
                                        pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                        std::chrono::steady_clock::time_point curTime)
 {
-    batch->batchSizeEstimate += get_packet_size(); // TODO: NOT EXPECTED. Need to add lenght of the message
+    batch->batchSizeEstimate += (message.ByteSizeLong() + get_packet_size()); // TODO: NOT EXPECTED. Need to add lenght of the message
     batch->data.mutable_data()->Add(std::move(message));
 
     const auto timeDelta = curTime - batch->creationTime;
@@ -646,7 +647,7 @@ void Pipeline::SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&messageDat
     auto batch = &mForeignMessageBatches.front().data;
     auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
 
-    const auto newDataSize = messageData.ByteSizeLong();
+    const auto newDataSize = messageData.ByteSizeLong() + get_packet_size();
     batch->mutable_data()->Add(std::move(messageData));
     *batchSize += newDataSize;
 

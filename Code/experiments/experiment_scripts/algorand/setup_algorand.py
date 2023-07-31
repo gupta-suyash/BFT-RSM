@@ -15,8 +15,8 @@ setup_dir = os.path.realpath(os.path.dirname(__file__))
 sys.path.append("/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/experiment_scripts/util/")
 from ssh_util import *
 # clusterOne = ["10.10.1.10", "10.10.1.11"]
-clusterOne = ["10.10.1.10", "10.10.1.2", "10.10.1.3", "10.10.1.4", "10.10.1.5"] # first entry is the relay
-clusterTwo = ["10.10.1.11", "10.10.1.6", "10.10.1.7", "10.10.1.8", "10.10.1.9"] # first entry is the relay
+clusterOne = ["10.10.1.6", "10.10.1.2", "10.10.1.3", "10.10.1.4", "10.10.1.5"] # first entry is the relay
+clusterTwo = ["10.10.1.18", "10.10.1.14", "10.10.1.15", "10.10.1.16", "10.10.1.17"] # first entry is the relay
 pathname = "/proj/ove-PG0/therealmurray/node/dummy_node/"
 def main():
     if len(sys.argv) != 5:

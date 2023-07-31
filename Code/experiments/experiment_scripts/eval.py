@@ -58,7 +58,7 @@ def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     dataframe.loc[one_to_one_rows & missing_starting_qack, 'starting_quack'] = dataframe.loc[one_to_one_rows].starting_ack[missing_max_qack]
 
 def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
-    latency_lines = []
+    # latency_lines = []
     throughput_lines = []
     for transfer_strategy, group in dataframe.groupby('transfer_strategy'):
         message_sizes = group.message_size.unique()
@@ -69,14 +69,14 @@ def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
             size_group = group.query('message_size == @message_size')
             quack_delta = size_group.max_quorum_acknowledgment - size_group.starting_quack
             throughput = quack_delta / size_group.duration_seconds
-            latency = size_group.Latency
-            average_latencies.append(latency.mean())
+            # latency = size_group.Latency
+            # average_latencies.append(latency.mean())
             overall_throughputs.append(throughput.mean())
-        latency_lines.append(Line(
-            x_values = message_sizes / 1000,
-            y_values = average_latencies,
-            name = transfer_strategy
-        ))
+        # latency_lines.append(Line(
+        #     x_values = message_sizes / 1000,
+        #     y_values = average_latencies,
+        #     name = transfer_strategy
+        # ))
         throughput_lines.append(Line(
             x_values = message_sizes / 1000,
             y_values = overall_throughputs,
@@ -84,12 +84,12 @@ def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
         ))
 
     return [
-        Graph(
-            title = f'{title} Confirmation Latency',
-            x_axis_name = 'message size (kilobytes)',
-            y_axis_name = 'Message Latency (seconds)',
-            lines = latency_lines
-        ),
+        # Graph(
+        #     title = f'{title} Confirmation Latency',
+        #     x_axis_name = 'message size (kilobytes)',
+        #     y_axis_name = 'Message Latency (seconds)',
+        #     lines = latency_lines
+        # ),
         Graph(
             title = f'{title} Confirmation Throughput',
             x_axis_name = 'message size (kilobytes)',
@@ -196,10 +196,10 @@ def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
             size_group = group.query('message_size == @message_size')
             quack_delta = size_group.max_quorum_acknowledgment - size_group.starting_quack
             throughput = quack_delta / size_group.duration_seconds
-            latency = size_group.Latency
+            # latency = size_group.Latency
             rows.append({
                 'message_size': message_size,
-                'latency': latency.mean(),
+                'latency':0,
                 'throughput': throughput.mean(),
                 'strategy': transfer_strategy
             })

@@ -60,7 +60,6 @@ scrooge::CrossChainMessageData getNextMessage()
 {
     static uint64_t curSN{};
     scrooge::CrossChainMessageData msg;
-    msg.set_message_content(std::string(get_packet_size(), 'L'));
     msg.set_sequence_number(curSN++);
     return msg;
 }
