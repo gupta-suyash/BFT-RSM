@@ -22,7 +22,7 @@ const (
 	// pipes used by Scrooge
 	path_to_ipipe = "/tmp/scrooge-input"
 
-	path_to_opipe = "/tmp/scrooge-output"
+	path_to_opipe = "/tmp/scrooge-input"
 )
 
 func (s *EtcdServer) CreatePipe() {
@@ -35,11 +35,11 @@ func (s *EtcdServer) CreatePipe() {
 func (s *EtcdServer) ReadScrooge() {
 	var err error
 
-	// create read pipe
-	err = ipc.CreatePipe(path_to_opipe)
-	if err != nil {
-		fmt.Println("Unable to open output pipe: ", err)
-	}
+	// // create read pipe
+	// err = ipc.CreatePipe(path_to_opipe)
+	// if err != nil {
+	// 	fmt.Println("Unable to open output pipe: ", err)
+	// }
 
 	// open pipe reader
 	openReadPipe, err := ipc.OpenPipeReader(path_to_opipe)
@@ -60,11 +60,11 @@ func (s *EtcdServer) WriteScrooge() {
 
 	// lg := s.Logger()
 
-	// create write pipe
-	err = ipc.CreatePipe(path_to_ipipe)
-	if err != nil {
-		fmt.Println("Unable to open input pipe: ", err)
-	}
+	// // create write pipe
+	// err = ipc.CreatePipe(path_to_ipipe)
+	// if err != nil {
+	// 	fmt.Println("Unable to open input pipe: ", err)
+	// }
 
 	// open pipe writer
 	openWritePipe, err := ipc.OpenPipeWriter(path_to_ipipe)

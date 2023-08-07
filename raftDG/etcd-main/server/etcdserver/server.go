@@ -599,7 +599,7 @@ func (s *EtcdServer) start() {
 	go s.run()
 
 	//@ethan Continuously reads from and writes to Scrooge
-	// s.CreatePipe()
+	s.CreatePipe()
 	go s.ReadScrooge()
 	go s.WriteScrooge()
 }
