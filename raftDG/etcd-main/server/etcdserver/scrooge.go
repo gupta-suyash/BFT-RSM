@@ -73,14 +73,14 @@ func (s *EtcdServer) WriteScrooge() {
 	}
 
 	// Reset sequence number to 0 when setup is complete (assume that setup takes at most 15s and that real requests come later than 15s from start)
-	timer := time.NewTimer(15 * time.Second)
+	timer := time.NewTimer(20 * time.Second)
 	go func() {
 		<-timer.C
 		atomic.StoreUint64(&sequenceNumber, 0)
 		fmt.Println("Sequence number reset!")
 	}()
 
-	closePipeTimer := time.NewTimer(100 * time.Second)
+	closePipeTimer := time.NewTimer(140 * time.Second)
 	go func() {
 		<-closePipeTimer.C
 		openWritePipe.Close()
