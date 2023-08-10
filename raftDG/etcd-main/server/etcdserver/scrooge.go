@@ -22,7 +22,7 @@ const (
 	// pipes used by Scrooge
 	path_to_ipipe = "/tmp/scrooge-input"
 
-	path_to_opipe = "/tmp/scrooge-output"
+	path_to_opipe = "/tmp/scrooge-input"
 )
 
 func (s *EtcdServer) CreatePipe() {
@@ -35,11 +35,11 @@ func (s *EtcdServer) CreatePipe() {
 func (s *EtcdServer) ReadScrooge() {
 	var err error
 
-	// create read pipe
-	err = ipc.CreatePipe(path_to_opipe)
-	if err != nil {
-		fmt.Println("Unable to open output pipe: ", err)
-	}
+	// // create read pipe
+	// err = ipc.CreatePipe(path_to_opipe)
+	// if err != nil {
+	// 	fmt.Println("Unable to open output pipe: ", err)
+	// }
 
 	// open pipe reader
 	openReadPipe, err := ipc.OpenPipeReader(path_to_opipe)
@@ -60,11 +60,11 @@ func (s *EtcdServer) WriteScrooge() {
 
 	// lg := s.Logger()
 
-	// create write pipe
-	err = ipc.CreatePipe(path_to_ipipe)
-	if err != nil {
-		fmt.Println("Unable to open input pipe: ", err)
-	}
+	// // create write pipe
+	// err = ipc.CreatePipe(path_to_ipipe)
+	// if err != nil {
+	// 	fmt.Println("Unable to open input pipe: ", err)
+	// }
 
 	// open pipe writer
 	openWritePipe, err := ipc.OpenPipeWriter(path_to_ipipe)
@@ -73,14 +73,14 @@ func (s *EtcdServer) WriteScrooge() {
 	}
 
 	// Reset sequence number to 0 when setup is complete (assume that setup takes at most 15s and that real requests come later than 15s from start)
-	timer := time.NewTimer(15 * time.Second)
+	timer := time.NewTimer(20 * time.Second)
 	go func() {
 		<-timer.C
 		atomic.StoreUint64(&sequenceNumber, 0)
 		fmt.Println("Sequence number reset!")
 	}()
 
-	closePipeTimer := time.NewTimer(100 * time.Second)
+	closePipeTimer := time.NewTimer(140 * time.Second)
 	go func() {
 		<-closePipeTimer.C
 		openWritePipe.Close()
