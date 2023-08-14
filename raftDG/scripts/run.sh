@@ -7,6 +7,9 @@ etcd_path="${BFTRSM_path}/raftDG/etcd-main"
 etcd_bin_path="${etcd_path}/bin"
 benchmark_bin_path="${BFTRSM_path}/raftDG/bin"
 
+
+ScroogeCode_path="/proj/ove-PG0/ethanxu/BFT-RSM/Code"
+
 TOKEN=token-77
 CLUSTER_STATE=new
 
@@ -17,18 +20,6 @@ CLUSTER1=${NAMES1[0]}=http://${HOSTS1[0]}:2380,${NAMES1[1]}=http://${HOSTS1[1]}:
 NAMES2=("machine-1" "machine-2" "machine-3" "machine-4" "machine-5" "machine-6" "machine-7")
 HOSTS2=("10.10.1.8" "10.10.1.9" "10.10.1.10" "10.10.1.11" "10.10.1.12" "10.10.1.13" "10.10.1.14")
 CLUSTER2=${NAMES2[0]}=http://${HOSTS2[0]}:2380,${NAMES2[1]}=http://${HOSTS2[1]}:2380,${NAMES2[2]}=http://${HOSTS2[2]}:2380,${NAMES2[3]}=http://${HOSTS2[3]}:2380,${NAMES2[4]}=http://${HOSTS2[4]}:2380,${NAMES2[5]}=http://${HOSTS2[5]}:2380,${NAMES2[6]}=http://${HOSTS2[6]}:2380
-
-# # Testing with only 4 nodes in each etcd cluster
-# TOKEN=token-444
-# CLUSTER_STATE=new
-
-# NAMES1=("machine-1" "machine-2" "machine-3" "machine-4")
-# HOSTS1=("10.10.1.1" "10.10.1.2" "10.10.1.3" "10.10.1.4")
-# CLUSTER1=${NAMES1[0]}=http://${HOSTS1[0]}:2380,${NAMES1[1]}=http://${HOSTS1[1]}:2380,${NAMES1[2]}=http://${HOSTS1[2]}:2380,${NAMES1[3]}=http://${HOSTS1[3]}:2380
-
-# NAMES2=("machine-1" "machine-2" "machine-3" "machine-4")
-# HOSTS2=("10.10.1.8" "10.10.1.9" "10.10.1.10" "10.10.1.11")
-# CLUSTER2=${NAMES2[0]}=http://${HOSTS2[0]}:2380,${NAMES2[1]}=http://${HOSTS2[1]}:2380,${NAMES2[2]}=http://${HOSTS2[2]}:2380,${NAMES2[3]}=http://${HOSTS2[3]}:2380
 
 function kill_etcd() {
     echo "Killing old etcd..."
@@ -68,9 +59,10 @@ function run_etcd() {
 }
 
 function run_scrooge() {
-    sleep 20
+    sleep 15
     echo "Starting Scrooge..."
-    ${BFTRSM_path}/Code/experiments/experiment_scripts/run_experiments.py ${BFTRSM_path}/Code/experiments/experiment_json/experiments.json increase_packet_size_nb_one
+    cd ${ScroogeCode_path}
+    ${ScroogeCode_path}/experiments/experiment_scripts/run_experiments.py ${ScroogeCode_path}/experiments/experiment_json/experiments.json increase_packet_size_nb_one
 }
 
 function run_benchmark() {
@@ -95,6 +87,8 @@ function run_benchmark() {
     HOST_13="10.10.1.13:2379"
     HOST_14="10.10.1.14:2379"
 
+    # benchmark --endpoints=${HOST_1},${HOST_2},${HOST_3},${HOST_4},${HOST_5},${HOST_6},${HOST_7} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
+    # benchmark --endpoints=${HOST_8},${HOST_9},${HOST_10},${HOST_11},${HOST_12},${HOST_13},${HOST_14} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
 
     (benchmark --endpoints=${HOST_1},${HOST_2},${HOST_3},${HOST_4},${HOST_5},${HOST_6},${HOST_7} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
     benchmark --endpoints=${HOST_1},${HOST_2},${HOST_3},${HOST_4},${HOST_5},${HOST_6},${HOST_7} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
@@ -117,5 +111,5 @@ run_commands=(
 
 kill_etcd
 run_etcd "${run_commands[@]}"
-# run_scrooge &
-# run_benchmark
+run_scrooge &
+run_benchmark
