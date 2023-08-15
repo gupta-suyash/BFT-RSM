@@ -1,7 +1,7 @@
 #! /bin/bash
 
 install_path=$(pwd)
-echo "installing etcd in: ${install_path}"
+echo "setting up nodes in: ${install_path}"
 
 HOSTS=("10.10.1.1" "10.10.1.2" "10.10.1.3" "10.10.1.4" "10.10.1.5"
        "10.10.1.6" "10.10.1.7" "10.10.1.8" "10.10.1.9" "10.10.1.10"

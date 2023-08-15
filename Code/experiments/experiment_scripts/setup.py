@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Written: Natacha Crooks ncrooks@cs.utexas.edu 2017
-# Edited: Micah Murray m_murray@berekely.edu 2023
+# Edited: Micah Murray micahmurray@berekely.edu 2023
 # Edited: Reginald Frank reginaldfrank77@berkeley.edu 2023
 
 # Setup - Sets up folders/binaries on all machines
@@ -45,16 +45,15 @@ def setup(configJson):
         print("Empty config file, failing")
         return
     # Path to setup script
-    localSetupFile = config['experiment_independent_vars']['local_setup_script']
+    localSetupFile = "sudo " + config['experiment_independent_vars']['local_setup_script']
     # Path to setup script for remote machines
     remoteSetupFile = "sudo " + config['experiment_independent_vars']['remote_setup_script']
     # List of IPs for every machine in the cluster
     ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
     print(ip_list)
     # Run function to install all appropriate packages on servers
-    # subprocess.call(localSetupFile)
-    # executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
-    executeSequenceBlockingRemoteCommand(ip_list, localSetupFile)
+    executeCommand(localSetupFile)
+    executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
 
 if __name__ == "__main__":
     main()

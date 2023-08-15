@@ -59,14 +59,14 @@ function run_etcd() {
 }
 
 function run_scrooge() {
-    sleep 15
-    echo "Starting Scrooge..."
+    sleep 25
     cd ${ScroogeCode_path}
+    echo "Starting Scrooge in ${ScroogeCode_path}..."
     ${ScroogeCode_path}/experiments/experiment_scripts/run_experiments.py ${ScroogeCode_path}/experiments/experiment_json/experiments.json increase_packet_size_nb_one
 }
 
 function run_benchmark() {
-    sleep 45
+    sleep 60
     echo "Running benchmark..."
 
     export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
