@@ -160,7 +160,7 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
 }
 
-std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumber) const
+inline std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumber) const
 {
     const auto roundOffset = sequenceNumber / kOwnApportionedStake;
     const auto originalApportionedSendNode =
@@ -206,7 +206,7 @@ std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumbe
     return lookupEntry->value();
 }
 
-message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinations(uint64_t sequenceNumber) const
+inline message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinations(uint64_t sequenceNumber) const
 {
     const auto roundOffset = sequenceNumber / kOwnApportionedStake;
     const auto originalApportionedSendNode =
