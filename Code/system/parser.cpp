@@ -4,6 +4,8 @@
 #include <jsoncpp/json/json.h>
 #include <string>
 
+#include "config.h"
+
 using namespace std;
 using namespace std::chrono_literals;
 
@@ -71,28 +73,33 @@ parser::CommandLineArguments parseCommandLineArguments(int argc, char *argv[])
 
     try
     {
-        const auto workingDir = config["experiment_independent_vars"]["network_dir"].asString();
+        //const auto workingDir = config["experiment_independent_vars"]["network_dir"].asString();
+	const auto workingDir = NETWORK_DIR;
 
         const auto ownNodeId = std::stoull(kPersonalId);
 
         const auto ownNetworkId = stoull(kConfigId);
 
-        const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
+        //const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
+	//const auto otherNetworkSize = kOwnParams["foreign_num_nodes"][kRoundNb].asUInt64();
+	//const auto ownNetworkMaxNodesFail = kOwnParams["local_max_nodes_fail"][kRoundNb].asUInt64();
+	//const auto otherNetworkMaxNodesFail = kOwnParams["foreign_max_nodes_fail"][kRoundNb].asUInt64();
+	//const auto numPackets = kOwnParams["num_packets"][kRoundNb].asUInt64();
+	//const auto packetSize = kOwnParams["packet_size"][kRoundNb].asUInt64();
+	//const auto logDir = kOwnParams["log_path"].asString();
+	
+	const auto ownNetworkSize = OWN_RSM_SIZE;
+	const auto otherNetworkSize = OTHER_RSM_SIZE;
+	const auto ownNetworkMaxNodesFail = OWN_RSM_MAX_NODES_FAIL;
+	const auto otherNetworkMaxNodesFail = OTHER_RSM_MAX_NODES_FAIL; 
+	const auto numPackets = NUMBER_PACKETS;
+	const auto packetSize = PACKET_SIZE;
+	//const auto logDir = LOG_DIR;
 
-        const auto otherNetworkSize = kOwnParams["foreign_num_nodes"][kRoundNb].asUInt64();
-
-        const auto ownNetworkMaxNodesFail = kOwnParams["local_max_nodes_fail"][kRoundNb].asUInt64();
-
-        const auto otherNetworkMaxNodesFail = kOwnParams["foreign_max_nodes_fail"][kRoundNb].asUInt64();
-
-        const auto numPackets = kOwnParams["num_packets"][kRoundNb].asUInt64();
-
-        const auto packetSize = kOwnParams["packet_size"][kRoundNb].asUInt64();
-
-        const auto logDir = kOwnParams["log_path"].asString();
-
-        const auto logPath =
-            logDir + "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
+        //const auto logPath =
+        //    logDir + "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
+	const auto logPath =
+            "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
         SPDLOG_INFO("Network directory: {}", workingDir);
 
         set_packet_size(packetSize);

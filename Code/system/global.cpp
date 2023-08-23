@@ -10,6 +10,8 @@
 #include <sys/sysinfo.h>
 #include <unordered_map>
 
+#include "config.h"
+
 // List of global variables and configuration parameters.
 static uint64_t g_rsm_id{};       // RSM Id for this node.
 static uint64_t g_other_rsm_id{}; // RSM Id of other RSM.
@@ -24,8 +26,8 @@ std::unordered_map<uint64_t, std::string> keyOwnCluster;
 std::unordered_map<uint64_t, std::string> keyOtherCluster;
 
 static std::chrono::steady_clock::time_point g_start_time{};
-static constexpr auto kWarmupDuration = 40s;
-static constexpr auto kTestDuration = 120s;
+static constexpr auto kWarmupDuration = WARMUP_TIME;
+static constexpr auto kTestDuration = TOTAL_TIME;
 
 static std::atomic_bool isTestOver{};
 static std::atomic_bool isTestRecording{};
