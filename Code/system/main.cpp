@@ -7,6 +7,7 @@
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
 #include "scrooge.h"
+#include "config.h"
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -40,7 +41,7 @@ int main(int argc, char *argv[])
         printMetrics(kLogPath); // Deletes the metrics!
 
         const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
-        constexpr auto kMessageBufferSize = 256; // Old value: 256
+        constexpr auto kMessageBufferSize = MESSAGE_BUFFER_SIZE; // Old value: 256
 
         const auto acknowledgment = std::make_shared<Acknowledgment>();
         const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,

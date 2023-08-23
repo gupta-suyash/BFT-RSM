@@ -2,6 +2,7 @@
 
 #include "acknowledgment.h"
 #include "global.h"
+#include "config.h"
 
 #include "scrooge_message.pb.h"
 
@@ -86,10 +87,10 @@ class Pipeline
 
     static constexpr uint64_t kMinimumPortNumber = 7'000;
     static constexpr uint64_t kProtobufDefaultSize = kListSize / 8;
-    static constexpr uint64_t kMinimumBatchSize = (1 << 18); // bytes
-    static constexpr auto kMaxBatchCreationTime = 4800us;
-    static constexpr auto kMaxNngBlockingTime = 500ms;
-    static constexpr uint64_t kBufferSize = 1 << 11;
+    static constexpr uint64_t kMinimumBatchSize = BATCH_SIZE; // bytes
+    static constexpr auto kMaxBatchCreationTime = BATCH_CREATION_TIME;
+    static constexpr auto kMaxNngBlockingTime = MAX_NNG_BLOCKING_TIME;
+    static constexpr uint64_t kBufferSize = PIPELINE_BUFFER_SIZE;
 
     const NodeConfiguration kOwnConfiguration;
     const std::vector<std::string> kOwnNetworkUrls;
