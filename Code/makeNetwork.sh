@@ -66,6 +66,16 @@ RSM2_Stake=(1 1 1 1)
 packet_size=(100)
 
 
+### Exp: Equal stake RSMs of size 4; message size 100, 1000
+#rsm1_size=(4) 
+#rsm2_size=(4)
+#rsm1_fail=(1)
+#rsm2_fail=(1)
+#RSM1_Stake=(1 1 1 1)
+#RSM2_Stake=(1 1 1 1)
+#packet_size=(100 1000)
+
+
 ### Exp: Equal stake RSMs of size 7; message size 1000.
 #rsm1_size=(7) 
 #rsm2_size=(7)
@@ -265,6 +275,9 @@ do
 
     # Next, we make the experiment.json for backward compatibility.
     makeExperimentJson ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${pk_size} ${experiment_name}
+
+    # Next, we run the script.
+    ./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/suyash2/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 
   done
   rcount=$((rcount+1))
