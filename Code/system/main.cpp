@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
                 auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
                                          kNodeConfiguration);
-	#elif ALL-TO-ALL
+	#elif ALL_TO_ALL
 	    #if FILE_RSM
 	        auto sendThread = std::thread(runFileAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);

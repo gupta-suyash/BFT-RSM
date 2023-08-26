@@ -47,21 +47,9 @@ parser::CommandLineArguments parseCommandLineArguments(int argc, char *argv[])
     {
         SPDLOG_CRITICAL("Could not find config at path {}", kPathToConfig);
     }
-    const auto kScroogeParams = config[kExperimentName]["scrooge_args"];
     std::string cluster = "cluster_"s + kConfigId;
-    const auto kOwnParams = kScroogeParams[cluster];
-    const auto kGeneralParams = kScroogeParams["general"];
 
-    if (config.isNull() || kScroogeParams.isNull() || kOwnParams.isNull() || kGeneralParams.isNull())
-    {
-        SPDLOG_CRITICAL("Invalid config found at path {}, configIsNull={}, scroogeParamsIsNull={}, ownParamsIsNull={}, "
-                        "generalParamsIsNull = {}",
-                        kPathToConfig, config.isNull(), kScroogeParams.isNull(), kOwnParams.isNull(),
-                        kGeneralParams.isNull());
-        usage();
-    }
-
-    const bool useDebugLogs = kGeneralParams["use_debug_logs_bool"].asBool();
+    const bool useDebugLogs = USE_DEBUG_LOGS_BOOL;
     if (useDebugLogs)
     {
         spdlog::set_level(spdlog::level::debug);
@@ -73,28 +61,18 @@ parser::CommandLineArguments parseCommandLineArguments(int argc, char *argv[])
 
     try
     {
-        //const auto workingDir = config["experiment_independent_vars"]["network_dir"].asString();
 	const auto workingDir = NETWORK_DIR;
 
         const auto ownNodeId = std::stoull(kPersonalId);
 
         const auto ownNetworkId = stoull(kConfigId);
 
-        //const auto ownNetworkSize = kOwnParams["local_num_nodes"][kRoundNb].asUInt64();
-	//const auto otherNetworkSize = kOwnParams["foreign_num_nodes"][kRoundNb].asUInt64();
-	//const auto ownNetworkMaxNodesFail = kOwnParams["local_max_nodes_fail"][kRoundNb].asUInt64();
-	//const auto otherNetworkMaxNodesFail = kOwnParams["foreign_max_nodes_fail"][kRoundNb].asUInt64();
-	//const auto numPackets = kOwnParams["num_packets"][kRoundNb].asUInt64();
-	//const auto packetSize = kOwnParams["packet_size"][kRoundNb].asUInt64();
-	//const auto logDir = kOwnParams["log_path"].asString();
-	
 	const auto ownNetworkSize = OWN_RSM_SIZE;
 	const auto otherNetworkSize = OTHER_RSM_SIZE;
 	const auto ownNetworkMaxNodesFail = OWN_RSM_MAX_NODES_FAIL;
 	const auto otherNetworkMaxNodesFail = OTHER_RSM_MAX_NODES_FAIL; 
 	const auto numPackets = NUMBER_PACKETS;
 	const auto packetSize = PACKET_SIZE;
-	//const auto logDir = LOG_DIR;
 
         //const auto logPath =
         //    logDir + "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
