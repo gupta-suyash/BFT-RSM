@@ -8,6 +8,7 @@
 #define PACKET_SIZE 100
 #define NETWORK_DIR "/proj/ove-PG0/suyash2/BFT-RSM/Code/configuration/"
 #define LOG_DIR "/proj/ove-PG0/suyash2/BFT-RSM/Code/experiments/results/"
+#define USE_DEBUG_LOGS_BOOL false
 #define WARMUP_TIME 20s
 #define TOTAL_TIME 60s
 #define BATCH_SIZE 262144
@@ -17,7 +18,7 @@
 #define MESSAGE_BUFFER_SIZE 256
 #define KLIST_SIZE 5120
 #define SCROOGE false
-#define ALL-TO-ALL false
-#define ONE-TO-ONE true
+#define ALL_TO_ALL false
+#define ONE_TO_ONE true
 #define FILE_RSM true
 #endif
