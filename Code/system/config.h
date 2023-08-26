@@ -16,4 +16,8 @@
 #define PIPELINE_BUFFER_SIZE 2048
 #define MESSAGE_BUFFER_SIZE 256
 #define KLIST_SIZE 5120
+#define SCROOGE false
+#define ALL-TO-ALL false
+#define ONE-TO-ONE true
+#define FILE_RSM true
 #endif

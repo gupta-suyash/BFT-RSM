@@ -64,6 +64,10 @@ rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
 packet_size=(100)
+scrooge="true"
+all_to_all="true"
+one_to_one="true"
+file_rsm="true"
 
 
 ### Exp: Equal stake RSMs of size 4; message size 100, 1000
@@ -234,52 +238,68 @@ makeExperimentJson()
 #
 
 rcount=0
+protocols="scrooge alltoall onetoone"
 for r1_size in ${rsm1_size[@]}
 do
-  for pk_size in ${packet_size[@]}
-  do
+  for algo in ${protocols}
+  do 
+    scrooge="false"
+    all_to_all="false"
+    one_to_one="false"
 
-    # First, we create the configuration file "network0urls.txt" through echoing and redirection.
-    rm network0urls.txt  
-    count=0
-    while ((${count} < ${r1_size})) 
+    if [ "${algo}" = "scrooge" ]; then
+      scrooge="true"
+    elif [ "${algo}" = "alltoall" ]; then 
+      all_to_all="true"
+    else  
+      one_to_one="true"
+    fi  
+		    
+    for pk_size in ${packet_size[@]}
     do
-    	echo -n ${RSM1[$count]} >> network0urls.txt
-    	echo -n " " >> network0urls.txt
-    	echo ${RSM1_Stake[$count]} >> network0urls.txt
-    	count=$((count+1))
-    done	
-    cat network0urls.txt
-    cp  network0urls.txt ${network_dir} #copy to the expected folder.
-    echo " "
 
-    # Next, we create the configuration file "network1urls.txt" through echoing and redirection.
-    rm network1urls.txt  
-    count=0
-    while ((${count} < ${rsm2_size[$rcount]})) 
-    do
-    	echo -n ${RSM2[$count]} >> network1urls.txt
-    	echo -n " " >> network1urls.txt
-    	echo ${RSM2_Stake[$count]} >> network1urls.txt
-    	count=$((count+1))
+      # First, we create the configuration file "network0urls.txt" through echoing and redirection.
+      rm network0urls.txt  
+      count=0
+      while ((${count} < ${r1_size})) 
+      do
+      	echo -n ${RSM1[$count]} >> network0urls.txt
+      	echo -n " " >> network0urls.txt
+      	echo ${RSM1_Stake[$count]} >> network0urls.txt
+      	count=$((count+1))
+      done	
+      cat network0urls.txt
+      cp  network0urls.txt ${network_dir} #copy to the expected folder.
+      echo " "
+
+      # Next, we create the configuration file "network1urls.txt" through echoing and redirection.
+      rm network1urls.txt  
+      count=0
+      while ((${count} < ${rsm2_size[$rcount]}))
+      do
+      	echo -n ${RSM2[$count]} >> network1urls.txt
+      	echo -n " " >> network1urls.txt
+      	echo ${RSM2_Stake[$count]} >> network1urls.txt
+      	count=$((count+1))
+      done
+      cat network1urls.txt
+      cp  network1urls.txt ${network_dir} #copy to the expected folder.
+      echo " "
+
+      # Next, we call the script that makes the config.h. We need to pass all the arguments.
+      ./makeConfig.sh ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${num_packets} ${pk_size} ${network_dir} ${log_dir} ${warmup_time} ${total_time} ${batch_size} ${batch_creation_time} ${max_nng_blocking_time} ${pipeline_buffer_size} ${message_buffer_size} ${klist_size} ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm}
+
+      cat config.h
+      cp config.h system/
+
+      # Next, we make the experiment.json for backward compatibility.
+      makeExperimentJson ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${pk_size} ${experiment_name} 
+
+      # Next, we run the script.
+      #./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/suyash2/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+
     done
-    cat network1urls.txt
-    cp  network1urls.txt ${network_dir} #copy to the expected folder.
-    echo " "
-
-    # Next, we call the script that makes the config.h. We need to pass all the arguments.
-    ./makeConfig.sh ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${num_packets} ${pk_size} ${network_dir} ${log_dir} ${warmup_time} ${total_time} ${batch_size} ${batch_creation_time} ${max_nng_blocking_time} ${pipeline_buffer_size} ${message_buffer_size} ${klist_size}
-
-    cat config.h
-    cp config.h system/
-
-    # Next, we make the experiment.json for backward compatibility.
-    makeExperimentJson ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${pk_size} ${experiment_name}
-
-    # Next, we run the script.
-    ./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/suyash2/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
-
-  done
+  done  
   rcount=$((rcount+1))
 done
 

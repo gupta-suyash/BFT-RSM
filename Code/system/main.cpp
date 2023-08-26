@@ -81,10 +81,41 @@ int main(int argc, char *argv[])
         //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         // SPDLOG_INFO("Created Generate message relay thread");
 
-        auto sendThread = std::thread(runFileScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+	#if SCROOGE
+	    #if FILE_RSM
+                auto sendThread = std::thread(runFileScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
-        auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
+	    #else
+	        auto sendThread = std::thread(runScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+            #endif  
+
+                auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
                                          kNodeConfiguration);
+	#elif ALL-TO-ALL
+	    #if FILE_RSM
+	        auto sendThread = std::thread(runFileAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+	    #else
+	        auto sendThread = std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+	    #endif
+
+	        auto receiveThread = std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                         kNodeConfiguration);
+	#else
+	    #if FILE_RSM
+	        auto sendThread = std::thread(runFileUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+	    #else
+	        auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+	    #endif
+
+	        auto receiveThread = std::thread(runUnfairOneToOneReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                         kNodeConfiguration);
+	#endif	
+
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
         std::this_thread::sleep_until(testStartRecordTime);
