@@ -4,14 +4,11 @@
 # Edited: Reginald Frank reginaldfrank77@berkeley.edu 2023
 
 # Setup - Sets up folders/binaries on all machines
+
+import argparse
 import os
 import os.path
 import sys
-import datetime
-import time
-import random
-import multiprocessing
-import subprocess
 from typing import List
 from dataclasses import dataclass
 
@@ -27,16 +24,21 @@ class CliArguments:
     experiment_config_path: str
 
 def parse_cli_args(argv: List[str]) -> CliArguments:
-    assert len(argv) == 3, f'Usage: python3 {sys.argv[0]} <setup_dir_path> <experiment_config_path>'
+    parser = argparse.ArgumentParser(description='Sets up a cluster of nodes for experiments')
+    parser.add_argument('setup_dir_path', type=str,
+                    help='The path of the setup directory contatining a setup.sh script')
 
-    setup_dir_path = argv[1]
-    experiment_config_path = argv[2]
-    assert os.path.isdir(setup_dir_path), f'setup_dir_path {setup_dir_path} not found.'
-    assert os.path.isfile(experiment_config_path), f'experiment_config_path {experiment_config_path} not found.'
+    parser.add_argument('experiment_config_path', type=str,
+                        help='The path of the experiment configuration json file')
+    
+    args = parser.parse_args()
+
+    assert os.path.isdir(args.setup_dir_path), f'setup_dir_path {args.setup_dir_path} not found.'
+    assert os.path.isfile(args.experiment_config_path), f'experiment_config_path {args.experiment_config_path} not found.'
 
     return CliArguments(
-        setup_dir_path = setup_dir_path,
-        experiment_config_path = experiment_config_path
+        setup_dir_path=args.setup_dir_path,
+        experiment_config_path=args.experiment_config_path
     )
 
 def get_network_urls(expeirment_config) -> List[str]:
@@ -69,7 +71,7 @@ def setup(cli_arguments: CliArguments):
     executeParallelBlockingRemoteCommand(network_urls, setup_command)
 
 def main():
-    cli_arguments = parse_cli_args(sys.argv)
+    cli_arguments = parse_cli_args()
     print("Read arguments:", cli_arguments)
     setup(cli_arguments)
 
