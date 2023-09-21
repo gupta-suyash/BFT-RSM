@@ -3,9 +3,6 @@
     "project_dir": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/final_results/",
     "src_dir": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/",
     "network_dir": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/configuration/",
-    "local_setup_script": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/setup_local.sh",
-    "remote_setup_script": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/setup_remote.sh",
-    "local_compile_script": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/build.sh",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
       "10.10.1.2",
@@ -14,10 +11,10 @@
       "10.10.1.5"
     ],
     "clusterOneIps": [
-      "10.10.1.14",
-      "10.10.1.15",
-      "10.10.1.16",
-      "10.10.1.17"
+      "10.10.1.6",
+      "10.10.1.7",
+      "10.10.1.8",
+      "10.10.1.9"
     ],
     "client_regions": [
       "US"

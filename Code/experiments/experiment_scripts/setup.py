@@ -12,6 +12,8 @@ import time
 import random
 import multiprocessing
 import subprocess
+from typing import List
+from dataclasses import dataclass
 
 # Include all utility scripts
 setup_dir = os.path.realpath(os.path.dirname(__file__))
@@ -19,41 +21,57 @@ sys.path.append(setup_dir + "/util/")
 from ssh_util import *
 from json_util import *
 
-def main():
-    if len(sys.argv) != 2:
-        sys.stderr.write(f'Usage: python3 {sys.argv[0]} <config_file>\n')
-        sys.exit(1)
-    print(f'Arg: {sys.argv[1]}')
-    setup(sys.argv[1])
+@dataclass
+class CliArguments:
+    setup_dir_path: str
+    experiment_config_path: str
 
-# Updates property file with the IP addresses obtained from setupEC2
-# Sets up client machines and proxy machines as
-# with ther (private) ip address.
-# Each VM will be created with its role tag concatenated with
-# the name of the experiment (ex: proxy-tpcc)
-def setupServers(localSetupFile, remoteSetupFile, ip_list):
-    #subprocess.call(localSetupFile)
-    executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
+def parse_cli_args(argv: List[str]) -> CliArguments:
+    assert len(argv) == 3, f'Usage: python3 {sys.argv[0]} <setup_dir_path> <experiment_config_path>'
+
+    setup_dir_path = argv[1]
+    experiment_config_path = argv[2]
+    assert os.path.isdir(setup_dir_path), f'setup_dir_path {setup_dir_path} not found.'
+    assert os.path.isfile(experiment_config_path), f'experiment_config_path {experiment_config_path} not found.'
+
+    return CliArguments(
+        setup_dir_path = setup_dir_path,
+        experiment_config_path = experiment_config_path
+    )
+
+def get_network_urls(expeirment_config) -> List[str]:
+    return expeirment_config['experiment_independent_vars']['clusterZeroIps'] + expeirment_config['experiment_independent_vars']['clusterOneIps'] + ['127.0.0.1']
 
 # Function that setups up appropriate folders on the
 # correct machines, and sends the jars. It assumes
 # that the appropriate VMs/machines have already started
-def setup(configJson):
-    print("Setup")
-    config = loadJsonFile(configJson)
-    if not config:
-        print("Empty config file, failing")
-        return
-    # Path to setup script
-    localSetupFile = "sudo " + config['experiment_independent_vars']['local_setup_script']
-    # Path to setup script for remote machines
-    remoteSetupFile = "sudo " + config['experiment_independent_vars']['remote_setup_script']
-    # List of IPs for every machine in the cluster
-    ip_list = config['experiment_independent_vars']['clusterZeroIps'] + config['experiment_independent_vars']['clusterOneIps']
-    print(ip_list)
+def setup(cli_arguments: CliArguments):
+    print("Starting Setup")
+
+    expeirment_config = loadJsonFile(cli_arguments.experiment_config_path)
+    assert expeirment_config, f'Empty Config found at {cli_arguments.experiment_config_path}, failing'
+    
+    network_urls = get_network_urls(expeirment_config)
+    assert len(network_urls) > 1, f'No urls found in the experiment config at {cli_arguments.experiment_config_path}, failing'
+    print(f'Ip List: {network_urls}')
+
+    # Copy Setup directory to each machine
+    remote_setup_dir = f'/tmp/scrooge_setup'
+
+    for url in network_urls:
+        executeCommand(f'scp -o StrictHostKeyChecking=no -r {cli_arguments.setup_dir_path} {url}:{remote_setup_dir} >/dev/null 2>&1')
+
+    # Make bash the default terminal
+    executeParallelBlockingRemoteCommand(network_urls, "sudo chsh $SUDO_USER -s /bin/bash 2>&1")
+
     # Run function to install all appropriate packages on servers
-    executeCommand(localSetupFile)
-    executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
+    setup_command = f'sudo {remote_setup_dir}/setup.sh >/dev/null 2>&1'
+    executeParallelBlockingRemoteCommand(network_urls, setup_command)
+
+def main():
+    cli_arguments = parse_cli_args(sys.argv)
+    print("Read arguments:", cli_arguments)
+    setup(cli_arguments)
 
 if __name__ == "__main__":
     main()
