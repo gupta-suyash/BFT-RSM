@@ -21,6 +21,12 @@ max_nng_blocking_time=${13}
 pipeline_buffer_size=${14}
 message_buffer_size=${15}
 klist_size=${16}
+scrooge=${17}
+all_to_all=${18}
+one_to_one=${19}
+file_rsm=${20}
+use_debug_logs_bool=${21}
+
 
 echo -e "#ifndef _CONFIG_H_" > config.h
 echo -e "#define _CONFIG_H_" >> config.h
@@ -32,8 +38,9 @@ echo -e "#define NUMBER_PACKETS ${number_packets}" >> config.h
 echo -e "#define PACKET_SIZE ${packet_size}" >> config.h
 
 echo -e "#define NETWORK_DIR \"${network_dir}\"" >> config.h
-echo -e "#define LOG_DIR \"${log_dir}"\" >> config.h
-                              
+echo -e "#define LOG_DIR \"${log_dir}\"" >> config.h
+echo -e "#define USE_DEBUG_LOGS_BOOL ${use_debug_logs_bool}" >> config.h
+
 echo -e "#define WARMUP_TIME ${warmup_time}" >> config.h
 echo -e "#define TOTAL_TIME ${total_time}" >> config.h
 
@@ -43,5 +50,9 @@ echo -e "#define MAX_NNG_BLOCKING_TIME ${max_nng_blocking_time}" >> config.h
 echo -e "#define PIPELINE_BUFFER_SIZE ${pipeline_buffer_size}" >> config.h
 echo -e "#define MESSAGE_BUFFER_SIZE ${message_buffer_size}" >> config.h
 echo -e "#define KLIST_SIZE ${klist_size}" >> config.h
+echo -e "#define SCROOGE ${scrooge}" >> config.h
+echo -e "#define ALL_TO_ALL ${all_to_all}" >> config.h
+echo -e "#define ONE_TO_ONE ${one_to_one}" >> config.h
+echo -e "#define FILE_RSM ${file_rsm}" >> config.h
 
 echo -e "#endif" >> config.h
