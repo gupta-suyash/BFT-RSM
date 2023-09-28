@@ -63,6 +63,7 @@ def executeCommand(command):
     print("Calling " + command)
     try:
         subprocess.check_call(command, shell=True, stdout=sys.stdout, stderr=sys.stdout)
+        print(f'Exited "{command}" successfully')
     except Exception as e:
         print("Terminated " +  command + " " + str(e))
 
@@ -120,12 +121,32 @@ def executeSequenceBlockingRemoteCommand(hosts, command, key=None):
 # If returns an error throws an exception
 def executeParallelBlockingRemoteCommand(hosts, command, key=None):
     thread_list = list()
-    for h in hosts:
+    for i, h in enumerate(hosts):
         if not key:
             cmd = "ssh -o StrictHostKeyChecking=no -t " + h + " '" + command + "'"
         else:
             cmd = "ssh -o StrictHostKeyChecking=no -t -i " + \
                   key + " " + h + " '" + command + "'"
+        cmd += f' > node{i} 2>&1'
+        t = threading.Thread(target=executeCommand, args=(cmd,))
+        thread_list.append(t)
+    for t in thread_list:
+        t.start()
+    for t in thread_list:
+        t.join()
+
+# Executes, in parallel, specified local script
+# on each of the hosts in the list
+# If returns an error throws an exception
+def executeParallelBlockingRemoteScript(hosts, script_path, *, with_sudo=False, key=None):
+    thread_list = list()
+    assert os.path.isfile(script_path), f'script_path {script_path} not found.'
+    for i, h in enumerate(hosts):
+        key_text = f'-i {key}' if key is not None else ""
+        sudo_text = "sudo -H" if with_sudo else ""
+        cmd = (f'ssh -o StrictHostKeyChecking=no -t {key_text} {h} '
+               f'{sudo_text} bash -s -- < {script_path} '
+               f'> node{i} 2>&1')
         t = threading.Thread(target=executeCommand, args=(cmd,))
         thread_list.append(t)
     for t in thread_list:

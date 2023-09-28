@@ -20,12 +20,12 @@ from json_util import *
 
 @dataclass
 class CliArguments:
-    setup_dir_path: str
+    setup_script_path: str
     experiment_config_path: str
 
-def parse_cli_args(argv: List[str]) -> CliArguments:
+def parse_cli_args() -> CliArguments:
     parser = argparse.ArgumentParser(description='Sets up a cluster of nodes for experiments')
-    parser.add_argument('setup_dir_path', type=str,
+    parser.add_argument('setup_script_path', type=str,
                     help='The path of the setup directory contatining a setup.sh script')
 
     parser.add_argument('experiment_config_path', type=str,
@@ -33,11 +33,11 @@ def parse_cli_args(argv: List[str]) -> CliArguments:
     
     args = parser.parse_args()
 
-    assert os.path.isdir(args.setup_dir_path), f'setup_dir_path {args.setup_dir_path} not found.'
+    assert os.path.isfile(args.setup_script_path), f'setup_script_path {args.setup_script_path} not found.'
     assert os.path.isfile(args.experiment_config_path), f'experiment_config_path {args.experiment_config_path} not found.'
 
     return CliArguments(
-        setup_dir_path=args.setup_dir_path,
+        setup_script_path=args.setup_script_path,
         experiment_config_path=args.experiment_config_path
     )
 
@@ -57,18 +57,8 @@ def setup(cli_arguments: CliArguments):
     assert len(network_urls) > 1, f'No urls found in the experiment config at {cli_arguments.experiment_config_path}, failing'
     print(f'Ip List: {network_urls}')
 
-    # Copy Setup directory to each machine
-    remote_setup_dir = f'/tmp/scrooge_setup'
-
-    for url in network_urls:
-        executeCommand(f'scp -o StrictHostKeyChecking=no -r {cli_arguments.setup_dir_path} {url}:{remote_setup_dir} >/dev/null 2>&1')
-
-    # Make bash the default terminal
-    executeParallelBlockingRemoteCommand(network_urls, "sudo chsh $SUDO_USER -s /bin/bash 2>&1")
-
     # Run function to install all appropriate packages on servers
-    setup_command = f'sudo {remote_setup_dir}/setup.sh >/dev/null 2>&1'
-    executeParallelBlockingRemoteCommand(network_urls, setup_command)
+    executeParallelBlockingRemoteScript(network_urls, cli_arguments.setup_script_path, with_sudo=True)
 
 def main():
     cli_arguments = parse_cli_args()
