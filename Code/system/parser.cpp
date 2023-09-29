@@ -61,23 +61,22 @@ parser::CommandLineArguments parseCommandLineArguments(int argc, char *argv[])
 
     try
     {
-	const auto workingDir = NETWORK_DIR;
+        const auto workingDir = NETWORK_DIR;
 
         const auto ownNodeId = std::stoull(kPersonalId);
 
         const auto ownNetworkId = stoull(kConfigId);
 
-	const auto ownNetworkSize = OWN_RSM_SIZE;
-	const auto otherNetworkSize = OTHER_RSM_SIZE;
-	const auto ownNetworkMaxNodesFail = OWN_RSM_MAX_NODES_FAIL;
-	const auto otherNetworkMaxNodesFail = OTHER_RSM_MAX_NODES_FAIL; 
-	const auto numPackets = NUMBER_PACKETS;
-	const auto packetSize = PACKET_SIZE;
+        const auto ownNetworkSize = OWN_RSM_SIZE;
+        const auto otherNetworkSize = OTHER_RSM_SIZE;
+        const auto ownNetworkMaxNodesFail = OWN_RSM_MAX_NODES_FAIL;
+        const auto otherNetworkMaxNodesFail = OTHER_RSM_MAX_NODES_FAIL;
+        const auto numPackets = NUMBER_PACKETS;
+        const auto packetSize = PACKET_SIZE;
 
-        //const auto logPath =
+        // const auto logPath =
         //    logDir + "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
-	const auto logPath =
-            "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
+        const auto logPath = "/tmp/log_" + std::to_string(ownNetworkId) + "_" + std::to_string(ownNodeId) + ".yaml";
         SPDLOG_INFO("Network directory: {}", workingDir);
 
         set_packet_size(packetSize);

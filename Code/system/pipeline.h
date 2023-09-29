@@ -1,8 +1,8 @@
 #pragma once
 
 #include "acknowledgment.h"
-#include "global.h"
 #include "config.h"
+#include "global.h"
 
 #include "scrooge_message.pb.h"
 

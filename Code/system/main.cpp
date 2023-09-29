@@ -1,5 +1,6 @@
 #include "acknowledgment.h"
 #include "all_to_all.h"
+#include "config.h"
 #include "global.h"
 #include "iothread.h"
 #include "one_to_one.h"
@@ -7,7 +8,6 @@
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
 #include "scrooge.h"
-#include "config.h"
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -81,40 +81,40 @@ int main(int argc, char *argv[])
         //     std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         // SPDLOG_INFO("Created Generate message relay thread");
 
-	#if SCROOGE
-	    #if FILE_RSM
-                auto sendThread = std::thread(runFileScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+#if SCROOGE
+#if FILE_RSM
+        auto sendThread = std::thread(runFileScroogeSendThread, messageBuffer, pipeline, acknowledgment,
+                                      resendDataQueue, quorumAck, kNodeConfiguration);
+#else
+        auto sendThread = std::thread(runScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
-	    #else
-	        auto sendThread = std::thread(runScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
-                                      quorumAck, kNodeConfiguration);
-            #endif  
+#endif
 
-                auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
+        auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
                                          kNodeConfiguration);
-	#elif ALL_TO_ALL
-	    #if FILE_RSM
-	        auto sendThread = std::thread(runFileAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+#elif ALL_TO_ALL
+#if FILE_RSM
+        auto sendThread = std::thread(runFileAllToAllSendThread, messageBuffer, pipeline, acknowledgment,
+                                      resendDataQueue, quorumAck, kNodeConfiguration);
+#else
+        auto sendThread = std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
-	    #else
-	        auto sendThread = std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
-                                      quorumAck, kNodeConfiguration);
-	    #endif
+#endif
 
-	        auto receiveThread = std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
+        auto receiveThread = std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
                                          kNodeConfiguration);
-	#else
-	    #if FILE_RSM
-	        auto sendThread = std::thread(runFileUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
-                                      quorumAck, kNodeConfiguration);
-	    #else
-	        auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
-                                      quorumAck, kNodeConfiguration);
-	    #endif
+#else
+#if FILE_RSM
+        auto sendThread = std::thread(runFileUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,
+                                      resendDataQueue, quorumAck, kNodeConfiguration);
+#else
+        auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,
+                                      resendDataQueue, quorumAck, kNodeConfiguration);
+#endif
 
-	        auto receiveThread = std::thread(runUnfairOneToOneReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
-                                         kNodeConfiguration);
-	#endif	
+        auto receiveThread = std::thread(runUnfairOneToOneReceiveThread, pipeline, acknowledgment, resendDataQueue,
+                                         quorumAck, kNodeConfiguration);
+#endif
 
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 

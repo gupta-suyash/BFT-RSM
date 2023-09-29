@@ -507,7 +507,8 @@ bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
                                        pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                        std::chrono::steady_clock::time_point curTime)
 {
-    batch->batchSizeEstimate += (message.ByteSizeLong() + get_packet_size()); // TODO: NOT EXPECTED. Need to add lenght of the message
+    batch->batchSizeEstimate +=
+        (message.ByteSizeLong() + get_packet_size()); // TODO: NOT EXPECTED. Need to add lenght of the message
     batch->data.mutable_data()->Add(std::move(message));
 
     const auto timeDelta = curTime - batch->creationTime;

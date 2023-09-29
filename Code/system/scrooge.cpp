@@ -42,7 +42,6 @@ bool isResendDataUpdated{};
 uint64_t maxResendRequest{};
 uint64_t numMessagesResent{};
 
-
 uint64_t testtrueMod(int64_t value, int64_t modulus)
 {
     const auto remainder = (value % modulus);
@@ -51,7 +50,7 @@ uint64_t testtrueMod(int64_t value, int64_t modulus)
 
 inline uint64_t teststakeToNode(uint64_t stakeIndex, const std::vector<uint64_t> &networkStakePrefixSum)
 {
-    for (size_t offset{1};;offset++)
+    for (size_t offset{1};; offset++)
     {
         if (stakeIndex < networkStakePrefixSum[offset])
         {
@@ -65,10 +64,11 @@ inline std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequen
     const auto roundOffset = sequenceNumber / kOwnApportionedStake;
     const auto originalApportionedSendNode =
         teststakeToNode(sequenceNumber % kOwnApportionedStake, kOwnRsmApportionedStakePrefixSum);
-    const auto originalApportionedRecvNode = teststakeToNode(
-        (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
+    const auto originalApportionedRecvNode =
+        teststakeToNode((sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
 
-    std::optional<std::optional<uint64_t>>* const lookupEntry = mResendNumberLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+    std::optional<std::optional<uint64_t>> *const lookupEntry =
+        mResendNumberLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
 
     if (lookupEntry->has_value())
     {
@@ -81,8 +81,7 @@ inline std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequen
     const auto ownNodeLastStake = kOwnRsmStakePrefixSum.at(kOwnNodeId + 1) - 1;
     const auto isNodeFirstSender = ownNodeFirstStake <= originalSender && originalSender <= ownNodeLastStake;
     const auto ownNodeFirstSentStake = (isNodeFirstSender) ? originalSender : ownNodeFirstStake;
-    const auto previousStakeSent =
-        testtrueMod((int64_t)ownNodeFirstSentStake - (int64_t)originalSender, kStakePerRsm);
+    const auto previousStakeSent = testtrueMod((int64_t)ownNodeFirstSentStake - (int64_t)originalSender, kStakePerRsm);
 
     const auto isOwnNodeNotASender = previousStakeSent >= kMinStakeToSend;
     if (isOwnNodeNotASender)
@@ -97,8 +96,7 @@ inline std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequen
     const auto ownFirstSenderId = kOwnNodeId;
     const auto ownFirstReceiverId = teststakeToNode(ownNodeFirstReceiver, kOtherRsmStakePrefixSum);
 
-    const auto priorSenders =
-        testtrueMod((int64_t)ownFirstSenderId - (int64_t)originalSenderId, kOwnNetworkSize);
+    const auto priorSenders = testtrueMod((int64_t)ownFirstSenderId - (int64_t)originalSenderId, kOwnNetworkSize);
     const auto priorReceivers =
         testtrueMod((int64_t)ownFirstReceiverId - (int64_t)originalReceiverId, kOtherNetworkSize);
 
@@ -111,10 +109,11 @@ inline message_scheduler::CompactDestinationList MessageScheduler::getMessageDes
     const auto roundOffset = sequenceNumber / kOwnApportionedStake;
     const auto originalApportionedSendNode =
         teststakeToNode(sequenceNumber % kOwnApportionedStake, kOwnRsmApportionedStakePrefixSum);
-    const auto originalApportionedRecvNode = teststakeToNode(
-        (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
+    const auto originalApportionedRecvNode =
+        teststakeToNode((sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
 
-    std::optional<message_scheduler::CompactDestinationList>* const lookupEntry = mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+    std::optional<message_scheduler::CompactDestinationList> *const lookupEntry =
+        mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
 
     if (lookupEntry->has_value())
     {
@@ -129,8 +128,7 @@ inline message_scheduler::CompactDestinationList MessageScheduler::getMessageDes
     const auto ownNodeLastStake = kOwnRsmStakePrefixSum.at(kOwnNodeId + 1) - 1;
     const auto isNodeFirstSender = ownNodeFirstStake <= originalSender && originalSender <= ownNodeLastStake;
     const auto ownNodeFirstSentStake = (isNodeFirstSender) ? originalSender : ownNodeFirstStake;
-    const auto previousStakeSent =
-        testtrueMod((int64_t)ownNodeFirstSentStake - (int64_t)originalSender, kStakePerRsm);
+    const auto previousStakeSent = testtrueMod((int64_t)ownNodeFirstSentStake - (int64_t)originalSender, kStakePerRsm);
 
     const auto isOwnNodeNotASender = previousStakeSent >= kMinStakeToSend;
     if (isOwnNodeNotASender)

@@ -26,7 +26,7 @@ std::vector<uint64_t> message_scheduler::getStakePrefixSum(const std::vector<uin
 
 uint64_t message_scheduler::stakeToNode(uint64_t stakeIndex, const std::vector<uint64_t> &networkStakePrefixSum)
 {
-    for (size_t offset{1};;offset++)
+    for (size_t offset{1};; offset++)
     {
         if (stakeIndex < networkStakePrefixSum[offset])
         {
@@ -151,8 +151,10 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     bool isImplementationValid = kStakePerRsm >= kOwnMaxNumFailedStake + kOtherMaxNumFailedStake;
     assert(isImplementationValid &&
            "More than half of one of the network's total stake can fail -- probably works but not tested");
-    mResendNumberLookup = std::vector<std::vector<std::optional<std::optional<uint64_t>>>>(kOwnNetworkSize, std::vector<std::optional<std::optional<uint64_t>>>(kOtherNetworkSize));
-    mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
+    mResendNumberLookup = std::vector<std::vector<std::optional<std::optional<uint64_t>>>>(
+        kOwnNetworkSize, std::vector<std::optional<std::optional<uint64_t>>>(kOtherNetworkSize));
+    mResendDestinationLookup = std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>(
+        kOwnNetworkSize, std::vector<std::optional<message_scheduler::CompactDestinationList>>(kOtherNetworkSize));
 }
 
 inline std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequenceNumber) const
@@ -163,7 +165,8 @@ inline std::optional<uint64_t> MessageScheduler::getResendNumber(uint64_t sequen
     const auto originalApportionedRecvNode = message_scheduler::stakeToNode(
         (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
 
-    std::optional<std::optional<uint64_t>>* const lookupEntry = mResendNumberLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+    std::optional<std::optional<uint64_t>> *const lookupEntry =
+        mResendNumberLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
 
     if (lookupEntry->has_value())
     {
@@ -209,7 +212,8 @@ inline message_scheduler::CompactDestinationList MessageScheduler::getMessageDes
     const auto originalApportionedRecvNode = message_scheduler::stakeToNode(
         (sequenceNumber + roundOffset) % kOtherApportionedStake, kOtherRsmApportionedStakePrefixSum);
 
-    std::optional<message_scheduler::CompactDestinationList>* const lookupEntry = mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
+    std::optional<message_scheduler::CompactDestinationList> *const lookupEntry =
+        mResendDestinationLookup[originalApportionedSendNode].data() + originalApportionedRecvNode;
 
     if (lookupEntry->has_value())
     {

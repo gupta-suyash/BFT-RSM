@@ -105,13 +105,15 @@ static void runUnfairOneToOneSendThread(
         {
             continue;
         }
-        if constexpr (kIsUsingFile) 
+        if constexpr (kIsUsingFile)
         {
             pipeline->SendFileToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
-        } else {
+        }
+        else
+        {
             pipeline->SendToOtherRsm(kNodeId % kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
         }
-        
+
         // sentMessages.addToAckList(curSequenceNumber);
         quorumAck->updateNodeAck(0, 0ULL - 1, curSequenceNumber);
         numMessagesSent++;
