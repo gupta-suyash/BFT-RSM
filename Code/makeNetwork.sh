@@ -10,12 +10,6 @@ RSM1=(
   "10.10.1.3"
   "10.10.1.4"
   "10.10.1.5"
-  "10.10.1.6"
-  "10.10.1.7"
-  "10.10.1.8"
-  "10.10.1.2"
-  "10.10.1.3"
-  "10.10.1.4"
 )
 
 # State the IP addresses of the nodes that you want in RSM2.
@@ -24,26 +18,19 @@ RSM2=(
   "10.10.1.7"
   "10.10.1.8"
   "10.10.1.9"
-  "10.10.1.6"
-  "10.10.1.7"
-  "10.10.1.8"
-  "10.10.1.9"
-  "10.10.1.2"
-  "10.10.1.3"
 )
 
 # Set rarely changing parameters.
-warmup_time=40s
-total_time=60s
+warmup_time=10s
+total_time=30s
 num_packets=10000
-network_dir="/proj/ove-PG0/suyash2/BFT-RSM/Code/configuration/" 
-log_dir="/proj/ove-PG0/suyash2/BFT-RSM/Code/experiments/results/" 
-json_dir="/proj/ove-PG0/suyash2/BFT-RSM/Code/experiments/experiment_json/"
+network_dir="/proj/ove-PG0/reggie/BFT-RSM/Code/configuration/" 
+log_dir="/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/" 
+json_dir="/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/experiment_json/"
 experiment_name="scrooge_4_replica_stake"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
 message_buffer_size=256
-
 
 
 #
@@ -76,11 +63,11 @@ rsm1_fail=(1)
 rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
-klist_size=(64 512 2048 21888)
-packet_size=(100 1000 10000)
-batch_size=(2621 26214 262144)
-batch_creation_time=(1ms 2ms 4800us 10000us)
-pipeline_buffer_size=(1 2 8 64 128)
+klist_size=(64)
+packet_size=(100 1000 10000 50000 100000)
+batch_size=(26214)
+batch_creation_time=(1ms)
+pipeline_buffer_size=(8)
 
 
 ### Exp: Equal stake RSMs of size 7; message size 1000.
@@ -134,12 +121,12 @@ makeExperimentJson()
 
   echo -e "{" > experiments.json
   echo -e "  \"experiment_independent_vars\": {" >> experiments.json
-  echo -e "    \"project_dir\": \"/proj/ove-PG0/suyash2/BFT-RSM/Code/experiments/results/final_results/\"," >> experiments.json
-  echo -e "    \"src_dir\": \"/proj/ove-PG0/suyash2/BFT-RSM/Code/\"," >> experiments.json
+  echo -e "    \"project_dir\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/final_results/\"," >> experiments.json
+  echo -e "    \"src_dir\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/\"," >> experiments.json
   echo -e "    \"network_dir\": \"${network_dir}\"," >> experiments.json
-  echo -e "    \"local_setup_script\": \"/proj/ove-PG0/suyash2/BFT-RSM/Code/setup-seq.sh\"," >> experiments.json
-  echo -e "    \"remote_setup_script\": \"/proj/ove-PG0/suyash2/BFT-RSM/Code/setup_remote.sh\"," >> experiments.json
-  echo -e "    \"local_compile_script\": \"/proj/ove-PG0/suyash2/BFT-RSM/Code/build.sh\"," >> experiments.json
+  echo -e "    \"local_setup_script\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/setup-seq.sh\"," >> experiments.json
+  echo -e "    \"remote_setup_script\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/setup_remote.sh\"," >> experiments.json
+  echo -e "    \"local_compile_script\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/build.sh\"," >> experiments.json
   echo -e "    \"replication_protocol\": \"scrooge\"," >> experiments.json
 
   echo -e "    \"clusterZeroIps\": [" >> experiments.json
@@ -241,8 +228,17 @@ makeExperimentJson()
 #
 
 rcount=0
-#protocols="scrooge alltoall onetoone"
-protocols="scrooge"
+protocols=()
+if [ "${scrooge}" = "true" ]; then
+      protocols+=("scrooge")
+fi
+if [ "${all_to_all}" = "true" ]; then
+      protocols+=("all_to_all")
+fi
+if [ "${one_to_one}" = "true" ]; then
+      protocols+=("one_to_one")
+fi
+
 for r1_size in ${rsm1_size[@]} # Looping over all the network sizes
 do
   # First, we create the configuration file "network0urls.txt" through echoing and redirection.
@@ -273,7 +269,7 @@ do
   cp  network1urls.txt ${network_dir} #copy to the expected folder.
   echo " "
 
-  for algo in ${protocols} # Looping over all the protocols.
+  for algo in ${protocols[@]} # Looping over all the protocols.
   do 
     scrooge="false"
     all_to_all="false"
@@ -281,11 +277,11 @@ do
 
     if [ "${algo}" = "scrooge" ]; then
       scrooge="true"
-    elif [ "${algo}" = "alltoall" ]; then 
+    elif [ "${algo}" = "all_to_all" ]; then 
       all_to_all="true"
     else  
       one_to_one="true"
-    fi  
+    fi
 
     for kl_size in ${klist_size[@]} # Looping over all the klist_sizes.
     do	    
@@ -304,11 +300,15 @@ do
         	    cat config.h
         	    cp config.h system/
 
+              make clean
+              make proto
+              make -j scrooge
+
         	    # Next, we make the experiment.json for backward compatibility.
         	    makeExperimentJson ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${pk_size} ${experiment_name} 
 
         	    # Next, we run the script.
-        	    ./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/suyash2/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+        	    ./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/reggie/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 
             done
           done  

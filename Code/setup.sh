@@ -93,6 +93,10 @@ echo "Installed go protoc"
 
 # Petty
 git config --global core.editor "vim"
+rm -f /users/$SUDO_USER/.tmux.conf
+echo "set -g default-terminal \"screen-256color\"" >> /users/$SUDO_USER/.tmux.conf
+echo "set-option -g default-shell /bin/bash" >> /users/$SUDO_USER/.tmux.conf
+
 
 echo "Script is successful!"
 

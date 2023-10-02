@@ -1,8 +1,11 @@
 {
   "experiment_independent_vars": {
-    "project_dir": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/final_results/",
-    "src_dir": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/",
-    "network_dir": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/configuration/",
+    "project_dir": "/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/final_results/",
+    "src_dir": "/proj/ove-PG0/reggie/BFT-RSM/Code/",
+    "network_dir": "/proj/ove-PG0/reggie/BFT-RSM/Code/configuration/",
+    "local_setup_script": "/proj/ove-PG0/reggie/BFT-RSM/Code/setup-seq.sh",
+    "remote_setup_script": "/proj/ove-PG0/reggie/BFT-RSM/Code/setup_remote.sh",
+    "local_compile_script": "/proj/ove-PG0/reggie/BFT-RSM/Code/build.sh",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
       "10.10.1.2",
@@ -20,409 +23,7 @@
       "US"
     ]
   },
-  "scrooge_4_replica_official": {
-    "experiment_name": "increase_packet_size",
-    "nb_rounds": 5,
-    "simulate_latency": 0,
-    "duration": 4,
-    "scrooge_args": {
-      "general": {
-        "use_debug_logs_bool": 0,
-        "log_path": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/",
-        "max_num_packets": 600000
-      },
-      "cluster_0": {
-        "local_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "foreign_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "local_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "foreign_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "num_packets": [
-          600000,
-          600000,
-          600000,
-          600000,
-          600000
-        ],
-        "packet_size": [
-          100,
-          1000,
-          10000,
-          100000,
-          1000000
-        ]
-      },
-      "cluster_1": {
-        "local_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "foreign_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "local_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "foreign_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "num_packets": [
-          600000,
-          600000,
-          600000,
-          600000,
-          600000
-        ],
-        "packet_size": [
-          100,
-          1000,
-          10000,
-          100000,
-          1000000
-        ]
-      }
-    }
-  },
-  "scrooge_4_replica_official_stake_1234": {
-    "experiment_name": "increase_packet_size",
-    "nb_rounds": 5,
-    "simulate_latency": 0,
-    "duration": 4,
-    "scrooge_args": {
-      "general": {
-        "use_debug_logs_bool": 0,
-        "log_path": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/",
-        "max_num_packets": 600000
-      },
-      "cluster_0": {
-        "local_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "foreign_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "local_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "foreign_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "num_packets": [
-          600000,
-          600000,
-          600000,
-          600000,
-          600000
-        ],
-        "packet_size": [
-          100,
-          1000,
-          10000,
-          100000,
-          1000000
-        ]
-      },
-      "cluster_1": {
-        "local_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "foreign_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "local_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "foreign_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "num_packets": [
-          600000,
-          600000,
-          600000,
-          600000,
-          600000
-        ],
-        "packet_size": [
-          100,
-          1000,
-          10000,
-          100000,
-          1000000
-        ]
-      }
-    }
-  },
-  "scrooge_4_replica_official_stake_7111_uneven": {
-    "experiment_name": "increase_packet_size",
-    "nb_rounds": 5,
-    "simulate_latency": 0,
-    "duration": 4,
-    "scrooge_args": {
-      "general": {
-        "use_debug_logs_bool": 0,
-        "log_path": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/",
-        "max_num_packets": 600000
-      },
-      "cluster_0": {
-        "local_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "foreign_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "local_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "foreign_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "num_packets": [
-          600000,
-          600000,
-          600000,
-          600000,
-          600000
-        ],
-        "packet_size": [
-          100,
-          1000,
-          10000,
-          100000,
-          1000000
-        ]
-      },
-      "cluster_1": {
-        "local_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "foreign_num_nodes": [
-          4,
-          4,
-          4,
-          4,
-          4
-        ],
-        "local_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "foreign_max_nodes_fail": [
-          1,
-          1,
-          1,
-          1,
-          1
-        ],
-        "num_packets": [
-          600000,
-          600000,
-          600000,
-          600000,
-          600000
-        ],
-        "packet_size": [
-          100,
-          1000,
-          10000,
-          100000,
-          1000000
-        ]
-      }
-    }
-  },
-  "scrooge_7_replica_official": {
-    "experiment_name": "increase_packet_size",
-    "nb_rounds": 4,
-    "simulate_latency": 0,
-    "duration": 4,
-    "scrooge_args": {
-      "general": {
-        "use_debug_logs_bool": 0,
-        "log_path": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/",
-        "max_num_packets": 600000
-      },
-      "cluster_0": {
-        "local_num_nodes": [
-          7,
-          7,
-          7,
-          7,
-          7
-        ],
-        "foreign_num_nodes": [
-          7,
-          7,
-          7,
-          7,
-          7
-        ],
-        "local_max_nodes_fail": [
-          2,
-          2,
-          2,
-          2,
-          2
-        ],
-        "foreign_max_nodes_fail": [
-          2,
-          2,
-          2,
-          2,
-          2
-        ],
-        "num_packets": [
-          600000,
-          600000,
-          600000,
-          600000,
-          600000
-        ],
-        "packet_size": [
-          100,
-          1000,
-          10000,
-          100000
-        ]
-      },
-      "cluster_1": {
-        "local_num_nodes": [
-          7,
-          7,
-          7,
-          7,
-          7
-        ],
-        "foreign_num_nodes": [
-          7,
-          7,
-          7,
-          7,
-          7
-        ],
-        "local_max_nodes_fail": [
-          2,
-          2,
-          2,
-          2,
-          2
-        ],
-        "foreign_max_nodes_fail": [
-          2,
-          2,
-          2,
-          2,
-          2
-        ],
-        "num_packets": [
-          600000,
-          600000,
-          600000,
-          600000,
-          600000
-        ],
-        "packet_size": [
-          100,
-          1000,
-          10000,
-          100000
-        ]
-      }
-    }
-  },
-  "scrooge_7_replica_1M": {
+  "scrooge_4_replica_stake": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 1,
     "simulate_latency": 0,
@@ -430,47 +31,47 @@
     "scrooge_args": {
       "general": {
         "use_debug_logs_bool": 0,
-        "log_path": "/proj/ove-PG0/therealmurray/BFT-RSM/Code/experiments/results/",
-        "max_num_packets": 600000
+        "log_path": "/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/",
+        "max_num_packets": 10000
       },
       "cluster_0": {
         "local_num_nodes": [
-          7
+          4
         ],
         "foreign_num_nodes": [
-          7
+          4
         ],
         "local_max_nodes_fail": [
-          2
+          1
         ],
         "foreign_max_nodes_fail": [
-          2
+          1
         ],
         "num_packets": [
-          600000
+          10000
         ],
         "packet_size": [
-          1000000
+          10000
         ]
       },
       "cluster_1": {
         "local_num_nodes": [
-          7
+          4
         ],
         "foreign_num_nodes": [
-          7
+          4
         ],
         "local_max_nodes_fail": [
-          2
+          1
         ],
         "foreign_max_nodes_fail": [
-          2
+          1
         ],
         "num_packets": [
-          600000
+          10000
         ],
         "packet_size": [
-          1000000
+          10000
         ]
       }
     }
