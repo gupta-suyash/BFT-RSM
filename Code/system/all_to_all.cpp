@@ -83,7 +83,6 @@ static void runAllToAllSendThread(
 
     addMetric("transfer_strategy", "All-to-All");
     addMetric("num_msgs_sent", numMessagesSent);
-    // addMetric("max_quack", quorumAck->getCurrentQuack().value_or(0));
     SPDLOG_INFO("ALL CROSS CONSENSUS PACKETS SENT : send thread exiting");
 }
 

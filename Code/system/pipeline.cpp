@@ -230,6 +230,7 @@ Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::ve
 
     addMetric("Batch Size", kMinimumBatchSize);
     addMetric("Batch Timeout", std::chrono::duration<double>(kMaxBatchCreationTime).count());
+    addMetric("Pipeline Buffer Size", kBufferSize);
 }
 
 Pipeline::~Pipeline()
