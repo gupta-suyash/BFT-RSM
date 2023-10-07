@@ -41,6 +41,7 @@ echo "Installed apt-get packages"
 
 # Install python packages
 echo 'export PATH="$PATH:$HOME/bin"' >> /users/$SUDO_USER/.bashrc
+echo "export PATH=\"\$PATH:/users/$SUDO_USER/.local/bin\"" >> /users/$SUDO_USER/.bashrc
 export PATH="$PATH:$HOME/bin"
 pip install numpy
 pip install matplotlib
@@ -93,6 +94,7 @@ echo "Installed go protoc"
 
 # Petty
 git config --global core.editor "vim"
+echo "export GIT_EDITOR=vim" >> /users/$SUDO_USER/.bashrc
 rm -f /users/$SUDO_USER/.tmux.conf
 echo "set -g default-terminal \"screen-256color\"" >> /users/$SUDO_USER/.tmux.conf
 echo "set-option -g default-shell /bin/bash" >> /users/$SUDO_USER/.tmux.conf
