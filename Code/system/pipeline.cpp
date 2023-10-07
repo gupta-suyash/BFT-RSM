@@ -425,6 +425,12 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
                                     pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                     std::chrono::steady_clock::time_point curTime)
 {
+    const bool isBatchOversized = batch->batchSizeEstimate > kMinimumBatchSize;
+    if (isBatchOversized)
+    {
+        mCurBudgetDeficit -= batch->batchSizeEstimate - kMinimumBatchSize;
+    }
+
     if (acknowledgment)
     {
         setAckValue(&batch->data, *acknowledgment);
@@ -456,6 +462,12 @@ void Pipeline::flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const 
                                         pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                         std::chrono::steady_clock::time_point curTime)
 {
+    const bool isBatchOversized = batch->batchSizeEstimate > kMinimumBatchSize;
+    if (isBatchOversized)
+    {
+        mCurBudgetDeficit -= batch->batchSizeEstimate - kMinimumBatchSize;
+    }
+
     if (acknowledgment)
     {
         setAckValue(&batch->data, *acknowledgment);
@@ -487,11 +499,24 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
                                    pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                    std::chrono::steady_clock::time_point curTime)
 {
-    batch->batchSizeEstimate += message.ByteSizeLong();
+    const auto newMessageSize = message.ByteSizeLong();
+    const auto newBatchSize = batch->batchSizeEstimate + newMessageSize;
+    if (batch->batchSizeEstimate > kMinimumBatchSize)
+    {
+        mCurBudgetDeficit += newMessageSize;
+    }
+    else if (newBatchSize > kMinimumBatchSize)
+    {
+        mCurBudgetDeficit += newMessageSize - (kMinimumBatchSize - batch->batchSizeEstimate);
+    }
+    batch->batchSizeEstimate += newMessageSize;
     batch->data.mutable_data()->Add(std::move(message));
 
     const auto timeDelta = curTime - batch->creationTime;
-    bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
+    const bool isBatchLargeEnough = batch->batchSizeEstimate >= kMinimumBatchSize;
+    const bool isBatchOldEnough = timeDelta >= kMaxBatchCreationTime;
+
+    const bool shouldSend = isBatchLargeEnough || isBatchOldEnough;
     numTimeoutHits += timeDelta >= kMaxBatchCreationTime;
     numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
     if (not shouldSend)
@@ -499,8 +524,15 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
         return false;
     }
 
-    flushBufferedMessage(batch, acknowledgment, sendingQueue, curTime);
-    return true;
+    const bool isQueueReady = sendingQueue->size_approx() != 0;
+    const bool isBudgetSpent = mCurBudgetDeficit > kMaxBudgetDeficit;
+    if (isBudgetSpent or isQueueReady)
+    {
+        flushBufferedMessage(batch, acknowledgment, sendingQueue, curTime);
+        return true;
+    }
+    
+    return false;
 }
 bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
                                        pipeline::CrossChainMessageBatch *const batch,
@@ -508,12 +540,24 @@ bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
                                        pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                        std::chrono::steady_clock::time_point curTime)
 {
-    batch->batchSizeEstimate +=
-        (message.ByteSizeLong() + get_packet_size()); // TODO: NOT EXPECTED. Need to add lenght of the message
+    const auto newMessageSize = message.ByteSizeLong() + get_packet_size();
+    const auto newBatchSize = batch->batchSizeEstimate + newMessageSize;
+    if (batch->batchSizeEstimate > kMinimumBatchSize)
+    {
+        mCurBudgetDeficit += newMessageSize;
+    }
+    else if (newBatchSize > kMinimumBatchSize)
+    {
+        mCurBudgetDeficit += newMessageSize - (kMinimumBatchSize - batch->batchSizeEstimate);
+    }
+    batch->batchSizeEstimate = newBatchSize;
     batch->data.mutable_data()->Add(std::move(message));
 
     const auto timeDelta = curTime - batch->creationTime;
-    bool shouldSend = (batch->batchSizeEstimate >= kMinimumBatchSize) || timeDelta >= kMaxBatchCreationTime;
+    const bool isBatchLargeEnough = batch->batchSizeEstimate >= kMinimumBatchSize;
+    const bool isBatchOldEnough = timeDelta >= kMaxBatchCreationTime;
+
+    const bool shouldSend = isBatchLargeEnough || isBatchOldEnough;
     numTimeoutHits += timeDelta >= kMaxBatchCreationTime;
     numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
     if (not shouldSend)
@@ -521,8 +565,15 @@ bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
         return false;
     }
 
-    flushBufferedFileMessage(batch, acknowledgment, sendingQueue, curTime);
-    return true;
+    const bool isQueueReady = sendingQueue->size_approx() != 0;
+    const bool isBudgetSpent = mCurBudgetDeficit > kMaxBudgetDeficit;
+    if (isBudgetSpent or isQueueReady)
+    {
+        flushBufferedFileMessage(batch, acknowledgment, sendingQueue, curTime);
+        return true;
+    }
+    
+    return false;
 }
 void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
                                    std::chrono::steady_clock::time_point curTime)

@@ -88,6 +88,8 @@ class Pipeline
     static constexpr uint64_t kMinimumPortNumber = 7'000;
     static constexpr uint64_t kProtobufDefaultSize = kListSize / 8;
     static constexpr uint64_t kMinimumBatchSize = BATCH_SIZE; // bytes
+    // batches can be larger than kMinimumBatchSize, but the total excess will be <= kMaxBudgetDeficit
+    static constexpr uint64_t kMaxBudgetDeficit = 26214 * 8 * 4; // bytes
     static constexpr auto kMaxBatchCreationTime = BATCH_CREATION_TIME;
     static constexpr auto kMaxNngBlockingTime = MAX_NNG_BLOCKING_TIME;
     static constexpr uint64_t kBufferSize = PIPELINE_BUFFER_SIZE;
@@ -97,6 +99,8 @@ class Pipeline
     const std::vector<std::string> kOtherNetworkUrls;
     // send/receive sockets owned by sending/receiving thread
     // look in Pipeline::runSendThread and Pipeline::runReceiveThread
+
+    int64_t mCurBudgetDeficit{};
 
     std::atomic_bool mIsPipelineStarted{};
     std::atomic_bool mShouldThreadStop{};
