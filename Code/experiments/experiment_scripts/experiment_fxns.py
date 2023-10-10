@@ -209,7 +209,7 @@ def run(configJson, experimentName, expDir):
             cluster_zero = config['experiment_independent_vars']['clusterZeroIps']
             cluster_one = config['experiment_independent_vars']['clusterOneIps']
             ip_list =  cluster_zero + cluster_one
-            scrooge_exec = "/proj/ove-PG0/reggie/BFT-RSM/Code/scrooge "
+            scrooge_exec = config['exec_dir'] + "/scrooge "
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
@@ -222,6 +222,14 @@ def run(configJson, experimentName, expDir):
             print(scrooge_commands)
             print("Execute command now")
             #import pdb; pdb.set_trace()
+            for ip in enumerate(cluster_zero): # TODO: combine for loops
+                default_dir = config['src_dir']
+                exec_dir = config['exec_dir']
+                executeCommand(f'scp {ip}:{default_dir}/scrooge {exec_dir}/')
+            for ip in enumerate(cluster_one):
+                default_dir = config['src_dir']
+                exec_dir = config['exec_dir']
+                executeCommand(f'scp {ip}:{default_dir}/scrooge {exec_dir}/')
             executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
             for node_id, ip in enumerate(cluster_zero):
                 cluster_id = 0

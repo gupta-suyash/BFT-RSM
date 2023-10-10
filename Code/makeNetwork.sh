@@ -20,13 +20,21 @@ RSM2=(
   "10.10.1.9"
 )
 
+# Name of profile we are running out of
+profile="reggie" # TODO: Change all instances of profile
+
+# Constants for scp
+key_file="~/.ssh/"
+username="mmurray22"
+
 # Set rarely changing parameters.
 warmup_time=10s
 total_time=30s
 num_packets=10000
-network_dir="/proj/ove-PG0/reggie/BFT-RSM/Code/configuration/" 
-log_dir="/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/" 
-json_dir="/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/experiment_json/"
+exec_dir="~/"
+network_dir="/proj/ove-PG0/${profile}/BFT-RSM/Code/configuration/" 
+log_dir="/proj/ove-PG0/${profile}/BFT-RSM/Code/experiments/results/" 
+json_dir="/proj/ove-PG0/${profile}/BFT-RSM/Code/experiments/experiment_json/"
 experiment_name="scrooge_4_replica_stake"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
@@ -121,12 +129,13 @@ makeExperimentJson()
 
   echo -e "{" > experiments.json
   echo -e "  \"experiment_independent_vars\": {" >> experiments.json
-  echo -e "    \"project_dir\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/final_results/\"," >> experiments.json
-  echo -e "    \"src_dir\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/\"," >> experiments.json
+  echo -e "    \"project_dir\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/experiments/results/final_results/\"," >> experiments.json
+  echo -e "    \"src_dir\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/\"," >> experiments.json
   echo -e "    \"network_dir\": \"${network_dir}\"," >> experiments.json
-  echo -e "    \"local_setup_script\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/setup-seq.sh\"," >> experiments.json
-  echo -e "    \"remote_setup_script\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/setup_remote.sh\"," >> experiments.json
-  echo -e "    \"local_compile_script\": \"/proj/ove-PG0/reggie/BFT-RSM/Code/build.sh\"," >> experiments.json
+  echo -e "    \"exec_dir\": \"${exec_dir}\"," >> experiments.json
+  echo -e "    \"local_setup_script\": \"/proj/ove-PG0/${profile}//BFT-RSM/Code/setup-seq.sh\"," >> experiments.json
+  echo -e "    \"remote_setup_script\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/setup_remote.sh\"," >> experiments.json
+  echo -e "    \"local_compile_script\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/build.sh\"," >> experiments.json
   echo -e "    \"replication_protocol\": \"scrooge\"," >> experiments.json
 
   echo -e "    \"clusterZeroIps\": [" >> experiments.json
@@ -269,6 +278,17 @@ do
   cp  network1urls.txt ${network_dir} #copy to the expected folder.
   echo " "
 
+  # scp network files to expected directory on other machines
+  while ((${count} < ${rsm1_size[$rcount]}))
+  do
+	  scp -i ${key_file} ${network_dir}/network0urls.txt ${username}@${RSM1[$count]}:${exec_dir}
+  done
+  while ((${count} < ${rsm2_size[$rcount]}))
+  do
+	  scp -i ${key_file} ${network_dir}/network1urls.txt ${username}@${RSM2[$count]}:${exec_dir}
+  done
+  echo " "
+
   for algo in ${protocols[@]} # Looping over all the protocols.
   do 
     scrooge="false"
@@ -308,7 +328,7 @@ do
         	    makeExperimentJson ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${pk_size} ${experiment_name} 
 
         	    # Next, we run the script.
-        	    ./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/reggie/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+        	    ./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/${profile}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 
             done
           done  
