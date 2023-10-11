@@ -6,26 +6,26 @@
 
 # State the IP addresses of the nodes that you want in RSM1.
 RSM1=(
-  "10.10.1.2"
-  "10.10.1.3"
   "10.10.1.4"
-  "10.10.1.5"
+  #"10.10.1.1"
+  #"10.10.1.4"
+  #"10.10.1.5"
 )
 
 # State the IP addresses of the nodes that you want in RSM2.
 RSM2=(
-  "10.10.1.6"
-  "10.10.1.7"
-  "10.10.1.8"
-  "10.10.1.9"
+  "10.10.1.3"
+  #"10.10.1.4"
+  #"10.10.1.8"
+  #"10.10.1.9"
 )
 
 # Name of profile we are running out of
-profile="reggie" # TODO: Change all instances of profile
+profile="therealmurray" # TODO: Change all instances of profile
 
 # Constants for scp
-key_file="~/.ssh/"
-username="mmurray22"
+key_file="~/.ssh/cloudlab_key"
+username="murray22"
 
 # Set rarely changing parameters.
 warmup_time=10s
@@ -55,6 +55,16 @@ one_to_one="true"
 file_rsm="true"  #If this experiment is for File_RSM (not algo or resdb)
 
 ### Exp: Equal stake RSMs of size 4; message size 100.
+rsm1_size=(1) 
+rsm2_size=(1)
+rsm1_fail=(0)
+rsm2_fail=(0)
+RSM1_Stake=(1 1 1 1)
+RSM2_Stake=(1 1 1 1)
+packet_size=(100)
+
+
+### Exp: Equal stake RSMs of size 4; message size 100.
 #rsm1_size=(4) 
 #rsm2_size=(4)
 #rsm1_fail=(1)
@@ -65,17 +75,17 @@ file_rsm="true"  #If this experiment is for File_RSM (not algo or resdb)
 
 
 ## Exp: Equal stake RSMs of size 4; message size 100, 1000
-rsm1_size=(4) 
-rsm2_size=(4)
-rsm1_fail=(1)
-rsm2_fail=(1)
-RSM1_Stake=(1 1 1 1)
-RSM2_Stake=(1 1 1 1)
-klist_size=(64)
-packet_size=(100 1000 10000 50000 100000)
-batch_size=(26214)
-batch_creation_time=(1ms)
-pipeline_buffer_size=(8)
+#rsm1_size=(4) 
+#rsm2_size=(4)
+#rsm1_fail=(1)
+#rsm2_fail=(1)
+#RSM1_Stake=(1 1 1 1)
+#RSM2_Stake=(1 1 1 1)
+#klist_size=(64)
+#packet_size=(100 1000 10000 50000 100000)
+#batch_size=(26214)
+#batch_creation_time=(1ms)
+#pipeline_buffer_size=(8)
 
 
 ### Exp: Equal stake RSMs of size 7; message size 1000.
@@ -279,13 +289,21 @@ do
   echo " "
 
   # scp network files to expected directory on other machines
+  echo "Hello about to scp now!"
+  echo "We have exec dir: ${exec_dir}"
+  count=0
   while ((${count} < ${rsm1_size[$rcount]}))
   do
-	  scp -i ${key_file} ${network_dir}/network0urls.txt ${username}@${RSM1[$count]}:${exec_dir}
+	  scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network0urls.txt ${RSM1[$count]}:${exec_dir}
+	  echo "scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network0urls.txt ${RSM1[$count]}:${exec_dir}"
+	  count=$((count+1))
   done
+  count=0
   while ((${count} < ${rsm2_size[$rcount]}))
   do
-	  scp -i ${key_file} ${network_dir}/network1urls.txt ${username}@${RSM2[$count]}:${exec_dir}
+	  scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network1urls.txt ${username}@${RSM2[$count]}:${exec_dir}
+	  echo "scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network1urls.txt ${username}@${RSM2[$count]}:${exec_dir}"
+	  count=$((count+1))
   done
   echo " "
 
@@ -323,6 +341,7 @@ do
               make clean
               make proto
               make -j scrooge
+	      echo "Done with make!"
 
         	    # Next, we make the experiment.json for backward compatibility.
         	    makeExperimentJson ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${pk_size} ${experiment_name} 
