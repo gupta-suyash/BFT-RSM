@@ -5,8 +5,11 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
+# Hack to get user caller's directory
+HOME_DIR=$(getent passwd $SUDO_USER | cut -d: -f6)
+
 # Put bashrc into a good state
-/bin/cp /etc/skel/.bashrc /users/$SUDO_USER/
+/bin/cp /etc/skel/.bashrc $HOME_DIR
 
 # Change default shell to bash
 sudo -H chsh $SUDO_USER -s /bin/bash
@@ -40,9 +43,9 @@ apt-get -y remove --auto-remove protobuf-compiler
 echo "Installed apt-get packages"
 
 # Install python packages
-echo 'export PATH="$PATH:$HOME/bin"' >> /users/$SUDO_USER/.bashrc
-echo "export PATH=\"\$PATH:/users/$SUDO_USER/.local/bin\"" >> /users/$SUDO_USER/.bashrc
-export PATH="$PATH:$HOME/bin"
+echo 'export PATH="$PATH:$HOME/bin"' >> $HOME_DIR/.bashrc
+echo "export PATH=\"\$PATH:$HOME/.local/bin\"" >> $HOME_DIR/.bashrc
+export PATH="$PATH:$HOME_DIR/bin"
 pip install numpy
 pip install matplotlib
 pip install seaborn
@@ -82,22 +85,22 @@ rm -rf ./protobuf-3.10.0 protobuf-cpp-3.10.0.tar.gz
 wget -q https://go.dev/dl/go1.21.1.linux-amd64.tar.gz
 rm -rf /usr/local/go
 tar -C /usr/local -xzf go1.21.1.linux-amd64.tar.gz
-echo "export PATH=\"\$PATH:/usr/local/go/bin\"" >> /users/$SUDO_USER/.bashrc
+echo "export PATH=\"\$PATH:/usr/local/go/bin\"" >> $HOME_DIR/.bashrc
 export PATH="$PATH:/usr/local/go/bin"
-echo "export PATH=\"\$PATH:/users/$SUDO_USER/go/bin\"" >> /users/$SUDO_USER/.bashrc
+echo "export PATH=\"\$PATH:$HOME/go/bin\"" >> $HOME_DIR/.bashrc
 echo "Installed go"
 rm -rf go1.21.1.linux-amd64.tar.gz
 
 # Insatall go protoc extension
-GOBIN=/users/$SUDO_USER/go/bin go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+GOBIN=$HOME_DIR/go/bin go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 echo "Installed go protoc"
 
 # Petty
 git config --global core.editor "vim"
-echo "export GIT_EDITOR=vim" >> /users/$SUDO_USER/.bashrc
-rm -f /users/$SUDO_USER/.tmux.conf
-echo "set -g default-terminal \"screen-256color\"" >> /users/$SUDO_USER/.tmux.conf
-echo "set-option -g default-shell /bin/bash" >> /users/$SUDO_USER/.tmux.conf
+echo "export GIT_EDITOR=vim" >> $HOME_DIR/.bashrc
+rm -f $HOME_DIR/.tmux.conf
+echo "set -g default-terminal \"screen-256color\"" >> $HOME_DIR/.tmux.conf
+echo "set-option -g default-shell /bin/bash" >> $HOME_DIR/.tmux.conf
 
 
 echo "Script is successful!"
