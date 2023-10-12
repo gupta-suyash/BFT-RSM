@@ -44,7 +44,7 @@ echo "Installed apt-get packages"
 
 # Install python packages
 echo 'export PATH="$PATH:$HOME/bin"' >> $HOME_DIR/.bashrc
-echo "export PATH=\"\$PATH:$HOME/.local/bin\"" >> $HOME_DIR/.bashrc
+echo "export PATH=\"\$PATH:\$HOME/.local/bin\"" >> $HOME_DIR/.bashrc
 export PATH="$PATH:$HOME_DIR/bin"
 pip install numpy
 pip install matplotlib
@@ -87,7 +87,7 @@ rm -rf /usr/local/go
 tar -C /usr/local -xzf go1.21.1.linux-amd64.tar.gz
 echo "export PATH=\"\$PATH:/usr/local/go/bin\"" >> $HOME_DIR/.bashrc
 export PATH="$PATH:/usr/local/go/bin"
-echo "export PATH=\"\$PATH:$HOME/go/bin\"" >> $HOME_DIR/.bashrc
+echo "export PATH=\"\$PATH:\$HOME/go/bin\"" >> $HOME_DIR/.bashrc
 echo "Installed go"
 rm -rf go1.21.1.linux-amd64.tar.gz
 
