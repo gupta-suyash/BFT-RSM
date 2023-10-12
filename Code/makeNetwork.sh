@@ -21,11 +21,9 @@ RSM2=(
 )
 
 # Name of profile we are running out of
-profile="therealmurray" # TODO: Change all instances of profile
-
-# Constants for scp
-key_file="~/.ssh/cloudlab_key"
-username="murray22"
+profile="therealmurray" # TODO: Replace with your directory name
+key_file="~/.ssh/cloudlab_key" # TODO: Replace with your ssh key
+username="murray22" # TODO: Replace with your username
 
 # Set rarely changing parameters.
 warmup_time=10s
@@ -54,15 +52,18 @@ all_to_all="true"
 one_to_one="true"
 file_rsm="true"  #If this experiment is for File_RSM (not algo or resdb)
 
-### Exp: Equal stake RSMs of size 4; message size 100.
+### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
 rsm1_size=(1) 
 rsm2_size=(1)
 rsm1_fail=(0)
 rsm2_fail=(0)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
+klist_size=(64)
 packet_size=(100)
-
+batch_size=(26214)
+batch_creation_time=(1ms)
+pipeline_buffer_size=(8)
 
 ### Exp: Equal stake RSMs of size 4; message size 100.
 #rsm1_size=(4) 
@@ -143,6 +144,8 @@ makeExperimentJson()
   echo -e "    \"src_dir\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/\"," >> experiments.json
   echo -e "    \"network_dir\": \"${network_dir}\"," >> experiments.json
   echo -e "    \"exec_dir\": \"${exec_dir}\"," >> experiments.json
+  echo -e "    \"ssh_key\": \"${key_file}\"," >> experiments.json
+  echo -e "    \"username\": \"${username}\"," >> experiments.json
   echo -e "    \"local_setup_script\": \"/proj/ove-PG0/${profile}//BFT-RSM/Code/setup-seq.sh\"," >> experiments.json
   echo -e "    \"remote_setup_script\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/setup_remote.sh\"," >> experiments.json
   echo -e "    \"local_compile_script\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/build.sh\"," >> experiments.json
@@ -289,23 +292,22 @@ do
   echo " "
 
   # scp network files to expected directory on other machines
-  echo "Hello about to scp now!"
-  echo "We have exec dir: ${exec_dir}"
   count=0
   while ((${count} < ${rsm1_size[$rcount]}))
   do
-	  scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network0urls.txt ${RSM1[$count]}:${exec_dir}
-	  echo "scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network0urls.txt ${RSM1[$count]}:${exec_dir}"
+	  scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network0urls.txt ${username}@${RSM1[$count]}:${exec_dir}
+	  scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network1urls.txt ${username}@${RSM1[$count]}:${exec_dir}
+	  # echo "scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network0urls.txt ${RSM1[$count]}:${exec_dir}"
 	  count=$((count+1))
   done
   count=0
   while ((${count} < ${rsm2_size[$rcount]}))
   do
 	  scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network1urls.txt ${username}@${RSM2[$count]}:${exec_dir}
-	  echo "scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network1urls.txt ${username}@${RSM2[$count]}:${exec_dir}"
+	  scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network0urls.txt ${username}@${RSM2[$count]}:${exec_dir}
+	  # echo "scp -oStrictHostKeyChecking=no -i ${key_file} ${network_dir}/network1urls.txt ${username}@${RSM2[$count]}:${exec_dir}"
 	  count=$((count+1))
   done
-  echo " "
 
   for algo in ${protocols[@]} # Looping over all the protocols.
   do 
@@ -320,7 +322,6 @@ do
     else  
       one_to_one="true"
     fi
-
     for kl_size in ${klist_size[@]} # Looping over all the klist_sizes.
     do	    
       for pk_size in ${packet_size[@]} # Looping over all the packet sizes.
@@ -331,17 +332,15 @@ do
           do
             for pl_buf_size in ${pipeline_buffer_size[@]} # Looping over all pipeline buffer sizes.
             do
-
         	    # Next, we call the script that makes the config.h. We need to pass all the arguments.
         	    ./makeConfig.sh ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${num_packets} ${pk_size} ${network_dir} ${log_dir} ${warmup_time} ${total_time} ${bt_size} ${bt_create_tm} ${max_nng_blocking_time} ${pl_buf_size} ${message_buffer_size} ${kl_size} ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
 
         	    cat config.h
         	    cp config.h system/
 
-              make clean
-              make proto
-              make -j scrooge
-	      echo "Done with make!"
+                    make clean
+                    make proto
+                    make -j scrooge
 
         	    # Next, we make the experiment.json for backward compatibility.
         	    makeExperimentJson ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${pk_size} ${experiment_name} 

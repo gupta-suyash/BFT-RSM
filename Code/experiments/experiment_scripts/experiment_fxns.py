@@ -86,7 +86,8 @@ def setupServers(localSetupFile, remoteSetupFile, ip_list):
     executeSequenceBlockingRemoteCommand(ip_list, remoteSetupFile)
 
 def compileCode(localCompileFile):
-    subprocess.call(localCompileFile)
+    print("Dummy placeholder for indentation (compilation done in shell script)")
+    #subprocess.call(localCompileFile)
 
 # Function that setups up appropriate folders on the
 # correct machines, and sends the jars. It assumes
@@ -180,7 +181,6 @@ def run(configJson, experimentName, expDir):
     cloudlab.project_dir = config['experiment_independent_vars']['project_dir']
     # Source directory on the local machine (for compilation)
     cloudlab.src_dir = config['experiment_independent_vars']['src_dir']
-
     # The nbclients field is a list that contains a list of client counts.
     # Ex, if this is listed: [1,2,4,8], the framework will run the experiment
     # 4 times: one with 1 clients, then with two, then four, then 8. The
@@ -209,7 +209,7 @@ def run(configJson, experimentName, expDir):
             cluster_zero = config['experiment_independent_vars']['clusterZeroIps']
             cluster_one = config['experiment_independent_vars']['clusterOneIps']
             ip_list =  cluster_zero + cluster_one
-            scrooge_exec = config['exec_dir'] + "/scrooge "
+            scrooge_exec = config['experiment_independent_vars']['exec_dir'] + "/scrooge "
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
@@ -219,17 +219,18 @@ def run(configJson, experimentName, expDir):
                     nodeId = 0
                     groupId = 1
                 scrooge_commands.append(cmd)
-            print(scrooge_commands)
-            print("Execute command now")
             #import pdb; pdb.set_trace()
-            for ip in enumerate(cluster_zero): # TODO: combine for loops
-                default_dir = config['src_dir']
-                exec_dir = config['exec_dir']
-                executeCommand(f'scp {ip}:{default_dir}/scrooge {exec_dir}/')
-            for ip in enumerate(cluster_one):
-                default_dir = config['src_dir']
-                exec_dir = config['exec_dir']
-                executeCommand(f'scp {ip}:{default_dir}/scrooge {exec_dir}/')
+            default_dir = config['experiment_independent_vars']['src_dir']
+            exec_dir = config['experiment_independent_vars']['exec_dir']
+            ssh_key = config['experiment_independent_vars']['ssh_key']
+            username = config['experiment_independent_vars']['username']
+            count = 0
+            for ip0, ip1 in zip(cluster_zero, cluster_one): # TODO: ISSUE IF WE HAVE UNEVEN CLUSTERS
+                count += 1
+                executeCommand(f'scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}/scrooge {username}@{ip0}:{exec_dir}/')
+                executeCommand(f'scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}/scrooge {username}@{ip1}:{exec_dir}/')
+            if count < len(cluster_zero) or count < len(cluster_one):
+                raise Exception('uneven clusters not handled!')
             executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
             for node_id, ip in enumerate(cluster_zero):
                 cluster_id = 0
