@@ -1,23 +1,26 @@
 {
   "experiment_independent_vars": {
-    "project_dir": "/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/final_results/",
-    "src_dir": "/proj/ove-PG0/reggie/BFT-RSM/Code/",
-    "network_dir": "/proj/ove-PG0/reggie/BFT-RSM/Code/configuration/",
-    "local_setup_script": "/proj/ove-PG0/reggie/BFT-RSM/Code/setup-seq.sh",
-    "remote_setup_script": "/proj/ove-PG0/reggie/BFT-RSM/Code/setup_remote.sh",
-    "local_compile_script": "/proj/ove-PG0/reggie/BFT-RSM/Code/build.sh",
+    "project_dir": "/home/scrooge/BFT-RSM/Code/experiments/results/final_results/",
+    "src_dir": "/home/scrooge/BFT-RSM/Code/",
+    "network_dir": "/home/scrooge/BFT-RSM/Code/configuration/",
+    "exec_dir": "~/",
+    "ssh_key": "~/.ssh/id_ed25519",
+    "username": "scrooge",
+    "local_setup_script": "/home/scrooge/BFT-RSM/Code/setup-seq.sh",
+    "remote_setup_script": "/home/scrooge/BFT-RSM/Code/setup_remote.sh",
+    "local_compile_script": "/home/scrooge/BFT-RSM/Code/build.sh",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
-      "10.10.1.2",
-      "10.10.1.3",
-      "10.10.1.4",
-      "10.10.1.5"
+      "10.138.0.28",
+      "10.138.0.30",
+      "10.138.0.31",
+      "10.138.0.32"
     ],
     "clusterOneIps": [
-      "10.10.1.6",
-      "10.10.1.7",
-      "10.10.1.8",
-      "10.10.1.9"
+      "10.138.0.34",
+      "10.138.0.38",
+      "10.138.0.36",
+      "10.138.0.37"
     ],
     "client_regions": [
       "US"
@@ -31,7 +34,7 @@
     "scrooge_args": {
       "general": {
         "use_debug_logs_bool": 0,
-        "log_path": "/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/",
+        "log_path": "/home/scrooge/BFT-RSM/Code/experiments/results/",
         "max_num_packets": 10000
       },
       "cluster_0": {
@@ -51,7 +54,7 @@
           10000
         ],
         "packet_size": [
-          10000
+          100
         ]
       },
       "cluster_1": {
@@ -71,7 +74,7 @@
           10000
         ],
         "packet_size": [
-          10000
+          100
         ]
       }
     }

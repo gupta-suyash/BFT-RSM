@@ -209,7 +209,7 @@ def run(configJson, experimentName, expDir):
             cluster_zero = config['experiment_independent_vars']['clusterZeroIps']
             cluster_one = config['experiment_independent_vars']['clusterOneIps']
             ip_list =  cluster_zero + cluster_one
-            scrooge_exec = config['experiment_independent_vars']['exec_dir'] + "/scrooge "
+            scrooge_exec = config['experiment_independent_vars']['exec_dir'] + "scrooge "
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
@@ -225,20 +225,21 @@ def run(configJson, experimentName, expDir):
             ssh_key = config['experiment_independent_vars']['ssh_key']
             username = config['experiment_independent_vars']['username']
             count = 0
-            for ip0, ip1 in zip(cluster_zero, cluster_one): # TODO: ISSUE IF WE HAVE UNEVEN CLUSTERS
-                count += 1
-                executeCommand(f'scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}/scrooge {username}@{ip0}:{exec_dir}/')
-                executeCommand(f'scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}/scrooge {username}@{ip1}:{exec_dir}/')
-            if count < len(cluster_zero) or count < len(cluster_one):
-                raise Exception('uneven clusters not handled!')
+            executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
+
             executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
+            file_names = []
+            ips = []
             for node_id, ip in enumerate(cluster_zero):
                 cluster_id = 0
-                file_name = f'log_{cluster_id}_{node_id}'
-                executeCommand(f'scp {ip}:/tmp/{file_name}.yaml {expDir}{file_name}_{i}.yaml')
+                file_names.append(f'log_{cluster_id}_{node_id}')
+                ips.append(ip)
             for node_id, ip in enumerate(cluster_one):
                 cluster_id = 1
-                file_name = f'log_{cluster_id}_{node_id}'
-                executeCommand(f'scp {ip}:/tmp/{file_name}.yaml {expDir}{file_name}_{i}.yaml')
+                file_names.append(f'log_{cluster_id}_{node_id}')
+                ips.append(ip)
+                
+            executeCommand(f'parallel --jobs=0 scp {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
+            executeCommand(f'mv node* {expDir}')
         except Exception as e:
             print(e)

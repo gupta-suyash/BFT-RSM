@@ -21,8 +21,9 @@ int main(int argc, char *argv[])
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
         const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
                      kLogPath, kWorkingDir] = kCommandLineArguments;
-        const auto kNetworkZeroConfigPath = kWorkingDir + "network0urls.txt"s;
-        const auto kNetworkOneConfigPath = kWorkingDir + "network1urls.txt"s;
+	const auto nwPath = "/home/scrooge/"s;
+        const auto kNetworkZeroConfigPath = nwPath + "network0urls.txt"s;
+        const auto kNetworkOneConfigPath = nwPath + "network1urls.txt"s;
 
         const auto kOwnNetworkConfiguration =
             parseNetworkUrlsAndStake(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);

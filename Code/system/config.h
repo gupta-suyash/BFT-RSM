@@ -5,9 +5,9 @@
 #define OWN_RSM_MAX_NODES_FAIL 1
 #define OTHER_RSM_MAX_NODES_FAIL 1
 #define NUMBER_PACKETS 10000
-#define PACKET_SIZE 10000
-#define NETWORK_DIR "/proj/ove-PG0/reggie/BFT-RSM/Code/configuration/"
-#define LOG_DIR "/proj/ove-PG0/reggie/BFT-RSM/Code/experiments/results/"
+#define PACKET_SIZE 100
+#define NETWORK_DIR "/home/scrooge/BFT-RSM/Code/configuration/"
+#define LOG_DIR "/home/scrooge/BFT-RSM/Code/experiments/results/"
 #define USE_DEBUG_LOGS_BOOL false
 #define WARMUP_TIME 10s
 #define TOTAL_TIME 30s
@@ -17,8 +17,8 @@
 #define PIPELINE_BUFFER_SIZE 8
 #define MESSAGE_BUFFER_SIZE 256
 #define KLIST_SIZE 64
-#define SCROOGE true
+#define SCROOGE false
 #define ALL_TO_ALL false
-#define ONE_TO_ONE false
+#define ONE_TO_ONE true
 #define FILE_RSM true
 #endif

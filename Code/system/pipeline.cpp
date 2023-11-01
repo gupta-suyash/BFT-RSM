@@ -76,11 +76,32 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
         std::abort();
     }
 
-    bool nngSetTimeoutResult = nng_setopt_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
+    const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
+    const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
+    const long kNumOfBufferedElements = std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
+    bool nngSetTimeoutResult = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
     if (nngSetTimeoutResult != 0)
     {
-        SPDLOG_CRITICAL("Cannot set timeout for listening Return value {}", url, nng_strerror(nngSetTimeoutResult));
+        SPDLOG_CRITICAL("Cannot set timeout for listening url {} Return value {}", url, nng_strerror(nngSetTimeoutResult));
         std::abort();
+    }
+    bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
+    if (nngSetSndBufSizeResult != 0)
+    {
+        SPDLOG_CRITICAL("Cannot set send buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetSndBufSizeResult));
+        std::abort();
+    }
+    bool nngSetRecBufSizeResult = nng_socket_set_int(socket, NNG_OPT_RECVBUF, kNumOfBufferedElements);
+    if (nngSetRecBufSizeResult != 0)
+    {
+        SPDLOG_CRITICAL("Cannot set rec buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetRecBufSizeResult));
+        std::abort();
+    }
+    bool nngSetRcvMaxSize = nng_socket_set_size(socket, NNG_OPT_RECVMAXSZ, 0);
+    if (nngSetRcvMaxSize != 0)
+    {
+	    SPDLOG_CRITICAL("Cannot set max receive size for url {} RV {}", url, nng_strerror(nngSetRcvMaxSize));
+	    std::abort();
     }
 
     return socket;

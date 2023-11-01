@@ -155,8 +155,9 @@ void set_packet_size(uint64_t packet_size)
     g_packet_size = packet_size;
 }
 
-void bindThreadToCpu(const int cpu)
+void bindThreadToCpu(int cpu)
 {
+    cpu--;
     static std::mutex mutex;
     static std::bitset<128> set{};
     const auto numCores = get_nprocs();
@@ -183,8 +184,9 @@ void bindThreadToCpu(const int cpu)
     }
 }
 
-void bindThreadAboveCpu(const int cpu)
+void bindThreadAboveCpu(int cpu)
 {
+    cpu--;
     const auto numCores = get_nprocs();
 
     cpu_set_t cpuset;
