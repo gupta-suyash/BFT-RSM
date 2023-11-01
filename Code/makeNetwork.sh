@@ -25,14 +25,17 @@ profile="therealmurray" # TODO: Replace with your directory name
 key_file="~/.ssh/cloudlab_key" # TODO: Replace with your ssh key
 username="murray22" # TODO: Replace with your username
 
+# Working Directory
+workdir="/proj/ove-PG0/${profile}"
+
 # Set rarely changing parameters.
 warmup_time=10s
 total_time=30s
 num_packets=10000
 exec_dir="~/"
-network_dir="/proj/ove-PG0/${profile}/BFT-RSM/Code/configuration/" 
-log_dir="/proj/ove-PG0/${profile}/BFT-RSM/Code/experiments/results/" 
-json_dir="/proj/ove-PG0/${profile}/BFT-RSM/Code/experiments/experiment_json/"
+network_dir="${workdir}/BFT-RSM/Code/configuration/" 
+log_dir="${workdir}/BFT-RSM/Code/experiments/results/" 
+json_dir="${workdir}/BFT-RSM/Code/experiments/experiment_json/"
 experiment_name="scrooge_4_replica_stake"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
@@ -140,15 +143,15 @@ makeExperimentJson()
 
   echo -e "{" > experiments.json
   echo -e "  \"experiment_independent_vars\": {" >> experiments.json
-  echo -e "    \"project_dir\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/experiments/results/final_results/\"," >> experiments.json
-  echo -e "    \"src_dir\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/\"," >> experiments.json
+  echo -e "    \"project_dir\": \"${workdir}/BFT-RSM/Code/experiments/results/final_results/\"," >> experiments.json
+  echo -e "    \"src_dir\": \"${workdir}/BFT-RSM/Code/\"," >> experiments.json
   echo -e "    \"network_dir\": \"${network_dir}\"," >> experiments.json
   echo -e "    \"exec_dir\": \"${exec_dir}\"," >> experiments.json
   echo -e "    \"ssh_key\": \"${key_file}\"," >> experiments.json
   echo -e "    \"username\": \"${username}\"," >> experiments.json
-  echo -e "    \"local_setup_script\": \"/proj/ove-PG0/${profile}//BFT-RSM/Code/setup-seq.sh\"," >> experiments.json
-  echo -e "    \"remote_setup_script\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/setup_remote.sh\"," >> experiments.json
-  echo -e "    \"local_compile_script\": \"/proj/ove-PG0/${profile}/BFT-RSM/Code/build.sh\"," >> experiments.json
+  echo -e "    \"local_setup_script\": \"${workdir}/BFT-RSM/Code/setup-seq.sh\"," >> experiments.json
+  echo -e "    \"remote_setup_script\": \"${workdir}/BFT-RSM/Code/setup_remote.sh\"," >> experiments.json
+  echo -e "    \"local_compile_script\": \"${workdir}/BFT-RSM/Code/build.sh\"," >> experiments.json
   echo -e "    \"replication_protocol\": \"scrooge\"," >> experiments.json
 
   echo -e "    \"clusterZeroIps\": [" >> experiments.json
@@ -346,7 +349,7 @@ do
         	    makeExperimentJson ${r1_size} ${rsm2_size[$rcount]} ${rsm1_fail[$rcount]} ${rsm2_fail[$rcount]} ${pk_size} ${experiment_name} 
 
         	    # Next, we run the script.
-        	    ./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/${profile}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+        	    ./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 
             done
           done  
