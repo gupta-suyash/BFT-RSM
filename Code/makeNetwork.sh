@@ -126,8 +126,8 @@ for v in ${all_rsm_sizes[@]}; do
 done
 
 GP_NAME="scrooge-exp"
-ZONE=us-west1-b
-gcloud beta compute instance-groups managed create scrooge-group --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="${num_nodes_needed}" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
+ZONE="us-west1-b"
+yes | gcloud beta compute instance-groups managed create scrooge-group --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="${num_nodes_needed}" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
 
 gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > all_ips.txt
 output=$(cat all_ips.txt)
@@ -334,4 +334,5 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	done
 	rcount=$((rcount + 1))
 done
-gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+
+yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE > /dev/null 2>&1
