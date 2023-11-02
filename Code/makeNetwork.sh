@@ -132,7 +132,7 @@ GP_NAME="scrooge-exp"
 ZONE="us-west1-b"
 
 trap ctrl_c INT
-yes | gcloud beta compute instance-groups managed create scrooge-group --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2))" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2))" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
 
 rm /tmp/all_ips.txt
 num_ips_read=0
@@ -346,7 +346,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	rcount=$((rcount + 1))
 done
 
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE > /dev/null 2>&1
+echo "taking down experiment"
+yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 function ctrl_c() {
         echo "** Trapped CTRL-C, deleting experiment"
