@@ -15,15 +15,6 @@ read experiment_name
 
 echo "Running Experiment: ${experiment_name}"
 
-# State the IP addresses of the nodes that you want in RSM1.
-GP_NAME=large-scrooge-group
-ZONE=us-west1-b
-gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > all_ips.txt
-output=$(cat all_ips.txt)
-ar=($output)
-RSM1=(${ar[@]::$((${#ar[@]} / 2 ))})
-RSM2=(${ar[@]:$((${#ar[@]} / 2 ))})
-
 # Name of profile we are running out of
 key_file="$HOME/.ssh/id_ed25519" # TODO: Replace with your ssh key
 username="scrooge"               # TODO: Replace with your username
@@ -126,6 +117,23 @@ pipeline_buffer_size=(8)
 #RSM1_Stake=(1 1 1 1 1 1 1 1 1 1)
 #RSM2_Stake=(1 1 1 1 1 1 1)
 #packet_size=(100)
+
+# State the IP addresses of the nodes that you want in RSM1.
+all_rsm_sizes=("${rsm1_size[@]}" "${rsm2_size[@]}")
+num_nodes_needed=0
+for v in ${all_rsm_sizes[@]}; do
+    if (( $v > $num_nodes_needed )); then num_nodes_needed=$v; fi; 
+done
+
+GP_NAME="scrooge-exp"
+ZONE="us-west1-b"
+yes | gcloud beta compute instance-groups managed create scrooge-group --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="${num_nodes_needed}" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
+
+gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > all_ips.txt
+output=$(cat all_ips.txt)
+ar=($output)
+RSM1=(${ar[@]::$((${#ar[@]} / 2 ))})
+RSM2=(${ar[@]:$((${#ar[@]} / 2 ))})
 
 makeExperimentJson() {
 	r1size=$1
@@ -326,4 +334,5 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	done
 	rcount=$((rcount + 1))
 done
-gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+
+yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE > /dev/null 2>&1
