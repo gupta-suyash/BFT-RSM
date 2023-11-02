@@ -43,13 +43,13 @@ message_buffer_size=256
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
 scrooge="true"
-all_to_all="true"
-one_to_one="true"
-file_rsm="true" #If this experiment is for File_RSM (not algo or resdb)
+all_to_all="false"
+one_to_one="false"
+file_rsm="false" #If this experiment is for File_RSM (not algo or resdb)
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4 13 25 46)
-rsm2_size=(4 13 25 46)
+rsm1_size=(4)
+rsm2_size=(4)
 rsm1_fail=(1 4 8 15)
 rsm2_fail=(1 4 8 15)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -118,22 +118,33 @@ pipeline_buffer_size=(8)
 #RSM2_Stake=(1 1 1 1 1 1 1)
 #packet_size=(100)
 
-# State the IP addresses of the nodes that you want in RSM1.
-all_rsm_sizes=("${rsm1_size[@]}" "${rsm2_size[@]}")
-num_nodes_needed=0
-for v in ${all_rsm_sizes[@]}; do
-    if (( $v > $num_nodes_needed )); then num_nodes_needed=$v; fi; 
+# Build the network from the description
+num_nodes_rsm_1=0
+num_nodes_rsm_2=0
+for v in ${rsm1_size[@]}; do
+    if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
+done
+for v in ${rsm2_size[@]}; do
+    if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
 
 GP_NAME="scrooge-exp"
 ZONE="us-west1-b"
-yes | gcloud beta compute instance-groups managed create scrooge-group --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="${num_nodes_needed}" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
 
-gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > all_ips.txt
-output=$(cat all_ips.txt)
-ar=($output)
-RSM1=(${ar[@]::$((${#ar[@]} / 2 ))})
-RSM2=(${ar[@]:$((${#ar[@]} / 2 ))})
+trap ctrl_c INT
+yes | gcloud beta compute instance-groups managed create scrooge-group --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2))" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
+
+rm /tmp/all_ips.txt
+num_ips_read=0
+while ((num_ips_read < $((num_nodes_rsm_1+num_nodes_rsm_2)))); do
+	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
+	output=$(cat /tmp/all_ips.txt)
+	ar=($output)
+	num_ips_read="${#ar[@]}"
+done
+
+RSM1=(${ar[@]::${num_nodes_rsm_1}})
+RSM2=(${ar[@]:${num_nodes_rsm_2}})
 
 makeExperimentJson() {
 	r1size=$1
@@ -336,3 +347,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 
 yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE > /dev/null 2>&1
+
+function ctrl_c() {
+        echo "** Trapped CTRL-C, deleting experiment"
+		yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE > /dev/null 2>&1
+}
