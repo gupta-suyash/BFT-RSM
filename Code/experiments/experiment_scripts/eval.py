@@ -98,6 +98,42 @@ def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
         )
     ]
 
+def get_throughput_network_sz(title: str, dataframe: pd.DataFrame) -> List[Graph]:
+    graphs = []
+    for message_size, msg_size_group in dataframe.groupby('message_size'):
+        line_name_to_points = {}
+        for key, group in msg_size_group.groupby(['local_network_size', 'foreign_network_size', 'transfer_strategy']):
+            local_network_size, foreign_network_size, transfer_strategy = key
+            if local_network_size != foreign_network_size:
+                print(f'Found weird network size pairing: {local_network_size} and {foreign_network_size}')
+                continue
+            throughput = (group.max_quorum_acknowledgment - group.starting_quack) / group.duration_seconds
+            line_name_to_points.setdefault(transfer_strategy, []).append((local_network_size, throughput.mean()))
+
+            if 'scrooge' in transfer_strategy.lower():
+                throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
+                line_name_to_points.setdefault(transfer_strategy + ' Acks', []).append((local_network_size, throughput.mean()))
+        lines = []
+        for line_name, points in line_name_to_points.items():
+            points.sort()
+            x_values, y_values = zip(*points)
+            lines.append(
+                Line(
+                    x_values=list(x_values),
+                    y_values=list(y_values),
+                    name=line_name
+                )
+            )
+        graphs.append(
+            Graph(
+                title=f'throughput_vs_network_size@msg={message_size / 1000}KB',
+                x_axis_name='Nodes Per Network (N)',
+                y_axis_name=f'Throughput (msgs/s)',
+                lines=lines
+            )
+        )
+    return graphs
+
 def get_throughput_bandwidth(dataframe: pd.DataFrame) -> List[Graph]:
     throughput_lines = []
     bandwidth_lines = []
@@ -141,7 +177,8 @@ def get_throughput_bandwidth(dataframe: pd.DataFrame) -> List[Graph]:
 
 def get_graphs(name: str, dataframe: pd.DataFrame) -> List[Graph]:
     graphs = []
-    graphs.extend(get_throughput_latency(name, dataframe))
+    #graphs.extend(get_throughput_latency(name, dataframe))
+    graphs.extend(get_throughput_network_sz(name, dataframe))
     # graphs.extend(get_throughput_bandwidth(dataframe))
     return graphs
 
@@ -187,21 +224,26 @@ def save_graphs(graphs: List[Graph]):
 
 def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
     rows = []
-    for transfer_strategy, group in dataframe.groupby('transfer_strategy'):
-        message_sizes = group.message_size.unique()
-        message_sizes.sort()
-        average_latencies = []
-        overall_throughputs = []
-        for message_size in message_sizes:
-            size_group = group.query('message_size == @message_size')
-            quack_delta = size_group.max_quorum_acknowledgment - size_group.starting_quack
-            throughput = quack_delta / size_group.duration_seconds
-            # latency = size_group.Latency
+    for key, group in dataframe.groupby(['transfer_strategy', 'message_size', 'local_network_size', 'foreign_network_size']):
+        transfer_strategy, message_size, local_network_size, foreign_network_size = key
+        throughput = (group.max_quorum_acknowledgment - group.starting_quack) / group.duration_seconds
+        rows.append({
+            'message_size': message_size,
+            'latency':0,
+            'throughput': throughput.mean(),
+            'strategy': transfer_strategy,
+            'local_network_size': local_network_size,
+            'foreign_network_size': foreign_network_size
+        })
+        if 'scrooge' in transfer_strategy.lower():
+            throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
             rows.append({
                 'message_size': message_size,
                 'latency':0,
                 'throughput': throughput.mean(),
-                'strategy': transfer_strategy
+                'strategy': transfer_strategy + " Acks",
+                'local_network_size': local_network_size,
+                'foreign_network_size': foreign_network_size
             })
 
     return pd.DataFrame.from_dict(rows)
@@ -218,7 +260,7 @@ def main():
 
     csv = get_throughput_latency_csv(dataframe)
 
-    csv.sort_values(by=['strategy', 'message_size'], inplace=True)
+    csv.sort_values(by=['strategy', 'message_size', 'local_network_size'], inplace=True)
     print('Cur Results:')
     print(csv)
     csv.to_csv('cur_results.csv', index=False)
