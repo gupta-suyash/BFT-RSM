@@ -3,6 +3,12 @@
 ##
 ## This script helps to create the files that specify URLs for RSM1 and RSM2. Additionally, it calls the script that helps to create "config.h". We need to specify the URLs and stakes for each node in both the RSMs. This script takes in argument the size of both the RSMs and other necessary parameters.
 
+if [ -z ${TMUX+x} ]; then
+	echo "Run script in tmux to guarantee progress"
+	echo "exiting..."
+	exit 1
+fi
+
 # State the IP addresses of the nodes that you want in RSM1.
 GP_NAME=large-scrooge-group
 ZONE=us-west1-b
