@@ -45,13 +45,19 @@ message_buffer_size=256
 scrooge="true"
 all_to_all="false"
 one_to_one="false"
-file_rsm="false" #If this experiment is for File_RSM (not algo or resdb)
+
+#If this experiment is for File_RSM (not algo or resdb)
+file_rsm="true"
+
+if [ "$file_rsm" = "false" ]; then
+	echo "WARNING: FILE RSM NOT BEING USED"
+fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4)
-rsm2_size=(4)
-rsm1_fail=(1 4 8 15)
-rsm2_fail=(1 4 8 15)
+rsm1_size=(4 13 25 46)
+rsm2_size=(4 13 25 46)
+rsm1_fail=(0 0 0 0)
+rsm2_fail=(0 0 0 0)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
@@ -131,7 +137,13 @@ done
 GP_NAME="scrooge-exp"
 ZONE="us-west1-b"
 
-trap ctrl_c INT
+function exit_handler() {
+        echo "** Trapped CTRL-C, deleting experiment"
+		yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+		exit 1
+}
+
+trap exit_handler INT
 yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2))" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
 
 rm /tmp/all_ips.txt
@@ -348,8 +360,3 @@ done
 
 echo "taking down experiment"
 yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-
-function ctrl_c() {
-        echo "** Trapped CTRL-C, deleting experiment"
-		yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE > /dev/null 2>&1
-}
