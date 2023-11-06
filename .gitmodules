@@ -1,0 +1,3 @@
+[submodule "Code/experiments/applications/go-algorand"]
+	path = Code/experiments/applications/go-algorand
+	url = https://github.com/mmurray22/go-algorand
