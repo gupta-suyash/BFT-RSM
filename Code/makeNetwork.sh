@@ -22,7 +22,7 @@ username="scrooge"               # TODO: Replace with your username
 # Working Directory
 workdir="/home/scrooge"
 
-# Set rarely changing parameters.
+# Set rarely changing Scrooge parameters.
 warmup_time=20s
 total_time=120s
 num_packets=10000
@@ -30,9 +30,16 @@ exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
 log_dir="${workdir}/BFT-RSM/Code/experiments/results/"
 json_dir="${workdir}/BFT-RSM/Code/experiments/experiment_json/"
+algorand_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/algorand/"
+algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/algorand/"
+resdb_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
+raft_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
 message_buffer_size=256
+
+# Set rarely changing experiment application parameters
+starting_algos = 10000000000000000
 
 #
 # EXPERIMENT LIST
@@ -48,6 +55,12 @@ one_to_one="false"
 
 #If this experiment is for File_RSM (not algo or resdb)
 file_rsm="true"
+# If this experiment uses external applications, set the following values
+# Valid inputs: "algo", "resdb", "raft"
+# e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
+# receiving RSM, then receive_rsm="resdb"
+send_rsm="file"
+receive_rsm="file"
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
@@ -317,6 +330,34 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
+	# Setup all necessary external applications
+	# Sending RSM
+	if [ "$send_rsm" = "algo" ]; then
+		start_algorand(${RSM1}, $r1_size)
+	elif [ "$send_rsm" = "resdb" ]; then
+		echo "ResDB RSM is being used for sending."
+	elif [ "$send_rsm" = "raft" ]; then
+		echo "Raft RSM is being used for sending."
+	elif [ "$send_rsm" = "file" ]; then
+		echo "File RSM is being used for sending. No extra setup necessary."
+	else; then
+		echo "INVALID RECEIVING RSM."
+	fi
+
+	# Receiving RSM
+	if [ "$receive_rsm" = "algo" ]; then
+		echo "Algo RSM is being used for receiving."
+		start_algorand(${RSM2}, $r2_size)
+	elif [ "$receive_rsm" = "resdb" ]; then
+		echo "ResDB RSM is being used for receiving."
+	elif [ "$receive_rsm" = "raft" ]; then
+		echo "Raft RSM is being used for receiving."
+	elif [ "$receive_rsm" = "file" ]; then
+		echo "File RSM is being used for receiving. No extra setup necessary."
+	else; then
+		echo "INVALID RECEIVING RSM."
+	fi
+
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
 		scrooge="false"
 		all_to_all="false"
@@ -360,3 +401,16 @@ done
 
 echo "taking down experiment"
 yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+
+start_algorand(RSM, rsm_size) {
+	echo "Algo RSM is being used for sending."
+	genesis_json = ${algorand_scripts_dir}/genesis.json;
+	config_json = ${algorand_scripts_dir}/config.json;
+	per_node_algos = ${starting_algos}/${rsm_size};
+	#Relay node - TODO MAKE SURE THIS IS SOMETHING SPECIAL
+	ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos}';
+	#Participation nodes
+	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos}' ::: "${RSM[@]:1:$rsm_size}";
+	# Combine genesis pieces into one file
+	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos}' ::: "${RSM[@]:1:$rsm_size}";
+}

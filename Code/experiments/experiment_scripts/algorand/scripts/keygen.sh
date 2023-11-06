@@ -1,16 +1,12 @@
 # !/bin/bash
-NODE=/proj/ove-PG0/therealmurray/node/dummy_node
-
-while getopts i:j:a: flag
+while getopts p:a: flag
 do
 	case "${flag}" in
-		i) a=${OPTARG};;
-		j) b=${OPTARG};;
+		p) pathname=${OPTARG};;
 		a) addr=${OPTARG};;
 	esac
-done
-echo $a
-export ALGORAND_DATA=$NODE/n$a$b
+dummy_node
+export ALGORAND_DATA=$pathname/node/
 echo $ALGORAND_DATA
 ~/go/bin/goal kmd start
 ~/go/bin/goal node start

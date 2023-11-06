@@ -1,141 +1,36 @@
-#!/usr/bin/env python3
-import sys
-import os
-import subprocess
-import threading
-import socket
-import datetime
-import time
-import random
-import multiprocessing
-import concurrent.futures
-
-setup_dir = os.path.realpath(os.path.dirname(__file__))
-sys.path.append(setup_dir + "/util/")
-from ssh_util import *
-
-clusterOne = ["10.10.1.2", "10.10.1.3", "10.10.1.4", "10.10.1.5"]
-clusterTwo = ["10.10.1.6", "10.10.1.7", "10.10.1.8", "10.10.1.9"]
-relay = ["10.10.1.11"]
-relay2 = ["10.10.1.13"]
-
+# This is but a sketch...fill in all details
 def main():
-    if len(sys.argv) != 2:
-        sys.stderr.write('Usage: python3 %s <bool for starting cluster 2>\n' % sys.argv[0])
-        sys.exit(1)
-    print("Second cluster: ", int(sys.argv[1]))
+    update_gensis()
+    update_wallets()
+    executeCommand(pathname + "/remove_stale.sh")
+    executeCommand(pathname + "/participation_rsm.sh")
 
-    # compile algorand 
-    cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/compile.sh"
-    hostname=socket.gethostname()   
-    IPAddr=socket.gethostbyname(hostname)
-    ssh_command_list = []
+# Update local wallet app json
+def update_wallets(app_pathname, send_acct, receive_acct): # Check the client IP
+    node_path = app_pathname + "/node/"
+    wallet_path = app_pathname + "/go-algorand/wallet_app/node.json"
+    appFile = open(wallet_path, 'w')
+    api_token = open(node_path + "/algod.token", 'r')
+    kmd_token = open(node_path + "/kmd-v0.5/kmd.token", 'r')
+    appDict = {"api_token": api_token.readlines()[0].strip(), 
+               "kmd_token": kmd_token.readlines()[0].strip(), 
+               "send_acct": send_acct, 
+               "receive_acct": receive_acct, 
+               "server_url": "http://127.0.0.1", 
+               "algo_port": 8080, 
+               "kmd_port": 7833, 
+               "wallet_port": 1234, 
+               "client_port": 4003, 
+               "algorand_port": 3456, 
+               "client_ip": "128.110.218.203"
+               }
+    appFile.write(json.dumps(appDict))
+    appFile.close()
 
-    for i in range(0, len(clusterOne)):
-        cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterOne[i] + " '" + cmd + "'"
-        ssh_command_list.append(cmd_ssh)
-    for i in range(0, len(clusterOne)):
-        if clusterOne[i] == IPAddr:
-            print("Host is: ", IPAddr)
-            continue
-        subprocess.check_call(ssh_command_list[i], shell=True)
+# Update all genesis files
+def update_gensis():
+    # Copy genesis from main server
+    node_path = app_pathname + "/node/"
 
-    # Start Cluster Two, if indicated via command line
-    if int(sys.argv[1]):
-        print("Cluster Two")
-        ssh_command_list = []
-        for i in range(0, len(clusterTwo)):
-            cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/compile.sh"
-            cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterTwo[i] + " '" + cmd + "'"
-            ssh_command_list.append(cmd_ssh)
-        for i in range(0, len(clusterTwo)):
-            if clusterTwo[i] == IPAddr:
-                print("Host is: ", IPAddr)
-                continue
-            subprocess.check_call(ssh_command_list[i], shell=True)
-
-    # run algorand
-    print("Argument: ", int(sys.argv[1]))
-    # Start Cluster 1 - always do!
-    relay_cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/relay.sh"
-    cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + relay[0] + " '" + relay_cmd + "'"
-    executeCommand(cmd_ssh)
-
-    if int(sys.argv[1]):
-        relay2_cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/relay2.sh"
-        cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + relay2[0] + " '" + relay2_cmd + "'"
-        print("Cluster 2 execute command!")
-        executeCommand(cmd_ssh)
-
-    ssh_command_list = []
-    thread_list = list()
-    for i in range(0, len(clusterOne)):
-        cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/participation_rsm1.sh " + str(i + 1)
-        cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterOne[i] + " '" + cmd + "'"
-        ssh_command_list.append(cmd_ssh)
-    for i in range(0, len(clusterOne)):
-        if clusterOne[i] == IPAddr:
-            print("Host is: ", IPAddr)
-            continue
-        t = threading.Thread(target=executeCommand, args=(ssh_command_list[i],))
-        thread_list.append(t)
-
-    # Start Cluster Two, if indicated via command line
-    if int(sys.argv[1]):
-        print("Cluster Two")
-        ssh_command_list = []
-        for i in range(0, len(clusterTwo)):
-            cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/participation_rsm2.sh " + str(i+6)
-            cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterTwo[i] + " '" + cmd + "'"
-            ssh_command_list.append(cmd_ssh)
-        for i in range(0, len(clusterTwo)):
-            if clusterTwo[i] == IPAddr:
-                continue
-            t = threading.Thread(target=executeCommand, args=(ssh_command_list[i],))
-            thread_list.append(t)
-    # cd_cmd = "cd /proj/ove-PG0/murray/BFT-RSM/Code/"
-    # cmd = "./experiments/experiment_scripts/run_experiments.py /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_json/experiments.json increase_packet_size_nb_one > myout.txt"
-    # executeCommand(cd_cmd)
-    # executeCommand(cmd)
-    for t in thread_list:
-        t.start()
-    
-    # Start scrooge here if not running with resdb:
-    for t in thread_list:
-        t.join()
-
-    # Shutdown 
-    ssh_command_list = []
-    thread_list = list()
-    for i in range(0, len(clusterOne)):
-        cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/shutdown.sh " + str(i+1)
-        cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterOne[i] + " '" + cmd + "'"
-        ssh_command_list.append(cmd_ssh)
-    for i in range(0, len(clusterOne)):
-        if clusterOne[i] == IPAddr:
-            continue
-        t = threading.Thread(target=executeCommand, args=(ssh_command_list[i],))
-        thread_list.append(t)
-
-    # Start Cluster Two, if indicated via command line
-    if int(sys.argv[1]):
-        print("Cluster Two")
-        ssh_command_list = []
-        for i in range(0, len(clusterTwo)):
-            cmd = ". /proj/ove-PG0/murray/BFT-RSM/Code/experiments/experiment_scripts/shutdown.sh " + str(i+6)
-            cmd_ssh = "ssh -o StrictHostKeyChecking=no -t " + clusterTwo[i] + " '" + cmd + "'"
-            ssh_command_list.append(cmd_ssh)
-        for i in range(0, len(clusterTwo)):
-            if clusterTwo[i] == IPAddr:
-                continue
-            t = threading.Thread(target=executeCommand, args=(ssh_command_list[i],))
-            thread_list.append(t)
-    for t in thread_list:
-        t.start()
-    
-
-    # Start scrooge here if not running with resdb:
-    for t in thread_list:
-        t.join()
 if __name__ == "__main__":
     main()
