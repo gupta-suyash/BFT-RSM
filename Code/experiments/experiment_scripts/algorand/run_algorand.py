@@ -1,9 +1,26 @@
-# This is but a sketch...fill in all details
+#!/usr/bin/env python3
+import sys
+import os
+import subprocess
+import threading
+import socket
+import datetime
+import time
+import random
+import multiprocessing
+import concurrent.futures
+import json
+
+sys.path.append("../util/")
+from json_util import *
+from ssh_util import *
+
+run_script="/scripts/run.sh"
+wallet_name="default"
+
 def main():
-    update_gensis()
     update_wallets()
-    executeCommand(pathname + "/remove_stale.sh")
-    executeCommand(pathname + "/participation_rsm.sh")
+    executeCommand(pathname + "/run.sh")
 
 # Update local wallet app json
 def update_wallets(app_pathname, send_acct, receive_acct): # Check the client IP
@@ -23,14 +40,9 @@ def update_wallets(app_pathname, send_acct, receive_acct): # Check the client IP
                "client_port": 4003, 
                "algorand_port": 3456, 
                "client_ip": "128.110.218.203"
-               }
+               };
     appFile.write(json.dumps(appDict))
     appFile.close()
-
-# Update all genesis files
-def update_gensis():
-    # Copy genesis from main server
-    node_path = app_pathname + "/node/"
 
 if __name__ == "__main__":
     main()

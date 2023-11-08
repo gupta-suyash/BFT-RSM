@@ -19,23 +19,23 @@ from ssh_util import *
 install_script="/scripts/install.sh"
 setup_script="/scripts/setup.sh"
 keygen_script="/scripts/keygen.sh"
+node_config="/jsons/node_config.json"
+relay_config="/jsons/relay_config.json"
+genesis="/jsons/default_genesis.json"
 wallet_name="default"
 
 def main():
     if len(sys.argv) != 3:
-        sys.stderr.write('Usage: python3 %s <genesis> <config> <app_pathname> <script_pathname> <starting_algos>')
+        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <starting_algos> <relay_bool> <main_server_ip>')
         sys.exit(1)
-    config = loadJsonFile(configJson)
-    if not config:
-        print("Empty config file, failing")
-        return
-    app_pathname = sys.argv[3]
-    script_pathname = sys.argv[4]
+    app_pathname = sys.argv[1]
+    script_pathname = sys.argv[2]
     # Step 1: Install relevant algorand software
-    run_install = script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name
+    run_install = ". " + script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name
     executeCommand(run_install)
     # Step 2: Setup Algorand nodes
-    generate_partkey(script_pathname, setup_script, keygen_script,  int(sys.argv[5]))
+    generate_partkey(script_pathname, setup_script, keygen_script,  int(sys.argv[3]))
+    # At the end of this, address.txt + mini_genesis.json both created
 
 def generate_partkey(pathname, keygen_script, starting_algos):
     # Default values
@@ -46,7 +46,7 @@ def generate_partkey(pathname, keygen_script, starting_algos):
     accountLines = open(subdir_path + "/address.txt", 'r').readlines()
     addr = accountLines[0].strip().split(" ")[len(accountLines[0].strip().split()) - 1]
     # Generate partkeys
-    partkeyinfo = pathname + keygen_script + " -p " + pathname + " -a " + addr
+    partkeyinfo = ". " + pathname + keygen_script + " -p " + pathname + " -a " + addr
     executeCommand(partkeyinfo)
 
     # Read in Partkey json file and get sel + vote information

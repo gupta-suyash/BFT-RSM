@@ -336,8 +336,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_algorand(${RSM1}, $r1_size)
 	elif [ "$send_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for sending."
+		start_resdb(${RSM1}, $r1_size)
 	elif [ "$send_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for sending."
+		start_raft(${RSM1}, $r1_size)
 	elif [ "$send_rsm" = "file" ]; then
 		echo "File RSM is being used for sending. No extra setup necessary."
 	else; then
@@ -350,8 +352,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_algorand(${RSM2}, $r2_size)
 	elif [ "$receive_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for receiving."
+		start_resdb(${RSM2}, $r2_size)
 	elif [ "$receive_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for receiving."
+		start_raft(${RSM2}, $r2_size)
 	elif [ "$receive_rsm" = "file" ]; then
 		echo "File RSM is being used for receiving. No extra setup necessary."
 	else; then
@@ -402,15 +406,38 @@ done
 echo "taking down experiment"
 yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
+############# DID YOU DELETE THE MACHINES?????????????????
+
+
 start_algorand(RSM, rsm_size) {
-	echo "Algo RSM is being used for sending."
+	echo "Algo RSM is being used!"
 	genesis_json = ${algorand_scripts_dir}/genesis.json;
 	config_json = ${algorand_scripts_dir}/config.json;
 	per_node_algos = ${starting_algos}/${rsm_size};
+	mkdir ./genesis_creation/
+	mkdir ./addresses/
 	#Relay node - TODO MAKE SURE THIS IS SOMETHING SPECIAL
-	ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos}';
+	ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 0';
 	#Participation nodes
-	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos}' ::: "${RSM[@]:1:$rsm_size}";
+	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 1' ::: "${RSM[@]:1:$rsm_size}";
 	# Combine genesis pieces into one file
-	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos}' ::: "${RSM[@]:1:$rsm_size}";
+	count = 0
+	while ((count < r1_size)); do
+		echo $(genesis=$(jq 'select(has("addr"))' ${RSM[$count]}.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' genesis.json) > genesis.json
+		count=$((count + 1))
+	done
+	# Determine address mappings
+	# Finish wallet setup + run Algorand
 }
+
+start_resdb() {
+	echo "ResDB RSM is being used!"
+
+}
+
+start_raft() {
+	echo "Raft RSM is being used!"
+
+}
+
+
