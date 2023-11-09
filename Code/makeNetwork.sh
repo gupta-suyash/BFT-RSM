@@ -158,6 +158,10 @@ done
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
 RSM2=(${ar[@]:${num_nodes_rsm_2}})
 
+
+sleep 120
+echo "Starting Experiment"
+
 makeExperimentJson() {
 	r1size=$1
 	r2size=$2

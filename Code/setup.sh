@@ -20,6 +20,7 @@ apt-get -y upgrade
 echo "updated and upgraded"
 
 # Install apt-get packages
+apt-get -y install parallel
 apt-get -y install valgrind
 apt-get -y install htop
 apt-get -y install nload
