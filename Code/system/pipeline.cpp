@@ -54,7 +54,7 @@ template <typename atomic_bitset> void reset_atomic_bit(atomic_bitset &set, uint
     }
 }
 
-static nng_socket openReceiveSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
+static nng_socket openReceiveSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime, bool isLocal)
 {
     constexpr auto kResultOpenSuccessful = 0;
 
@@ -78,7 +78,7 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
 
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
-    const long kNumOfBufferedElements = std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
+    const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
     bool nngSetTimeoutResult = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
     if (nngSetTimeoutResult != 0)
     {
@@ -107,7 +107,7 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
     return socket;
 }
 
-static nng_socket openSendSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime)
+static nng_socket openSendSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime, bool isLocal)
 {
     constexpr auto kSuccess = 0;
 
@@ -134,6 +134,28 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
     {
         SPDLOG_CRITICAL("Cannot set timeout for sending Return value {}", url, nng_strerror(nngSetTimeoutResult));
         std::abort();
+    }
+
+    const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
+    const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
+    const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
+    bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
+    if (nngSetSndBufSizeResult != 0)
+    {
+        SPDLOG_CRITICAL("Cannot set send buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetSndBufSizeResult));
+        std::abort();
+    }
+    bool nngSetRecBufSizeResult = nng_socket_set_int(socket, NNG_OPT_RECVBUF, kNumOfBufferedElements);
+    if (nngSetRecBufSizeResult != 0)
+    {
+        SPDLOG_CRITICAL("Cannot set rec buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetRecBufSizeResult));
+        std::abort();
+    }
+    bool nngSetRcvMaxSize = nng_socket_set_size(socket, NNG_OPT_RECVMAXSZ, 0);
+    if (nngSetRcvMaxSize != 0)
+    {
+	    SPDLOG_CRITICAL("Cannot set max receive size for url {} RV {}", url, nng_strerror(nngSetRcvMaxSize));
+	    std::abort();
     }
 
     return socket;
@@ -371,7 +393,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
 
     constexpr auto kNngSendSuccess = 0;
 
-    nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
+    nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime, isLocal);
     nng_msg *newMessage;
     uint64_t numSent{};
 
@@ -409,7 +431,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
-    nng_socket recvSocket = openReceiveSocket(recvUrl, kMaxNngBlockingTime);
+    nng_socket recvSocket = openReceiveSocket(recvUrl, kMaxNngBlockingTime, isLocal);
     std::optional<nng_msg *> message;
     uint64_t numRecv{};
 
