@@ -180,7 +180,7 @@ start_algorand(RSM, rsm_size) {
 
 start_resdb() {
 	echo "ResDB RSM is being used!"
-
+	
 }
 
 start_raft() {

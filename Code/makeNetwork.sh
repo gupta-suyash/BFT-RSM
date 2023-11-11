@@ -31,9 +31,11 @@ network_dir="${workdir}/BFT-RSM/Code/configuration/"
 log_dir="${workdir}/BFT-RSM/Code/experiments/results/"
 json_dir="${workdir}/BFT-RSM/Code/experiments/experiment_json/"
 algorand_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/algorand/"
+resdb_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/resdb/"
+resdb_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raftDG/"
 algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/algorand/"
-resdb_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
-raft_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
+resdb_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
+raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
 message_buffer_size=256
@@ -59,8 +61,8 @@ file_rsm="true"
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="file"
-receive_rsm="file"
+send_rsm="resdb"
+receive_rsm="resdb"
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
@@ -147,7 +149,7 @@ for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
 
-GP_NAME="scrooge-exp"
+GP_NAME="scrooge-micah"
 ZONE="us-west1-b"
 
 function exit_handler() {
@@ -336,7 +338,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_algorand(${RSM1}, $r1_size)
 	elif [ "$send_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for sending."
-		start_resdb(${RSM1}, $r1_size)
+		start_resdb(${RSM1}, $r1_size, 1)
 	elif [ "$send_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for sending."
 		start_raft(${RSM1}, $r1_size)
@@ -352,7 +354,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_algorand(${RSM2}, $r2_size)
 	elif [ "$receive_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for receiving."
-		start_resdb(${RSM2}, $r2_size)
+		start_resdb(${RSM2}, $r2_size, 2)
 	elif [ "$receive_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for receiving."
 		start_raft(${RSM2}, $r2_size)
@@ -428,11 +430,26 @@ start_algorand(RSM, rsm_size) {
 	done
 	# Determine address mappings
 	# Finish wallet setup + run Algorand
+	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 1' ::: "${RSM[@]:1:$rsm_size}";
 }
 
-start_resdb() {
+start_resdb(RSM, rsm_size, cluster_num) {
 	echo "ResDB RSM is being used!"
 
+	# Create a new kv conf file
+	rm ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+	printf "%s\n" "iplist=(" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+	count=0
+	size=2
+	while ((count < size)); do
+			printf "%s\n" "${RSM[$count]}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+			count=$((count + 1))
+	done
+	printf "%s\n\n" ")" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+	echo "server=//kv_server:kv_server_performance" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+	
+	# Run startup script
+	${resdb_script_dir}/scrooge-resdb.sh ${resdb_app_dir} ${cluster_num}
 }
 
 start_raft() {
