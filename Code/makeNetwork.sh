@@ -68,18 +68,31 @@ if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
 fi
 
-### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4 13 25 46)
-rsm2_size=(4 13 25 46)
-rsm1_fail=(0 0 0 0)
-rsm2_fail=(0 0 0 0)
-RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+### DUMMY ResDB test
+rsm1_size=(4 13)
+rsm2_size=(4 13)
+rsm1_fail=(0 0)
+rsm2_fail=(0 0)
+RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1)
+RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
 packet_size=(100 1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
+
+### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
+# rsm1_size=(4 13 25 46)
+# rsm2_size=(4 13 25 46)
+# rsm1_fail=(0 0 0 0)
+# rsm2_fail=(0 0 0 0)
+# RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+# RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+# klist_size=(64)
+# packet_size=(100 1000000)
+# batch_size=(200000)
+# batch_creation_time=(1ms)
+# pipeline_buffer_size=(8)
 
 ### Exp: Equal stake RSMs of size 4; message size 100.
 #rsm1_size=(4)
@@ -149,8 +162,8 @@ for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
 
-GP_NAME="scrooge-micah"
-ZONE="us-west1-b"
+GP_NAME="resdb-test"
+ZONE="us-central1-c"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
