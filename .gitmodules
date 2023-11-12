@@ -1,3 +1,9 @@
 [submodule "Code/experiments/applications/go-algorand"]
 	path = Code/experiments/applications/go-algorand
 	url = https://github.com/mmurray22/go-algorand
+[submodule "Code/experiments/applications/--name"]
+	path = Code/experiments/applications/--name
+	url = https://github.com/mmurray22/resdb-application
+[submodule "Code/experiments/applications/resdb"]
+	path = Code/experiments/applications/resdb
+	url = https://github.com/mmurray22/resdb-application
