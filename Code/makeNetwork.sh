@@ -337,12 +337,60 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	# Setup all necessary external applications
+	function start_algorand(RSM, rsm_size) {
+		echo "Algo RSM is being used!"
+		genesis_json = ${algorand_scripts_dir}/genesis.json;
+		config_json = ${algorand_scripts_dir}/config.json;
+		per_node_algos = ${starting_algos}/${rsm_size};
+		mkdir ./genesis_creation/
+		mkdir ./addresses/
+		#Relay node - TODO MAKE SURE THIS IS SOMETHING SPECIAL
+		ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 0';
+		#Participation nodes
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 1' ::: "${RSM[@]:1:$rsm_size}";
+		# Combine genesis pieces into one file
+		count = 0
+		while ((count < r1_size)); do
+			echo $(genesis=$(jq 'select(has("addr"))' ${RSM[$count]}.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' genesis.json) > genesis.json
+			count=$((count + 1))
+		done
+		# Determine address mappings
+		# Finish wallet setup + run Algorand
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 1' ::: "${RSM[@]:1:$rsm_size}";
+	}
+
+	function start_resdb() {
+		echo "ResDB RSM is being used!"
+		# Take in arguments
+		local cluster_num=$1
+		local size=$2
+		local RSM=("${!3}")
+		# Create a new kv conf file
+		rm ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+		printf "%s\n" "iplist=(" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+		count=0
+		while ((count < $size)); do
+				printf "%s\n" "${RSM[$count]}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+				count=$((count + 1))
+		done
+		printf "%s\n\n" ")" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+		echo "server=//kv_server:kv_server_performance" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+		
+		# Run startup script
+		${resdb_script_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num
+	}
+
+	function start_raft() {
+		echo "Raft RSM is being used!"
+	}
+
 	# Sending RSM
 	if [ "$send_rsm" = "algo" ]; then
 		start_algorand(${RSM1}, $r1_size)
 	elif [ "$send_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for sending."
-		start_resdb(${RSM1}, $r1_size, 1)
+		cluster_idx=1
+		start_resdb "${cluster_idx}" "${r1_size}" "RSM1[@]"
 	elif [ "$send_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for sending."
 		start_raft(${RSM1}, $r1_size)
@@ -358,7 +406,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_algorand(${RSM2}, $r2_size)
 	elif [ "$receive_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for receiving."
-		start_resdb(${RSM2}, $r2_size, 2)
+		cluster_idx=2
+		start_resdb "${cluster_idx}" "${r2_size}" "RSM2[@]"
 	elif [ "$receive_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for receiving."
 		start_raft(${RSM2}, $r2_size)
@@ -413,52 +462,5 @@ echo "taking down experiment"
 yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
-
-
-start_algorand(RSM, rsm_size) {
-	echo "Algo RSM is being used!"
-	genesis_json = ${algorand_scripts_dir}/genesis.json;
-	config_json = ${algorand_scripts_dir}/config.json;
-	per_node_algos = ${starting_algos}/${rsm_size};
-	mkdir ./genesis_creation/
-	mkdir ./addresses/
-	#Relay node - TODO MAKE SURE THIS IS SOMETHING SPECIAL
-	ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 0';
-	#Participation nodes
-	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 1' ::: "${RSM[@]:1:$rsm_size}";
-	# Combine genesis pieces into one file
-	count = 0
-	while ((count < r1_size)); do
-		echo $(genesis=$(jq 'select(has("addr"))' ${RSM[$count]}.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' genesis.json) > genesis.json
-		count=$((count + 1))
-	done
-	# Determine address mappings
-	# Finish wallet setup + run Algorand
-	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 1' ::: "${RSM[@]:1:$rsm_size}";
-}
-
-start_resdb(RSM, rsm_size, cluster_num) {
-	echo "ResDB RSM is being used!"
-
-	# Create a new kv conf file
-	rm ${resdb_app_dir}/deploy/config/kv_performance_server.conf
-	printf "%s\n" "iplist=(" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
-	count=0
-	size=2
-	while ((count < size)); do
-			printf "%s\n" "${RSM[$count]}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
-			count=$((count + 1))
-	done
-	printf "%s\n\n" ")" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
-	echo "server=//kv_server:kv_server_performance" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
-	
-	# Run startup script
-	${resdb_script_dir}/scrooge-resdb.sh ${resdb_app_dir} ${cluster_num}
-}
-
-start_raft() {
-	echo "Raft RSM is being used!"
-
-}
 
 
