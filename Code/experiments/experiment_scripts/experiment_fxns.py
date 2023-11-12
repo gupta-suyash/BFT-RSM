@@ -241,5 +241,6 @@ def run(configJson, experimentName, expDir):
                 
             executeCommand(f'parallel --jobs=0 scp {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
             executeCommand(f'mv node* {expDir}')
+            executeCommand(f'cp config.h {expDir}')
         except Exception as e:
             print(e)

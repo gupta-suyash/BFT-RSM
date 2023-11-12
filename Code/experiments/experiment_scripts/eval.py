@@ -70,8 +70,8 @@ def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
             quack_delta = size_group.max_quorum_acknowledgment - size_group.starting_quack
             throughput = quack_delta / size_group.duration_seconds
             # latency = size_group.Latency
-            # average_latencies.append(latency.mean())
-            overall_throughputs.append(throughput.mean())
+            # average_latencies.append(latency.median())
+            overall_throughputs.append(throughput.median())
         # latency_lines.append(Line(
         #     x_values = message_sizes / 1000,
         #     y_values = average_latencies,
@@ -108,11 +108,11 @@ def get_throughput_network_sz(title: str, dataframe: pd.DataFrame) -> List[Graph
                 print(f'Found weird network size pairing: {local_network_size} and {foreign_network_size}')
                 continue
             throughput = (group.max_quorum_acknowledgment - group.starting_quack) / group.duration_seconds
-            line_name_to_points.setdefault(transfer_strategy, []).append((local_network_size, throughput.mean()))
+            line_name_to_points.setdefault(transfer_strategy, []).append((local_network_size, throughput.median()))
 
             if 'scrooge' in transfer_strategy.lower():
                 throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
-                line_name_to_points.setdefault(transfer_strategy + ' Acks', []).append((local_network_size, throughput.mean()))
+                line_name_to_points.setdefault(transfer_strategy + ' Acks', []).append((local_network_size, throughput.median()))
         lines = []
         for line_name, points in line_name_to_points.items():
             points.sort()
@@ -147,8 +147,8 @@ def get_throughput_bandwidth(dataframe: pd.DataFrame) -> List[Graph]:
             #import pdb; pdb.set_trace(); 
             throughput = cur_data.messages_received / cur_data.duration_seconds
             bandwidth = throughput * message_size * 8
-            average_throughput.append(throughput.mean())
-            average_bandwidth.append(bandwidth.mean())
+            average_throughput.append(throughput.median())
+            average_bandwidth.append(bandwidth.median())
         throughput_lines.append(Line(
             x_values = message_sizes / 1024,
             y_values = average_throughput,
@@ -230,7 +230,7 @@ def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
         rows.append({
             'message_size': message_size,
             'latency':0,
-            'throughput': throughput.mean(),
+            'throughput': throughput.median(),
             'strategy': transfer_strategy,
             'local_network_size': local_network_size,
             'foreign_network_size': foreign_network_size
@@ -240,7 +240,7 @@ def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
             rows.append({
                 'message_size': message_size,
                 'latency':0,
-                'throughput': throughput.mean(),
+                'throughput': throughput.median(),
                 'strategy': transfer_strategy + " Acks",
                 'local_network_size': local_network_size,
                 'foreign_network_size': foreign_network_size
