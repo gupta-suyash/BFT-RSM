@@ -7,3 +7,6 @@
 [submodule "Code/experiments/applications/resdb"]
 	path = Code/experiments/applications/resdb
 	url = https://github.com/mmurray22/resdb-application
+[submodule "Code/experiments/applications/raft-application"]
+	path = Code/experiments/applications/raft-application
+	url = https://github.com/mmurray22/raft-application.git
