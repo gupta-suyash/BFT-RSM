@@ -159,7 +159,7 @@ RSM1=(${ar[@]::${num_nodes_rsm_1}})
 RSM2=(${ar[@]:${num_nodes_rsm_2}})
 
 
-sleep 120
+sleep 300
 echo "Starting Experiment"
 
 makeExperimentJson() {
@@ -318,9 +318,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# scp network files to expected directory on other machines
 	count=0
 	r2size=${rsm2_size[$rcount]}
-	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
-
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
 		scrooge="false"
 		all_to_all="false"
@@ -350,6 +347,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 							# Next, we make the experiment.json for backward compatibility.
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
+							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 							# Next, we run the script.
 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
