@@ -318,6 +318,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# scp network files to expected directory on other machines
 	count=0
 	r2size=${rsm2_size[$rcount]}
+	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
 		scrooge="false"
 		all_to_all="false"
