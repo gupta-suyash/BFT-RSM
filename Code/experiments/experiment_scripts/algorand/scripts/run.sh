@@ -18,5 +18,6 @@ cd $3/go-algorand/wallet_app
 echo $2
 echo $1
 echo node$2$1
-node $3/go-algorand/wallet_app/wallet_test.js $3/go-algorand/wallet_app/node/node.json $4 > $3/go-algorand/wallet_app/node/wallet.log
+# TODO: Not sure where the node.json thing is going???
+node $3/go-algorand/wallet_app/client.js $3/go-algorand/wallet_app/node/node.json $4 > $3/go-algorand/wallet_app/node/wallet.log
 echo "DONE!"

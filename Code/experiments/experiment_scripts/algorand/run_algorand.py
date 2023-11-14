@@ -19,11 +19,14 @@ run_script="/scripts/run.sh"
 wallet_name="default"
 
 def main():
-    update_wallets()
+    if len(sys.argv) != 3:
+        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <send_acct> <receive_acct> <client_ip>')
+        sys.exit(1)
+    update_wallets(sys.argv[1], sys.argv[3], sys.argv[4], sys.argv[5])
     executeCommand(pathname + "/run.sh")
 
 # Update local wallet app json
-def update_wallets(app_pathname, send_acct, receive_acct): # Check the client IP
+def update_wallets(app_pathname, send_acct, receive_acct, client_ip): # Check the client IP
     node_path = app_pathname + "/node/"
     wallet_path = app_pathname + "/go-algorand/wallet_app/node.json"
     appFile = open(wallet_path, 'w')
@@ -39,7 +42,7 @@ def update_wallets(app_pathname, send_acct, receive_acct): # Check the client IP
                "wallet_port": 1234, 
                "client_port": 4003, 
                "algorand_port": 3456, 
-               "client_ip": "128.110.218.203"
+               "client_ip": client_ip
                };
     appFile.write(json.dumps(appDict))
     appFile.close()

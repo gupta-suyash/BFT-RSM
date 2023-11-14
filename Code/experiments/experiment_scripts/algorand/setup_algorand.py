@@ -19,19 +19,17 @@ from ssh_util import *
 install_script="/scripts/install.sh"
 setup_script="/scripts/setup.sh"
 keygen_script="/scripts/keygen.sh"
-node_config="/jsons/node_config.json"
-relay_config="/jsons/relay_config.json"
 genesis="/jsons/default_genesis.json"
 wallet_name="default"
 
 def main():
     if len(sys.argv) != 3:
-        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <starting_algos> <relay_bool> <main_server_ip>')
+        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <starting_algos> <config file>')
         sys.exit(1)
     app_pathname = sys.argv[1]
     script_pathname = sys.argv[2]
     # Step 1: Install relevant algorand software
-    run_install = ". " + script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name
+    run_install = ". " + script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name + " " + sys.argv[4]
     executeCommand(run_install)
     # Step 2: Setup Algorand nodes
     generate_partkey(script_pathname, setup_script, keygen_script,  int(sys.argv[3]))
@@ -55,19 +53,23 @@ def generate_partkey(pathname, keygen_script, starting_algos):
     part_sel = partkeyLines[11].strip().split()[len(partkeyLines[11].strip().split()) - 1]
     part_vote = partkeyLines[12].strip().split()[len(partkeyLines[12].strip().split()) - 1]
 
-    # Open genesis file and write in information and Add entry to genesis file here -- TODO CHANGE
+    # Open local genesis json and write local account information
     hostname=socket.gethostname()
     IPAddr=socket.gethostbyname(hostname)
-    genesisf = open(subdir_path +  "/" + str(IPAddr) + ".json", 'r') # get actual directory
-    genData = json.load(genesisf)
-    entry = {'addr': addr, 'comment': 'test', "state": {"algo": starting_algos, "onl": 1, "sel": part_sel, "vote": part_vote, "voteKD": 10000, "voteLst": 3000000}}
-    genData.append(entry)
-    genesisWrites = open(subdir_path +  "/genesis.json", 'w')
-    genesisWrites.write(json.dumps(genData))
-    genesisWrites.close()
+    genesisf = open("~/" + str(IPAddr) + "_gen.json", 'a') # get actual directory
+    gen_entry = {'addr': addr, 'comment': 'test', "state": {"algo": starting_algos, "onl": 1, "sel": part_sel, "vote": part_vote, "voteKD": 10000, "voteLst": 3000000}}
+    genesisf.write(json.dumps(gen_entry))
+    
+
+    # Open local address json and write local address information to facilitate wallet matching process
+    addrf = open("~/" + str(IPAddr) + "_addr.json", 'a') # get actual directory
+    addr_entry =  {"addr": addr, "ip": str(IPAddr)}
+    addrf.write(json.dumps(addr_entry))
+    
+    # Close all open files
     partkeyf.close()
     genesisf.close()
-    # NEED TO MAKE SURE MAIN SERVER KNOWS ALL THE ADDRESSES
+    addrf.close()
 
 if __name__ == "__main__":
     main()
