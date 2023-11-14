@@ -32,7 +32,7 @@ log_dir="${workdir}/BFT-RSM/Code/experiments/results/"
 json_dir="${workdir}/BFT-RSM/Code/experiments/experiment_json/"
 algorand_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/algorand/"
 resdb_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/resdb/"
-resdb_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raftDG/"
+raft_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raftDG/"
 algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/algorand/"
 resdb_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
 raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
@@ -41,7 +41,7 @@ max_nng_blocking_time=500ms
 message_buffer_size=256
 
 # Set rarely changing experiment application parameters
-starting_algos = 10000000000000000
+starting_algos=10000000000000000
 
 #
 # EXPERIMENT LIST
@@ -56,7 +56,8 @@ all_to_all="false"
 one_to_one="false"
 
 #If this experiment is for File_RSM (not algo or resdb)
-file_rsm="true"
+#file_rsm="true"
+file_rsm="false"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
@@ -69,12 +70,12 @@ if [ "$file_rsm" = "false" ]; then
 fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4 13 25 46)
-rsm2_size=(4 13 25 46)
-rsm1_fail=(0 0 0 0)
-rsm2_fail=(0 0 0 0)
-RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+rsm1_size=(4)
+rsm2_size=(4)
+rsm1_fail=(0)
+rsm2_fail=(0)
+RSM1_Stake=(1 1 1 1)
+RSM2_Stake=(1 1 1 1)
 klist_size=(64)
 packet_size=(100 1000000)
 batch_size=(200000)
@@ -142,6 +143,7 @@ pipeline_buffer_size=(8)
 # Build the network from the description
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
+client=2
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
 done
@@ -149,21 +151,23 @@ for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
 
-GP_NAME="scrooge-micah"
-ZONE="us-west1-b"
+# TODO Change to inputs!!
+GP_NAME="scrooge-micah-resdb"
+ZONE="us-central1-a"
+TEMPLATE="resdb-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
-		yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+		#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 		exit 1
 }
 
 trap exit_handler INT
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2))" --template=projects/scrooge-398722/global/instanceTemplates/scrooge-worker-template --zone=us-west1-b --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
 
 rm /tmp/all_ips.txt
 num_ips_read=0
-while ((num_ips_read < $((num_nodes_rsm_1+num_nodes_rsm_2)))); do
+while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
 	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
 	output=$(cat /tmp/all_ips.txt)
 	ar=($output)
@@ -171,10 +175,36 @@ while ((num_ips_read < $((num_nodes_rsm_1+num_nodes_rsm_2)))); do
 done
 
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
-RSM2=(${ar[@]:${num_nodes_rsm_2}})
+RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
+CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
 
+count=0
+while ((${count} < ${num_nodes_rsm_1})); do
+	echo "RSM1: ${RSM1[$count]}"
+	count=$((count + 1))
+	if [ ${count} -eq "${num_nodes_rsm_1}" ]; then
+		break
+	fi
+done
+count=0
+while ((${count} < ${num_nodes_rsm_2})); do
+	echo "RSM2: ${RSM2[$count]}"
+	count=$((count + 1))
+	if [ ${count} -eq "${num_nodes_rsm_2}" ]; then
+		break
+	fi
+done
+count=0
+while ((${count} < ${client})); do
+	echo "Client: ${CLIENT[$count]}"
+	count=$((count + 1))
+	if [ ${count} -eq "${client}" ]; then
+		break
+	fi
+done
 
-sleep 120
+# TODO: Change if networkurls script fails to copy
+sleep 300
 echo "Starting Experiment"
 
 makeExperimentJson() {
@@ -337,47 +367,36 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	# Setup all necessary external applications
-	function start_algorand(RSM, rsm_size) {
-		echo "Algo RSM is being used!"
-		genesis_json = ${algorand_scripts_dir}/genesis.json;
-		config_json = ${algorand_scripts_dir}/config.json;
-		per_node_algos = ${starting_algos}/${rsm_size};
-		mkdir ./genesis_creation/
-		mkdir ./addresses/
-		#Relay node - TODO MAKE SURE THIS IS SOMETHING SPECIAL
-		ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 0';
-		#Participation nodes
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/setup_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 1' ::: "${RSM[@]:1:$rsm_size}";
-		# Combine genesis pieces into one file
-		count = 0
-		while ((count < r1_size)); do
-			echo $(genesis=$(jq 'select(has("addr"))' ${RSM[$count]}.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' genesis.json) > genesis.json
-			count=$((count + 1))
-		done
-		# Determine address mappings
-		# Finish wallet setup + run Algorand
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${config_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} 1' ::: "${RSM[@]:1:$rsm_size}";
-	}
-
 	function start_resdb() {
 		echo "ResDB RSM is being used!"
 		# Take in arguments
 		local cluster_num=$1
 		local size=$2
 		local RSM=("${!3}")
-		# Create a new kv conf file
+		# Create a new kv server conf file
 		rm ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		printf "%s\n" "iplist=(" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		count=0
-		while ((count < $size)); do
+		while ((${count} < ${size})); do
 				printf "%s\n" "${RSM[$count]}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 				count=$((count + 1))
 		done
 		printf "%s\n\n" ")" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		echo "server=//kv_server:kv_server_performance" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+		echo "HERE IS THE KV CONFIG:"	
+		cat ${resdb_app_dir}/deploy/config/kv_performance_server.conf		
+		
+	 	# Create a new kv client conf file
+		rm ${resdb_app_dir}/deploy/config_out/client.conf
+		echo "${CLIENT[$cluster_num-1]}"
+		num_nodes=$((size + 1))
+		printf "\n%s" "${num_nodes} ${CLIENT[$cluster_num-1]} 17005" >> ${resdb_app_dir}/deploy/config_out/client.conf
+		echo "HERE IS THE KV CLIENT CONFIG:"
+		cat ${resdb_app_dir}/deploy/config_out/client.conf	
 		
 		# Run startup script
-		${resdb_script_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num
+		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
+		sleep 120 # Sleeping to make sure resdb has had a chance to start
 	}
 
 	function start_raft() {
@@ -385,35 +404,35 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	}
 
 	# Sending RSM
-	if [ "$send_rsm" = "algo" ]; then
-		start_algorand(${RSM1}, $r1_size)
-	elif [ "$send_rsm" = "resdb" ]; then
+	#if [ "$send_rsm" = "algo" ]; then
+	#	start_algorand(${RSM1}, $r1_size)
+	if [ "$send_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for sending."
 		cluster_idx=1
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM1[@]"
 	elif [ "$send_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for sending."
-		start_raft(${RSM1}, $r1_size)
+	#	start_raft(${RSM1}, $r1_size)
 	elif [ "$send_rsm" = "file" ]; then
 		echo "File RSM is being used for sending. No extra setup necessary."
-	else; then
+	else
 		echo "INVALID RECEIVING RSM."
 	fi
 
 	# Receiving RSM
-	if [ "$receive_rsm" = "algo" ]; then
-		echo "Algo RSM is being used for receiving."
-		start_algorand(${RSM2}, $r2_size)
-	elif [ "$receive_rsm" = "resdb" ]; then
+	#if [ "$receive_rsm" = "algo" ]; then
+	#	echo "Algo RSM is being used for receiving."
+	#	start_algorand(${RSM2}, $r2_size)
+	if [ "$receive_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for receiving."
 		cluster_idx=2
-		start_resdb "${cluster_idx}" "${r2_size}" "RSM2[@]"
+		start_resdb "${cluster_idx}" "${r1_size}" "RSM2[@]"
 	elif [ "$receive_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for receiving."
-		start_raft(${RSM2}, $r2_size)
+	#	start_raft(${RSM2}, $r2_size)
 	elif [ "$receive_rsm" = "file" ]; then
 		echo "File RSM is being used for receiving. No extra setup necessary."
-	else; then
+	else
 		echo "INVALID RECEIVING RSM."
 	fi
 
@@ -459,7 +478,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 
 echo "taking down experiment"
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 
