@@ -62,20 +62,20 @@ file_rsm="false"
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="resdb"
-receive_rsm="resdb"
+send_rsm="algo"
+receive_rsm="algo"
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
 fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4)
-rsm2_size=(4)
+rsm1_size=(2)
+rsm2_size=(2)
 rsm1_fail=(0)
 rsm2_fail=(0)
-RSM1_Stake=(1 1 1 1)
-RSM2_Stake=(1 1 1 1)
+RSM1_Stake=(1 1)
+RSM2_Stake=(1 1)
 klist_size=(64)
 packet_size=(100 1000000)
 batch_size=(200000)
@@ -165,7 +165,7 @@ for v in ${rsm2_size[@]}; do
 done
 
 # TODO Change to inputs!!
-GP_NAME="scrooge-micah-resdb"
+GP_NAME=$1
 ZONE="us-central1-a"
 TEMPLATE="resdb-template"
 
@@ -357,7 +357,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		count=$((count + 1))
 	done
 	cat network0urls.txt
-	cp network0urls.txt ${network_dir} #copy to the expected folder.
+	cp network0urls.txt ${network_dir} #cops to the expected folder.
 	echo " "
 
 	# Next, we create the configuration file "network1urls.txt" through echoing and redirection.
@@ -391,21 +391,26 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 	# Setup all necessary external applications
 	function start_algorand() {
-		echo "Algorand RSM is being used!"
+		echo "######################################################Algorand RSM is being used!"
 		# Take in arguments
 		local client_ip=$1
 		local size=$2
 		local RSM=("${!3}")
 
-		genesis_json=${algorand_scripts_dir}/genesis.json;
-		per_node_algos=${starting_algos}/${rsm_size};
+		genesis_json=${algorand_scripts_dir}/scripts/genesis.json;
+		cat $genesis_json
+		per_node_algos=$((starting_algos / size));
+		echo $per_node_algos
+		rm -rf ./genesis_creation
+		rm -rf ./addresses
 		mkdir ./genesis_creation/
 		cp $genesis_json ./genesis_creation/
 		mkdir ./addresses/
 		#Relay nodes
-		ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" '${algorand_script_dir}/setup_algorand_nodes.py ${algorand_app_dir} ${algorand_script_dir} ${algorand_script_dir}/relay_config.json ${per_node_algos}';
+		ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_script_dir}"' '"${algorand_scripts_dir}"'/relay_config.json '"${per_node_algos}"''
+		echo "Sent Relay node information!"
 		#Participation nodes
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/setup_algorand_nodes.py ${algorand_app_dir} ${algorand_script_dir} ${algorand_script_dir}/node_config.json ${per_node_algos}' ::: "${RSM[@]:1:$((size-1))}";
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/node_config.json '"${per_node_algos}"'' ::: "${RSM[@]:1:$((size-1))}";
 		
 		### Get genesis files ###
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:~/{1}_gen.json ./genesis_creation/::: "${RSM[@]:0:$((size-1))}"
@@ -426,11 +431,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ./addr_creation/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size-1))}"
 
 		# Remove genesis + address directories
-		rm -rf ./genesis_creation
-		rm -rf ./addresses
-
+		#rm -rf ./genesis_creation
+		#rm -rf ./addresses
+		yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+		exit
 		# Finish wallet setup + run Algorand - TODO STILL UNFINISHED
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} ${client_ip}' ::: "${RSM[@]:1:$rsm_size}";
+		#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} ${client_ip}' ::: "${RSM[@]:1:$rsm_size}";
 	}
 	
 	function start_resdb() {
@@ -470,9 +476,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	}
 
 	# Sending RSM
-	#if [ "$send_rsm" = "algo" ]; then
-	#	start_algorand(${RSM1}, $r1_size)
-	if [ "$send_rsm" = "resdb" ]; then
+	if [ "$send_rsm" = "algo" ]; then
+		start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+	elif [ "$send_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for sending."
 		cluster_idx=1
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM1[@]"
@@ -486,10 +492,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	fi
 
 	# Receiving RSM
-	#if [ "$receive_rsm" = "algo" ]; then
-	#	echo "Algo RSM is being used for receiving."
-	#	start_algorand(${RSM2}, $r2_size)
-	if [ "$receive_rsm" = "resdb" ]; then
+	if [ "$receive_rsm" = "algo" ]; then
+		echo "Algo RSM is being used for receiving."
+		start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+	elif [ "$receive_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for receiving."
 		cluster_idx=2
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM2[@]"
