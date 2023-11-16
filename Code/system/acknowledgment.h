@@ -118,7 +118,7 @@ class Acknowledgment
     }
 
   private:
-    static constexpr uint64_t kWindowSize = 2ULL * (1ULL << 30);
+    static constexpr uint64_t kWindowSize = 3ULL * (1ULL << 30);
     static_assert(kWindowSize % 64 == 0, "kWindowSize Must be a multiple of 64 (word size)");
 
     // mutable std::mutex mMutex;
