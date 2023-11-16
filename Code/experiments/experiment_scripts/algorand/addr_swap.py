@@ -19,7 +19,7 @@ run_script="/scripts/run.sh"
 wallet_name="default"
 
 def main():
-    if len(sys.argv) > 3:
+    if len(sys.argv) < 3:
         sys.stderr.write('Usage: python3 %s <addr_json_path> <current_server_ip> <prev_server_ip> <next_server_ip>')
         sys.exit(1)
     update_accts(sys.argv[1], sys.argv[3], sys.argv[4], sys.argv[5])

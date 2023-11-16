@@ -4,18 +4,15 @@
 
 # Create node directory
 echo "####################### IN INSTALL SCRIPT"
-echo "ARGUMENTS START"
-echo $0
-echo $1
-echo $2
-echo $3
-echo "ARGUMENTS END"
-cd $1
-exit
+
+# Create Algorand Node directory
 rm -rf "$1/node/"
 mkdir "$1/node/"
 export ALGORAND_DATA=$1/node/
 echo $ALGORAND_DATA
+
+# Generate initial tokens, copies template setup jsons and creates the wallet
+cd $ALGORAND_DATA
 ~/go/bin/goal node generatetoken
 cp $1/scripts/genesis.json $ALGORAND_DATA/genesis.json
 cp $3 $ALGORAND_DATA/config.json
@@ -41,3 +38,4 @@ expect <<-EOF
     }
 EOF
 ~/go/bin/goal account new -w $2 -f > $ALGORAND_DATA/address.txt
+echo "####################### END INSTALL SCRIPT"
