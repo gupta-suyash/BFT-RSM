@@ -32,7 +32,7 @@ log_dir="${workdir}/BFT-RSM/Code/experiments/results/"
 json_dir="${workdir}/BFT-RSM/Code/experiments/experiment_json/"
 algorand_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/algorand/"
 resdb_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/resdb/"
-raft_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raftDG/"
+raft_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raft-application/"
 algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/algorand/"
 resdb_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
 raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
@@ -216,7 +216,6 @@ while ((${count} < ${client})); do
 	fi
 done
 
-# TODO: Change if networkurls script fails to copy
 sleep 300
 echo "Starting Experiment"
 
@@ -383,10 +382,48 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	function start_raft() {
 		echo "Raft RSM is being used!"
 		# Take in arguments
-		local cluster_num=$1
+		local client_ip=$1
 		local size=$2
 		local RSM=("${!3}")
-		# TODO - SETUP RAFT (ingest correct IPs)
+
+		# Set constants
+		etcd_path="${raft_app_dir}/etcd-main"
+		etcd_bin_path="${etcd_path}/bin"
+		benchmark_bin_path="${raft_app_dir}/bin"
+		TOKEN=token-77
+		CLUSTER_STATE=new
+		count=0
+		machines=()
+		urls=()
+		while ((${count} < ${size})); do
+			echo "RSM: ${RSM[$count]}"
+			machines+=("machine-$((count + 1))")
+			urls+=(http://"${RSM[$count]}":2380)
+			count=$((count + 1))
+			fi
+		done
+		# Run the first etcd cluster
+		for i in ${!RSM[@]}; do
+			this_name=${machines[$i]}
+			this_ip=${RSM[$i]}
+			this_url=${urls[$i]}
+			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; 
+														export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; 
+														export CLUSTER_STATE=${CLUSTER_STATE}; 
+														export CLUSTER=${this_url}; 
+														export PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}; 
+														cd \$HOME;
+														echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};
+														etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN}" &
+		done
+		# Sleep to wait for Raft server to start
+		sleep 60
+		# Start benchmark
+    	echo "Running benchmark..."
+    	export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
+		(benchmark --endpoints=${RSM[@]} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
+		benchmark --endpoints=${RSM[@]} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
+		benchmark --endpoints=${RSM[@]} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
 	}
 
 	# Setup all necessary external applications
@@ -471,10 +508,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		sleep 120 # Sleeping to make sure resdb has had a chance to start
 	}
 
-	function start_raft() {
-		echo "Raft RSM is being used!"
-	}
-
 	# Sending RSM
 	if [ "$send_rsm" = "algo" ]; then
 		start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
@@ -484,7 +517,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM1[@]"
 	elif [ "$send_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for sending."
-	#	start_raft(${RSM1}, $r1_size)
+		start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
 	elif [ "$send_rsm" = "file" ]; then
 		echo "File RSM is being used for sending. No extra setup necessary."
 	else
@@ -501,7 +534,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM2[@]"
 	elif [ "$receive_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for receiving."
-	#	start_raft(${RSM2}, $r2_size)
+		start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
 	elif [ "$receive_rsm" = "file" ]; then
 		echo "File RSM is being used for receiving. No extra setup necessary."
 	else
@@ -537,6 +570,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 							# Next, we make the experiment.json for backward compatibility.
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
+							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 							# Next, we run the script.
 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
