@@ -19,18 +19,19 @@ from ssh_util import *
 install_script="/scripts/install.sh"
 setup_script="/scripts/setup.sh"
 keygen_script="/scripts/keygen.sh"
-genesis="/jsons/default_genesis.json"
+genesis="/scripts/default_genesis.json"
 wallet_name="default"
 
 def main():
-    if len(sys.argv) != 3:
-        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <starting_algos> <config file>')
+    if len(sys.argv) < 5:
+        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <starting_algos> <config file>\n')
         sys.exit(1)
     app_pathname = sys.argv[1]
     script_pathname = sys.argv[2]
     # Step 1: Install relevant algorand software
     run_install = ". " + script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name + " " + sys.argv[4]
-    executeCommand(run_install)
+    print("Run install: ", run_install)
+    subprocess.check_call([". " + script_pathname + install_script, app_pathname, script_pathname, wallet_name, sys.argv[4]], shell=True, stdout=sys.stdout, stderr=sys.stdout)
     # Step 2: Setup Algorand nodes
     generate_partkey(script_pathname, setup_script, keygen_script,  int(sys.argv[3]))
     # At the end of this, address.txt + mini_genesis.json both created

@@ -3,12 +3,22 @@
 ## How to call this scripts: ./install.sh <algorand app dir> <algorand script dir> <wallet name> <config file>
 
 # Create node directory
-mkdir $2/node/
-export ALGORAND_DATA=$2/node/
+echo "####################### IN INSTALL SCRIPT"
+echo "ARGUMENTS START"
+echo $0
+echo $1
+echo $2
+echo $3
+echo "ARGUMENTS END"
+cd $1
+exit
+rm -rf "$1/node/"
+mkdir "$1/node/"
+export ALGORAND_DATA=$1/node/
 echo $ALGORAND_DATA
 ~/go/bin/goal node generatetoken
-cp $2/genesis.json $ALGORAND_DATA/genesis.json
-cp $4 $ALGORAND_DATA/config.json
+cp $1/scripts/genesis.json $ALGORAND_DATA/genesis.json
+cp $3 $ALGORAND_DATA/config.json
 mkdir $ALGORAND_DATA/privatenet-v1
 expect <<-EOF
     proc abort {} {
