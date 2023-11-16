@@ -24,7 +24,7 @@ wallet_name="default"
 
 def main():
     if len(sys.argv) < 5:
-        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <starting_algos> <config file>\n')
+        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <starting_algos> <config file> <client_ip>\n')
         sys.exit(1)
     app_pathname = sys.argv[1]
     script_pathname = sys.argv[2]
@@ -33,10 +33,10 @@ def main():
     print("Run install: ", run_install)
     subprocess.check_call([". " + script_pathname + install_script, app_pathname, script_pathname, wallet_name, sys.argv[4]], shell=True, stdout=sys.stdout, stderr=sys.stdout)
     # Step 2: Setup Algorand nodes
-    generate_partkey(script_pathname, setup_script, keygen_script,  int(sys.argv[3]))
+    generate_partkey(script_pathname, setup_script, keygen_script,  int(sys.argv[3]), sys.argv[4])
     # At the end of this, address.txt + mini_genesis.json both created
 
-def generate_partkey(pathname, keygen_script, starting_algos):
+def generate_partkey(pathname, keygen_script, starting_algos, client_ip):
     # Default values
     sel_key = "sel"
     vote_key = "vote"
@@ -64,12 +64,29 @@ def generate_partkey(pathname, keygen_script, starting_algos):
 
     # Open local address json and write local address information to facilitate wallet matching process
     addrf = open("~/" + str(IPAddr) + "_addr.json", 'a') # get actual directory
-    addr_entry =  {"addr": addr, "ip": str(IPAddr)}
+    node_path = pathname + "/node/"
+    api_token = open(node_path + "/algod.token", 'r')
+    kmd_token = open(node_path + "/kmd-v0.5/kmd.token", 'r')
+    addr_entry =  {"api_token": api_token.readlines()[0].strip(), 
+                    "kmd_token": kmd_token.readlines()[0].strip(), 
+                    "send_acct": "<PLACEHOLDER>", 
+                    "receive_acct": "<PLACEHOLDER>", 
+                    "server_url": "http://127.0.0.1", 
+                    "algo_port": 8080, 
+                    "kmd_port": 7833, 
+                    "wallet_port": 1234, 
+                    "client_port": 4003, 
+                    "algorand_port": 3456, 
+                    "client_ip": client_ip,
+                    "my_acct": addr
+                  };
     addrf.write(json.dumps(addr_entry))
     
     # Close all open files
     partkeyf.close()
     genesisf.close()
+    api_token.close()
+    kmd_token.close()
     addrf.close()
 
 if __name__ == "__main__":
