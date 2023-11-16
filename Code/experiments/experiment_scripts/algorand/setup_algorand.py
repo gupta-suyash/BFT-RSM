@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#! /usr/bin/env python3
 import sys
 import os
 import subprocess
@@ -31,9 +31,10 @@ def main():
     # Step 1: Install relevant algorand software
     run_install = ". " + script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name + " " + sys.argv[4]
     print("Run install: ", run_install)
+    print("Get current directory: ", os.getcwd())
     subprocess.check_call([". " + script_pathname + install_script, app_pathname, script_pathname, wallet_name, sys.argv[4]], shell=True, stdout=sys.stdout, stderr=sys.stdout)
     # Step 2: Setup Algorand nodes
-    generate_partkey(script_pathname, setup_script, keygen_script,  int(sys.argv[3]))
+    generate_partkey(script_pathname, keygen_script,  int(sys.argv[3]))
     # At the end of this, address.txt + mini_genesis.json both created
 
 def generate_partkey(pathname, keygen_script, starting_algos):
@@ -45,8 +46,9 @@ def generate_partkey(pathname, keygen_script, starting_algos):
     accountLines = open(subdir_path + "/address.txt", 'r').readlines()
     addr = accountLines[0].strip().split(" ")[len(accountLines[0].strip().split()) - 1]
     # Generate partkeys
-    partkeyinfo = ". " + pathname + keygen_script + " -p " + pathname + " -a " + addr
-    executeCommand(partkeyinfo)
+    #partkeyinfo = ". " + pathname + keygen_script + " -p " + pathname + " -a " + addr
+    #executeCommand(partkeyinfo)
+    subprocess.check_call([". " + pathname + keygen_script, pathname, addr], shell=True, stdout=sys.stdout, stderr=sys.stdout)
 
     # Read in Partkey json file and get sel + vote information
     partkeyf = open(subdir_path + "/partkeyinfo.json", 'r')
@@ -57,13 +59,13 @@ def generate_partkey(pathname, keygen_script, starting_algos):
     # Open local genesis json and write local account information
     hostname=socket.gethostname()
     IPAddr=socket.gethostbyname(hostname)
-    genesisf = open("~/" + str(IPAddr) + "_gen.json", 'a') # get actual directory
+    genesisf = open(pathname + str(IPAddr) + "_gen.json", 'a') # get actual directory
     gen_entry = {'addr': addr, 'comment': 'test', "state": {"algo": starting_algos, "onl": 1, "sel": part_sel, "vote": part_vote, "voteKD": 10000, "voteLst": 3000000}}
     genesisf.write(json.dumps(gen_entry))
     
 
     # Open local address json and write local address information to facilitate wallet matching process
-    addrf = open("~/" + str(IPAddr) + "_addr.json", 'a') # get actual directory
+    addrf = open(pathname + str(IPAddr) + "_addr.json", 'a') # get actual directory
     addr_entry =  {"addr": addr, "ip": str(IPAddr)}
     addrf.write(json.dumps(addr_entry))
     

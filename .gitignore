@@ -26,7 +26,9 @@ Code/experiments/experiment_scripts/Equal Stake Confirmation Latency.png
 Code/experiments/experiment_scripts/Equal Stake Confirmation Throughput.png
 Code/experiments/experiment_scripts/algorand/simple.sh
 Code/experiments/experiment_scripts/algorand/simple.py
-
+Code/experiments/experiment_scripts/algorand/genesis_creation/
+Code/experiments/experiment_scripts/algorand/node/
+Code/experiments/experiment_scripts/algorand/addresses/
 ## IGNORE VSCODE ##
 .vscode/
 !.vscode/settings.json

@@ -401,11 +401,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		cat $genesis_json
 		per_node_algos=$((starting_algos / size));
 		echo $per_node_algos
-		rm -rf ./genesis_creation
-		rm -rf ./addresses
-		mkdir ./genesis_creation/
-		cp $genesis_json ./genesis_creation/
-		mkdir ./addresses/
+		rm -rf ${algorand_scripts_dir}/genesis_creation
+		rm -rf ${algorand_scripts_dir}/addresses
+		mkdir ${algorand_scripts_dir}/genesis_creation/
+		cp $genesis_json ${algorand_scripts_dir}/genesis_creation/
+		mkdir ${algorand_scripts_dir}/addresses/
 		#Relay nodes
 		ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_script_dir}"' '"${algorand_scripts_dir}"'/relay_config.json '"${per_node_algos}"''
 		echo "Sent Relay node information!"
@@ -413,22 +413,22 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/node_config.json '"${per_node_algos}"'' ::: "${RSM[@]:1:$((size-1))}";
 		
 		### Get genesis files ###
-		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:~/{1}_gen.json ./genesis_creation/::: "${RSM[@]:0:$((size-1))}"
+		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:~/{1}_gen.json ${algorand_scripts_dir}/genesis_creation/::: "${RSM[@]:0:$((size-1))}"
 		# Combine genesis pieces into one file
 		count=0
 		while ((count < r1_size)); do
-			echo $(genesis=$(jq 'select(has("addr"))' ./genesis_creation/${RSM[$count]}_gen.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' genesis.json) > genesis.json
+			echo $(genesis=$(jq 'select(has("addr"))' ${algorand_scripts_dir}/genesis_creation/${RSM[$count]}_gen.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' genesis.json) > genesis.json
 			count=$((count + 1))
 		done
 		# Copy final genesis files onto all machines
-		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ./genesis_creation/genesis.json ${username}@{1}:${algorand_script_dir}/node/ ::: "${RSM[@]:0:$((size-1))}"
+		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@{1}:${algorand_script_dir}/node/ ::: "${RSM[@]:0:$((size-1))}"
 
 		### Get address matchings ###
-		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:~/{1}_addr.json ./address_creation/::: "${RSM[@]:0:$((size-1))}"
+		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:~/{1}_addr.json ${algorand_scripts_dir}/address_creation/::: "${RSM[@]:0:$((size-1))}"
 		# Combine genesis pieces into one file
 		## TODO??? How to make address matchings
 		# Copy final genesis files onto all machines
-		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ./addr_creation/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size-1))}"
+		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addr_creation/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size-1))}"
 
 		# Remove genesis + address directories
 		#rm -rf ./genesis_creation
