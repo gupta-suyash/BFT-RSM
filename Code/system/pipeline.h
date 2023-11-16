@@ -81,6 +81,10 @@ class Pipeline
                        const uint64_t destNodeId, const bool isLocal);
     void runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
                        const uint64_t sendNodeId, const bool isLocal);
+    void runPublisherThread(std::vector<std::string> sendUrls, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
+                       const uint64_t destNodeId, const bool isLocal);
+    void runSubscriberThread(std::vector<std::string> recvUrs, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
+                       const uint64_t sendNodeId, const bool isLocal);
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);

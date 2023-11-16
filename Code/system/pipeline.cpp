@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
+#include <nng/protocol/pubsub0/sub.h>
+#include <nng/protocol/pubsub0/pub.h>
 
 int64_t numTimeoutHits{}, numSizeHits{}, totalBatchedMessages{}, totalBatchesSent{};
 
@@ -54,7 +56,64 @@ template <typename atomic_bitset> void reset_atomic_bit(atomic_bitset &set, uint
     }
 }
 
-static nng_socket openReceiveSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime, bool isLocal)
+static nng_socket openSubscriberSocket(const std::vector<std::string> &urls, std::chrono::milliseconds maxNngBlockingTime, bool isLocal)
+{
+    constexpr auto kResultOpenSuccessful = 0;
+
+    nng_socket socket;
+    const auto openResult = nng_sub0_open(&socket);
+    const bool cannotOpenSocket = kResultOpenSuccessful != openResult;
+    if (cannotOpenSocket)
+    {
+        SPDLOG_CRITICAL("Cannot open socket for receiving on subscription ERROR: {}", nng_strerror(openResult));
+        std::abort();
+    }
+    bool nngSubAllResult = nng_setopt_string(socket, NNG_OPT_SUB_SUBSCRIBE, "");
+    if (nngSubAllResult != 0)
+    {
+        SPDLOG_CRITICAL("Cannot subscribe to all messages for Return value {}", nng_strerror(nngSubAllResult));
+        std::abort();
+    }
+
+    for (const auto& url : urls)
+    {
+        const auto nngListenResult = nng_listen(socket, url.c_str(), nullptr, 0);
+
+        if (nngListenResult != 0)
+        {
+            SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR LISTENING. URL = '{}' Return value {}", url,
+                            nng_strerror(nngListenResult));
+            std::abort();
+        }
+    }
+
+    const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
+    const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
+    //const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
+    const long kNumOfBufferedElements =std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) * (1 + (uint64_t) isLocal * (kNumSocketsTotal - 1));
+    bool nngSetTimeoutResult = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
+    if (nngSetTimeoutResult != 0)
+    {
+        SPDLOG_CRITICAL("Cannot set timeout for listening Return value {}", nng_strerror(nngSetTimeoutResult));
+        std::abort();
+    }
+    bool nngSetRecBufSizeResult = nng_socket_set_int(socket, NNG_OPT_RECVBUF, kNumOfBufferedElements);
+    if (nngSetRecBufSizeResult != 0)
+    {
+        SPDLOG_CRITICAL("Cannot set rec buf size {} for RV {}", kNumOfBufferedElements, nng_strerror(nngSetRecBufSizeResult));
+        std::abort();
+    }
+    bool nngSetRcvMaxSize = nng_socket_set_size(socket, NNG_OPT_RECVMAXSZ, 0);
+    if (nngSetRcvMaxSize != 0)
+    {
+	    SPDLOG_CRITICAL("Cannot set max receive size for RV {}", nng_strerror(nngSetRcvMaxSize));
+	    std::abort();
+    }
+
+    return socket;
+}
+
+static nng_socket openPairReceiveSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime, bool isLocal)
 {
     constexpr auto kResultOpenSuccessful = 0;
 
@@ -78,17 +137,12 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
 
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
-    const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
+    //const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
+    const long kNumOfBufferedElements =std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
     bool nngSetTimeoutResult = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
     if (nngSetTimeoutResult != 0)
     {
         SPDLOG_CRITICAL("Cannot set timeout for listening url {} Return value {}", url, nng_strerror(nngSetTimeoutResult));
-        std::abort();
-    }
-    bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
-    if (nngSetSndBufSizeResult != 0)
-    {
-        SPDLOG_CRITICAL("Cannot set send buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetSndBufSizeResult));
         std::abort();
     }
     bool nngSetRecBufSizeResult = nng_socket_set_int(socket, NNG_OPT_RECVBUF, kNumOfBufferedElements);
@@ -107,7 +161,7 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
     return socket;
 }
 
-static nng_socket openSendSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime, bool isLocal)
+static nng_socket openPairSendSocket(const std::string &url, std::chrono::milliseconds maxNngBlockingTime, bool isLocal)
 {
     constexpr auto kSuccess = 0;
 
@@ -138,7 +192,8 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
 
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
-    const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
+    // const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
+    const long kNumOfBufferedElements =std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
     bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
     if (nngSetSndBufSizeResult != 0)
     {
@@ -151,11 +206,51 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
         SPDLOG_CRITICAL("Cannot set rec buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetRecBufSizeResult));
         std::abort();
     }
-    bool nngSetRcvMaxSize = nng_socket_set_size(socket, NNG_OPT_RECVMAXSZ, 0);
-    if (nngSetRcvMaxSize != 0)
+
+    return socket;
+}
+
+static nng_socket openPublisherSocket(const std::vector<std::string> &urls, std::chrono::milliseconds maxNngBlockingTime, bool isLocal)
+{
+    constexpr auto kSuccess = 0;
+
+    nng_socket socket;
+    const auto openResult = nng_pub0_open(&socket);
+
+    const bool cannotOpenSocket = kSuccess != openResult;
+    if (cannotOpenSocket)
     {
-	    SPDLOG_CRITICAL("Cannot set max receive size for url {} RV {}", url, nng_strerror(nngSetRcvMaxSize));
-	    std::abort();
+        SPDLOG_CRITICAL("Cannot open socket for sending ERROR: {}", nng_strerror(openResult));
+        std::abort();
+    }
+
+    for (const auto& url : urls)
+    {
+        const auto nngDialResult = nng_dial(socket, url.c_str(), nullptr, NNG_FLAG_NONBLOCK);
+
+        if (nngDialResult != kSuccess)
+        {
+            SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR SENDING. URL = '{}' Return value {}", url, nng_strerror(nngDialResult));
+            std::abort();
+        }
+    }
+
+    bool nngSetTimeoutResult = nng_setopt_ms(socket, NNG_OPT_SENDTIMEO, maxNngBlockingTime.count());
+    if (nngSetTimeoutResult != kSuccess)
+    {
+        SPDLOG_CRITICAL("Cannot set timeout for sending Return value {}", nng_strerror(nngSetTimeoutResult));
+        std::abort();
+    }
+
+    const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
+    const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
+    // const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
+    const long kNumOfBufferedElements =std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
+    bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
+    if (nngSetSndBufSizeResult != 0)
+    {
+        SPDLOG_CRITICAL("Cannot set send buf size {} for RV {}", kNumOfBufferedElements, nng_strerror(nngSetSndBufSizeResult));
+        std::abort();
     }
 
     return socket;
@@ -313,7 +408,7 @@ uint64_t Pipeline::getReceivePort(uint64_t senderId, bool isForeign)
     {
         return kMinimumPortNumber + kOwnConfiguration.kOwnNetworkSize + senderId;
     }
-    return kMinimumPortNumber + senderId;
+    return kMinimumPortNumber;
 }
 
 /* Returns the port the current node will use to send to receiverId
@@ -326,7 +421,7 @@ uint64_t Pipeline::getSendPort(uint64_t receiverId, bool isForeign)
     {
         return kMinimumPortNumber + kOwnConfiguration.kOtherNetworkSize + kOwnConfiguration.kNodeId;
     }
-    return kMinimumPortNumber + kOwnConfiguration.kNodeId;
+    return kMinimumPortNumber;
 }
 
 void Pipeline::startPipeline()
@@ -339,6 +434,7 @@ void Pipeline::startPipeline()
     const auto &kOwnUrl = kOwnNetworkUrls.at(kOwnConfiguration.kNodeId);
 
     SPDLOG_INFO("Configuring local pipeline threads");
+    std::unordered_set<std::string> sendUrls, recvUrls;
     for (size_t localNodeId = 0; localNodeId < kOwnNetworkUrls.size(); localNodeId++)
     {
         if (kOwnConfiguration.kNodeId == localNodeId)
@@ -347,8 +443,7 @@ void Pipeline::startPipeline()
             mLocalRecvBufs.emplace_back();
             continue;
         }
-
-        constexpr bool kIsLocal = true;
+        
         const auto &localUrl = kOwnNetworkUrls.at(localNodeId);
         const auto sendingPort = getSendPort(localNodeId, false);
         const auto receivingPort = getReceivePort(localNodeId, false);
@@ -356,13 +451,16 @@ void Pipeline::startPipeline()
         auto sendingUrl = "tcp://" + localUrl + ":" + std::to_string(sendingPort);
         auto receivingUrl = "tcp://" + kOwnUrl + ":" + std::to_string(receivingPort);
 
-        mLocalSendBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize));
-        mLocalRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize));
-        mLocalSendThreads.push_back(std::thread(&Pipeline::runSendThread, this, sendingUrl, mLocalSendBufs.back().get(),
-                                                localNodeId, kIsLocal));
-        mLocalRecvThreads.push_back(std::thread(&Pipeline::runRecvThread, this, receivingUrl,
-                                                mLocalRecvBufs.back().get(), localNodeId, kIsLocal));
+        sendUrls.insert(std::move(sendingUrl));
+        recvUrls.insert(std::move(receivingUrl));
     }
+
+    mLocalSendBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize));
+    mLocalRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize));
+    mLocalSendThreads.push_back(std::thread(&Pipeline::runPublisherThread, this, std::vector<std::string>(sendUrls.begin(), sendUrls.end()), mLocalSendBufs.back().get(),
+                                            -1ULL, true));
+    mLocalRecvThreads.push_back(std::thread(&Pipeline::runSubscriberThread, this, std::vector<std::string>(recvUrls.begin(), recvUrls.end()),
+                                            mLocalRecvBufs.back().get(), -1ULL, true));
 
     SPDLOG_INFO("Configuring foreign pipeline threads");
     for (size_t foreignNodeId = 0; foreignNodeId < kOtherNetworkUrls.size(); foreignNodeId++)
@@ -393,7 +491,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
 
     constexpr auto kNngSendSuccess = 0;
 
-    nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime, isLocal);
+    nng_socket sendSocket = openPairSendSocket(sendUrl, kMaxNngBlockingTime, isLocal);
     nng_msg *newMessage;
     uint64_t numSent{};
 
@@ -431,7 +529,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
-    nng_socket recvSocket = openReceiveSocket(recvUrl, kMaxNngBlockingTime, isLocal);
+    nng_socket recvSocket = openPairReceiveSocket(recvUrl, kMaxNngBlockingTime, isLocal);
     std::optional<nng_msg *> message;
     uint64_t numRecv{};
 
@@ -462,6 +560,86 @@ exit:
     const auto finishTime = std::chrono::steady_clock::now();
     closeSocket(recvSocket, finishTime);
 }
+
+void Pipeline::runPublisherThread(std::vector<std::string> sendUrls, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
+                             const uint64_t destNodeId, const bool isLocal)
+{
+    bindThreadAboveCpu(3);
+    const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
+    SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
+
+    constexpr auto kNngSendSuccess = 0;
+
+    nng_socket sendSocket = openPublisherSocket(sendUrls, kMaxNngBlockingTime, isLocal);
+    nng_msg *newMessage;
+    uint64_t numSent{};
+
+    while (not mShouldThreadStop.load(std::memory_order_relaxed))
+    {
+        while (not sendBuffer->try_dequeue(newMessage))
+        {
+            if (mShouldThreadStop.load(std::memory_order_relaxed))
+            {
+                goto exit;
+            }
+        }
+        while (sendMessage(sendSocket, newMessage) != kNngSendSuccess)
+        {
+            if (mShouldThreadStop.load(std::memory_order_relaxed))
+            {
+                nng_msg_free(newMessage);
+                goto exit;
+            }
+        }
+        numSent++;
+    }
+
+exit:
+    SPDLOG_CRITICAL("Published {} many to [{} : {}]", numSent, destNodeId, nodenet);
+    SPDLOG_INFO("Pipeline Sending Thread Exiting");
+    const auto finishTime = std::chrono::steady_clock::now();
+    closeSocket(sendSocket, finishTime);
+}
+
+void Pipeline::runSubscriberThread(std::vector<std::string> recvUrls, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
+                             const uint64_t sendNodeId, const bool isLocal)
+{
+    bindThreadAboveCpu(3);
+    const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
+    SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
+
+    nng_socket recvSocket = openSubscriberSocket(recvUrls, kMaxNngBlockingTime, isLocal);
+    std::optional<nng_msg *> message;
+    uint64_t numRecv{};
+
+    while (not mShouldThreadStop.load(std::memory_order_relaxed))
+    {
+        while (not(message = receiveMessage(recvSocket)).has_value())
+        {
+            if (mShouldThreadStop.load(std::memory_order_relaxed))
+            {
+                goto exit;
+            }
+        }
+
+        while (not recvBuffer->try_enqueue(*message))
+        {
+            if (mShouldThreadStop.load(std::memory_order_relaxed))
+            {
+                nng_msg_free(*message);
+                goto exit;
+            }
+        }
+        numRecv++;
+    }
+
+exit:
+    SPDLOG_CRITICAL("Recv {} many from [{} : {}]", numRecv, sendNodeId, nodenet);
+    SPDLOG_INFO("Pipeline Recv Thread Exiting");
+    const auto finishTime = std::chrono::steady_clock::now();
+    closeSocket(recvSocket, finishTime);
+}
+
 
 void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
                                     const Acknowledgment *const acknowledgment,
