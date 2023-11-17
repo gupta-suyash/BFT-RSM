@@ -90,7 +90,7 @@ static nng_socket openSubscriberSocket(const std::vector<std::string> &urls, std
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
     //const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
-    const long kNumOfBufferedElements =std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) * (1 + (uint64_t) isLocal * (kNumSocketsTotal - 1));
+    const long kNumOfBufferedElements = std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) * (1 + (uint64_t) isLocal * (kNumSocketsTotal - 1));
     bool nngSetTimeoutResult = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
     if (nngSetTimeoutResult != 0)
     {
@@ -193,7 +193,7 @@ static nng_socket openPairSendSocket(const std::string &url, std::chrono::millis
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
     // const long kNumOfBufferedElements = (isLocal)? std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE)) : 100;
-    const long kNumOfBufferedElements =std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
+    const long kNumOfBufferedElements = std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
     bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
     if (nngSetSndBufSizeResult != 0)
     {
@@ -485,7 +485,7 @@ void Pipeline::startPipeline()
 void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
                              const uint64_t destNodeId, const bool isLocal)
 {
-    bindThreadAboveCpu(3);
+    bindThreadAboveCpu(4);
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
 
@@ -525,7 +525,7 @@ exit:
 void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
                              const uint64_t sendNodeId, const bool isLocal)
 {
-    bindThreadAboveCpu(3);
+    bindThreadAboveCpu(4);
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
     SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
 
@@ -1018,7 +1018,7 @@ nng_msg* Pipeline::RecvFromOwnRsm()
     nng_msg *message;
     if (mLocalRecvBufs.front()->try_dequeue(message))
     {
-        return message; 
+        return message;
     }
 
     return nullptr;
