@@ -164,19 +164,28 @@ for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
 
+echo "SET RSM SIZES"
+echo "$num_nodes_rsm_1"
+echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME=$1
+GP_NAME=${experiment_name}
 ZONE="us-central1-a"
 TEMPLATE="resdb-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
-		yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-		exit 1
+	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	exit 1
 }
 
 trap exit_handler INT
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
+echo "Create group name"
+echo "${GP_NAME}"
+echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
+echo "${ZONE}"
+echo "${TEMPLATE}"
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair 
+#> /dev/null 2>&1
 
 rm /tmp/all_ips.txt
 num_ips_read=0
@@ -190,10 +199,9 @@ done
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
 RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
 CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
+echo "About to parallel!"
+#parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
 
-parallel -v --jobs=0 echo {1} ::: "${RSM[@]:0:$((num_nodes_rsm_1-1))}";
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-exit 1
 count=0
 while ((${count} < ${num_nodes_rsm_1})); do
 	echo "RSM1: ${RSM1[$count]}"
@@ -403,7 +411,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			machines+=("machine-$((count + 1))")
 			urls+=(http://"${RSM[$count]}":2380)
 			count=$((count + 1))
-			fi
 		done
 		# Run the first etcd cluster
 		for i in ${!RSM[@]}; do
