@@ -174,7 +174,7 @@ void runCrashedNodeReceiveThread(const std::shared_ptr<Pipeline> pipeline)
         {
             nng_msg_free(foreignMessage);
         }
-        auto [localMessage, localSender] = pipeline->RecvFromOwnRsm();
+        auto localMessage = pipeline->RecvFromOwnRsm();
         if (localMessage)
         {
             nng_msg_free(localMessage);

@@ -408,7 +408,7 @@ uint64_t Pipeline::getReceivePort(uint64_t senderId, bool isForeign)
     {
         return kMinimumPortNumber + kOwnConfiguration.kOwnNetworkSize + senderId;
     }
-    return kMinimumPortNumber;
+    return kMinimumPortNumber + kOwnConfiguration.kNodeId;
 }
 
 /* Returns the port the current node will use to send to receiverId
@@ -455,8 +455,8 @@ void Pipeline::startPipeline()
         recvUrls.insert(std::move(receivingUrl));
     }
 
-    mLocalSendBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize));
-    mLocalRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize));
+    mLocalSendBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize * kOwnNetworkUrls.size()));
+    mLocalRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize * kOwnNetworkUrls.size()));
     mLocalSendThreads.push_back(std::thread(&Pipeline::runPublisherThread, this, std::vector<std::string>(sendUrls.begin(), sendUrls.end()), mLocalSendBufs.back().get(),
                                             -1ULL, true));
     mLocalRecvThreads.push_back(std::thread(&Pipeline::runSubscriberThread, this, std::vector<std::string>(recvUrls.begin(), recvUrls.end()),
@@ -976,51 +976,7 @@ void Pipeline::SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&messageDat
 
 bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
 {
-    static std::bitset<64> remainingDestinations{};
-    static nng_msg *curMessage{};
-
-    const bool isContinuation = remainingDestinations.any();
-
-    if (not isContinuation)
-    {
-        remainingDestinations = mAliveNodesLocal;
-        remainingDestinations.reset(kOwnConfiguration.kNodeId);
-        curMessage = nullptr;
-    }
-
-    std::bitset<64> failedSends{};
-    while (remainingDestinations.any() && not is_test_over())
-    {
-        const auto curDestination = std::countr_zero(remainingDestinations.to_ulong());
-        remainingDestinations.reset(curDestination);
-        const auto &curBuffer = mLocalSendBufs.at(curDestination);
-
-        if (curMessage)
-        {
-            // curMessage is correctly set
-        }
-        else if (remainingDestinations.any() || failedSends.any())
-        {
-            nng_msg_dup(&curMessage, message);
-        }
-        else
-        {
-            curMessage = message;
-        }
-
-        if (curBuffer->try_enqueue(curMessage))
-        {
-            curMessage = nullptr;
-        }
-        else
-        {
-            failedSends.set(curDestination);
-            // curMessage <- message that should be used next time
-        }
-    }
-    remainingDestinations = failedSends;
-
-    return remainingDestinations.none();
+    return mLocalSendBufs.front()->try_enqueue(message);
 }
 
 /* This function is used to receive messages from the other RSM.
@@ -1057,38 +1013,13 @@ pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOtherRsm()
 /* This function is used to receive messages from the nodes in own RSM.
  *
  */
-pipeline::ReceivedCrossChainMessage Pipeline::RecvFromOwnRsm()
+nng_msg* Pipeline::RecvFromOwnRsm()
 {
-    static uint64_t curNode{0ULL - 1};
     nng_msg *message;
-
-    curNode = (curNode + 1 == mLocalRecvBufs.size()) ? 0 : curNode + 1;
-
-    for (uint64_t node = curNode; node < mLocalRecvBufs.size(); node++)
+    if (mLocalRecvBufs.front()->try_dequeue(message))
     {
-        if (node == kOwnConfiguration.kNodeId)
-        {
-            continue;
-        }
-        const auto &curBuf = mLocalRecvBufs.at(node);
-        if (curBuf->try_dequeue(message))
-        {
-            return pipeline::ReceivedCrossChainMessage{.message = message, .senderId = node};
-        }
+        return message; 
     }
 
-    for (uint64_t node = 0; node < curNode; node++)
-    {
-        if (node == kOwnConfiguration.kNodeId)
-        {
-            continue;
-        }
-        const auto &curBuf = mLocalRecvBufs.at(node);
-        if (curBuf->try_dequeue(message))
-        {
-            return pipeline::ReceivedCrossChainMessage{.message = message, .senderId = node};
-        }
-    }
-
-    return {};
+    return nullptr;
 }

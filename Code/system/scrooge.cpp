@@ -813,7 +813,7 @@ void runScroogeReceiveThread(
             }
         }
 
-        const auto [message, senderId] = pipeline->RecvFromOwnRsm();
+        const auto message = pipeline->RecvFromOwnRsm();
 
         if (message)
         {

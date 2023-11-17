@@ -54,7 +54,7 @@ class Pipeline
     bool rebroadcastToOwnRsm(nng_msg *message);
 
     pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
-    pipeline::ReceivedCrossChainMessage RecvFromOwnRsm();
+    nng_msg* RecvFromOwnRsm();
 
     void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
     void SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
