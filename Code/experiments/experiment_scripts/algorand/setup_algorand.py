@@ -24,12 +24,12 @@ wallet_name="default"
 
 def main():
     if len(sys.argv) < 5:
-        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <starting_algos> <config file> <client_ip>\n')
+        sys.stderr.write('Usage: python3 %s <app_pathname> <script_pathname> <config file> <starting_algos> <client_ip>\n')
         sys.exit(1)
     app_pathname = sys.argv[1]
     script_pathname = sys.argv[2]
     # Step 1: Install relevant algorand software
-    run_install = ". " + script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name + " " + sys.argv[4]
+    run_install = ". " + script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name + " " + sys.argv[3]
     print("Run install: ", run_install)
     print("Get current directory: ", os.getcwd())
     subprocess.check_call([". " + script_pathname + install_script, app_pathname, script_pathname, wallet_name, sys.argv[4]], shell=True, stdout=sys.stdout, stderr=sys.stdout)
