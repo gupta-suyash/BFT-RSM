@@ -30,7 +30,7 @@ exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
 log_dir="${workdir}/BFT-RSM/Code/experiments/results/"
 json_dir="${workdir}/BFT-RSM/Code/experiments/experiment_json/"
-algorand_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/algorand/"
+algorand_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/go-algorand/"
 resdb_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/resdb/"
 raft_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raft-application/"
 algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/algorand/"
@@ -70,12 +70,12 @@ if [ "$file_rsm" = "false" ]; then
 fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(2)
-rsm2_size=(2)
+rsm1_size=(4)
+rsm2_size=(4)
 rsm1_fail=(0)
 rsm2_fail=(0)
-RSM1_Stake=(1 1)
-RSM2_Stake=(1 1)
+RSM1_Stake=(1 1 1 1)
+RSM2_Stake=(1 1 1 1)
 klist_size=(64)
 packet_size=(100 1000000)
 batch_size=(200000)
@@ -170,7 +170,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME=${experiment_name}
 ZONE="us-central1-a"
-TEMPLATE="resdb-template"
+TEMPLATE="updated-app-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
@@ -455,13 +455,16 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		cp $genesis_json ${algorand_scripts_dir}/genesis_creation/
 		mkdir ${algorand_scripts_dir}/addresses/
 		#Relay nodes
-		ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_script_dir}"' '"${algorand_scripts_dir}"'/relay_config.json '"${per_node_algos}"''
+		ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_script_dir}"' '"${algorand_scripts_dir}"'/scripts/relay_config.json '"${per_node_algos}"' '"${client_ip}"''
 		echo "Sent Relay node information!"
 		#Participation nodes
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/node_config.json '"${per_node_algos}"'' ::: "${RSM[@]:1:$((size-1))}";
-		
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/node_config.json '"${per_node_algos}"' '"${client_ip}"'' ::: "${RSM[@]:1:$((size-1))}";
+		#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+		echo "FINISHED WITH SETUP"
+		exit 1
+
 		### Get genesis files ###
-		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:~/{1}_gen.json ${algorand_scripts_dir}/genesis_creation/::: "${RSM[@]:0:$((size-1))}"
+		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_gen.json ${algorand_scripts_dir}/genesis_creation/::: "${RSM[@]:0:$((size-1))}"
 		# Combine genesis pieces into one file
 		count=0
 		while ((count < size)); do
@@ -472,10 +475,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@{1}:${algorand_script_dir}/node/ ::: "${RSM[@]:0:$((size-1))}"
 
 		### Get address matchings ###
-		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:~/{1}_addr.json ${algorand_scripts_dir}/address_creation/::: "${RSM[@]:0:$((size-1))}"
-		# Combine genesis pieces into one file
+		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_addr.json ${algorand_scripts_dir}/address_creation/::: "${RSM[@]:0:$((size-1))}"
+		# Runn address swap for each machine file
 		while ((count < size)); do
-			${algorand_scripts_dir}/setup_algorand.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}
+			${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}
 			count=$((count + 1))
 		done
 		# Copy final genesis files onto all machines
@@ -485,7 +488,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		#rm -rf ./genesis_creation
 		#rm -rf ./addresses
 		yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-		exit
+		exit 1
 		# Finish wallet setup + run Algorand - TODO STILL UNFINISHED
 		#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_script_dir}/run_algorand_nodes.py ${genesis_json} ${algorand_app_dir} ${algorand_script_dir} ${per_node_algos} ${client_ip}' ::: "${RSM[@]:1:$rsm_size}";
 	}

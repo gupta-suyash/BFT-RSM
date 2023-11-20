@@ -12,7 +12,7 @@ import concurrent.futures
 import json
 
 # setup_dir = os.path.realpath(os.path.dirname(__file__))
-sys.path.append("../util/")
+sys.path.append("/home/scrooge/BFT-RSM/Code/experiments/experiment_scripts/util/") # HARDCODED
 from json_util import *
 from ssh_util import *
 
@@ -34,7 +34,7 @@ def main():
     print("Get current directory: ", os.getcwd())
     subprocess.check_call([". " + script_pathname + install_script, app_pathname, script_pathname, wallet_name, sys.argv[4]], shell=True, stdout=sys.stdout, stderr=sys.stdout)
     # Step 2: Setup Algorand nodes
-    generate_partkey(script_pathname, keygen_script,  int(sys.argv[3]), sys.argv[5])
+    generate_partkey(script_pathname, keygen_script,  int(sys.argv[4]), sys.argv[5])
     # At the end of this, address.txt + mini_genesis.json both created
 
 def generate_partkey(pathname, keygen_script, starting_algos, client_ip):
@@ -65,7 +65,7 @@ def generate_partkey(pathname, keygen_script, starting_algos, client_ip):
     
 
     # Open local address json and write local address information to facilitate wallet matching process
-    addrf = open("~/" + str(IPAddr) + "_addr.json", 'a') # get actual directory
+    addrf = open(pathname + str(IPAddr) + "_addr.json", 'a') # get actual directory
     node_path = pathname + "/node/"
     api_token = open(node_path + "/algod.token", 'r')
     kmd_token = open(node_path + "/kmd-v0.5/kmd.token", 'r')
