@@ -401,20 +401,39 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
 
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
-        while (not sendBuffer->try_dequeue(newMessage))
+        while (true)
         {
+            if (sendBuffer->try_dequeue(newMessage))
+            {
+                break;
+            }
+            if (sendBuffer->try_dequeue(newMessage))
+            {
+                break;
+            }
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
                 goto exit;
             }
+            std::this_thread::yield();
         }
-        while (sendMessage(sendSocket, newMessage) != kNngSendSuccess)
+        
+        while (true)
         {
+            if (sendMessage(sendSocket, newMessage) == kNngSendSuccess)
+            {
+                break;
+            }
+            if (sendMessage(sendSocket, newMessage) == kNngSendSuccess)
+            {
+                break;
+            }
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
                 nng_msg_free(newMessage);
                 goto exit;
             }
+            std::this_thread::yield();
         }
         numSent++;
     }
@@ -439,21 +458,39 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
 
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
-        while (not(message = receiveMessage(recvSocket)).has_value())
+        while (true)
         {
+            if ((message = receiveMessage(recvSocket)).has_value())
+            {
+                break;
+            }
+            if ((message = receiveMessage(recvSocket)).has_value())
+            {
+                break;
+            }
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
                 goto exit;
             }
+            std::this_thread::yield();
         }
 
-        while (not recvBuffer->try_enqueue(*message))
+        while (true)
         {
+            if (recvBuffer->try_enqueue(*message))
+            {
+                break;
+            }
+            if (recvBuffer->try_enqueue(*message))
+            {
+                break;
+            }
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
                 nng_msg_free(*message);
                 goto exit;
             }
+            std::this_thread::yield();
         }
         numRecv++;
     }
