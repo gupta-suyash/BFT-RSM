@@ -475,7 +475,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		### Get address matchings ###
 		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_addr.json ${algorand_scripts_dir}/addresses/ ::: "${RSM[@]:0:$((size))}";
 		# Runn address swap for each machine file
-		while ((count < size)); do
+		count=0
+        while ((count < size)); do
+            echo "COMMAND: ${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}"
 			${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}
 			count=$((count + 1))
 		done
