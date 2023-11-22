@@ -13,6 +13,16 @@ echo -n "Enter the name of the experiment being run: "
 
 read experiment_name
 
+echo -n "Have you checked what applications you are running? Type Y or N "
+
+read application_acknowledgement
+
+if [ $application_acknowledgement != "Y" ]; then
+	echo "Please check the application you are running."
+	echo "Otherwise you will be sad :') Exiting now..."
+	exit 1
+fi
+
 echo "Running Experiment: ${experiment_name}"
 
 # Name of profile we are running out of
@@ -30,9 +40,9 @@ exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
 log_dir="${workdir}/BFT-RSM/Code/experiments/results/"
 json_dir="${workdir}/BFT-RSM/Code/experiments/experiment_json/"
-algorand_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/algorand/"
+algorand_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/go-algorand/"
 resdb_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/resdb/"
-raft_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raftDG/"
+raft_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raft-application/"
 algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/algorand/"
 resdb_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
 raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
@@ -62,8 +72,12 @@ file_rsm="false"
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="resdb"
-receive_rsm="resdb"
+send_rsm="raft"
+receive_rsm="raft"
+echo "Send rsm: "
+echo $send_rsm
+echo "Receive rsm: "
+echo $receive_rsm
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
@@ -81,6 +95,19 @@ packet_size=(100 1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
+
+### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
+# rsm1_size=(4 13 25 46)
+# rsm2_size=(4 13 25 46)
+# rsm1_fail=(0 0 0 0)
+# rsm2_fail=(0 0 0 0)
+# RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+# RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+# klist_size=(64)
+# packet_size=(100 1000000)
+# batch_size=(200000)
+# batch_creation_time=(1ms)
+# pipeline_buffer_size=(8)
 
 ### Exp: Equal stake RSMs of size 4; message size 100.
 #rsm1_size=(4)
@@ -151,19 +178,28 @@ for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
 
+echo "SET RSM SIZES"
+echo "$num_nodes_rsm_1"
+echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="scrooge-micah-resdb"
+GP_NAME=${experiment_name}
 ZONE="us-central1-a"
-TEMPLATE="resdb-template"
+TEMPLATE="raft-app-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
-		#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-		exit 1
+	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	exit 1
 }
 
 trap exit_handler INT
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair > /dev/null 2>&1
+echo "Create group name"
+echo "${GP_NAME}"
+echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
+echo "${ZONE}"
+echo "${TEMPLATE}"
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair 
+#> /dev/null 2>&1
 
 rm /tmp/all_ips.txt
 num_ips_read=0
@@ -177,6 +213,8 @@ done
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
 RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
 CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
+echo "About to parallel!"
+#parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
 
 count=0
 while ((${count} < ${num_nodes_rsm_1})); do
@@ -203,7 +241,6 @@ while ((${count} < ${client})); do
 	fi
 done
 
-# TODO: Change if networkurls script fails to copy
 sleep 300
 echo "Starting Experiment"
 
@@ -344,7 +381,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		count=$((count + 1))
 	done
 	cat network0urls.txt
-	cp network0urls.txt ${network_dir} #copy to the expected folder.
+	cp network0urls.txt ${network_dir} #cops to the expected folder.
 	echo " "
 
 	# Next, we create the configuration file "network1urls.txt" through echoing and redirection.
@@ -366,7 +403,114 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
+	############# Setup all necessary external applications #############
+	function start_raft() {
+		echo "Raft RSM is being used!"
+		# Take in arguments
+		local client_ip=$1
+		local size=$2
+		local RSM=("${!3}")
+
+		# Set constants
+		etcd_path="${raft_app_dir}/etcd-main"
+		etcd_bin_path="${etcd_path}/bin"
+		benchmark_bin_path="${raft_app_dir}/bin"
+		TOKEN=token-77
+		CLUSTER_STATE=new
+		count=0
+		machines=()
+		urls=()
+		while ((${count} < ${size})); do
+			echo "RSM: ${RSM[$count]}"
+			machines+=("machine-$((count + 1))")
+			urls+=(http://"${RSM[$count]}":2380)
+			count=$((count + 1))
+		done
+		# Run the first etcd cluster
+		for i in ${!RSM[@]}; do
+			this_name=${machines[$i]}
+			this_ip=${RSM[$i]}
+			this_url=${urls[$i]}
+			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; 
+			   					    export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; 
+								    export CLUSTER_STATE=${CLUSTER_STATE}; 
+								    export CLUSTER=${this_url}; 
+								    export PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}; 
+								    cd \$HOME;
+								    echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};
+								    etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN}" &
+		done
+		# Sleep to wait for Raft server to start
+		sleep 60
+		# Start benchmark
+    	echo "Running benchmark..."
+	printf -v joined '%s,' "${RSM[@]}:2379"
+    	export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
+		benchmark --help
+		(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
+		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
+		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
+		echo "DONE WITH FIRST RAFT ITERATION"
+		exit 1
+	}
+
 	# Setup all necessary external applications
+	function start_algorand() {
+		echo "######################################################Algorand RSM is being used!"
+		# Take in arguments
+		local client_ip=$1
+		local size=$2
+		local RSM=("${!3}")
+		echo "${RSM[@]}"
+
+		genesis_json=${algorand_scripts_dir}/scripts/genesis.json;
+		cat $genesis_json
+		per_node_algos=$((starting_algos / size));
+		echo $per_node_algos
+		rm -rf ${algorand_scripts_dir}/genesis_creation
+		rm -rf ${algorand_scripts_dir}/addresses
+		mkdir ${algorand_scripts_dir}/genesis_creation/
+		cp $genesis_json ${algorand_scripts_dir}/genesis_creation/
+		mkdir ${algorand_scripts_dir}/addresses/
+		#Relay nodes (which also happens to be the client nodes)
+		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/relay_config.json '"${per_node_algos}"' '"${client_ip}"''
+		echo "Sent Relay node information!"
+		#Participation nodes
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/node_config.json '"${per_node_algos}"' '"${client_ip}"'' ::: "${RSM[@]:0:$((size))}";
+
+		### Get genesis files ###
+		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_gen.json ${algorand_scripts_dir}/genesis_creation/ ::: "${RSM[@]:0:$((size))}";
+		# Combine genesis pieces into one file
+		count=0
+		while ((count < size)); do
+			echo $(genesis=$(jq 'select(has("addr"))' ${algorand_scripts_dir}/genesis_creation/${RSM[$count]}_gen.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' ${algorand_scripts_dir}/genesis_creation/genesis.json) > ${algorand_scripts_dir}/genesis_creation/genesis.json
+			count=$((count + 1))
+		done
+		# Copy final genesis files onto all machines
+		scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@${client_ip}:${algorand_scripts_dir}/node/
+		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@{1}:${algorand_scripts_dir}/node/ ::: "${RSM[@]:0:$((size))}";
+
+		### Get address matchings ###
+		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_addr.json ${algorand_scripts_dir}/addresses/ ::: "${RSM[@]:0:$((size))}";
+		# Runn address swap for each machine file
+		count=0
+        while ((count < size)); do
+            echo "COMMAND: ${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}"
+			${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}
+			count=$((count + 1))
+		done
+		# Copy final wallet address files onto all machines
+		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
+
+		### Finish running Algorand
+		#Relay nodes
+		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"''
+		#Participation nodes
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"'' ::: "${RSM[@]:0:$((size))}";
+        echo "Algorand started and running!"
+        exit 1
+	}
+	
 	function start_resdb() {
 		echo "ResDB RSM is being used!"
 		# Take in arguments
@@ -399,20 +543,16 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		sleep 120 # Sleeping to make sure resdb has had a chance to start
 	}
 
-	function start_raft() {
-		echo "Raft RSM is being used!"
-	}
-
 	# Sending RSM
-	#if [ "$send_rsm" = "algo" ]; then
-	#	start_algorand(${RSM1}, $r1_size)
-	if [ "$send_rsm" = "resdb" ]; then
+	if [ "$send_rsm" = "algo" ]; then
+		start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+	elif [ "$send_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for sending."
 		cluster_idx=1
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM1[@]"
 	elif [ "$send_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for sending."
-	#	start_raft(${RSM1}, $r1_size)
+		start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
 	elif [ "$send_rsm" = "file" ]; then
 		echo "File RSM is being used for sending. No extra setup necessary."
 	else
@@ -420,22 +560,23 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	fi
 
 	# Receiving RSM
-	#if [ "$receive_rsm" = "algo" ]; then
-	#	echo "Algo RSM is being used for receiving."
-	#	start_algorand(${RSM2}, $r2_size)
-	if [ "$receive_rsm" = "resdb" ]; then
+	if [ "$receive_rsm" = "algo" ]; then
+		echo "Algo RSM is being used for receiving."
+		start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+	elif [ "$receive_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for receiving."
 		cluster_idx=2
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM2[@]"
 	elif [ "$receive_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for receiving."
-	#	start_raft(${RSM2}, $r2_size)
+		start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
 	elif [ "$receive_rsm" = "file" ]; then
 		echo "File RSM is being used for receiving. No extra setup necessary."
 	else
 		echo "INVALID RECEIVING RSM."
 	fi
-
+	echo "Raft is setup!"
+	exit 1
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
 		scrooge="false"
 		all_to_all="false"
@@ -465,6 +606,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 							# Next, we make the experiment.json for backward compatibility.
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
+							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 							# Next, we run the script.
 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
@@ -478,7 +621,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 
 echo "taking down experiment"
-#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+
+###### UNDO
+# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 
