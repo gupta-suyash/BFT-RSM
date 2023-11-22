@@ -484,16 +484,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# Copy final wallet address files onto all machines
 		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
 
-		# Remove genesis + address directories
-		#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-		echo "SETUP COMPLETE WITHOUT STARTING ALGORAND"
-		exit 1
-		# Finish running Algorand
+		### Finish running Algorand
 		#Relay nodes
 		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"''
-		echo "Sent Relay node information!"
 		#Participation nodes
 		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"'' ::: "${RSM[@]:0:$((size))}";
+        echo "Algorand started and running!"
+        exit 1
 	}
 	
 	function start_resdb() {
