@@ -29,7 +29,7 @@ def update_accts(path_to_json, curr_ip, send_ip, receive_ip): # Check the client
     currf = open(path_to_json + "/" + curr_ip + "_addr.json", 'r+') # get actual directory
     sendf = open(path_to_json + "/" + send_ip + "_addr.json", 'r+')
     recvf = open(path_to_json + "/" + receive_ip + "_addr.json", 'r+')
-    nodef = open(path_to_json + "/" + receive_ip + "_node.json", 'a')
+    nodef = open(path_to_json + "/" + curr_ip + "_node.json", 'a')
     currdata = json.load(currf)
     senddata = json.load(sendf)
     recvdata = json.load(recvf)
