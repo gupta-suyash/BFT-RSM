@@ -472,41 +472,43 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		mkdir ${algorand_scripts_dir}/genesis_creation/
 		cp $genesis_json ${algorand_scripts_dir}/genesis_creation/
 		mkdir ${algorand_scripts_dir}/addresses/
-		#Relay nodes
-		ssh -o StrictHostKeyChecking=no -t "${RSM[0]}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/relay_config.json '"${per_node_algos}"' '"${client_ip}"''
+		#Relay nodes (which also happens to be the client nodes)
+		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/relay_config.json '"${per_node_algos}"' '"${client_ip}"''
 		echo "Sent Relay node information!"
 		#Participation nodes
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/node_config.json '"${per_node_algos}"' '"${client_ip}"'' ::: "${RSM[@]:1:$((size-1))}";
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/node_config.json '"${per_node_algos}"' '"${client_ip}"'' ::: "${RSM[@]:0:$((size))}";
 
 		### Get genesis files ###
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_gen.json ${algorand_scripts_dir}/genesis_creation/ ::: "${RSM[@]:0:$((size-1))}";
+		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_gen.json ${algorand_scripts_dir}/genesis_creation/ ::: "${RSM[@]:0:$((size))}";
 		# Combine genesis pieces into one file
 		count=0
 		while ((count < size)); do
-			echo $(genesis=$(jq 'select(has("addr"))' ${algorand_scripts_dir}/genesis_creation/${RSM[$count]}_gen.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' genesis.json) > genesis.json
+			echo $(genesis=$(jq 'select(has("addr"))' ${algorand_scripts_dir}/genesis_creation/${RSM[$count]}_gen.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' ${algorand_scripts_dir}/genesis_creation/genesis.json) > ${algorand_scripts_dir}/genesis_creation/genesis.json
 			count=$((count + 1))
 		done
 		# Copy final genesis files onto all machines
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@{1}:${algorand_scripts_dir}/node/ ::: "${RSM[@]:0:$((size-1))}";
+		scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@${client_ip}:${algorand_scripts_dir}/node/
+		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@{1}:${algorand_scripts_dir}/node/ ::: "${RSM[@]:0:$((size))}";
 
 		### Get address matchings ###
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_addr.json ${algorand_scripts_dir}/address_creation/::: "${RSM[@]:0:$((size-1))}";
+		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_addr.json ${algorand_scripts_dir}/addresses/ ::: "${RSM[@]:0:$((size))}";
 		# Runn address swap for each machine file
-		while ((count < size)); do
+		count=0
+        while ((count < size)); do
+            echo "COMMAND: ${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}"
 			${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}
 			count=$((count + 1))
 		done
-		# Copy final genesis files onto all machines
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addr_creation/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size-1))}";
+		# Copy final wallet address files onto all machines
+		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
 
-		# Remove genesis + address directories
-		#rm -rf ./genesis_creation
-		#rm -rf ./addresses
-		#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-		echo "SETUP COMPLETE WITHOUT STARTING ALGORAND"
-		exit 1
-		# Finish running Algorand - TODO STILL UNFINISHED
-		#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '${algorand_scripts_dir}/run_algorand_nodes.py ${genesis_json} ${algorand_app_dir} ${algorand_scripts_dir} ${per_node_algos} ${client_ip}' ::: "${RSM[@]:1:$rsm_size}";
+		### Finish running Algorand
+		#Relay nodes
+		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"''
+		#Participation nodes
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"'' ::: "${RSM[@]:0:$((size))}";
+        echo "Algorand started and running!"
+        exit 1
 	}
 	
 	function start_resdb() {
