@@ -13,6 +13,16 @@ echo -n "Enter the name of the experiment being run: "
 
 read experiment_name
 
+echo -n "Have you checked what applications you are running? Type Y or N "
+
+read application_acknowledgement
+
+if [ $application_acknowledgement != "Y" ]; then
+	echo "Please check the application you are running."
+	echo "Otherwise you will be sad :') Exiting now..."
+	exit 1
+fi
+
 echo "Running Experiment: ${experiment_name}"
 
 # Name of profile we are running out of
@@ -62,8 +72,12 @@ file_rsm="false"
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="algo"
-receive_rsm="algo"
+send_rsm="raft"
+receive_rsm="raft"
+echo "Send rsm: "
+echo $send_rsm
+echo "Receive rsm: "
+echo $receive_rsm
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
@@ -170,7 +184,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME=${experiment_name}
 ZONE="us-central1-a"
-TEMPLATE="updated-app-template"
+TEMPLATE="raft-app-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
@@ -418,22 +432,26 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			this_ip=${RSM[$i]}
 			this_url=${urls[$i]}
 			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; 
-														export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; 
-														export CLUSTER_STATE=${CLUSTER_STATE}; 
-														export CLUSTER=${this_url}; 
-														export PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}; 
-														cd \$HOME;
-														echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};
-														etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN}" &
+			   					    export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; 
+								    export CLUSTER_STATE=${CLUSTER_STATE}; 
+								    export CLUSTER=${this_url}; 
+								    export PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}; 
+								    cd \$HOME;
+								    echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};
+								    etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN}" &
 		done
 		# Sleep to wait for Raft server to start
 		sleep 60
 		# Start benchmark
     	echo "Running benchmark..."
+	printf -v joined '%s,' "${RSM[@]}:2379"
     	export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
-		(benchmark --endpoints=${RSM[@]} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
-		benchmark --endpoints=${RSM[@]} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
-		benchmark --endpoints=${RSM[@]} --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
+		benchmark --help
+		(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
+		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
+		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
+		echo "DONE WITH FIRST RAFT ITERATION"
+		exit 1
 	}
 
 	# Setup all necessary external applications
@@ -555,7 +573,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	else
 		echo "INVALID RECEIVING RSM."
 	fi
-
+	echo "Raft is setup!"
+	exit 1
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
 		scrooge="false"
 		all_to_all="false"
