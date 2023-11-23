@@ -358,8 +358,10 @@ void Pipeline::startPipeline()
         auto sendingUrl = "tcp://" + localUrl + ":" + std::to_string(sendingPort);
         auto receivingUrl = "tcp://" + kOwnUrl + ":" + std::to_string(receivingPort);
 
-        mLocalSendBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize));
-        mLocalRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize));
+        const auto localMultiplier = 64 / (std::max<uint64_t>(200000, PACKET_SIZE) / 200000) * 19 / kOwnConfiguration.kOwnNetworkSize;
+
+        mLocalSendBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize * localMultiplier));
+        mLocalRecvBufs.push_back(std::make_unique<pipeline::MessageQueue<nng_msg *>>(kBufferSize * localMultiplier));
         mLocalSendThreads.push_back(std::thread(&Pipeline::runSendThread, this, sendingUrl, mLocalSendBufs.back().get(),
                                                 localNodeId, kIsLocal));
         mLocalRecvThreads.push_back(std::thread(&Pipeline::runRecvThread, this, receivingUrl,
