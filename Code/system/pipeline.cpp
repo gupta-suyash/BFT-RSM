@@ -79,6 +79,7 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
     const long kNumOfBufferedElements = std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
+    addMetric("socket-buffer-size-receive", kNumOfBufferedElements);
     bool nngSetTimeoutResult = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
     if (nngSetTimeoutResult != 0)
     {
@@ -139,6 +140,7 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = OWN_RSM_SIZE + OTHER_RSM_SIZE;
     const long kNumOfBufferedElements = std::min<long>(8192, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(80000, PACKET_SIZE));
+    addMetric("socket-buffer-size-send", kNumOfBufferedElements);
     bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
     if (nngSetSndBufSizeResult != 0)
     {
