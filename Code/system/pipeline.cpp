@@ -209,9 +209,9 @@ static void closeSocket(nng_socket &socket, std::chrono::steady_clock::time_poin
 {
     // NNG says to wait before closing
     // https://nng.nanomsg.org/man/tip/nng_close.3.html
-    const auto bufferTime = 2s;
-    std::this_thread::sleep_until(closeTime + bufferTime);
-    nng_close(socket);
+    // const auto bufferTime = 2s;
+    // std::this_thread::sleep_until(closeTime + bufferTime);
+    // nng_close(socket); <- This hangs the entire program.... Thanks nng....
 }
 
 static nng_msg *serializeProtobuf(scrooge::CrossChainMessage &proto)
