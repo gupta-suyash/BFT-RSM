@@ -17,7 +17,7 @@ rm $1/node/privatenet-v1/ledger.*
 
 # Start the Algorand service
 ~/go/bin/goal kmd start
-~/go/bin/goal node restart -p "$2"
+~/go/bin/goal node restart -p $2
 
 # Start the Algorand applications (wallets)
 cd $0/wallet_app
