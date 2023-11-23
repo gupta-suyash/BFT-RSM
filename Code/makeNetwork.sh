@@ -13,16 +13,6 @@ echo -n "Enter the name of the experiment being run: "
 
 read experiment_name
 
-echo -n "Have you checked what applications you are running? Type Y or N "
-
-read application_acknowledgement
-
-if [ $application_acknowledgement != "Y" ]; then
-	echo "Please check the application you are running."
-	echo "Otherwise you will be sad :') Exiting now..."
-	exit 1
-fi
-
 echo "Running Experiment: ${experiment_name}"
 
 # Name of profile we are running out of
@@ -81,6 +71,17 @@ echo $receive_rsm
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
+fi
+
+echo "The applications you are running are $send_rsm and $receive_rsm." 
+echo -n "Please acknolwedge and accept/reject. Type Y or N: "
+
+read application_acknowledgement
+
+if [ $application_acknowledgement != "Y" ]; then
+	echo "Please check the application you are running."
+	echo "Otherwise you will be sad :') Exiting now..."
+	exit 1
 fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -184,7 +185,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME=${experiment_name}
 ZONE="us-central1-a"
-TEMPLATE="raft-app-template"
+TEMPLATE="updated-app-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
@@ -427,6 +428,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			count=$((count + 1))
 		done
 		# Run the first etcd cluster
+		printf -v cluster '%s,' "${machines[@]}=${urls[@]}"
 		for i in ${!RSM[@]}; do
 			this_name=${machines[$i]}
 			this_ip=${RSM[$i]}
@@ -434,7 +436,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; 
 			   					    export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; 
 								    export CLUSTER_STATE=${CLUSTER_STATE}; 
-								    export CLUSTER=${this_url}; 
+								    export CLUSTER="${joined%,}"; 
 								    export PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}; 
 								    cd \$HOME;
 								    echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};
@@ -443,9 +445,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# Sleep to wait for Raft server to start
 		sleep 60
 		# Start benchmark
-    	echo "Running benchmark..."
-	printf -v joined '%s,' "${RSM[@]}:2379"
-    	export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
+		echo "Running benchmark..."
+		printf -v joined '%s,' "${RSM[@]}:2379"
+    		export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
 		benchmark --help
 		(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
 		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
