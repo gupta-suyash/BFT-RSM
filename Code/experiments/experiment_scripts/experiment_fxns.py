@@ -239,7 +239,7 @@ def run(configJson, experimentName, expDir):
                 file_names.append(f'log_{cluster_id}_{node_id}')
                 ips.append(ip)
                 
-            executeCommand(f'parallel --jobs=0 scp {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
+            executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
             executeCommand(f'mv node* {expDir}')
             executeCommand(f'cp config.h {expDir}')
         except Exception as e:
