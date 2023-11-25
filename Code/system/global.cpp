@@ -9,6 +9,8 @@
 #include <sched.h>
 #include <sys/sysinfo.h>
 #include <unordered_map>
+#include <unistd.h>
+#include <pwd.h>
 
 #include "config.h"
 
@@ -166,7 +168,7 @@ void bindThreadToCpu(int cpu)
         if (set.test(cpu) || cpu >= numCores)
         {
             SPDLOG_CRITICAL("Cannot allocate a unique core for this thread, num_cores={}, requested={}", numCores, cpu);
-            std::abort();
+            // std::abort();
         }
         set.set(cpu);
     }
@@ -184,14 +186,13 @@ void bindThreadToCpu(int cpu)
     }
 }
 
-void bindThreadAboveCpu(int cpu)
+void bindThreadBetweenCpu(const int cpuL, const int cpuH)
 {
-    cpu--;
     const auto numCores = get_nprocs();
 
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
-    for (int i = cpu + 1; i < numCores; i++)
+    for (int i = cpuL - 1; i < cpuH; i++)
     {
         CPU_SET(i, &cpuset);
     }
@@ -199,8 +200,7 @@ void bindThreadAboveCpu(int cpu)
     int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
     if (rc != 0)
     {
-        SPDLOG_CRITICAL("Cannot bind this thread above desired core error={}, num_cores={}, requested={}", rc, numCores,
-                        cpu);
+        SPDLOG_CRITICAL("Cannot bind this thread above desired core error={}, num_cores={}", rc, numCores);
         std::abort();
     }
 }
@@ -208,17 +208,23 @@ void bindThreadAboveCpu(int cpu)
 void addMetric(std::string key, std::string value)
 {
     std::scoped_lock lock{metricsMutex};
+    SPDLOG_CRITICAL("ADDING METRIC {} : {}", key ,value);
     metrics[key] = value;
 }
 
 void printMetrics(std::string filename)
 {
     std::scoped_lock lock{metricsMutex};
-    remove(filename.c_str());
-    std::ofstream file{filename, std::ios_base::binary};
-    for (const auto &metric : metrics)
     {
-        const auto &[metricKey, metricValue] = metric;
-        file << metricKey << ": " << metricValue << '\n';
+        remove(filename.c_str());
+        std::ofstream file{filename, std::ios_base::binary};
+        for (const auto &metric : metrics)
+        {
+            const auto &[metricKey, metricValue] = metric;
+            file << metricKey << ": " << metricValue << '\n';
+        }
     }
+    struct passwd *pwd = getpwnam("scrooge");
+    
+    chown(filename.c_str(), pwd->pw_uid, pwd->pw_gid);
 }
