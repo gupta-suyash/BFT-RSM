@@ -506,9 +506,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		### Finish running Algorand
 		#Relay nodes
-		ssh -o StrictHostKeyChecking=no -t "${client_ip}"''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"''
+		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"''
 		#Participation nodes
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"'' ::: "${RSM[@]:0:$((size))}";
+		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"'' ::: "${RSM[@]:0:$((size))}";
         echo "Algorand started and running!"
         exit 1
 	}

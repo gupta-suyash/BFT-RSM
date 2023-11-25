@@ -23,5 +23,5 @@ rm $1/node/privatenet-v1/ledger.*
 cd $0/wallet_app
 echo node$2$1
 # TODO: Not sure where the node.json thing is going???
-node $0/wallet_app/client.js $0/wallet_app/node.json $3 > $0/wallet_app/wallet.log
+node $0/wallet_app/wallet_test.js $0/wallet_app/node.json $3 > $0/wallet_app/wallet.log
 echo "DONE!"
