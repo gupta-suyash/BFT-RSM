@@ -32,7 +32,7 @@ def main():
     run_install = ". " + script_pathname + install_script + " " + app_pathname + " " + script_pathname + " " + wallet_name + " " + sys.argv[3]
     print("Run install: ", run_install)
     print("Get current directory: ", os.getcwd())
-    subprocess.check_call([". " + script_pathname + install_script, app_pathname, script_pathname, wallet_name, sys.argv[4]], shell=True, stdout=sys.stdout, stderr=sys.stdout)
+    subprocess.check_call([". " + script_pathname + install_script, app_pathname, script_pathname, wallet_name, sys.argv[3]], shell=True, stdout=sys.stdout, stderr=sys.stdout)
     # Step 2: Setup Algorand nodes
     generate_partkey(script_pathname, keygen_script,  int(sys.argv[4]), sys.argv[5])
     # At the end of this, address.txt + mini_genesis.json both created

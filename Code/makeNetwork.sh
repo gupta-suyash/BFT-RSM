@@ -505,14 +505,17 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
 
 		### Finish running Algorand
-		#Relay nodes
+		echo "###########################################FINISH RUNNING ALGORAND"
+        #Relay nodes
         relay="true"
-		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_relay_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''
-		#Participation nodes
+		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_relay_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"'' &
+		echo "Relay node is run!"
+        #Participation nodes
         relay="false"
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"'' ::: "${RSM[@]:0:$((size))}";
-        echo "Algorand started and running!"
-        # exit 1
+		parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
+        sleep 120
+        echo "###########################################Algorand started and running!"
+        exit 1
 	}
 	
 	function start_resdb() {
@@ -579,8 +582,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	else
 		echo "INVALID RECEIVING RSM."
 	fi
-	echo "Raft is setup!"
-	exit 1
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
 		scrooge="false"
 		all_to_all="false"
