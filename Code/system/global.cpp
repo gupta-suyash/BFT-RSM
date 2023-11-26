@@ -9,8 +9,6 @@
 #include <sched.h>
 #include <sys/sysinfo.h>
 #include <unordered_map>
-#include <unistd.h>
-#include <pwd.h>
 
 #include "config.h"
 
@@ -224,7 +222,4 @@ void printMetrics(std::string filename)
             file << metricKey << ": " << metricValue << '\n';
         }
     }
-    struct passwd *pwd = getpwnam("scrooge");
-    
-    chown(filename.c_str(), pwd->pw_uid, pwd->pw_gid);
 }
