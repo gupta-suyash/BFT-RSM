@@ -16,7 +16,7 @@ from json_util import *
 from ssh_util import *
 
 port="4161"
-run_script="/scripts/run.sh"
+run_script="/scripts/run_relay.sh"
 wallet_name="default"
 
 def main():

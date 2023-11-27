@@ -1,0 +1,7 @@
+{
+    "Version":14,
+    "GossipFanout": 4,
+    "IncomingConnectionsLimit": 0,
+    "DNSBootstrapID": "",
+    "EnableProfiler": true
+  }
