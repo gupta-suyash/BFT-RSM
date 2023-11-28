@@ -515,7 +515,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
         sleep 120
         echo "###########################################Algorand started and running!"
-        exit 1
+        #exit 1
 	}
 	
 	function start_resdb() {

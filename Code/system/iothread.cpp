@@ -79,7 +79,7 @@ void runRelayIPCRequestThread(
     const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageOutput,
     NodeConfiguration kNodeConfiguration)
 {
-    bindThreadToCpu(0);
+    bindThreadToCpu(1);
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
@@ -134,6 +134,7 @@ void runRelayIPCRequestThread(
 void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
                                   NodeConfiguration kNodeConfiguration)
 {
+    bindThreadToCpu(1);
     std::ofstream pipe{scroogeOutputPipePath, std::ios_base::app};
     if (!pipe.is_open())
     {
