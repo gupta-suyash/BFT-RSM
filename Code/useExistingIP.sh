@@ -189,7 +189,6 @@ TEMPLATE="updated-app-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
-	#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -199,23 +198,12 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair 
-#> /dev/null 2>&1
 
-rm /tmp/all_ips.txt
-num_ips_read=0
-while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
-	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
-	output=$(cat /tmp/all_ips.txt)
-	ar=($output)
-	num_ips_read="${#ar[@]}"
-done
-
-RSM1=(${ar[@]::${num_nodes_rsm_1}})
-RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
-CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
+# STATIC IP ADDRESSES!!!
+RSM1=(10.128.4.68 10.128.4.69 10.128.4.70 10.128.4.71)
+RSM2=(10.128.4.72 10.128.4.73 10.128.4.74 10.128.4.75)
+CLIENT=(10.128.4.76 10.128.4.77)
 echo "About to parallel!"
-#parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
 
 count=0
 while ((${count} < ${num_nodes_rsm_1})); do
@@ -241,8 +229,6 @@ while ((${count} < ${client})); do
 		break
 	fi
 done
-
-sleep 300
 echo "Starting Experiment"
 
 makeExperimentJson() {
@@ -530,9 +516,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         #Participation nodes
         relay="false"
 		parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
-        sleep 120
         echo "###########################################Algorand started and running!"
-        #exit 1
+        exit 1
 	}
 	
 	function start_resdb() {
@@ -564,7 +549,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		
 		# Run startup script
 		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
-		sleep 120 # Sleeping to make sure resdb has had a chance to start
 	}
 
 	# Sending RSM
@@ -599,6 +583,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	else
 		echo "INVALID RECEIVING RSM."
 	fi
+	echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
+	echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
+	exit 1
+	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
+	sleep 60
+
+
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
 		scrooge="false"
 		all_to_all="false"
@@ -643,10 +634,3 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 
 echo "taking down experiment"
-
-###### UNDO
-# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-
-############# DID YOU DELETE THE MACHINES?????????????????
-
-
