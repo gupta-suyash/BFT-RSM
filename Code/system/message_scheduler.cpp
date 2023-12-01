@@ -162,8 +162,9 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
     const auto stakeSentInFirstMessage = std::min(
         message_scheduler::stakeInNode(firstSenderId, kOwnRsmStakePrefixSum),
         message_scheduler::stakeInNode(firstReceiverId, kOtherRsmStakePrefixSum));
+    stakeLeftInFirstReceiver -= stakeSentInFirstMessage;
 
-    int64_t remainingStakeToSend = (int64_t) kMinStakeToSend - stakeSentInFirstMessage;
+    int64_t remainingStakeToSend = (int64_t) kMinStakeToSend - (int64_t) stakeSentInFirstMessage;
 
     if (curSendNodeId == firstSenderId)
     {
@@ -172,7 +173,6 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
     if (curRecvNodeId == firstReceiverId)
     {
         stakeLeftInReceiver -= stakeSentInFirstMessage;
-        stakeLeftInFirstReceiver -= stakeSentInFirstMessage;
     }
 
     // Simulate Sends -- skipping over firstSenderId and firstResenderId <- kind of a bug but dw about it -- current types can't handle gaps in resends
@@ -220,13 +220,14 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
 
         if (curSendNodeId == kOwnNodeId)
         {
-            // I'm a sender ! I did resend curResendNumber first! -- doesn't occur in this case but w/e
+            // I'm a sender ! I did resend curResendNumber first!
             return curResendNumber;
         }
         const auto stakeSentInSimulatedMessage = std::min(stakeLeftInSender, stakeLeftInReceiver);
         stakeLeftInReceiver -= stakeSentInSimulatedMessage;
         stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInReceiver : stakeLeftInFirstReceiver;
         stakeLeftInSender -= stakeSentInSimulatedMessage;
+        remainingStakeToSend -= stakeSentInSimulatedMessage;
         curResendNumber++;
     }
 
@@ -277,8 +278,9 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
     const auto stakeSentInFirstMessage = std::min(
         message_scheduler::stakeInNode(firstSenderId, kOwnRsmStakePrefixSum),
         message_scheduler::stakeInNode(firstReceiverId, kOtherRsmStakePrefixSum));
+    stakeLeftInFirstReceiver -= stakeSentInFirstMessage;
 
-    int64_t remainingStakeToSend = (int64_t) kMinStakeToSend - stakeSentInFirstMessage;
+    int64_t remainingStakeToSend = (int64_t) kMinStakeToSend - (int64_t) stakeSentInFirstMessage;
 
     if (curSendNodeId == firstSenderId)
     {
@@ -286,8 +288,7 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
     }
     if (curRecvNodeId == firstReceiverId)
     {
-        stakeLeftInReceiver -= stakeSentInFirstMessage;
-        stakeLeftInFirstReceiver -= stakeSentInFirstMessage;
+        stakeLeftInReceiver = stakeLeftInFirstReceiver;
     }
 
     // Simulate Sends -- skipping over firstSenderId and firstResenderId <- kind of a bug but dw about it -- current types can't handle gaps in resends
@@ -316,8 +317,8 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
         stakeLeftInReceiver -= stakeSentInSimulatedMessage;
         stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInReceiver : stakeLeftInFirstReceiver;
         stakeLeftInSender -= stakeSentInSimulatedMessage;
-        curResendNumber++;
         remainingStakeToSend -= stakeSentInSimulatedMessage;
+        curResendNumber++;
     }
 
     while (remainingStakeToSend > 0)
@@ -342,6 +343,7 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
         stakeLeftInReceiver -= stakeSentInSimulatedMessage;
         stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInReceiver : stakeLeftInFirstReceiver;
         stakeLeftInSender -= stakeSentInSimulatedMessage;
+        remainingStakeToSend -= stakeSentInSimulatedMessage;
         curResendNumber++;
     }
 
