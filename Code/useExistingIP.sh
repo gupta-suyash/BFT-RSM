@@ -10,10 +10,21 @@ if [ -z ${TMUX+x} ]; then
 fi
 
 echo -n "Enter the name of the experiment being run: "
-
 read experiment_name
-
 echo "Running Experiment: ${experiment_name}"
+
+# If this experiment uses external applications, set the following values
+# Valid inputs: "algo", "resdb", "raft"
+# e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
+# receiving RSM, then receive_rsm="resdb"
+echo -n "Enter the name of the sending application (4 options: algo, resdb, raft, file): "
+read send_rsm
+echo "Sending Application: ${send_rsm}"
+
+echo -n "Enter the name of the receiving application (4 options: algo, resdb, raft, file): "
+read receive_rsm
+echo "Receiving Application: ${receive_rsm}"
+
 
 # Name of profile we are running out of
 key_file="$HOME/.ssh/id_ed25519" # TODO: Replace with your ssh key
@@ -62,12 +73,6 @@ file_rsm="false"
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="raft"
-receive_rsm="raft"
-echo "Send rsm: "
-echo $send_rsm
-echo "Receive rsm: "
-echo $receive_rsm
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
