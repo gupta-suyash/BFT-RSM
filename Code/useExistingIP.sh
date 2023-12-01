@@ -482,7 +482,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		mkdir ${algorand_scripts_dir}/genesis_creation/
 		cp $genesis_json ${algorand_scripts_dir}/genesis_creation/
 		mkdir ${algorand_scripts_dir}/addresses/
-		#Relay nodes (which also happens to be the client nodes)
+        #Relay nodes (which also happens to be the client nodes)
 		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/relay_config.json '"${per_node_algos}"' '"${client_ip}"''
 		echo "Sent Relay node information!"
 		#Participation nodes
@@ -522,7 +522,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         relay="false"
 		parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
         echo "###########################################Algorand started and running!"
-        exit 1
 	}
 	
 	function start_resdb() {
@@ -530,7 +529,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# Take in arguments
 		local cluster_num=$1
 		local size=$2
-		local RSM=("${!3}")
+        local client_ip=$3
+		local RSM=("${!4}")
 		# Create a new kv server conf file
 		rm ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		printf "%s\n" "iplist=(" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
@@ -539,18 +539,19 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				printf "%s\n" "${RSM[$count]}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 				count=$((count + 1))
 		done
+        printf "%s\n" "${client_ip}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		printf "%s\n\n" ")" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		echo "server=//kv_server:kv_server_performance" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		echo "HERE IS THE KV CONFIG:"	
 		cat ${resdb_app_dir}/deploy/config/kv_performance_server.conf		
 		
 	 	# Create a new kv client conf file
-		rm ${resdb_app_dir}/deploy/config_out/client.conf
-		echo "${CLIENT[$cluster_num-1]}"
-		num_nodes=$((size + 1))
-		printf "\n%s" "${num_nodes} ${CLIENT[$cluster_num-1]} 17005" >> ${resdb_app_dir}/deploy/config_out/client.conf
-		echo "HERE IS THE KV CLIENT CONFIG:"
-		cat ${resdb_app_dir}/deploy/config_out/client.conf	
+		#rm ${resdb_app_dir}/deploy/config_out/client.conf
+		#echo "${CLIENT[$cluster_num-1]}"
+		#num_nodes=$((size + 1))
+		#printf "\n%s" "${num_nodes} ${CLIENT[$cluster_num-1]} 17005" >> ${resdb_app_dir}/deploy/config_out/client.conf
+		#echo "HERE IS THE KV CLIENT CONFIG:"
+		#cat ${resdb_app_dir}/deploy/config_out/client.conf	
 		
 		# Run startup script
 		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
@@ -562,7 +563,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	elif [ "$send_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for sending."
 		cluster_idx=1
-		start_resdb "${cluster_idx}" "${r1_size}" "RSM1[@]"
+		start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[0]}" "RSM1[@]"
 	elif [ "$send_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for sending."
 		start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
@@ -579,7 +580,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	elif [ "$receive_rsm" = "resdb" ]; then
 		echo "ResDB RSM is being used for receiving."
 		cluster_idx=2
-		start_resdb "${cluster_idx}" "${r1_size}" "RSM2[@]"
+		start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[1]}" "RSM2[@]"
 	elif [ "$receive_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for receiving."
 		start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
