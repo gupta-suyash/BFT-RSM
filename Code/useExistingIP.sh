@@ -205,9 +205,9 @@ echo "${ZONE}"
 echo "${TEMPLATE}"
 
 # STATIC IP ADDRESSES!!!
-RSM1=(10.128.4.68 10.128.4.69 10.128.4.70 10.128.4.71)
-RSM2=(10.128.4.72 10.128.4.73 10.128.4.74 10.128.4.75)
-CLIENT=(10.128.4.76 10.128.4.77)
+RSM1=(10.128.4.108 10.128.4.109 10.128.4.110 10.128.4.111)
+RSM2=(10.128.4.112 10.128.4.113 10.128.4.114 10.128.4.115)
+CLIENT=(10.128.4.116 10.128.4.117)
 echo "About to parallel!"
 
 count=0
@@ -556,6 +556,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		
 		# Run startup script
 		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
+        exit 1
 	}
 
 	# Sending RSM
