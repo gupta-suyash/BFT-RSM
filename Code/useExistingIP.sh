@@ -97,7 +97,7 @@ rsm2_fail=(0)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
 klist_size=(64)
-packet_size=(100 1000000)
+packet_size=(100)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -533,57 +533,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "server=//kv_server:kv_server_performance" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		echo "HERE IS THE KV CONFIG:"	
 		cat ${resdb_app_dir}/deploy/config/kv_performance_server.conf		
-		
-	 	# Create a new kv client conf file
-		#rm ${resdb_app_dir}/deploy/config_out/client.conf
-		#echo "${CLIENT[$cluster_num-1]}"
-		#num_nodes=$((size + 1))
-		#printf "\n%s" "${num_nodes} ${CLIENT[$cluster_num-1]} 17005" >> ${resdb_app_dir}/deploy/config_out/client.conf
-		#echo "HERE IS THE KV CLIENT CONFIG:"
-		#cat ${resdb_app_dir}/deploy/config_out/client.conf	
-		
-		# Run startup script
 		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
-        #exit 1
 	}
-
-	# Sending RSM
-	if [ "$send_rsm" = "algo" ]; then
-		start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
-	elif [ "$send_rsm" = "resdb" ]; then
-		echo "ResDB RSM is being used for sending."
-		cluster_idx=1
-		start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[0]}" "RSM1[@]"
-	elif [ "$send_rsm" = "raft" ]; then
-		echo "Raft RSM is being used for sending."
-		start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
-	elif [ "$send_rsm" = "file" ]; then
-		echo "File RSM is being used for sending. No extra setup necessary."
-	else
-		echo "INVALID RECEIVING RSM."
-	fi
-
-	# Receiving RSM
-	if [ "$receive_rsm" = "algo" ]; then
-		echo "Algo RSM is being used for receiving."
-		start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
-	elif [ "$receive_rsm" = "resdb" ]; then
-		echo "ResDB RSM is being used for receiving."
-		cluster_idx=2
-		start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[1]}" "RSM2[@]"
-	elif [ "$receive_rsm" = "raft" ]; then
-		echo "Raft RSM is being used for receiving."
-		start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
-	elif [ "$receive_rsm" = "file" ]; then
-		echo "File RSM is being used for receiving. No extra setup necessary."
-	else
-		echo "INVALID RECEIVING RSM."
-	fi
-	echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
-	echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
-	#exit 1
-	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
-
 
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
 		scrooge="false"
@@ -602,7 +553,43 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				for bt_size in "${batch_size[@]}"; do                 # Looping over all the batch sizes.
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-							# Next, we call the script that makes the config.h. We need to pass all the arguments.
+                            # Sending RSM
+                        	if [ "$send_rsm" = "algo" ]; then
+                        		start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+                        	elif [ "$send_rsm" = "resdb" ]; then
+                        		echo "ResDB RSM is being used for sending."
+                        		cluster_idx=1
+                        		start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[0]}" "RSM1[@]"
+                        	elif [ "$send_rsm" = "raft" ]; then
+                        		echo "Raft RSM is being used for sending."
+                        		start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+                        	elif [ "$send_rsm" = "file" ]; then
+                        		echo "File RSM is being used for sending. No extra setup necessary."
+                        	else
+                        		echo "INVALID RECEIVING RSM."
+                        	fi
+                            # Receiving RSM 
+                            if [ "$receive_rsm" = "algo" ]; then
+                        		echo "Algo RSM is being used for receiving."
+                        		start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+                        	elif [ "$receive_rsm" = "resdb" ]; then
+                        		echo "ResDB RSM is being used for receiving."
+                        		cluster_idx=2
+                        		start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[1]}" "RSM2[@]"
+                        	elif [ "$receive_rsm" = "raft" ]; then
+                        		echo "Raft RSM is being used for receiving."
+                        		start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+                        	elif [ "$receive_rsm" = "file" ]; then
+                        		echo "File RSM is being used for receiving. No extra setup necessary."
+                        	else
+                        		echo "INVALID RECEIVING RSM."
+                        	fi
+                        	echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
+                        	echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
+                        	#exit 1
+                        	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
+					
+                            # Next, we call the script that makes the config.h. We need to pass all the arguments.
 							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
 
 							cat config.h
