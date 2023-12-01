@@ -441,7 +441,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
 		echo "RSM w ports: ${joined%,}"
 		echo "######################################################ABOUT TO SLEEP#####################################" 
-		sleep 60
 		# Start benchmark
 		echo "#####################################Running benchmark...#############################################"
     		export PATH=$PATH:${benchmark_bin_path}
@@ -584,7 +583,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
 	#exit 1
 	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
-	sleep 60
 
 
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.

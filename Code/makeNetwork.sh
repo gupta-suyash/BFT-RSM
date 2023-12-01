@@ -62,8 +62,8 @@ file_rsm="false"
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="raft"
-receive_rsm="raft"
+send_rsm="algo"
+receive_rsm="algo"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -242,7 +242,7 @@ while ((${count} < ${client})); do
 	fi
 done
 
-sleep 300
+sleep 200
 echo "Starting Experiment"
 
 makeExperimentJson() {
@@ -530,7 +530,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         #Participation nodes
         relay="false"
 		parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
-        sleep 120
         echo "###########################################Algorand started and running!"
         #exit 1
 	}
@@ -564,9 +563,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		
 		# Run startup script
 		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
-		sleep 120 # Sleeping to make sure resdb has had a chance to start
 	}
-
 	# Sending RSM
 	if [ "$send_rsm" = "algo" ]; then
 		start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
