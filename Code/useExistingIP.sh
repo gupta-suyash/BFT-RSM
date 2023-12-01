@@ -556,7 +556,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		
 		# Run startup script
 		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
-        exit 1
+        #exit 1
 	}
 
 	# Sending RSM
@@ -593,7 +593,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	fi
 	echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
 	echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
-	exit 1
+	#exit 1
 	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
 	sleep 60
 

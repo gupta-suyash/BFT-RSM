@@ -449,7 +449,7 @@ static void runScroogeSendThread(
     SPDLOG_CRITICAL("SEND THREAD TID {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
-
+    uint64_t counter = 0;
     bindThreadToCpu(1);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
@@ -498,6 +498,8 @@ static void runScroogeSendThread(
         {
             shouldHandleNewMessage = not resendDatas.full() && shouldDequeue &&
                                      messageInput->try_dequeue(newMessageData) && not is_test_over();
+            SPDLOG_CRITICAL("SHOULD HANDLE MESSAGE {}", counter);
+            counter+=1;
         }
         if (shouldHandleNewMessage)
         {

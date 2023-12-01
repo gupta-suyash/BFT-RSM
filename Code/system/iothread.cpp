@@ -57,6 +57,7 @@ void runGenerateMessageThreadWithIpc()
     // for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
     while (not is_test_over())
     {
+        SPDLOG_CRITICAL("BEGINNING OF WHILE LOOP");
         while (std::chrono::steady_clock::now() - lastSendTime < kMessageSpace)
             ;
         lastSendTime = std::chrono::steady_clock::now();
@@ -79,6 +80,7 @@ void runRelayIPCRequestThread(
     const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageOutput,
     NodeConfiguration kNodeConfiguration)
 {
+    SPDLOG_CRITICAL("#############Inside run relay IPC REQUEST THREAD!");
     bindThreadToCpu(1);
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     Acknowledgment receivedMessages{};
@@ -88,26 +90,26 @@ void runRelayIPCRequestThread(
     std::ifstream pipe{kScroogeInputPath};
     if (!pipe.is_open())
     {
-        SPDLOG_CRITICAL("Reader Open Failed={}, {}", std::strerror(errno), getlogin());
+        SPDLOG_CRITICAL("########################Reader Open Failed={}, {}", std::strerror(errno), getlogin());
     }
     else
     {
-        SPDLOG_CRITICAL("Reader Open Success");
+        SPDLOG_CRITICAL("###########################Reader Open Success");
     }
 
     while (not is_test_over())
     {
         auto messageBytes = readMessage(pipe);
-
+        SPDLOG_CRITICAL("RIGHT AFTER READING");
         scrooge::ScroogeRequest newRequest;
-
+        SPDLOG_CRITICAL("ABOUT TO PARSE THE REQUEST");
         const auto isParseSuccessful = newRequest.ParseFromString(std::move(messageBytes));
         if (not isParseSuccessful)
         {
             SPDLOG_CRITICAL("FAILED TO READ MESSAGE");
             continue;
         }
-
+        SPDLOG_CRITICAL("WE'VE GOT MAIL");
         switch (newRequest.request_case())
         {
             using request = scrooge::ScroogeRequest::RequestCase;
@@ -122,9 +124,11 @@ void runRelayIPCRequestThread(
         }
         default: {
             SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
+            SPDLOG_CRITICAL("DO NOT KNOW THE REQUEST TYPE");
         }
         }
     }
+    SPDLOG_CRITICAL("END OF WHILE LOOP RELAY IPC");
 
     addMetric("ipc_recv_messages", numReceivedMessages);
     addMetric("ipc_msg_block_size", receivedMessages.getAckIterator().value_or(0));
@@ -134,15 +138,16 @@ void runRelayIPCRequestThread(
 void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
                                   NodeConfiguration kNodeConfiguration)
 {
+    SPDLOG_CRITICAL("###############Inside runRelayIPCTransactionThread which write scrooge-output!");
     bindThreadToCpu(1);
     std::ofstream pipe{scroogeOutputPipePath, std::ios_base::app};
     if (!pipe.is_open())
     {
-        SPDLOG_CRITICAL("Open Failed={}, {}", std::strerror(errno), getlogin());
+        SPDLOG_CRITICAL("######################Write Open Failed={}, {}", std::strerror(errno), getlogin());
     }
     else
     {
-        SPDLOG_CRITICAL("Open Success");
+        SPDLOG_CRITICAL("########################Writer Open Success");
     }
 
     std::optional<uint64_t> lastQuorumAck{};
@@ -153,14 +158,15 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
         const auto curQuorumAck = quorumAck->getCurrentQuack();
         if (lastQuorumAck < curQuorumAck)
         {
+            SPDLOG_CRITICAL("QUORUM ACK ACTUALLY WILL BE SENT");
             lastQuorumAck = curQuorumAck;
             mutableCommitAck->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
-            // SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId,
-            // get_rsm_id());
+            SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId, get_rsm_id());
             writeMessage(pipe, serializedTransfer);
         }
     }
+    SPDLOG_CRITICAL("END OF WHILE LOOP TRANSACTION IPC");
     pipe.close();
     addMetric("IPC test", true);
 }
