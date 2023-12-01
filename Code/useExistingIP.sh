@@ -392,8 +392,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# scp network files to expected directory on other machines
 	count=0
 	r2size=${rsm2_size[$rcount]}
-	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	############# Setup all necessary external applications #############
 	function start_raft() {
@@ -402,17 +402,16 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ip=$1
 		local size=$2
 		local RSM=("${!3}")
-		etcd_path="${raft_app_dir}/etcd-main"
+		etcd_path="${raft_app_dir}etcd-main/"
     		# Run setup build script
            	#Client node
-           	ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${etcd_path}"'/scripts/build.sh'
+           	ssh -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh'
            	echo "Sent build information!"
            	#Server nodes
-           	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${etcd_path}"'/scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
+           	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'pwd && cd '"${etcd_path}"' && pwd && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
 		# Set constants
-		etcd_path="${raft_app_dir}/etcd-main"
-		etcd_bin_path="${etcd_path}/bin"
-		benchmark_bin_path="${raft_app_dir}/bin"
+		etcd_bin_path="${etcd_path}bin"
+		benchmark_bin_path="${raft_app_dir}bin"
 		TOKEN=token-77
 		CLUSTER_STATE=new
 		count=0
@@ -451,11 +450,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		done
 		# Sleep to wait for Raft server to start
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
-		echo "RSM w ports: ${joined%,}" 
+		echo "RSM w ports: ${joined%,}"
+		echo "######################################################ABOUT TO SLEEP#####################################" 
 		sleep 60
 		# Start benchmark
-		echo "Running benchmark..."
-    		export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
+		echo "#####################################Running benchmark...#############################################"
+    		export PATH=$PATH:${benchmark_bin_path}
+		export PATH=$PATH:${etcd_bin_path}
 		benchmark --help
 		(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
 		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
@@ -625,8 +626,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 							# Next, we make the experiment.json for backward compatibility.
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
-							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 							# Next, we run the script.
 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
