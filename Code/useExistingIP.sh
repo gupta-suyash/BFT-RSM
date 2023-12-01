@@ -205,9 +205,9 @@ echo "${ZONE}"
 echo "${TEMPLATE}"
 
 # STATIC IP ADDRESSES!!!
-RSM1=(10.128.4.68 10.128.4.69 10.128.4.70 10.128.4.71)
-RSM2=(10.128.4.72 10.128.4.73 10.128.4.74 10.128.4.75)
-CLIENT=(10.128.4.76 10.128.4.77)
+RSM1=(10.128.4.137 10.128.4.138 10.128.4.139 10.128.4.140)
+RSM2=(10.128.4.141 10.128.4.142 10.128.4.143 10.128.4.144)
+CLIENT=(10.128.4.145 10.128.4.146)
 echo "About to parallel!"
 
 count=0
@@ -435,18 +435,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			this_name=${machines[$i]}
 			this_ip=${RSM[$i]}
 			this_url=${urls[$i]}
-			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; 
-			   					    export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; 
-								    export CLUSTER_STATE=${CLUSTER_STATE}; 
-								    export CLUSTER="${cluster_list%,}"; 
-								    export PATH=$PATH:${benchmark_bin_path};
-								    export PATH=$PATH:${etcd_bin_path}; 
-								    cd \$HOME;
-								    echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};
-								    killall -9 benchmark;
-								    sudo fuser -n tcp -k 2379 2380;
-								    sudo rm -rf \$HOME/data.etcd;
-								    etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN}" &
+			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name};export THIS_IP=${this_ip}; export TOKEN=${TOKEN};export CLUSTER_STATE=${CLUSTER_STATE};export CLUSTER="${cluster_list%,}";export PATH=\$PATH:${benchmark_bin_path};export PATH=\$PATH:${etcd_bin_path}; cd \$HOME;echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};killall -9 benchmark;sudo fuser -n tcp -k 2379 2380;sudo rm -rf \$HOME/data.etcd;etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_${this_ip}.log;" &
 		done
 		# Sleep to wait for Raft server to start
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
