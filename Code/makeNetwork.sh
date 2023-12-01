@@ -92,7 +92,7 @@ rsm2_fail=(0)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
 klist_size=(64)
-packet_size=(100 1000000)
+packet_size=(100)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -614,6 +614,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
+                            echo "WARNING !!!!!THIS IS WRONG YOU NEED THE IF STATEMENT IN THE FOR LOOP!!!!!!! WARNING"
 							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
 
 							cat config.h
@@ -639,6 +640,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	rcount=$((rcount + 1))
 done
 
+echo "WARNING !!!!!THIS IS WRONG YOU NEED THE IF STATEMENT IN THE FOR LOOP!!!!!!! WARNING"
 echo "taking down experiment"
 
 ###### UNDO
