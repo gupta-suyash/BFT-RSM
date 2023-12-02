@@ -185,7 +185,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME=${experiment_name}
 ZONE="us-central1-a"
-TEMPLATE="updated-app-template"
+TEMPLATE="update-algo-100-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"

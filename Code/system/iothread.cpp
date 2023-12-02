@@ -57,7 +57,6 @@ void runGenerateMessageThreadWithIpc()
     // for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
     while (not is_test_over())
     {
-        SPDLOG_CRITICAL("BEGINNING OF WHILE LOOP");
         while (std::chrono::steady_clock::now() - lastSendTime < kMessageSpace)
             ;
         lastSendTime = std::chrono::steady_clock::now();
@@ -100,16 +99,16 @@ void runRelayIPCRequestThread(
     while (not is_test_over())
     {
         auto messageBytes = readMessage(pipe);
-        SPDLOG_CRITICAL("RIGHT AFTER READING");
+        //SPDLOG_CRITICAL("RIGHT AFTER READING");
         scrooge::ScroogeRequest newRequest;
-        SPDLOG_CRITICAL("ABOUT TO PARSE THE REQUEST");
+        //SPDLOG_CRITICAL("ABOUT TO PARSE THE REQUEST");
         const auto isParseSuccessful = newRequest.ParseFromString(std::move(messageBytes));
         if (not isParseSuccessful)
         {
             SPDLOG_CRITICAL("FAILED TO READ MESSAGE");
             continue;
         }
-        SPDLOG_CRITICAL("WE'VE GOT MAIL");
+        //SPDLOG_CRITICAL("WE'VE GOT MAIL");
         switch (newRequest.request_case())
         {
             using request = scrooge::ScroogeRequest::RequestCase;
