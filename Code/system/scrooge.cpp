@@ -29,7 +29,7 @@ uint64_t numMsgsSentWithLastAck{};
 std::optional<uint64_t> lastSentAck{};
 uint64_t lastQuack = 0;
 constexpr uint64_t kAckWindowSize = 1000;
-constexpr uint64_t kQAckWindowSize = 1000 * 1000000;
+constexpr uint64_t kQAckWindowSize = 1000 * 1000000; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
 constexpr auto kMaxMessageDelay = 1us;
 constexpr auto kNoopDelay = 800us;
@@ -148,8 +148,7 @@ void updateResendData(iothread::MessageQueue<acknowledgment_tracker::ResendData>
         }
     }
 
-    while (resendDatas.size() && (resendDatas.front().sequenceNumber <= curQuack ||
-                                  resendDatas.front().messageData.message_content().empty()))
+    while (resendDatas.size())// && (resendDatas.front().sequenceNumber <= curQuack || resendDatas.front().numDestinationsSent == resendDatas.front().destinations.size()))
     {
         // SPDLOG_CRITICAL("Removing resend data with s# {} Quack={}", resendDatas.front().sequenceNumber,
         // curQuack.value_or(0));
@@ -173,7 +172,6 @@ void handleResends(std::chrono::steady_clock::time_point curTime, Pipeline *cons
     auto pseudoBegin = std::begin(resendDatas);
     uint64_t prevActiveResendSequenceNum = 0;
 
-    std::bitset<32> destinationsToFlush{};
     for (auto &requestedResend : requestedResends)
     {
         numResendChecks++;
@@ -288,7 +286,6 @@ void handleResends(std::chrono::steady_clock::time_point curTime, Pipeline *cons
                 // SPDLOG_CRITICAL("Yo What?? S#{}", sequenceNumber);
                 scrooge::CrossChainMessageData messageDataCopy;
                 messageDataCopy.CopyFrom(messageData);
-                bool isFlushed{};
                 if constexpr (kIsUsingFile)
                 {
                     pipeline->SendFileToOtherRsm(destination, std::move(messageDataCopy), acknowledgment, curTime);
@@ -297,7 +294,6 @@ void handleResends(std::chrono::steady_clock::time_point curTime, Pipeline *cons
                 {
                     pipeline->SendToOtherRsm(destination, std::move(messageDataCopy), acknowledgment, curTime);
                 }
-                destinationsToFlush[destination] = not isFlushed;
             }
             else
             {
@@ -311,9 +307,7 @@ void handleResends(std::chrono::steady_clock::time_point curTime, Pipeline *cons
                 {
                     isFlushed = pipeline->SendToOtherRsm(destination, std::move(messageData), acknowledgment, curTime);
                 }
-                destinationsToFlush[destination] = not isFlushed;
                 requestedResend.isActive = false;
-                assert(messageData.message_content().empty());
             }
             numDestinationsSent++;
             numMessagesResent += is_test_recording();
