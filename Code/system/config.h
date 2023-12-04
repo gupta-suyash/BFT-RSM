@@ -2,8 +2,8 @@
 #define _CONFIG_H_
 #define OWN_RSM_SIZE 4
 #define OTHER_RSM_SIZE 4
-#define OWN_RSM_MAX_NODES_FAIL 1
-#define OTHER_RSM_MAX_NODES_FAIL 1
+#define OWN_RSM_MAX_NODES_FAIL 0
+#define OTHER_RSM_MAX_NODES_FAIL 0
 #define NUMBER_PACKETS 10000
 #define PACKET_SIZE 1000000
 #define NETWORK_DIR "/home/scrooge/BFT-RSM/Code/configuration/"
@@ -14,11 +14,11 @@
 #define BATCH_SIZE 200000
 #define BATCH_CREATION_TIME 1ms
 #define MAX_NNG_BLOCKING_TIME 500ms
-#define PIPELINE_BUFFER_SIZE 12
+#define PIPELINE_BUFFER_SIZE 8
 #define MESSAGE_BUFFER_SIZE 256
 #define KLIST_SIZE 64
-#define SCROOGE false
+#define SCROOGE true
 #define ALL_TO_ALL false
-#define ONE_TO_ONE true
-#define FILE_RSM true
+#define ONE_TO_ONE false
+#define FILE_RSM false
 #endif

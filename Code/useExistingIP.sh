@@ -190,7 +190,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME=${experiment_name}
 ZONE="us-central1-a"
-TEMPLATE="updated-app-template"
+TEMPLATE="raft-template"
 
 function exit_handler() {
         echo "** Trapped CTRL-C, deleting experiment"
@@ -396,6 +396,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	############# Setup all necessary external applications #############
+	joinedvar=""
 	function start_raft() {
 		echo "Raft RSM is being used!"
 		# Take in arguments
@@ -405,14 +406,23 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		etcd_path="${raft_app_dir}etcd-main/"
     		# Run setup build script
            	#Client node
-           	ssh -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh'
+		ssh -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh'
            	echo "Sent build information!"
            	#Server nodes
-           	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'pwd && cd '"${etcd_path}"' && pwd && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
+           	#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'pwd && cd '"${etcd_path}"' && pwd && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
+		for i in ${!RSM[@]}; do
+			echo "building etcd on RSM: ${RSM[$i]}"
+			ssh -v -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; echo \$(pwd); ./scripts/build.sh; exit"
+		done
 		# Set constants
+		
+		#echo "@@@@@@@@@@ SLEEPING 30 seconds: Waiting for etcd build &&&&&&&&&&"
+		#sleep 30
 		etcd_bin_path="${etcd_path}bin"
 		benchmark_bin_path="${raft_app_dir}bin"
-		TOKEN=token-77
+		echo "etcd bin path: ${etcd_bin_path}"
+		echo "benchmark bin path: ${benchmark_bin_path}"
+		TOKEN=token-99
 		CLUSTER_STATE=new
 		count=0
 		machines=()
@@ -423,35 +433,38 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			echo "RSM: ${RSM[$count]}"
 			echo "count: ${count}, size: ${size}"
 			machines+=("machine-$((count + 1))")
-			urls+=(http://"${RSM[$count]}":2380)
-			#count=$((count + 1))
+			url+=(http://"${RSM[$count]}":2380)
 			cluster+=("machine-$((count + 1))"=http://"${RSM[$count]}":2380)
 			rsm_w_ports+=("${RSM[$count]}:2379")
 			count=$((count + 1))
 		done
 		# Run the first etcd cluster
 		printf -v cluster_list '%s,' "${cluster[@]}"
+		#echo export "PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}" >> $HOME/.bashrc
 		for i in ${!RSM[@]}; do
 			this_name=${machines[$i]}
 			this_ip=${RSM[$i]}
 			this_url=${urls[$i]}
-			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name};export THIS_IP=${this_ip}; export TOKEN=${TOKEN};export CLUSTER_STATE=${CLUSTER_STATE};export CLUSTER="${cluster_list%,}";export PATH=\$PATH:${benchmark_bin_path};export PATH=\$PATH:${etcd_bin_path}; cd \$HOME;echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};killall -9 benchmark;sudo fuser -n tcp -k 2379 2380;sudo rm -rf \$HOME/data.etcd;etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_${this_ip}.log;" &
+			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
+
+			(ssh -v -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; source \$HOME/.bashrc; echo "PATH on ${RSM[$i]}: \$PATH"; ${etcd_bin_path}/etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") &
 		done
 		# Sleep to wait for Raft server to start
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
 		echo "RSM w ports: ${joined%,}"
 		echo "######################################################ABOUT TO SLEEP#####################################" 
-		sleep 60
 		# Start benchmark
 		echo "#####################################Running benchmark...#############################################"
     		export PATH=$PATH:${benchmark_bin_path}
-		export PATH=$PATH:${etcd_bin_path}
-		benchmark --help
-		(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
-		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
-		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
-		echo "DONE WITH FIRST RAFT ITERATION"
-		exit 1
+		joinedvar="${joined%,}"
+		#(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
+		#benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
+		#benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
+		#echo "DONE WITH FIRST RAFT ITERATION"
+	}
+
+	function benchmark_raft() {
+		benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
 	}
 
 	# Setup all necessary external applications
@@ -621,6 +634,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 							# Next, we run the script.
 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+
+echo "########## running benchmark for raft ##########"
+benchmark_raft
 						done
 					done
 				done
