@@ -15,17 +15,18 @@
  */
 bool createPipe(const std::string &path)
 {
-    constexpr auto kFullPermissions = 0777;
+   // constexpr auto kFullPermissions = 0777;
 
-    const auto mkfifoResult = mkfifo(path.c_str(), kFullPermissions);
-    const bool isError = mkfifoResult == -1 && errno != EEXIST;
+   // const auto mkfifoResult = mkfifo(path.c_str(), kFullPermissions);
+   // const bool isError = mkfifoResult == -1 && errno != EEXIST;
 
-    if (isError)
-    {
-        SPDLOG_CRITICAL("Cannot Create Pipe at '{}': err={}", path, std::strerror(errno));
-    }
+   // if (isError)
+   // {
+   //     SPDLOG_CRITICAL("Cannot Create Pipe at '{}': err={}", path, std::strerror(errno));
+   // }
 
-    return not isError;
+   // return not isError;
+   return true;
 }
 
 /* Takes over the current thread to read from a pipe located at path

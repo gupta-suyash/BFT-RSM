@@ -16,6 +16,8 @@
 
 int main(int argc, char *argv[])
 {
+    //auto relayRequestThread;
+    //auto relayTransactionThread;    
     std::string path;
     {
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
@@ -149,8 +151,10 @@ int main(int argc, char *argv[])
 
         sendThread.join();
         receiveThread.join();
-        // relayRequestThread.join();
-        // relayTransactionThread.join();
+#if !FILE_RSM
+        relayRequestThread.join();
+        relayTransactionThread.join();
+#endif
 
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "

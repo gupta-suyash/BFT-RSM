@@ -20,61 +20,6 @@
 
 #include <nng/nng.h>
 
-// Generates fake messages of a given size for throughput testing
-void runGenerateMessageThreadWithIpc()
-{
-    auto fork_res = fork();
-    if (fork_res > 0)
-    {
-        return;
-    }
-    else if (fork_res < 0)
-    {
-        SPDLOG_CRITICAL("CANNOT FORK PROCESS ERR {}", fork_res);
-    }
-
-    constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
-    constexpr auto kMessagesPerSecond = 8000;
-    constexpr auto kBurstSize = 1000;
-    constexpr auto kMessageSpace = 1.0s * kBurstSize / kMessagesPerSecond;
-
-    createPipe(kScroogeInputPath);
-
-    std::ofstream pipe{kScroogeInputPath};
-    if (!pipe.is_open())
-    {
-        SPDLOG_CRITICAL("Writer Open Failed={}, {}", std::strerror(errno), getlogin());
-    }
-    else
-    {
-        SPDLOG_CRITICAL("Writer Open Success");
-    }
-
-    const auto kMessageSize = get_packet_size();
-    auto lastSendTime = std::chrono::steady_clock::now();
-
-    uint64_t curSequenceNumber = 0;
-    // for (uint64_t curSequenceNumber = 0; not is_test_over(); curSequenceNumber++)
-    while (not is_test_over())
-    {
-        SPDLOG_CRITICAL("BEGINNING OF WHILE LOOP");
-        while (std::chrono::steady_clock::now() - lastSendTime < kMessageSpace)
-            ;
-        lastSendTime = std::chrono::steady_clock::now();
-
-        scrooge::ScroogeRequest request;
-        for (uint64_t burst = 0; burst < kBurstSize; burst++)
-        {
-            auto messageContent = request.mutable_send_message_request()->mutable_content();
-            messageContent->set_message_content(std::string(kMessageSize, 'L'));
-            messageContent->set_sequence_number(curSequenceNumber);
-            curSequenceNumber++;
-
-            writeMessage(pipe, request.SerializeAsString());
-        }
-    }
-}
-
 // Relays messages to be sent over ipc
 void runRelayIPCRequestThread(
     const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageOutput,
@@ -86,7 +31,7 @@ void runRelayIPCRequestThread(
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
 
-    createPipe(kScroogeInputPath);
+    //createPipe(kScroogeInputPath);
     std::ifstream pipe{kScroogeInputPath};
     if (!pipe.is_open())
     {
@@ -96,27 +41,34 @@ void runRelayIPCRequestThread(
     {
         SPDLOG_CRITICAL("###########################Reader Open Success");
     }
-
+/*    const auto startTime = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - startTime < 30s)
+    {
+        readMessage(pipe);
+        
+    }
+*/
     while (not is_test_over())
     {
+        SPDLOG_CRITICAL("BEFORE READING");
         auto messageBytes = readMessage(pipe);
-        SPDLOG_CRITICAL("RIGHT AFTER READING");
+        //SPDLOG_CRITICAL("RIGHT AFTER READING");
         scrooge::ScroogeRequest newRequest;
-        SPDLOG_CRITICAL("ABOUT TO PARSE THE REQUEST");
+        //SPDLOG_CRITICAL("ABOUT TO PARSE THE REQUEST");
         const auto isParseSuccessful = newRequest.ParseFromString(std::move(messageBytes));
         if (not isParseSuccessful)
         {
             SPDLOG_CRITICAL("FAILED TO READ MESSAGE");
             continue;
         }
-        SPDLOG_CRITICAL("WE'VE GOT MAIL");
+        //SPDLOG_CRITICAL("WE'VE GOT MAIL");
         switch (newRequest.request_case())
         {
             using request = scrooge::ScroogeRequest::RequestCase;
         case request::kSendMessageRequest: {
             auto newMessageRequest = newRequest.send_message_request();
             receivedMessages.addToAckList(newMessageRequest.content().sequence_number());
-
+            SPDLOG_CRITICAL("GOING TO ADD MESSAGE WITH SEQ NO {}", newMessageRequest.content().sequence_number());
             while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) &&
                    not is_test_over())
                 std::this_thread::sleep_for(10us);
@@ -124,7 +76,7 @@ void runRelayIPCRequestThread(
         }
         default: {
             SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
-            SPDLOG_CRITICAL("DO NOT KNOW THE REQUEST TYPE");
+            //SPDLOG_CRITICAL("DO NOT KNOW THE REQUEST TYPE");
         }
         }
     }
