@@ -407,19 +407,19 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     {
         mResendNumberLookup.push_back(computeGetResendNumber(sequenceNumber));
         mResendDestinationLookup.push_back(computeGetMessageDestinations(sequenceNumber));
-        std::string resendDests{};
-        for (const auto& destination : mResendDestinationLookup.back())
-        {
-            resendDests += std::to_string(destination) + ' ';
-        }
-        if (mResendNumberLookup.back().has_value())
-        {
-            SPDLOG_CRITICAL("FOR SN {}\t I AM RESENDER {} to [ {}]", sequenceNumber, mResendNumberLookup.back().value(), resendDests);
-        }
-        else
-        {
-            SPDLOG_CRITICAL("FOR SN {}\t I AM RESENDER NA to [ {}]", sequenceNumber, resendDests);
-        }
+        // std::string resendDests{};
+        // for (const auto& destination : mResendDestinationLookup.back())
+        // {
+        //     resendDests += std::to_string(destination) + ' ';
+        // }
+        // if (mResendNumberLookup.back().has_value())
+        // {
+        //     SPDLOG_CRITICAL("FOR SN {}\t I AM RESENDER {} to [ {}]", sequenceNumber, mResendNumberLookup.back().value(), resendDests);
+        // }
+        // else
+        // {
+        //     SPDLOG_CRITICAL("FOR SN {}\t I AM RESENDER NA to [ {}]", sequenceNumber, resendDests);
+        // }
     }
 }
 
