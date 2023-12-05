@@ -25,6 +25,11 @@ echo -n "Enter the name of the receiving application (4 options: algo, resdb, ra
 read receive_rsm
 echo "Receiving Application: ${receive_rsm}"
 
+#If this experiment is for File_RSM (not algo or resdb)
+file_rsm="true"
+if [ "$send_rsm" != "file" ] || [ "$receive_rsm" != "file" ]; then
+    file_rsm="false"
+fi
 
 # Name of profile we are running out of
 key_file="$HOME/.ssh/id_ed25519" # TODO: Replace with your ssh key
@@ -67,8 +72,6 @@ all_to_all="false"
 one_to_one="false"
 
 #If this experiment is for File_RSM (not algo or resdb)
-#file_rsm="true"
-file_rsm="false"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
