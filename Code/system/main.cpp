@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
-        std::this_thread::sleep_until(testStartRecordTime);
+        //std::this_thread::sleep_until(testStartRecordTime);
         const auto trueTestStartTime = std::chrono::steady_clock::now();
         start_recording();
         addMetric("starting_quack", quorumAck->getCurrentQuack().value_or(0));

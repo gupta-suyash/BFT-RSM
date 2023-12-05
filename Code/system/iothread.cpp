@@ -50,7 +50,7 @@ void runRelayIPCRequestThread(
 */
     while (not is_test_over())
     {
-        SPDLOG_CRITICAL("BEFORE READING");
+        //SPDLOG_CRITICAL("BEFORE READING");
         auto messageBytes = readMessage(pipe);
         //SPDLOG_CRITICAL("RIGHT AFTER READING");
         scrooge::ScroogeRequest newRequest;
@@ -110,15 +110,15 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
         const auto curQuorumAck = quorumAck->getCurrentQuack();
         if (lastQuorumAck < curQuorumAck)
         {
-            SPDLOG_CRITICAL("QUORUM ACK ACTUALLY WILL BE SENT");
+            SPDLOG_CRITICAL("QUACK ACTUALLY SENT! CurQuack: {}", curQuorumAck.value());
             lastQuorumAck = curQuorumAck;
             mutableCommitAck->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
-            SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId, get_rsm_id());
             writeMessage(pipe, serializedTransfer);
+            SPDLOG_CRITICAL("Successfully wrote quack {}",lastQuorumAck.value());
         }
     }
-    SPDLOG_CRITICAL("END OF WHILE LOOP TRANSACTION IPC");
+    SPDLOG_CRITICAL("END OF WHILE LOOP TRANSACTION IPC.");
     pipe.close();
     addMetric("IPC test", true);
 }

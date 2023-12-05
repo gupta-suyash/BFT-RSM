@@ -36,6 +36,7 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
     if (ackIterator.has_value())
     {
         message->mutable_ack_count()->set_value(ackIterator.value());
+        //SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
     }
     *message->mutable_ack_set() = {curAckView.view.begin(),
                                    std::find(curAckView.view.begin(), curAckView.view.end(), 0)};

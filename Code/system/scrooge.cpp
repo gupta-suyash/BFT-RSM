@@ -41,6 +41,7 @@ uint64_t numQuackWindowFails{}, numAckWindowFails{}, numSendChecks{}, numIOTimeo
 bool isResendDataUpdated{};
 uint64_t maxResendRequest{};
 uint64_t numMessagesResent{};
+static uint64_t counter = 0;
 
 uint64_t testtrueMod(int64_t value, int64_t modulus)
 {
@@ -199,6 +200,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment, curTime);
+                    SPDLOG_CRITICAL("POSSIBLY LATE Sending to OTHER RSM: RECV NODE {} ACK {}", receiverNode, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -218,6 +220,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment, curTime);
+                SPDLOG_CRITICAL("FIRST TIME Sending to OTHER RSM: RECV NODE {} ACK {}", receiverNode, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -225,6 +228,8 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
                 numMsgsSentWithLastAck++;
             }
         }
+    } else {
+        SPDLOG_CRITICAL("NOT FIRST SEND: {}", resendNumber.value_or(0));
     }
 
     if (isPossiblySentLater)
@@ -238,6 +243,8 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
                                                          .destinations = destinations});
         isResendDataUpdated |= sequenceNumber <= maxResendRequest;
     }
+    SPDLOG_CRITICAL("HANDLING: MESSAGE #{} with: SEQNO {} CURQUACK {}", counter, sequenceNumber, lastQuack);
+    counter += 1;
     return false;
 }
 
@@ -449,7 +456,6 @@ static void runScroogeSendThread(
     SPDLOG_CRITICAL("SEND THREAD TID {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
-    uint64_t counter = 0;
     bindThreadToCpu(1);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
@@ -512,8 +518,6 @@ static void runScroogeSendThread(
             {
                 continue;
             }
-            SPDLOG_CRITICAL("HANDLING NEW MESSAGE {}", counter);
-            counter+=1;
         }
         else if (isAckFresh && isNoopTimeoutHit)
         {
@@ -525,6 +529,7 @@ static void runScroogeSendThread(
             }
             else
             {
+                SPDLOG_CRITICAL("Are we force sending to other rsm?");
                 pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
             }
 
@@ -787,9 +792,11 @@ void runScroogeReceiveThread(
                 {
                     if (not util::isMessageDataValid(messageData))
                     {
+                        SPDLOG_CRITICAL("Message Data is invalid!");
                         continue;
                     }
                     acknowledgment->addToAckList(messageData.sequence_number());
+                    SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 790: {}", messageData.sequence_number());
                     timedMessages += is_test_recording();
                 }
 
@@ -811,6 +818,7 @@ void runScroogeReceiveThread(
             bool success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
             if (success)
             {
+                //SPDLOG_CRITICAL("SENT MESSAGE WITH SEQUENCE ID {} TO OWN RSM", receivedMessage.message);
                 receivedMessage.message = nullptr;
             }
         }
@@ -832,9 +840,11 @@ void runScroogeReceiveThread(
             {
                 if (not util::isMessageDataValid(messageData))
                 {
+                    SPDLOG_CRITICAL("Message is invalid!");
                     continue;
                 }
                 acknowledgment->addToAckList(messageData.sequence_number());
+                SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 840: {}", messageData.sequence_number()); 
                 timedMessages += is_test_recording();
             }
         }
