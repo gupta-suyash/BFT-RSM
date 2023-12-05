@@ -175,6 +175,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
     const auto isMessageNeverSent = not resendNumber.has_value();
     if (isMessageNeverSent)
     {
+        SPDLOG_CRITICAL("MESSAGE {} NEVER SENT", sequenceNumber);
         return true;
     }
 
@@ -200,7 +201,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment, curTime);
-                    SPDLOG_CRITICAL("POSSIBLY LATE Sending to OTHER RSM: RECV NODE {} ACK {}", receiverNode, acknowledgment->getAckIterator().value_or(0));
+                    SPDLOG_CRITICAL("POSSIBLY LATE Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -220,7 +221,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment, curTime);
-                SPDLOG_CRITICAL("FIRST TIME Sending to OTHER RSM: RECV NODE {} ACK {}", receiverNode, acknowledgment->getAckIterator().value_or(0));
+                SPDLOG_CRITICAL("FIRST TIME Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -229,7 +230,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             }
         }
     } else {
-        SPDLOG_CRITICAL("NOT FIRST SEND: {}", resendNumber.value_or(0));
+        SPDLOG_CRITICAL("NOT FIRST SEND: {} isSentLater {}", resendNumber.value_or(0), isPossiblySentLater);
     }
 
     if (isPossiblySentLater)
@@ -519,7 +520,7 @@ static void runScroogeSendThread(
                 continue;
             }
         }
-        else if (isAckFresh && isNoopTimeoutHit)
+        else if (isNoopTimeoutHit) // Always send no-ops, maybe not enough messages to flush buffers?
         {
             static uint64_t receiver = 0;
 
@@ -796,7 +797,7 @@ void runScroogeReceiveThread(
                         continue;
                     }
                     acknowledgment->addToAckList(messageData.sequence_number());
-                    SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 790: {}", messageData.sequence_number());
+                    SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 790: {} SenderId {}", messageData.sequence_number(), senderId);
                     timedMessages += is_test_recording();
                 }
 

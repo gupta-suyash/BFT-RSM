@@ -529,6 +529,12 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
                                     pipeline::MessageQueue<nng_msg *> *const sendingQueue,
                                     std::chrono::steady_clock::time_point curTime)
 {
+    std::string msgsInBatch{};
+    for (const auto& msg : batch->data.data())
+    {
+        msgsInBatch += std::to_string(msg.sequence_number()) + " ";
+    }
+    SPDLOG_CRITICAL("Flushing batch with messages [{}]", msgsInBatch);
     const bool isBatchOversized = batch->batchSizeEstimate > kMinimumBatchSize;
     if (isBatchOversized)
     {
@@ -625,6 +631,7 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
     if (not shouldSend)
     {
+        SPDLOG_CRITICAL("NOT SENDING BATCH BECAUSE isOldEnough {} isBatchLargeEnough {}", isBatchOldEnough, isBatchLargeEnough);
         return false;
     }
 
@@ -684,6 +691,7 @@ void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgmen
 {
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
+    SPDLOG_CRITICAL("Forcing send to node {}", receivingNodeId);
     flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
 }
 void Pipeline::forceSendFileToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
