@@ -458,9 +458,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	}
 
 	function benchmark_raft() {
-		benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
-		benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
-		benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
+		for i in {1..5}; do
+		benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1000000 --val-size=256
+		
 	}
 
 	# Setup all necessary external applications
