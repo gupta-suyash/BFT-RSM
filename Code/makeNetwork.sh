@@ -23,8 +23,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=20s
-total_time=120s
+warmup_time=10s
+total_time=40s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -57,13 +57,13 @@ one_to_one="false"
 
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
-file_rsm="false"
+file_rsm="true"
 # If this experiment uses external applications, set the following values
-# Valid inputs: "algo", "resdb", "raft"
+# Valid inputs: "algo", "resdb", "raft", "file"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="algo"
-receive_rsm="algo"
+send_rsm="file"
+receive_rsm="file"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -74,25 +74,25 @@ if [ "$file_rsm" = "false" ]; then
 fi
 
 echo "The applications you are running are $send_rsm and $receive_rsm." 
-echo -n "Please acknolwedge and accept/reject. Type Y or N: "
+# echo -n "Please acknolwedge and accept/reject. Type Y or N: "
 
-read application_acknowledgement
+# read application_acknowledgement
 
-if [ $application_acknowledgement != "Y" ]; then
-	echo "Please check the application you are running."
-	echo "Otherwise you will be sad :') Exiting now..."
-	exit 1
-fi
+# if [ $application_acknowledgement != "Y" ]; then
+# 	echo "Please check the application you are running."
+# 	echo "Otherwise you will be sad :') Exiting now..."
+# 	exit 1
+# fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4)
-rsm2_size=(4)
-rsm1_fail=(0)
-rsm2_fail=(0)
-RSM1_Stake=(1 1 1 1)
-RSM2_Stake=(1 1 1 1)
-klist_size=(64)
-packet_size=(100 1000000)
+rsm1_size=(4 7 10 13 16 19 22)
+rsm2_size=(4 7 10 13 16 19 22)
+rsm1_fail=(1 2 3 4 5 6 7)
+rsm2_fail=(1 2 3 4 5 6 7)
+RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+klist_size=(32768)
+packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -171,7 +171,7 @@ pipeline_buffer_size=(8)
 # Build the network from the description
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
-client=2
+client=0
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
 done
@@ -183,13 +183,13 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME=${experiment_name}
+GP_NAME="big-sched-test"
 ZONE="us-central1-a"
-TEMPLATE="algo-template"
+TEMPLATE="updated-app-template"
 
 function exit_handler() {
-        echo "** Trapped CTRL-C, deleting experiment"
-	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	echo "** Trapped CTRL-C, deleting experiment"
+	# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -199,7 +199,7 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair 
+# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
 
 rm /tmp/all_ips.txt
@@ -242,7 +242,7 @@ while ((${count} < ${client})); do
 	fi
 done
 
-sleep 300
+# sleep 300
 echo "Starting Experiment"
 
 makeExperimentJson() {
