@@ -498,7 +498,6 @@ static void runScroogeSendThread(
         {
             shouldHandleNewMessage = not resendDatas.full() && shouldDequeue &&
                                      messageInput->try_dequeue(newMessageData) && not is_test_over();
-            SPDLOG_CRITICAL("SHOULD HANDLE MESSAGE {}", counter);
             counter+=1;
         }
         if (shouldHandleNewMessage)
