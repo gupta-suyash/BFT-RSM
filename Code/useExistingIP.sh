@@ -459,8 +459,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 	function benchmark_raft() {
 		for i in {1..5}; do
-		benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1000000 --val-size=256
-		
+			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1000000 --val-size=256
+		done		
 	}
 
 	# Setup all necessary external applications
@@ -593,7 +593,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
 	#exit 1
 	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
-	sleep 60
+	#sleep 60
 
 
 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
@@ -630,7 +630,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 							# Next, we run the script.
 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
-sleep 32 && benchmark_raft
+
+if [ "$receive_rsm" = "raft" ]; then
+	sleep 32 && benchmark_raft
+fi
 
 						done
 					done
