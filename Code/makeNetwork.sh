@@ -183,7 +183,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="big-sched-test"
+GP_NAME="geo-exps"
 ZONE="us-central1-a"
 TEMPLATE="updated-app-template"
 
