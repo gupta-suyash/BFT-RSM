@@ -512,7 +512,7 @@ static void runScroogeSendThread(
             {
                 continue;
             }
-            SPDLOG_CRITICAL("HANDLING NEW MESSAGE {}", counter);
+            //SPDLOG_CRITICAL("HANDLING NEW MESSAGE {}", counter);
             counter+=1;
         }
         else if (isAckFresh && isNoopTimeoutHit)

@@ -210,7 +210,7 @@ echo "${TEMPLATE}"
 # STATIC IP ADDRESSES!!!
 RSM1=(10.128.4.137 10.128.4.138 10.128.4.139 10.128.4.140)
 RSM2=(10.128.4.141 10.128.4.142 10.128.4.143 10.128.4.144)
-CLIENT=(10.128.4.145 10.128.4.146)
+CLIENT=(10.128.4.145 10.128.4.156)
 echo "About to parallel!"
 
 count=0
@@ -399,7 +399,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	############# Setup all necessary external applications #############
-	joinedvar=""
+	joinedvar1=""
+	joinedvar2=""
+	raft_count=1
 	function start_raft() {
 		echo "Raft RSM is being used!"
 		# Take in arguments
@@ -454,15 +456,24 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "RSM w ports: ${joined%,}"
 		# Start benchmark
     		export PATH=$PATH:${benchmark_bin_path}
-		joinedvar="${joined%,}"
-		#(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
-		#benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
-		#benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
+		
+		if [ "${raft_count}" -eq 1 ]; then
+			joinedvar1="${joined%,}"
+			echo "RSM1: ${joinedvar1}"
+			raft_count=2
+		else
+			joinedvar2="${joined%,}"
+			echo "RSM2: ${joinedvar2}"
+		fi
 	}
 
 	function benchmark_raft() {
+		local joinedvar=$1
+		local raft_count=$2
+		echo "IN BENCHMARK_RAFT ${joinedvar}"
+		echo "" > benchmark_${raft_count}.log
 		for i in {1..5}; do
-			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1000000 --val-size=256
+			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=500000 --val-size=256 &>> benchmark_${raft_count}.log
 		done		
 	}
 
@@ -620,9 +631,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 							# Next, we run the script.
 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 
-if [ "$receive_rsm" = "raft" ]; then
-	sleep 32 && benchmark_raft
+if [ "$send_rsm"="raft" ]; then
+	sleep 32
+	benchmark_raft "${joinedvar1}" 1
 fi
+#if [ "$receive_rsm"="raft" ]; then
+#	sleep 32
+#	benchmark_raft "${joinedvar2}" 2
+#fi
 
 						done
 					done

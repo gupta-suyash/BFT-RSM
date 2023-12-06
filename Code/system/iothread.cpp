@@ -68,7 +68,7 @@ void runRelayIPCRequestThread(
         case request::kSendMessageRequest: {
             auto newMessageRequest = newRequest.send_message_request();
             receivedMessages.addToAckList(newMessageRequest.content().sequence_number());
-            SPDLOG_CRITICAL("GOING TO ADD MESSAGE WITH SEQ NO {}", newMessageRequest.content().sequence_number());
+            //SPDLOG_CRITICAL("GOING TO ADD MESSAGE WITH SEQ NO {}", newMessageRequest.content().sequence_number());
             while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) &&
                    not is_test_over())
                 std::this_thread::sleep_for(10us);
