@@ -670,6 +670,13 @@ void runScroogeReceiveThread(
                     timedMessages += is_test_recording();
                 }
 
+                if (crossChainMessage.data_size() == 0)
+                {
+                    // no useful data to rebroadcast
+                    nng_msg_free(receivedMessage.message);
+                    receivedMessage.message = nullptr;
+                }
+
                 const auto curForeignAck = (crossChainMessage.has_ack_count())
                                                ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
                                                : std::nullopt;

@@ -79,6 +79,10 @@ static uint64_t bitCeil(uint64_t value)
 std::vector<uint64_t> message_scheduler::apportionVector(uint64_t totalApportionedShares,
                                                          const std::vector<uint64_t> &originalShares)
 {
+    if (totalApportionedShares == message_scheduler::stakeInNetwork(originalShares))
+    {
+        return originalShares;
+    }
     std::vector<uint64_t> apportionedShares;
     std::vector<std::pair<double, uint64_t>> roundingErrToOwner;
     uint64_t sharesAlreadyApportioned{};
@@ -264,7 +268,7 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
     bool isNodeFirstSender = firstSenderId == kOwnNodeId;
     if (isNodeFirstSender)
     {
-        destinations.push_back((uint16_t) firstReceiver);
+        destinations.push_back((uint16_t) firstReceiverId);
     }
 
     // Optimistic starting resender/rereceiver
@@ -368,8 +372,8 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     const auto stakeInOwnNetwork = message_scheduler::stakeInNetwork(ownNetworkStakePrefixSum);
     const auto stakeInOtherNetwork = message_scheduler::stakeInNetwork(otherNetworkStakePrefixSum);
     const auto networkStakeLcm = std::lcm(stakeInOwnNetwork, stakeInOtherNetwork);
-    const auto ownApportionedStake = std::min<uint64_t>(networkStakeLcm, 1024);
-    const auto otherApportionedStake = std::min<uint64_t>(networkStakeLcm, 1024);
+    const auto ownApportionedStake = stakeInOwnNetwork;
+    const auto otherApportionedStake = stakeInOtherNetwork;
     const auto ownNetworkApportionedStakes =
         message_scheduler::apportionVector(ownApportionedStake, configuration.kOwnNetworkStakes);
     const auto otherNetworkApportionedStakes =
