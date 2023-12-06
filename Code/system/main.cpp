@@ -63,33 +63,33 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
-        if (get_rsm_id() == 1 && kNodeId % 3 == 1)
-        {
-            SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
-            auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
+        // if (get_rsm_id() == 1 && kNodeId % 3 == 1)
+        // {
+        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
+        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
 
-            std::this_thread::sleep_until(testEndTime);
-            end_test();
+        //     std::this_thread::sleep_until(testEndTime);
+        //     end_test();
 
-            receiveThread.join();
-            SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
-            remove(kLogPath.c_str());
-            return 0;
-        }
+        //     receiveThread.join();
+        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
+        //     remove(kLogPath.c_str());
+        //     return 0;
+        // }
 
-        if (get_rsm_id() == 0 && kNodeId%3 == 1)
-        {
-            SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
-            auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
+        // if (get_rsm_id() == 0 && kNodeId%3 == 1)
+        // {
+        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
+        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
 
-            std::this_thread::sleep_until(testEndTime);
-            end_test();
+        //     std::this_thread::sleep_until(testEndTime);
+        //     end_test();
 
-            receiveThread.join();
-            SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
-            remove(kLogPath.c_str());
-            return 0;
-        }
+        //     receiveThread.join();
+        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
+        //     remove(kLogPath.c_str());
+        //     return 0;
+        // }
 
         /*auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         auto relayTransactionThread =

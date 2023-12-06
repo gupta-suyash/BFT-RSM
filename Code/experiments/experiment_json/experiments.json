@@ -1,32 +1,32 @@
 {
   "experiment_independent_vars": {
-    "project_dir": "/home/scrooge/BFT-RSM/Code/experiments/results/final_results/",
+    "project_dir": "/home/scrooge/BFT-RSM/Code/experiments/results/",
     "src_dir": "/home/scrooge/BFT-RSM/Code/",
     "network_dir": "/home/scrooge/BFT-RSM/Code/configuration/",
-    "exec_dir": "~/",
-    "ssh_key": "~/.ssh/id_ed25519",
+    "exec_dir": "/home/scrooge/",
+    "ssh_key": "/home/scrooge/.ssh/id_ed25519",
     "username": "scrooge",
     "local_setup_script": "/home/scrooge/BFT-RSM/Code/setup-seq.sh",
     "remote_setup_script": "/home/scrooge/BFT-RSM/Code/setup_remote.sh",
     "local_compile_script": "/home/scrooge/BFT-RSM/Code/build.sh",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
-      "10.138.0.28",
-      "10.138.0.30",
-      "10.138.0.31",
-      "10.138.0.32"
+      "10.128.6.137",
+      "10.128.6.111",
+      "10.128.6.122",
+      "10.128.6.134"
     ],
     "clusterOneIps": [
-      "10.138.0.34",
-      "10.138.0.38",
-      "10.138.0.36",
-      "10.138.0.37"
+      "10.128.6.96",
+      "10.128.6.113",
+      "10.128.6.124",
+      "10.128.6.102"
     ],
     "client_regions": [
       "US"
     ]
   },
-  "scrooge_4_replica_stake": {
+  "debug2": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 1,
     "simulate_latency": 0,
@@ -54,7 +54,7 @@
           10000
         ],
         "packet_size": [
-          100
+          1000000
         ]
       },
       "cluster_1": {
@@ -74,7 +74,7 @@
           10000
         ],
         "packet_size": [
-          100
+          1000000
         ]
       }
     }

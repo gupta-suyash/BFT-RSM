@@ -14,11 +14,11 @@ std::vector<uint64_t> message_scheduler::getStakePrefixSum(const std::vector<uin
 {
     std::vector<uint64_t> prefixSum(networkStake.size() + 1);
 
-    prefixSum.at(0) = 0;
+    prefixSum[0] = 0;
 
     for (size_t i = 1; i < prefixSum.size(); i++)
     {
-        prefixSum.at(i) = prefixSum.at(i - 1) + networkStake.at(i - 1);
+        prefixSum[i] = prefixSum[i - 1] + networkStake[i - 1];
     }
 
     return prefixSum;
@@ -33,6 +33,7 @@ uint64_t message_scheduler::stakeToNode(uint64_t stakeIndex, const std::vector<u
             return offset - 1;
         }
     }
+    return -1ULL;
 }
 
 uint64_t message_scheduler::stakeInNode(uint64_t nodeIndex, const std::vector<uint64_t> &networkStakePrefixSum)
@@ -47,7 +48,7 @@ uint64_t message_scheduler::nodeToStake(uint64_t nodeIndex, const std::vector<ui
         SPDLOG_CRITICAL("Requested node that doesn't exist, nodeIndex={}", nodeIndex);
         std::abort();
     }
-    return networkStakePrefixSum.at(nodeIndex + 1) - networkStakePrefixSum.at(nodeIndex);
+    return networkStakePrefixSum[nodeIndex + 1] - networkStakePrefixSum[nodeIndex];
 }
 
 uint64_t message_scheduler::stakeInNetwork(const std::vector<uint64_t> &networkStakePrefixSum)
@@ -79,6 +80,10 @@ static uint64_t bitCeil(uint64_t value)
 std::vector<uint64_t> message_scheduler::apportionVector(uint64_t totalApportionedShares,
                                                          const std::vector<uint64_t> &originalShares)
 {
+    if (totalApportionedShares == message_scheduler::stakeInNetwork(originalShares))
+    {
+        return originalShares;
+    }
     std::vector<uint64_t> apportionedShares;
     std::vector<std::pair<double, uint64_t>> roundingErrToOwner;
     uint64_t sharesAlreadyApportioned{};
@@ -87,7 +92,7 @@ std::vector<uint64_t> message_scheduler::apportionVector(uint64_t totalApportion
 
     for (uint64_t i = 0; i < originalShares.size(); i++)
     {
-        const auto curShare = originalShares.at(i);
+        const auto curShare = originalShares[i];
         const auto curOwner = i;
 
         const double idealShare = curShare / (double)totalOriginalShares * totalApportionedShares;
@@ -104,9 +109,9 @@ std::vector<uint64_t> message_scheduler::apportionVector(uint64_t totalApportion
 
     for (uint64_t i{}; sharesAlreadyApportioned < totalApportionedShares; i++)
     {
-        const auto [remainder, owner] = roundingErrToOwner.at(i);
+        const auto [remainder, owner] = roundingErrToOwner[i];
 
-        apportionedShares.at(owner)++;
+        apportionedShares[owner]++;
         sharesAlreadyApportioned++;
     }
 
@@ -264,7 +269,7 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
     bool isNodeFirstSender = firstSenderId == kOwnNodeId;
     if (isNodeFirstSender)
     {
-        destinations.push_back((uint16_t) firstReceiver);
+        destinations.push_back((uint16_t) firstReceiverId);
     }
 
     // Optimistic starting resender/rereceiver
@@ -368,8 +373,8 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     const auto stakeInOwnNetwork = message_scheduler::stakeInNetwork(ownNetworkStakePrefixSum);
     const auto stakeInOtherNetwork = message_scheduler::stakeInNetwork(otherNetworkStakePrefixSum);
     const auto networkStakeLcm = std::lcm(stakeInOwnNetwork, stakeInOtherNetwork);
-    const auto ownApportionedStake = std::min<uint64_t>(networkStakeLcm, 1024);
-    const auto otherApportionedStake = std::min<uint64_t>(networkStakeLcm, 1024);
+    const auto ownApportionedStake = stakeInOwnNetwork;
+    const auto otherApportionedStake = stakeInOtherNetwork;
     const auto ownNetworkApportionedStakes =
         message_scheduler::apportionVector(ownApportionedStake, configuration.kOwnNetworkStakes);
     const auto otherNetworkApportionedStakes =

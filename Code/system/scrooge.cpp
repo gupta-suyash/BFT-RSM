@@ -29,10 +29,10 @@ uint64_t numMsgsSentWithLastAck{};
 std::optional<uint64_t> lastSentAck{};
 uint64_t lastQuack = 0;
 constexpr uint64_t kAckWindowSize = 1000;
-constexpr uint64_t kQAckWindowSize = 1000; // Failures maybe try (1<<20)
+constexpr uint64_t kQAckWindowSize = 2500; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
-constexpr auto kMaxMessageDelay = 50ms;
-constexpr auto kNoopDelay = 200ms;
+constexpr auto kMaxMessageDelay = 10s;
+constexpr auto kNoopDelay = 50ms;
 uint64_t noop_ack = 0;
 uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{},
     numResendsTooLow{}, searchDistance{}, searchChecks{};
@@ -65,7 +65,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
     const auto isPossiblySentLater = not isFirstSender || destinations.size() > 1;
     if (isFirstSender)
     {
-        const auto receiverNode = destinations.at(0);
+        const auto receiverNode = destinations[0];
         numMessagesSent++;
 
         if (isPossiblySentLater)
@@ -128,7 +128,7 @@ void updateResendData(iothread::MessageQueue<acknowledgment_tracker::ResendData>
 {
     // TODO see if this style of bulk check or a bulk erase up to std::find(first useful data) is meaningfully faster
     // constexpr auto kResendBlockSize = 4096;
-    // if (resendDatas.size() > kResendBlockSize && resendDatas.at(kResendBlockSize).sequenceNumber <= curQuack)
+    // if (resendDatas.size() > kResendBlockSize && resendDatas[kResendBlockSize].sequenceNumber <= curQuack)
     // {
     //     resendDatas.erase_begin(kResendBlockSize);
     // }
@@ -282,7 +282,7 @@ void handleResends(std::chrono::steady_clock::time_point curTime, Pipeline *cons
         for (uint64_t resend = curNodeCompletedResends; resend <= curFinalDestination; resend++)
         {
             // SPDLOG_CRITICAL("BRO FINALLY S#{}", sequenceNumber);
-            const auto destination = destinations.at(resend - curNodeFirstResend);
+            const auto destination = destinations[resend - curNodeFirstResend];
             const bool isSentLater = numDestinationsSent + 1 < destinations.size();
             if (isSentLater)
             {
@@ -393,25 +393,25 @@ static void runScroogeSendThread(
             //     continue;
             // }
         }
-        // else if (isAckFresh && isNoopTimeoutHit)
-        // {
-        //     static uint64_t receiver = 0;
+        else if (isAckFresh && isNoopTimeoutHit)
+        {
+            static uint64_t receiver = 0;
 
-        //     if constexpr (kIsUsingFile)
-        //     {
-        //         pipeline->forceSendFileToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
-        //     }
-        //     else
-        //     {
-        //         pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
-        //     }
+            if constexpr (kIsUsingFile)
+            {
+                pipeline->forceSendFileToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
+            }
+            else
+            {
+                pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
+            }
 
-        //     receiver++;
-        //     numMsgsSentWithLastAck++;
-        //     noop_ack++;
+            receiver++;
+            numMsgsSentWithLastAck++;
+            noop_ack++;
 
-        //     lastSendTime = curTime;
-        // }
+            lastSendTime = curTime;
+        }
 
         updateResendData(resendDataQueue.get(), curQuack);
 
@@ -603,7 +603,7 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
         //     return;
         // } // commenting this out is a bug but doesn't really matter since test is over
 
-        const auto senderStake = configuration.kOtherNetworkStakes.at(curView.senderId);
+        const auto senderStake = configuration.kOtherNetworkStakes[curView.senderId];
         const auto currentQuack = quorumAck->getCurrentQuack();
         updateAckTrackers(currentQuack, senderStake, curView, ackTrackers, resendDataQueue, messageScheduler);
     }
@@ -670,10 +670,17 @@ void runScroogeReceiveThread(
                     timedMessages += is_test_recording();
                 }
 
+                if (crossChainMessage.data_size() == 0)
+                {
+                    // no useful data to rebroadcast
+                    nng_msg_free(receivedMessage.message);
+                    receivedMessage.message = nullptr;
+                }
+
                 const auto curForeignAck = (crossChainMessage.has_ack_count())
                                                ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
                                                : std::nullopt;
-                const auto senderStake = configuration.kOtherNetworkStakes.at(senderId);
+                const auto senderStake = configuration.kOtherNetworkStakes[senderId];
                 if (curForeignAck.has_value())
                 {
                     quorumAck->updateNodeAck(senderId, senderStake, *curForeignAck);

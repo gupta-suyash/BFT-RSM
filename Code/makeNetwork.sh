@@ -85,15 +85,15 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 # fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4 7 10 13 16 19 22)
-rsm2_size=(4 7 10 13 16 19 22)
-rsm1_fail=(1 2 3 4 5 6 7)
-rsm2_fail=(1 2 3 4 5 6 7)
-RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(32768)
+rsm1_size=(4)
+rsm2_size=(4)
+rsm1_fail=(1)
+rsm2_fail=(1)
+RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+klist_size=(2048)
 packet_size=(1000000)
-batch_size=(200000)
+batch_size=(0)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
 
