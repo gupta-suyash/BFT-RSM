@@ -29,7 +29,7 @@ uint64_t numMsgsSentWithLastAck{};
 std::optional<uint64_t> lastSentAck{};
 uint64_t lastQuack = 0;
 constexpr uint64_t kAckWindowSize = 1000;
-constexpr uint64_t kQAckWindowSize = 1000; // Failures maybe try (1<<20)
+constexpr uint64_t kQAckWindowSize = 100; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
 constexpr auto kMaxMessageDelay = 50ms;
 constexpr auto kNoopDelay = 200ms;

@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
-        if (get_rsm_id() == 1 && kNodeId % 3 == 1)
+  /*      if (get_rsm_id() == 1 && kNodeId % 3 == 1)
         {
             SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
             auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
             remove(kLogPath.c_str());
             return 0;
         }
-
+*/
         /*auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         auto relayTransactionThread =
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);

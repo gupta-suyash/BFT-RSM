@@ -10,10 +10,18 @@ if [ -z ${TMUX+x} ]; then
 fi
 
 echo -n "Enter the name of the experiment being run: "
-
 read experiment_name
-
 echo "Running Experiment: ${experiment_name}"
+
+#echo -n "Enter the name of the first cluster name: "
+#read GP_NAME_1
+#
+#echo -n "Enter the name of the second cluster name: "
+#read GP_NAME_2
+#
+#echo "Cluster 1 is called ${GP_NAME_1}"
+#echo "Cluster 2 is called ${GP_NAME_2}"
+#
 
 # Name of profile we are running out of
 key_file="$HOME/.ssh/id_ed25519" # TODO: Replace with your ssh key
@@ -52,8 +60,8 @@ starting_algos=10000000000000000
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
 scrooge="true"
-all_to_all="false"
-one_to_one="false"
+all_to_all="true"
+one_to_one="true"
 
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
@@ -84,14 +92,14 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 # 	exit 1
 # fi
 
-### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4 7 10 13 16 19 22)
-rsm2_size=(4 7 10 13 16 19 22)
-rsm1_fail=(1 2 3 4 5 6 7)
-rsm2_fail=(1 2 3 4 5 6 7)
+### Equal stake RSMs of size 4; message size 100.
+rsm1_size=(4 7 10 13 16 19)
+rsm2_size=(4 7 10 13 16 19)
+rsm1_fail=(1 2 3 4 5 6)
+rsm2_fail=(1 2 3 4 5 6)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(32768)
+klist_size=(64)
 packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
@@ -111,13 +119,18 @@ pipeline_buffer_size=(8)
 # pipeline_buffer_size=(8)
 
 ### Exp: Equal stake RSMs of size 4; message size 100.
-#rsm1_size=(4)
-#rsm2_size=(4)
-#rsm1_fail=(1)
-#rsm2_fail=(1)
-#RSM1_Stake=(1 1 1 1)
-#RSM2_Stake=(1 1 1 1)
-#packet_size=(100)
+#rsm1_size=(19)
+#rsm2_size=(19)
+#rsm1_fail=(6)
+#rsm2_fail=(6)
+#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#klist_size=(64)
+#packet_size=(1000000)
+#batch_size=(200000)
+#batch_creation_time=(1ms)
+#pipeline_buffer_size=(8)
+#
 
 ## Exp: Equal stake RSMs of size 4; message size 100, 1000
 #rsm1_size=(4)
@@ -182,40 +195,59 @@ done
 echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
-# TODO Change to inputs!!
-GP_NAME="geo-exps"
-ZONE="us-central1-a"
-TEMPLATE="updated-app-template"
 
-function exit_handler() {
-	echo "** Trapped CTRL-C, deleting experiment"
-	# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+################ COMMENT OUT BELOW HERE ########################
+#TEMPLATE="updated-app-template"
+##GP_NAME_1="geo-cluster-1"
+#ZONE_1="us-central1-a"
+#echo "Create group name"
+#echo "${GP_NAME_1}"
+#echo "$((num_nodes_rsm_1))"
+#echo "${ZONE_1}"
+#echo "${TEMPLATE}"
+#yes | gcloud beta compute instance-groups managed create "${GP_NAME_1}" --project=scrooge-398722 --base-instance-name="${GP_NAME_1}" --size="$((num_nodes_rsm_1))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE_1}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair 
+#echo "Done creating instance group for local cluster!"
+#
+##GP_NAME_2="geo-cluster-2"
+#ZONE_2="asia-east2-a"
+#echo "Create group name"
+#echo "${GP_NAME_2}"
+#echo "$((num_nodes_rsm_2))"
+#echo "${ZONE_2}"
+#echo "${TEMPLATE}"
+#yes | gcloud beta compute instance-groups managed create "${GP_NAME_2}" --project=scrooge-398722 --base-instance-name="${GP_NAME_2}" --size="$((num_nodes_rsm_2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE_2}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair 
+#
+################ COMMENT OUT ABOVE HERE ########################
+
+function exit_handler() { # TODO CHANGE
+    echo "** Trapped CTRL-C, deleting experiment"
+	#yes | gcloud compute instance-groups managed delete $GP_NAME_1 --zone $ZONE_1
+	#yes | gcloud compute instance-groups managed delete $GP_NAME_2 --zone $ZONE_2
 	exit 1
 }
-
 trap exit_handler INT
-echo "Create group name"
-echo "${GP_NAME}"
-echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
-echo "${ZONE}"
-echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
-#> /dev/null 2>&1
 
+GP_NAME_1="asia-cluster"
+GP_NAME_2="us-cluster"
 rm /tmp/all_ips.txt
 num_ips_read=0
-while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
-	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
+while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2)))); do
+	gcloud compute instances list --filter="name~^${GP_NAME_1}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
+	gcloud compute instances list --filter="name~^${GP_NAME_2}" --format='value(networkInterfaces[0].networkIP)' >> /tmp/all_ips.txt
 	output=$(cat /tmp/all_ips.txt)
 	ar=($output)
 	num_ips_read="${#ar[@]}"
 done
-
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
-RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
-CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
-echo "About to parallel!"
-#parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
+RSM2=(${ar[@]:22:${num_nodes_rsm_2}})
+echo "RSM1: ${RSM1[@]}"
+echo "RSM2: ${RSM2[@]}"
+#### INITIALIZATION OF GEOREPLICATED MACHINES
+#yes | gcloud compute instance-groups managed delete $GP_NAME_1 --zone $ZONE_1
+#yes | gcloud compute instance-groups managed delete $GP_NAME_2 --zone $ZONE_2
+#sleep 60 # TODO TAKE OUT! ONLY FOR ENSURING PROPER
+
+
 
 count=0
 while ((${count} < ${num_nodes_rsm_1})); do
@@ -627,8 +659,9 @@ done
 
 echo "taking down experiment"
 
-###### UNDO
-# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+#yes | gcloud compute instance-groups managed delete $GP_NAME_1 --zone $ZONE_1
+#yes | gcloud compute instance-groups managed delete $GP_NAME_2 --zone $ZONE_2
+
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 
