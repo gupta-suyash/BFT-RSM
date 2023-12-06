@@ -1,12 +1,9 @@
 #!/bin/bash
 
-cd /proj/ove-PG0/murray
 echo "Starting ResDB RSM1"
-cd resilientdb/deploy/config
+#cd /home/scrooge/BFT-RSM/Code/experiments/applications/resdb/deploy/config
 echo $PWD
-cp rsm1.conf kv_performance_server.conf
-cd ..
 
 echo "Killing old VMs"
-./script/kill_server.sh config/kv_performance_server.conf
-./script/kill_server.sh config/kv_performance_server.conf
+/home/scrooge/BFT-RSM/Code/experiments/applications/resdb/deploy/script/kill_server.sh  /home/scrooge/BFT-RSM/Code/experiments/applications/resdb/deploy/config/kv_performance_server.conf
+/home/scrooge/BFT-RSM/Code/experiments/applications/resdb/deploy/script/kill_server.sh  /home/scrooge/BFT-RSM/Code/experiments/applications/resdb/deploy/config/kv_performance_server.conf

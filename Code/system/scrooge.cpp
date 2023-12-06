@@ -175,7 +175,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
     const auto isMessageNeverSent = not resendNumber.has_value();
     if (isMessageNeverSent)
     {
-        SPDLOG_CRITICAL("MESSAGE {} NEVER SENT", sequenceNumber);
+        //SPDLOG_CRITICAL("MESSAGE {} NEVER SENT", sequenceNumber);
         return true;
     }
 
@@ -201,7 +201,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment, curTime);
-                    SPDLOG_CRITICAL("POSSIBLY LATE Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
+                  //  SPDLOG_CRITICAL("POSSIBLY LATE Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -221,7 +221,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment, curTime);
-                SPDLOG_CRITICAL("FIRST TIME Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
+                //SPDLOG_CRITICAL("FIRST TIME Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -244,7 +244,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
                                                          .destinations = destinations});
         isResendDataUpdated |= sequenceNumber <= maxResendRequest;
     }
-    SPDLOG_CRITICAL("HANDLING: MESSAGE #{} with: SEQNO {} CURQUACK {}", counter, sequenceNumber, lastQuack);
+    //SPDLOG_CRITICAL("HANDLING: MESSAGE #{} with: SEQNO {} CURQUACK {}", counter, sequenceNumber, lastQuack);
     counter += 1;
     return false;
 }
@@ -530,7 +530,7 @@ static void runScroogeSendThread(
             }
             else
             {
-                SPDLOG_CRITICAL("Are we force sending to other rsm?");
+                //SPDLOG_CRITICAL("Are we force sending to other rsm?");
                 pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
             }
 
@@ -797,7 +797,7 @@ void runScroogeReceiveThread(
                         continue;
                     }
                     acknowledgment->addToAckList(messageData.sequence_number());
-                    SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 790: {} SenderId {}", messageData.sequence_number(), senderId);
+                    //SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 790: {} SenderId {}", messageData.sequence_number(), senderId);
                     timedMessages += is_test_recording();
                 }
 
@@ -845,7 +845,7 @@ void runScroogeReceiveThread(
                     continue;
                 }
                 acknowledgment->addToAckList(messageData.sequence_number());
-                SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 840: {}", messageData.sequence_number()); 
+                //SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 840: {}", messageData.sequence_number()); 
                 timedMessages += is_test_recording();
             }
         }

@@ -534,7 +534,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
     {
         msgsInBatch += std::to_string(msg.sequence_number()) + " ";
     }
-    SPDLOG_CRITICAL("Flushing batch with messages [{}]", msgsInBatch);
+    //SPDLOG_CRITICAL("Flushing batch with messages [{}]", msgsInBatch);
     const bool isBatchOversized = batch->batchSizeEstimate > kMinimumBatchSize;
     if (isBatchOversized)
     {
@@ -691,7 +691,7 @@ void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgmen
 {
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
-    SPDLOG_CRITICAL("Forcing send to node {}", receivingNodeId);
+    //SPDLOG_CRITICAL("Forcing send to node {}", receivingNodeId);
     flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
 }
 void Pipeline::forceSendFileToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,

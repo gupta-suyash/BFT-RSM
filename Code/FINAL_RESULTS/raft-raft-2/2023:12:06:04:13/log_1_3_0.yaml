@@ -1,0 +1,48 @@
+Ack Window: 1000
+Ack-Fail: 0.790342
+Average KList Size: 0.000000
+Average Missing Acks: -nan
+Batch Size: 200000
+Batch Timeout: 0.001000
+Experiment Time: 119.977536
+IPC test: 1
+Noop Acks: 79969
+Noop Delay: 0.000800
+Noop-Hits: 0.001211
+NumKListRecv: 78821
+Pipeline Buffer Size: 8
+Quack Window: 1000000000
+Quack-Fail: 0.998276
+Timeout-Exclusive-Hits: 0.999122
+Timeout-Hits: 1.000000
+Warmup Time: 0.022531
+avg-num-msgs-in-batch: 7.806963
+avg_resend_active: -nan
+avg_resend_active_over_quack: -nan
+avg_resend_too_high: -nan
+avg_resend_too_low: -nan
+avg_search_dist: -nan
+duration_seconds: 119.977536
+foreign_max_failed_stake: 0
+foreign_messages_received: 2035939
+foreign_network_size: 4
+foreign_stake_total: 0
+ipc_msg_block_size: 2000559
+ipc_recv_messages: 0
+kList_size: 64
+local_max_failed_stake: 0
+local_network_size: 4
+local_stake: 1
+max_acknowledgment: 1535692
+max_quorum_acknowledgment: 2000559
+message_size: 100
+num-size-hits: 0
+num-timeout-hits: 516984
+num_msgs_resent: 0
+num_msgs_sent_primary: 625002
+num_resend_checks: 0
+socket-buffer-size-receive: 128
+socket-buffer-size-send: 128
+starting_ack: 0
+starting_quack: 0
+transfer_strategy: Scrooge k=64+ resends

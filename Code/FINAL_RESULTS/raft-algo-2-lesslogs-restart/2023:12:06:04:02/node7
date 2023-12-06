@@ -1,0 +1,463 @@
+[2023-12-06 04:02:09.309] [[1m[41mcritical[m] [main.cpp:43] Config set: kNumLocalNodes = 4, kNumForeignNodes = 4, kMaxNumLocalFailedNodes = 0, kMaxNumForeignFailedNodes = 0, kOwnNodeId = 3, g_rsm_id = 1, num_packets = 10000,  packet_size = 100, kLogPath= '/tmp/log_1_3.yaml'
+[2023-12-06 04:02:09.504] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Batch Size : 200000
+[2023-12-06 04:02:09.504] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Batch Timeout : 0.001000
+[2023-12-06 04:02:09.504] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Pipeline Buffer Size : 8
+[2023-12-06 04:02:09.505] [[1m[41mcritical[m] [scrooge.cpp:457] SEND THREAD TID 3068
+[2023-12-06 04:02:09.505] [[1m[41mcritical[m] [iothread.cpp:28] #############Inside run relay IPC REQUEST THREAD!
+[2023-12-06 04:02:09.505] [[1m[41mcritical[m] [global.cpp:168] Cannot allocate a unique core for this thread, num_cores=8, requested=0
+[2023-12-06 04:02:09.505] [[1m[41mcritical[m] [iothread.cpp:93] ###############Inside runRelayIPCTransactionThread which write scrooge-output!
+[2023-12-06 04:02:09.505] [[1m[41mcritical[m] [global.cpp:168] Cannot allocate a unique core for this thread, num_cores=8, requested=0
+[2023-12-06 04:02:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC starting_quack : 0
+[2023-12-06 04:02:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC starting_ack : 0
+[2023-12-06 04:02:09.505] [[1m[41mcritical[m] [scrooge.cpp:753] RECV THREAD TID 3073
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 128
+[2023-12-06 04:02:09.506] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 128
+[2023-12-06 04:02:09.507] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 128
+[2023-12-06 04:02:09.531] [[1m[41mcritical[m] [iothread.cpp:102] ########################Writer Open Success
+[2023-12-06 04:02:09.531] [[1m[41mcritical[m] [scrooge.cpp:708] STARTING LAME THREAD 3076
+[2023-12-06 04:02:10.158] [[1m[41mcritical[m] [iothread.cpp:42] ###########################Reader Open Success
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:10.169] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.307] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.307] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.339] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.340] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.352] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.369] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.370] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.370] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.372] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.372] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.373] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.374] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.375] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.376] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.377] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.378] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.396] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.397] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.401] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.402] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.402] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.424] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.425] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.427] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.439] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.439] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.439] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.440] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.447] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.447] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.447] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:12.508] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:16.380] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:16.383] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:16.405] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:16.406] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:16.417] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:16.448] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:16.449] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:16.502] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.451] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.461] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.462] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.463] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.464] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.464] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.465] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.466] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.471] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.472] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.473] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.475] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.481] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.482] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.483] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.484] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.505] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.506] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.508] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.508] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.582] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.592] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.592] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.593] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.594] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.597] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.622] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.631] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.632] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.666] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:20.671] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.625] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.626] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.627] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.640] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.653] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.654] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.655] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.665] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.668] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.668] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.669] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.670] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.671] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.672] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.675] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.675] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.676] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.677] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.678] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.678] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.682] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.697] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.745] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.756] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:24.766] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.733] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.781] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.786] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.799] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.801] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.802] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.802] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.811] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.811] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.812] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.812] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.814] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.815] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.824] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.825] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.826] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.827] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.857] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.893] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.894] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.897] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.902] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.929] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.933] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.934] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.935] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.936] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.937] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.938] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:28.941] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.767] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.767] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.788] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.790] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.791] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.792] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.813] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.813] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.814] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.815] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.816] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.816] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.817] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.818] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:32.819] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:36.829] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:36.840] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:36.877] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:36.891] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:40.917] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:40.951] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:40.984] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:41.008] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:44.999] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.022] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.022] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.025] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.026] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.027] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.028] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.029] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.029] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.034] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:45.036] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:49.079] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:49.118] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:49.124] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:49.133] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:49.134] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:49.135] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.084] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.085] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.086] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.146] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.147] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.153] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.171] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.172] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:53.172] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.128] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.129] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.129] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.130] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.131] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.146] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.147] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.206] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:02:57.209] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:01.243] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:01.243] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:01.258] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:01.267] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:01.268] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:01.268] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:01.269] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:05.298] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.294] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.294] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.295] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.296] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.296] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.297] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.298] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.299] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.299] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.300] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.301] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.302] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.303] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.303] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.304] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.305] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.306] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.320] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.322] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.324] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.359] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.374] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.375] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:09.376] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.378] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.379] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.392] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.393] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.396] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.424] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.424] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.424] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.425] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.439] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.453] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.453] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.454] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.457] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:13.458] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:17.412] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:17.443] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:17.444] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:17.473] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:17.481] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:17.488] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:17.488] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:21.495] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:21.496] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:21.513] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.584] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.584] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.585] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.586] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.587] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.587] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.591] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.593] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.593] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.594] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.595] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.596] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.597] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.597] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.598] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.599] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.635] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.635] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.636] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.638] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.638] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:25.639] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:29.623] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:29.623] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:29.653] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:29.661] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:29.686] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.670] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.674] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.674] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.701] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.702] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.704] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.705] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.720] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.721] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.722] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.725] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:33.726] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:37.763] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:37.771] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:37.772] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:37.794] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:37.794] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:37.795] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:37.798] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:37.806] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:41.827] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:41.828] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:41.829] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:41.830] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:41.830] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:41.831] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:41.832] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:45.875] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:45.876] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:45.901] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.916] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.952] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.953] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.953] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.954] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.955] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.957] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.972] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.972] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.976] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:49.991] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:53.999] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:54.059] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:54.061] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.045] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.046] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.047] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.073] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.076] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.077] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.078] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.079] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.079] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.080] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.081] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.082] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.088] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.089] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.090] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.090] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.092] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.099] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.101] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.105] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.106] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.106] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.107] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:03:58.108] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.115] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.116] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.136] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.161] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.165] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.184] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.185] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.186] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:02.186] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.143] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.143] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.196] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.199] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.200] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.201] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.202] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.203] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.206] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:06.222] [[1m[41mcritical[m] [pipeline.cpp:634] NOT SENDING BATCH BECAUSE isOldEnough false isBatchLargeEnough false
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Noop Acks : 75503
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [scrooge.cpp:744] LAME THREAD ENDING
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Noop Delay : 0.000800
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Ack Window : 1000
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Quack Window : 1000000000
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC transfer_strategy : Scrooge k=64+ resends
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num_msgs_sent_primary : 4005
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num_msgs_resent : 0
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num_resend_checks : 0
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_resend_active : -nan
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_resend_active_over_quack : -nan
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_resend_too_low : -nan
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_resend_too_high : -nan
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_search_dist : -nan
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Quack-Fail : 0.999986
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Average Missing Acks : -nan
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [iothread.cpp:121] END OF WHILE LOOP TRANSACTION IPC.
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Average KList Size : 0.000000
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC NumKListRecv : 78041
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC foreign_messages_received : 1637201
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC max_acknowledgment : 1136533
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC max_quorum_acknowledgment : 15407
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC IPC test : 1
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Ack-Fail : 0.833893
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Timeout-Hits : 1.000000
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Noop-Hits : 0.000082
+[2023-12-06 04:04:09.505] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Timeout-Exclusive-Hits : 0.999997
+[2023-12-06 04:04:10.186] [[1m[41mcritical[m] [iothread.cpp:83] END OF WHILE LOOP RELAY IPC
+[2023-12-06 04:04:10.186] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC ipc_recv_messages : 0
+[2023-12-06 04:04:10.186] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC ipc_msg_block_size : 16020
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [main.cpp:164] SCROOGE COMPLETE. For node with config: kNumLocalNodes = 4, kNumForeignNodes = 4, kMaxNumLocalFailedNodes = 0, kMaxNumForeignFailedNodes = 0, kOwnNodeId = 3, g_rsm_id = 1, packet_size = 100,  kLogPath= '/tmp/log_1_3.yaml'
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC message_size : 100
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC duration_seconds : 119.999874
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Experiment Time : 119.999874
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Warmup Time : 0.000195
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC local_network_size : 4
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC foreign_network_size : 4
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC local_max_failed_stake : 0
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC foreign_max_failed_stake : 0
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC foreign_stake_total : 0
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC local_stake : 1
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC kList_size : 64
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num-timeout-hits : 3631
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num-size-hits : 0
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg-num-msgs-in-batch : 0.053032
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [pipeline.cpp:454] Sent 18882 many to [0 : 0] : URL=tcp://10.128.6.20:7007
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [pipeline.cpp:454] Sent 18879 many to [1 : 0] : URL=tcp://10.128.6.21:7007
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [pipeline.cpp:454] Sent 78040 many to [2 : 1] : URL=tcp://10.128.6.26:7003
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [pipeline.cpp:454] Sent 18877 many to [3 : 0] : URL=tcp://10.128.6.23:7007
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [pipeline.cpp:454] Sent 78040 many to [0 : 1] : URL=tcp://10.128.6.24:7003
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [pipeline.cpp:454] Sent 78040 many to [1 : 1] : URL=tcp://10.128.6.25:7003
+[2023-12-06 04:04:10.199] [[1m[41mcritical[m] [pipeline.cpp:454] Sent 18883 many to [2 : 0] : URL=tcp://10.128.6.22:7007
+[2023-12-06 04:04:10.447] [[1m[41mcritical[m] [pipeline.cpp:521] Recv 19534 many from [2 : 0] : URL=tcp://10.128.6.27:7006
+[2023-12-06 04:04:10.459] [[1m[41mcritical[m] [pipeline.cpp:521] Recv 19483 many from [1 : 0] : URL=tcp://10.128.6.27:7005
+[2023-12-06 04:04:10.477] [[1m[41mcritical[m] [pipeline.cpp:521] Recv 19488 many from [0 : 0] : URL=tcp://10.128.6.27:7004
+[2023-12-06 04:04:10.486] [[1m[41mcritical[m] [pipeline.cpp:521] Recv 19535 many from [3 : 0] : URL=tcp://10.128.6.27:7007
+[2023-12-06 04:04:10.486] [[1m[41mcritical[m] [pipeline.cpp:521] Recv 78050 many from [2 : 1] : URL=tcp://10.128.6.27:7002
+[2023-12-06 04:04:10.487] [[1m[41mcritical[m] [pipeline.cpp:521] Recv 78038 many from [0 : 1] : URL=tcp://10.128.6.27:7000
+[2023-12-06 04:04:10.487] [[1m[41mcritical[m] [pipeline.cpp:521] Recv 78037 many from [1 : 1] : URL=tcp://10.128.6.27:7001
+Connection to 10.128.6.27 closed.
