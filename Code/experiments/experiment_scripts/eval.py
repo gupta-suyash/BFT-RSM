@@ -110,9 +110,9 @@ def get_throughput_network_sz(title: str, dataframe: pd.DataFrame) -> List[Graph
             throughput = (group.max_quorum_acknowledgment - group.starting_quack) / group.duration_seconds
             line_name_to_points.setdefault(transfer_strategy, []).append((local_network_size, throughput.median()))
 
-            if 'scrooge' in transfer_strategy.lower():
-                throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
-                line_name_to_points.setdefault(transfer_strategy + ' Acks', []).append((local_network_size, throughput.median()))
+            # if 'scrooge' in transfer_strategy.lower():
+            #     throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
+            #     line_name_to_points.setdefault(transfer_strategy + ' Acks', []).append((local_network_size, throughput.median()))
         lines = []
         for line_name, points in line_name_to_points.items():
             points.sort()
@@ -235,16 +235,16 @@ def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
             'local_network_size': local_network_size,
             'foreign_network_size': foreign_network_size
         })
-        if 'scrooge' in transfer_strategy.lower():
-            throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
-            rows.append({
-                'message_size': message_size,
-                'latency':0,
-                'throughput': throughput.median(),
-                'strategy': transfer_strategy + " Acks",
-                'local_network_size': local_network_size,
-                'foreign_network_size': foreign_network_size
-            })
+        # if 'scrooge' in transfer_strategy.lower():
+        #     throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
+        #     rows.append({
+        #         'message_size': message_size,
+        #         'latency':0,
+        #         'throughput': throughput.median(),
+        #         'strategy': transfer_strategy + " Acks",
+        #         'local_network_size': local_network_size,
+        #         'foreign_network_size': foreign_network_size
+        #     })
 
     return pd.DataFrame.from_dict(rows)
 
