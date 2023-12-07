@@ -479,7 +479,7 @@ static void runScroogeSendThread(
         const auto curTime = std::chrono::steady_clock::now();
         const bool isNoopTimeoutHit = curTime - lastSendTime > kNoopDelay;
         const bool isTimeoutHit = curTime - lastSendTime > kMaxMessageDelay;
-        const bool shouldDequeue = isTimeoutHit || (isAckFresh && isSequenceNumberUseful);
+        const bool shouldDequeue = isTimeoutHit ||  isSequenceNumberUseful;
 
         numSendChecks++;
         numQuackWindowFails += not isSequenceNumberUseful;

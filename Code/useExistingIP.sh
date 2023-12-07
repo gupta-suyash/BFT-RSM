@@ -208,9 +208,9 @@ echo "${ZONE}"
 echo "${TEMPLATE}"
 
 # STATIC IP ADDRESSES!!!
-RSM1=(10.128.4.137 10.128.4.138 10.128.4.139 10.128.4.140)
-RSM2=(10.128.4.141 10.128.4.142 10.128.4.143 10.128.4.144)
-CLIENT=(10.128.4.145 10.128.4.156)
+RSM1=(10.128.6.20 10.128.6.21 10.128.6.22 10.128.6.23)
+RSM2=(10.128.6.24 10.128.6.25 10.128.6.26 10.128.6.27)
+CLIENT=(10.128.6.28 10.128.6.29)
 echo "About to parallel!"
 
 count=0
@@ -472,8 +472,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local raft_count=$2
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		echo "" > benchmark_${raft_count}.log
-		for i in {1..5}; do
-			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=500000 --val-size=256 &>> benchmark_${raft_count}.log
+		for i in {1..3}; do
+			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256 &>> benchmark_${raft_count}.log
 		done		
 	}
 

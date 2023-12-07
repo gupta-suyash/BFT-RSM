@@ -22,7 +22,7 @@ echo "Compiling RSM"
 ./script/deploy.sh ./config/kv_performance_server.conf
 
 echo "Running Bazel Client"
-bazel run //example:kv_server_tools -- $PWD/config_out/client.config set test 1234 &
+bazel run //example:kv_server_tools -- $PWD/config_out/client.config set test 1234
 #stress -c 3 -m 3
 
 
