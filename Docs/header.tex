@@ -1,8 +1,4 @@
-\usepackage{amsmath,balance}
-\usepackage[inline]{enumitem}
-\usepackage[binary-units]{siunitx}
-\DeclareSIUnit{\nothing}{\relax}
-\hyphenation{block-chain}
+
 
 %% 
 %\let\proof\relax
@@ -16,14 +12,14 @@
 
 %% BFT Protocol names (and Fabric Name).
 \newcommand{\Name}[1]{\textsc{#1}}
-\newcommand{\BFT}{\textsc{Bft}}
-\newcommand{\CFT}{\textsc{Cft}}
+\newcommand{\BFT}{\textsc{BFT}}
+\newcommand{\CFT}{\textsc{CFT}}
 \newcommand{\IBC}{\textsc{Ibc}}
 \newcommand{\RSM}{\textsc{RSM}}
 \newcommand{\PoS}{\textsc{PoS}}
 \newcommand{\pbft}{\textsc{Pbft}}
-\newcommand{\Shadow}{\textsc{Scrooge}}
-\newcommand{\Scrooge}{\textsc{Scrooge}}
+\newcommand{\Shadow}{\textsc{Picsou}}
+\newcommand{\Scrooge}{\textsc{Picsou}}
 \newcommand{\quack}{\textsc{Quack}}
 \newcommand{\duck}{\textsc{Duck}}
 \newcommand{\Cluster}[1]{\mathcal{#1}}
@@ -31,18 +27,22 @@
 \newcommand{\DS}{\textsc{DS}}
 
 \newcommand{\Replica}[2]{\textsc{R}_{{#1}{#2}}}
-\newcommand{\SMR}[1]{\textsc{S}_{#1}}
+\newcommand{\SMR}[1]{\mathcal{R}_{#1}}
 \newcommand{\CFS}{\textsc{cfs}}
 \newcommand{\SWS}{\textsc{sws}}
 \newcommand{\RBT}{\textsc{rbt}}
 \newcommand{\BST}{\textsc{bst}}
-\newcommand{\CCC}{\textsc{c3b}}
+\newcommand{\CCC}{\textsc{C3B}}
+\newcommand{\Transaction}[1][t]{\MakeUppercase{#1}} 
 \newcommand{\Transmit}{\textsc{transmit}}
-\newcommand{\CCCFull}{Cross-Consensus Consistent Broadcast}
+\newcommand{\CCCFull}{Cross-Cluster Consistent Broadcast}
 \newcommand{\Ped}{$\longrightarrow$ {\em Pedantic Details:}}
 
 \newcommand{\n}[1]{\textbf{n}_{#1}}
 \newcommand{\f}[1]{\textbf{f}_{#1}}
+\newcommand{\uf}[1]{\textbf{u}_{#1}}
+\newcommand{\rf}[1]{\textbf{r}_{#1}}
+\newcommand{\alp}[1]{\textbf{a}_{#1}}
 \newcommand{\ts}[1]{\textbf{t}_{#1}}
 \newcommand{\share}[1]{{\delta}_{#1}}
 \newcommand{\Ack}[1]{\Name{Ack}(#1)}
@@ -54,6 +54,8 @@
 \newcommand{\SList}{\mathcal{L}}
 \newcommand{\DList}{\mathcal{D}}
 
+\DeclareMathOperator{\lcm}{lcm}
+
 \newcommand{\abs}[1]{\lvert #1 \rvert}
 \newcommand{\SID}[1]{\textsc{Sid}({#1})}
 \newcommand{\SSet}[1]{\mathcal{M}(#1)}
@@ -62,20 +64,22 @@
 \newcommand{\Sbuf}[1]{\textsc{SBuf}[{#1}]}
 \newcommand{\Hbuf}[1]{\textsc{HBuf}[{#1}]}
 \newcommand{\Rbuf}[1]{\textsc{RBuf}[{#1}]}
-\newcommand{\SAck}[1]{\textsc{SAck}[{#1}]}
-\newcommand{\RAck}[2]{\textsc{RAck}[{#1}][{#2}]}
+\newcommand{\MAck}[1]{\textsc{MAck}[{#1}]}
+\newcommand{\QuArr}[1]{\textsc{Quack}[{#1}]}
 \newcommand{\highest}{\texttt{highest}}
 
 
-\usepackage{amsthm}
-\newtheorem{theorem}{Theorem}[section]
-\theoremstyle{definition}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{example}[theorem]{Example}
+%%Eval names:
+\newcommand{\ATA}{\textsc{ATA}}
+\newcommand{\OTO}{\textsc{OST}}
+\newcommand{\Bridge}{\textsc{brdg}}
+\newcommand{\GeoBFT}{\textsc{GeoBft}}
+\newcommand{\ResDB}{ResilientDB}
+\newcommand{\Algo}{Algorand}
+\newcommand{\File}{File}
+\newcommand{\Raft}{Raft}
 
-
-%% myprotocol
-\usepackage[noend]{algorithmic}
+% myprotocol
 \newenvironment{myprotocol}{
     \hrule
     \smallskip

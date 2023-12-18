@@ -1,0 +1,591 @@
+%% Plots specific commands and data.
+\usepackage{xcolor}
+\usepackage{tikz,pgfplots,pgfplotstable}
+\usetikzlibrary{arrows.meta}
+\tikzset{
+    >=Stealth,
+    plot/.append style={baseline,scale=0.45},
+    label/.append style={font=\strut\footnotesize},
+    dot/.style={circle,scale=0.35,draw=black,fill=black},
+}
+\pgfplotscreateplotcyclelist{mycyclelist}{
+    red   ,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=*\\
+    blue!90!white!90     ,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=square*\\
+    blue    ,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=triangle*\\
+    black    ,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*\\
+    brown   ,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o\\
+    orange  ,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfcircle*\\
+    teal  ,every mark/.append style={solid,fill=\pgfplotsmarklistfill,rotate=180},mark=halfdiamond*\\
+    green  ,every mark/.append style={solid,fill=\pgfplotsmarklistfill,rotate=180},mark=diamond*\\
+}
+\pgfplotscreateplotcyclelist{mycyclelistex}{
+    black   ,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=*\\
+    red     ,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=square*\\
+}
+\pgfplotsset{
+    tick label style={font=\Large},
+    legend style={font=\large,cells={anchor=west},text=black},
+    title style={font=\Large},
+    label style={font=\normalsize},
+    width=215pt,
+    height=185pt,
+    every axis/.append style={
+            ylabel near ticks,
+            xlabel near ticks,
+            mark size=3pt,
+            cycle list name=mycyclelist,
+            font=\Large,
+            y tick label style={
+                    /pgf/number format/precision=0,
+                    /pgf/number format/fixed,
+                    /pgf/number format/fixed zerofill
+                }
+        },
+}
+
+
+%% Define Axis
+%\newcommand{\axisNodes}{Number of Replicas ($\n$)}
+%\newcommand{\axisFail}{Number of Replicas (in $\f$)}
+%\newcommand{\axisRegions}{Number of Regions}
+%\newcommand{\axisTP}{Throughput (\si{\txn\per\second})}
+%\newcommand{\axisLat}{Latency (\si{\second})}
+%\newcommand{\axisbatches}{Batch size}
+%
+%
+
+\newcommand{\algoCCCTp}{  
+    \definecolor{bar-0}{RGB}{255,0,0}  
+    \definecolor{bar-1}{RGB}{150,0,150}
+    \definecolor{bar-2}{RGB}{0,200,200}
+    \begin{tikzpicture}[plot,scale=1]   
+        \begin{axis}[   
+                ybar=0.5pt,
+                x=0.65cm,
+                scaled y ticks = false, 
+                % enlarge x limits=0.25,
+                bar shift=0,    
+                ymin=0, 
+                bar width=8pt,
+                ylabel={\axisResTP},
+                ytick={0,30,60,90,120,150},
+                yticklabels={0,30,60,90,120,150},
+                xtick={0,2,4},   
+                xticklabels={A-A,A-B,A-C},
+                % title={Impact of Primary Failure in Three Shards}
+            ]
+            \addplot[style={fill=bar-0},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(0, 138) += (0,10) -= (0,20)};
+            \addplot[style={fill=bar-1},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(2, 135) += (0,10) -= (0,20)};
+            \addplot[style={fill=bar-2},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(4, 110) += (0,30) -= (0,20)};
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+\newcommand{\resdbCCCTp}{  
+    \definecolor{bar-0}{RGB}{150,0,150}  
+    \definecolor{bar-1}{RGB}{0,255,0}
+    \definecolor{bar-2}{RGB}{100,100,0}
+    \begin{tikzpicture}[plot,scale=1]   
+        \begin{axis}[   
+                ybar=0.5pt,
+                x=0.65cm,
+                scaled y ticks = false, 
+                % enlarge x limits=0.25,
+                bar shift=0,    
+                ymin=0, 
+                bar width=8pt,
+                ylabel={\axisResTP},
+                ytick={0,1000,2000,3000,4000,5000,6000},
+                yticklabels={0,1k,2k,3k,4k,5k,6k},
+                xtick={0,2,4},   
+                xticklabels={B-A,B-B,B-C},
+                % title={Impact of Primary Failure in Three Shards}
+            ]
+            \addplot[style={fill=bar-0},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(0, 4783) += (0,573) -= (0,1030)};
+            \addplot[style={fill=bar-1},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(2,4461 ) += (0,1282) -= (0,607)};
+            \addplot[style={fill=bar-2},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(4, 4500) += (0,1100) -= (0,300)};
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+
+
+\newcommand{\raftCCCTp}{  
+    \definecolor{bar-0}{RGB}{0,200,200}  
+    \definecolor{bar-1}{RGB}{100,100,0}
+    \definecolor{bar-2}{RGB}{0,0,255}
+    \begin{tikzpicture}[plot,scale=1]   
+        \begin{axis}[   
+                ybar=0.5pt,
+                x=0.65cm,
+                scaled y ticks = false, 
+                % enlarge x limits=0.25,
+                bar shift=0,    
+                ymin=0, 
+                bar width=8pt,
+                ylabel={\axisResTP},
+                ytick={0,7000,14000,21000,28000,35000,40000},
+                yticklabels={0,7k,14k,21k,28k,35k,40k},
+                xtick={0,2,4},   
+                xticklabels={C-A,C-B,C-C},
+                % title={Impact of Primary Failure in Three Shards}
+            ]
+            \addplot[style={fill=bar-0},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(0, 39050) += (0,500) -= (0,500)};
+            \addplot[style={fill=bar-1},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(2, 35480) += (0,1000) -= (0,1000)};
+            \addplot[style={fill=bar-2},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(4, 36850) += (0,1000) -= (0,800)};
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+
+
+
+%% KList
+\newcommand{\klistTp}{  
+    \definecolor{bar-0}{RGB}{0,0,0}  
+    \definecolor{bar-1}{RGB}{0,255,0}
+    \definecolor{bar-2}{RGB}{0, 0, 255}
+    \definecolor{bar-3}{RGB}{0, 255, 255}
+    \definecolor{bar-4}{RGB}{255, 0, 0}
+    \definecolor{bar-5}{RGB}{255, 0, 255}
+    \definecolor{bar-6}{RGB}{255, 255, 0}
+    \begin{tikzpicture}[plot,scale=1]   
+        \begin{axis}[   
+                ybar,   
+                scaled y ticks = false, 
+                % enlarge x limits=0.25,
+                bar shift=0,    
+                ymin=0, 
+                bar width=15pt,
+                ylabel={\axisResTP},
+                ytick={0,160000, 320000, 480000, 640000},
+                yticklabels={0,160k,320k,480k,640k},
+                xticklabels={0,5,10,15,20,25,30},   
+                xticklabels={0,64,128,512,1024,2048,4096},
+                % title={Impact of Primary Failure in Three Shards}
+            ]
+            \addplot[style={fill=bar-0},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(0, 581138) += (0,15000) -= (0,15000)};
+            \addplot[style={fill=bar-1},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(5, 574618) += (0,30000) -= (0,30000)};
+            \addplot[style={fill=bar-2},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(10, 604537) += (0,10000) -= (0,10000)};
+            \addplot[style={fill=bar-3},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(15, 634414) += (0,10000) -= (0,10000)};
+            \addplot[style={fill=bar-4},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(20, 568346) += (0,20000) -= (0,20000)};
+            \addplot[style={fill=bar-5},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(25, 379855) += (0,10000) -= (0,10000)};
+        \end{axis}
+    \end{tikzpicture}
+}
+
+\newcommand{\klistLat}{  
+    \definecolor{bar-0}{RGB}{0,0,0}  
+    \definecolor{bar-1}{RGB}{0,255,0}
+    \definecolor{bar-2}{RGB}{0, 0, 255}
+    \definecolor{bar-3}{RGB}{0, 255, 255}
+    \definecolor{bar-4}{RGB}{255, 0, 0}
+    \definecolor{bar-5}{RGB}{255, 0, 255}
+    \definecolor{bar-6}{RGB}{255, 255, 0}
+    \begin{tikzpicture}[plot,scale=1]   
+        \begin{axis}[   
+                ybar,   
+                scaled y ticks = false, 
+                % enlarge x limits=0.25,
+                bar shift=0,    
+                ymin=0, 
+                bar width=15pt,
+                ylabel={\axisLat},
+                ytick={0,.01, .02, .03, .04},
+                yticklabels={0,.01, .02, .03, .04},
+                xticklabels={0,5,10,15,20,25,30},   
+                xticklabels={0,64,128,512,1024,2048,4096},
+                % title={Impact of Primary Failure in Three Shards}
+            ]
+            \addplot[style={fill=bar-0},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(0, 0.03) += (0,.002) -= (0,.002)};
+            \addplot[style={fill=bar-1},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(5, 0.035) += (0,.002) -= (0,.002)};
+            \addplot[style={fill=bar-2},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(10, 0.012) += (0,.002) -= (0,.002)};
+            \addplot[style={fill=bar-3},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(15, 0.0097) += (0,.002) -= (0,.002)};
+            \addplot[style={fill=bar-4},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(20, 0.0114) += (0,.002) -= (0,.002)};
+            \addplot[style={fill=bar-5},error bars/.cd, y dir=both, y explicit,error bar style=black]
+                coordinates   {(25, 0.029) += (0,.002) -= (0,.002)};
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+
+
+
+\pgfplotstableread{
+ X      Scrooge             ATA                 OTO
+ 0.1    5691941.539508294   3081658.2872693     12866092.987944767
+ 1      1249616.669547200   431415.93674443     3480954.8798243836
+ 10     168963.9126390086   42388.607971712     390472.09033382987
+ 100    15617.35640800802   4128.5553517183     42980.16148973186
+ 1000   1432.400089836018   440.67502195625     3540.400121813411
+}\graphFFtp
+
+\pgfplotstableread{
+ X      Scrooge                 ATA                 OTO
+ 0.1    5544858.888205645       659710.5590991525   21936451.39290192
+ 1      917796.2468155356       105382.2792080013   18056792.93564376
+ 10     102012.1419170739       10744.39903298061   1888899.156479316
+ 100    14464.92628989446       1080.444843424772   188081.6070283802
+ 1000   1649.520309562079       107.2600150169021   18298.13926261384
+}\graphFStp
+
+%\pgfplotstableread{
+% X       Scrooge	    ATA		OTO
+% 0.1	    0.01	   .0000001	.0000001   
+% 1   	0.0165	   .000001		.000001
+% 10    	0.67       .00001		.000006
+% 100   	6.2		   .0001		.00007525
+% 1000	16		   .0014		.000577
+%}\graphFFlt
+
+
+\pgfplotstableread{
+ X  Scrooge             ATA                 OTO
+ 4  5691941.539508294   3081658.2872693     12866092.987944767    
+ 7  5580150.519690581   1878357.9391401     16508537.551086854
+ 10 5794974.628242958   1231317.3160471     18513127.042840928
+ 13 5686328.763194526   973464.68595800     19951769.394282464
+ 16 5507637.257558235   794715.68732564     21173899.44184122
+ 19 5544858.888205645   659710.55909915     21936451.39290192
+ %22 5563344.197826331   569670.96103411     22559863.266662635
+}\graphFmsgB
+
+\pgfplotstableread{
+ X  Scrooge             ATA                 OTO
+ 4  1649.520309562079   440.6750219562555   3540.400121813411
+ 7  1667.166528421678   276.1409207172276   6628.510198855307
+ 10 1699.684205286041   198.0900318220717   9107.801063935844
+ 13 1664.366754073342   153.9300254709225   12538.24456669992
+ 16 1499.733826560615   126.5149904580530   15111.04332513645
+ 19 1431.516852120708   107.2600150169021   18298.13926261384
+ %22 446.4352363639798   92.45500277405068   21761.29601346753
+}\graphFmsgMB
+
+
+
+\pgfplotstableread{
+ X  ScroogeGrad       ScroogeUnfair    ScroogeFair        ScroogeLarge      ATA-Unfair               ATA-Fair  OTO
+ 4  1223.422526765891 993.612834783762 105.69999656000023 1649.520309562079 440.6750219562555 27.883312317815374 3540.400121813411
+ 7  1239.025015181898 591.287596122520 104.69998509334587 1667.166528421678 276.1409207172276 15.900000265000221 6628.510198855307
+ 10 1126.862812751358 383.112533510629 76.16668948779224  1699.684205286041 198.0900318220717 10.96667416056202 9107.801063935844
+ 13 1099.860038509602 305.999850744200 89.3000304216826   1664.366754073342 153.9300254709225 0.033333346666672 12538.24456669992
+ 16 1031.515084390959 248.975028118441 48.43330666669511  1499.733826560615 126.5149904580530 6.483335269446867 15111.04332513645
+ 19 1087.779003701413 194.099968458757 44.01666936891273  1431.516852120708 107.2600150169021 5.249999740000131 18298.13926261384
+}\graphStake   
+
+% \pgfplotstableread{
+%  X  ScroogeGrad         ScroogeUnfair       ScroogeLarge        ATA                 OTO
+%  4  1223.422526765891   993.612834783762    1649.520309562079   440.6750219562555   3540.400121813411
+%  7  1239.025015181898   591.287596122520    1667.166528421678   276.1409207172276   6628.510198855307
+%  10 1126.862812751358   383.112533510629    1699.684205286041   198.0900318220717   9107.801063935844
+%  13 1099.860038509602   305.999850744200    1664.366754073342   153.9300254709225   12538.24456669992
+%  16 1031.515084390959   248.975028118441    1499.733826560615   126.5149904580530   15111.04332513645
+%  19 1087.779003701413   194.099968458757    1431.516852120708   107.2600150169021   18298.13926261384
+% }\graphStake  
+
+%1235.233646246773
+%1168.383566977829
+%1051.632744973942
+%1075.183691521249
+%1025.083230583372
+%988.5502636100747
+
+\pgfplotstableread{
+ X  ATA                 Scrooge
+ 4  440.6750219562555   852.4336121734709
+ 7  276.1409207172276   737.3166666666666
+ 10 198.0900318220717   687.5834936500564
+ 13 153.9300254709225   765.6996488006107
+ 16 126.5149904580530   734.716636261795
+ 19 107.2600150169021   715.9669302012368
+}\graphMaxFail
+
+
+\pgfplotstableread{
+ X  ATA                 OTO                 Scrooge
+ 4  17.116679308904732  69.73324983578578   167.8499847022283
+ 7  17.433330466668085  120.1666847188932   186.6000244666706
+ 10 17.06               173.3333564444475   215.1166687833506
+ 13 17.466650092256593  225.7666629111112   297.1501537279571
+ 16 17.700003462223393  278.4000418222323   358.7661362327323
+ 19 17.700003462223393  330.2830248265934   426.4324550941336
+}\graphGeo
+
+
+\newcommand{\axisResTP}{Throughput (\si{blocks\per\second})}
+\newcommand{\axisTP}{Throughput (\si{10k\txn\per\second})}
+\newcommand{\axisLowTP}{Throughput (\si{k\txn\per\second})}
+\newcommand{\axisGeoTP}{Throughput (\si{\txn\per\second})}
+\newcommand{\axisLat}{Latency (\si{\second})}
+\newcommand{\axisMsg}{Message size (\SI{}{kB})}
+\newcommand{\axisReps}{Replicas (per \RSM{})}
+
+
+% ------------------------ Graph A - Vary number of replicas
+\newcommand{\graphFMsgB}{
+    \begin{tikzpicture}[plot]
+        \begin{axis}[
+                title={(i) Message Size = \SI{0.1}{kB}},
+                scaled y ticks = false,
+                xlabel={\axisReps},
+                ylabel={\axisTP},
+                %ymin=0,
+                %ytick={0,1000000,2000000,3000000,4000000,5000000,6000000,7000000},
+                yticklabels={0,0.1,1,10,100,1000},
+                xtick={4,7,10,13,16,19,22},
+                ymode=log,
+                %xmode=log,
+                log ticks with fixed point,
+                legend to name={mainlegend},
+                legend columns=-1,
+                % legend entries={\pbftea{},\MinBFT{}, \MinZZ{}, \trustBFTc{},\minLFT{},\minLFTZ{},\pbft{},\ZZ{}}
+            ]
+
+
+            \addplot [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] table[x={X},y={Scrooge}] {\graphFmsgB};
+            \addplot [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] table[x={X},y={ATA}] {\graphFmsgB};
+            \addplot [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] table[x={X},y={OTO}] {\graphFmsgB};
+
+
+            \addlegendentry [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] \Scrooge
+            \addlegendentry [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] \ATA
+            \addlegendentry [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] \OTO
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+
+\newcommand{\graphFMsgMB}{
+    \begin{tikzpicture}[plot]
+        \begin{axis}[
+                title={(ii) Message Size = \SI{1}{MB}},
+                scaled y ticks = false,
+                xlabel={\axisReps},
+                ylabel={\axisLowTP},
+                ymin=0,
+                ytick={100,1000,10000},
+                yticklabels={0.1,1,10},
+                xtick={4,7,10,13,16,19,22},
+                ymode=log,
+                %xmode=log,
+                log ticks with fixed point,
+                legend to name={mainlegend},
+                legend columns=-1,
+                % legend entries={\pbftea{},\MinBFT{}, \MinZZ{}, \trustBFTc{},\minLFT{},\minLFTZ{},\pbft{},\ZZ{}}
+            ]
+
+
+            \addplot [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] table[x={X},y={Scrooge}] {\graphFmsgMB};
+            \addplot [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] table[x={X},y={ATA}] {\graphFmsgMB};
+            \addplot [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] table[x={X},y={OTO}] {\graphFmsgMB};
+
+
+            \addlegendentry [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] \Scrooge
+            \addlegendentry [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] \ATA
+            \addlegendentry [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] \OTO
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+% ------------------------ Graph B -- Vary Message Size
+% For n=4 replicas
+\newcommand{\graphFFTP}{
+    \begin{tikzpicture}[plot]
+        \begin{axis}[
+                title={(iii) $\n{} = 4$ replicas},
+                scaled y ticks = false,
+                xlabel={\axisMsg},
+                ylabel={\axisTP},
+                ymin=0,
+                %ytick={0,1000000,2000000,3000000,4000000,5000000,6000000,7000000},
+                yticklabels={0,0.1,1,10,100,1000},
+                %xtick={0.1,1,10,100},
+                ymode=log,
+                xmode=log,
+                log ticks with fixed point,
+                legend to name={mainlegend},
+                legend columns=-1,
+                % legend entries={\pbftea{},\MinBFT{}, \MinZZ{}, \trustBFTc{},\minLFT{},\minLFTZ{},\pbft{},\ZZ{}}
+            ]
+
+
+            \addplot [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] table[x={X},y={Scrooge}] {\graphFFtp};
+            \addplot [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] table[x={X},y={ATA}] {\graphFFtp};
+            \addplot [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] table[x={X},y={OTO}] {\graphFFtp};
+
+
+            \addlegendentry [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] \Scrooge
+            \addlegendentry [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] \ATA
+            \addlegendentry [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] \OTO
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+
+%For n=19 replicas
+\newcommand{\graphFSTP}{
+    \begin{tikzpicture}[plot]
+        \begin{axis}[
+                title={(iv) $\n{} = 19$ replicas},
+                scaled y ticks = false,
+                xlabel={\axisMsg},
+                ylabel={\axisTP},
+                ymin=0,
+                %ytick={0,300000,600000,900000,1200000,1500000},
+                yticklabels={0,10,100,1000,10000},
+                %xtick={0.1,1,10,100},
+                ymode=log,
+                xmode=log,
+                log ticks with fixed point,
+                legend to name={mainlegend},
+                legend columns=-1,
+                % legend entries={\pbftea{},\MinBFT{}, \MinZZ{}, \trustBFTc{},\minLFT{},\minLFTZ{},\pbft{},\ZZ{}}
+            ]
+
+
+            \addplot [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] table[x={X},y={Scrooge}] {\graphFStp};
+            \addplot [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] table[x={X},y={ATA}] {\graphFStp};
+            \addplot [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] table[x={X},y={OTO}] {\graphFStp};
+
+
+            \addlegendentry [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] \Scrooge
+            \addlegendentry [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] \ATA
+            \addlegendentry [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] \OTO
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+
+
+
+% ------------------------ Graph D --Geo-replicated 
+% For n=4 replicas
+\newcommand{\graphGEO}{
+    \begin{tikzpicture}[plot]
+        \begin{axis}[
+                title={(v) Geographical \RSM{s}},
+                scaled y ticks = false,
+                xlabel={\axisReps},
+                ylabel={\axisGeoTP},
+                ymin=0,
+                %ytick={0,1000000,2000000,3000000,4000000,5000000,6000000,7000000},
+                %yticklabels={0,0.1,1,10,100,1000},
+                xtick={4,7,10,13,16,19},
+                legend to name={mainlegend},
+                legend columns=-1,
+                % legend entries={\pbftea{},\MinBFT{}, \MinZZ{}, \trustBFTc{},\minLFT{},\minLFTZ{},\pbft{},\ZZ{}}
+            ]
+
+
+            \addplot [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] table[x={X},y={Scrooge}] {\graphGeo};
+            \addplot [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] table[x={X},y={ATA}] {\graphGeo};
+            \addplot [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] table[x={X},y={OTO}] {\graphGeo};
+
+
+            \addlegendentry [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] \Scrooge
+            \addlegendentry [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] \ATA
+            \addlegendentry [red,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=halfdiamond*] \OTO
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+% ------------------------ Graph C - Vary Stake
+
+\newcommand{\graphFStake}{
+    \begin{tikzpicture}[plot]
+        \begin{axis}[
+                title={(i) Varying Stake},
+                scaled y ticks = false,
+                xlabel={\axisReps},
+                ylabel={\axisLowTP},
+                ymin=0,
+                ytick={0,300,600,900,1200,1500,1700},
+                yticklabels={0,.3,.6,.9,1.2,1.5,1.7},
+                xtick={4,7,10,13,16,19},
+                %ymode=log,
+                %xmode=log,
+                %log ticks with fixed point,
+                legend to name={mainlegend2},
+                legend columns=3,
+            ]
+
+            \addplot [orange,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=asterisk] table[x={X},y={ScroogeGrad}] {\graphStake};
+            \addplot [green!50!black!70,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=oplus] table[x={X},y={ScroogeUnfair}] {\graphStake};
+            \addplot [cyan,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=triangle] table[x={X},y={ScroogeFair}] {\graphStake};
+            \addplot [red!50!black!70,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=square] table[x={X},y={ScroogeLarge}] {\graphStake};
+            \addplot [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] table[x={X},y={ATA-Unfair}] {\graphStake};
+            \addplot [orange!30!black!80,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=diamond] table[x={X},y={ATA-Fair}] {\graphStake};
+
+
+            \addlegendentry [orange,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=asterisk] {\Scrooge-Graded}
+            \addlegendentry [green!50!black!70,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=oplus] {\Scrooge-Unfair}
+            \addlegendentry [cyan!50!black!70,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=triangle] {\Scrooge-Fair}
+            \addlegendentry [red!50!black!70,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=square] {\Scrooge-Large}
+            \addlegendentry [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] \ATA-Unfair
+            \addlegendentry [orange!30!black!80,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=diamond] {\ATA-Fair}
+        \end{axis}
+    \end{tikzpicture}
+}
+
+
+
+% ------------------------ Graph D - Vary Failures
+
+\newcommand{\graphFail}{
+    \begin{tikzpicture}[plot]
+        \begin{axis}[
+                title={(ii) Failures},
+                scaled y ticks = false,
+                xlabel={\axisReps},
+                ylabel={\axisLowTP},
+                ymin=0, ymax=1000,
+                ytick={0,200,400,600,800,1000},
+                yticklabels={0,.2,.4,.6,.8,1},
+                xtick={4,7,10,13,16,19},
+                %ymode=log,
+                %log ticks with fixed point,
+                legend to name={mainlegend3},
+                legend columns=-1,
+                % legend entries={\pbftea{},\MinBFT{}, \MinZZ{}, \trustBFTc{},\minLFT{},\minLFTZ{},\pbft{},\ZZ{}}
+            ]
+
+
+            \addplot [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] table[x={X},y={Scrooge}] {\graphMaxFail};
+            \addplot [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] table[x={X},y={ATA}] {\graphMaxFail};
+
+            %\addlegendentry [black,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=pentagon*] \Scrooge
+            %\addlegendentry [blue!90!white!90,every mark/.append style={solid,fill=\pgfplotsmarklistfill},mark=o] \ATA
+        \end{axis}
+    \end{tikzpicture}
+}
+
+

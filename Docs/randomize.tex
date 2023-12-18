@@ -1,0 +1,54 @@
+\section{Randomized \Scrooge{}}
+\label{s:random}
+On the one hand, in the good case, \Scrooge{} promises message delivery without any copies. 
+On the other hand, in the worst case, \Scrooge{} would require message re-transmission $\f{1}+\f{2}+1$ times.
+This can lead to an unexpected observation that as failures are common, 
+\Scrooge{} will always require message re-transmissions that are linear in the number of failures.
+Fortunately, this is not the case, as the worst case only occurs if the adversary controls the process of assigning identifiers to the replicas.
+If the adversary can ensure that $\f{1}$ Byzantine replicas of \RSM{} $\SMR{1}$ are paired with 
+$\f{2}$ honest replicas of $\SMR{2}$ and 
+$\f{1}$ honest replicas of \RSM{} $\SMR{1}$ are paired with $\f{2}$ Byzantine replicas of $\SMR{2}$,
+then the adversary can guarantee the worst case re-transmissions for $67\%$ of messages
+($\f{1}+\f{2}+1$ messages out of $max(\n{1},\n{2})$).
+
+Prior works have shown that with the help of verifiable random functions (VRF), 
+it is trivial to prevent the adversary from controlling the identifier assignment process.
+Specifically, we assume that each \RSM{} employs a VRF to assign its replicas an identifier.
+If this is the case, then the  Byzantine replicas will be distributed at random
+and the adversary can no longer control the number of affected sender-receiver pairs.
+In such setting, we show that irrespective of the value of $\n{1}, \n{2}, \f{1},$ and $\f{2}$, 
+\Scrooge{} only requires a constant number of message re-transmissions under failures.
+
+Our derivation shows that with a probability of $99.999999999\%$, for a random distribution of 
+Byzantine replicas, $\Scrooge{}$ needs at most $44$ re-transmissions.
+This finding is noteworthy as the value of $\f{1}$ and $\f{2}$ can be extremely larger than $44$.
+Next, we show how we reach this bound.
+
+Let,  the total number of sender-receiver pairs be $\n{1} \times \n{2}$, and
+the faulty pairs be $F = \f{1} \times \n{2}  +  \f{2} \times\n{1} - \f{1} \times \f{2}$.
+We know that $\f{1} < \frac{\n{1}}{3}$ and $\f{2} < \frac{\n{2}}{3}$. So, we have the following:
+
+$F$ $=$ $\f{1} \times \n{2}  +  \f{2} \times\n{1} - \f{1} \times \f{2} < \frac{\n{1} \times \n{2}}{3} + \frac{\n{2}\times \n{1}}{3} - \frac{\n{1} \times \n{2}}{9}$
+
+{which results in, $\frac{F}{\n{1}\times \n{2}} < \frac{5}{9}$ ~$\Rightarrow$~
+$log_{\frac{5}{9}}({\frac{F}{\n{1}\times \n{2}}}) < 1$.
+
+Now, the probability of selecting a faulty pair be $\frac{F}{\n{1} \times \n{2}}$, and
+$p$ $=$ $(\frac{F}{\n{1} \times \n{2}})^q$, be the probability of selecting $q$ faulty pairs.
+
+Combining these, $log_{\frac{5}{9}}{p}$ $=$ $q \times log_{\frac{5}{9}}{\frac{F}{\n{1}\times \n{2}}}$.
+
+This results in $log_{\frac{5}{9}}{p} < q$.
+
+As we want a very low probability of selecting a faulty pair, we can set $p = 1 \times 10^{-10}$ 
+(this is also the probability of failures for Amazon's S3). 
+This results in $q = 44$.
+
+
+
+
+
+
+
+
+

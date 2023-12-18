@@ -1,0 +1,29 @@
+\section{Related Work}
+
+The problem of reliably sending messages between groups of participants through \textit{reliable broadcast} or \textit{group communication}
+is a well studied problem in computer science~\cite{fault-tolerant-broadcast,reliable-birman,bracha-toueg-ba,sintra,diffusion-byzantine-env,broadcast-survey,hadzilacos-thesis,delta-reliable-broadcast}, both in the crash setting and when considering Byzantine failures~\cite{random-ba,bracha-ba,bracha-toueg-ba,sintra,good-byzantine-broadcast,synchronous-ba-ittai}. These works consider communication among groups, but do not consider communication between groups. Scrooge leverages the internal guarantees provided by these communication primitives to build a group-to-group communication primitive, C3B.
+
+\par \textbf{Logging Systems.} Shared logs have recently gained popularity for reliably exchanging data amongst groups of parties, with producers writing to the log and consumers reading from it~\cite{kreps2011kafka,kalia2016design,jia2021boki,cao2018polarfs,balakrishnan2013tango,wang2015building,venkataraman2017drizzle}. Systems such as Kafka~\cite{kreps2011kafka}, RedPanda~\cite{redpanda}, Delos at Facebook~\cite{delos} have become industry-standard and facilitate data exchanges among large numbers of critical services~\cite{delos}. Much academic work has subsequently focused on improving the performance of these logging systems, leveraging operation semantics~\cite{fuzzylog,wang2015building,balakrishnan2013tango}, or improving the underlying consensus system~\cite{scalog}. 
+While these systems work well in the crash-fault-tolerant setting, they are not directly applicable to the BFT setting: this log, in effect, acts as a trusted third-party, and consequently becomes a central point of attack. Moreover, most of them use relatively heavyweight fault-tolerance: Kafka, for instance, internally makes use of Raft for fault-tolerance.
+
+%This shared-log communication method is available in several distinct flavors, such as Corfu~\cite{balakrishnan2012corfu}, vCorfu~\cite{wei2017vcorfu}, Kafka~\cite{kreps2011kafka}, and Boki~\cite{jia2021boki}. 
+%All these system expect a replicated fault-tolerant infrastructure from the shared-log. 
+%Employing these systems for facilitating communication between two \RSM{s} is equivalent to relying on a third-party for data transfer.
+
+\par \textbf{Communication between RSMs.} Two lines of work have considered communication between RSMs, but in different contexts. First, Aegean~\cite{aegean} makes a similar observation as this paper: it highlights that replicated services rarely operate in a vacuum and must instead frequently communicate. The specific problem solved, however, differs. Aegean focuses on how to correctly replicate services that can issue nested requests to other (possibly replicated) services. Aegean presents the design of a shim layer that exists between replicated service and backend service and manages all the communication/data storage. Second, Byzantine fault-tolerant communication between \RSM{s} has been a topic of interest in the context of \textit{sharded} BFT systems that view each shard as an independent \RSM{}. These shards periodically need to communicate with each other to process cross-shard transactions~\cite{ahl,sharper,ringbft,rapidchain,basil,conflux,blockvsdist,txallo,byshard}.
+Most of these systems simply adopt the all-to-all communication pattern between the shards that we evaluate in \S\ref{s:eval}. 
+GeoBFT~\cite{geobft,cluster-sending} is the exception; each replica sends each message to a (distinct) replica in the receiving \RSM{} (total messages sent is thus O(n). 
+Similarly to \Scrooge{}, the receiver broadcasts each message received from the other \RSM{} in its \RSM{}.
+\Scrooge{}, in the good case, sends each message only once between \RSM{s} and avoids the all-to-all broadcast inside the \RSM{}.
+
+
+
+\par \textbf{Blockchain bridges.} With the rise of blockchain technology and cryptocurrencies~\cite{splitbft,rbft,basalt,bitcoin-johnnatan,nakamoto-narula,epaxos-revisit,simulation-blockchain,maria-thesis,poe,multibft-disc,rcc,bc-processing,dissecting-trusted,relax-liveness-neil,beegees,suyash-phd-thesis,blockchain-book,geobft,ccf-heidi,pvp,hotstuff,bbca-ledger,prestigebft,eesmr-bft,narwhal,chemistry}
+there is a new found interest in blockchain interoperability~\cite{atomic-cross-chain-swap,blockchain-interop-survey,pow-sidechains,trustboost,sok-cross-chain,analyze-inter-blockchain-communication,blockchain-interoperability-survey, ccip}.  These works focus on the {\em correct} conversion of assets from one blockchain to the other. They can be broadly clustered into two groups (1) {\em blockchain bridges}, and (2) {\em trusted operators}. A blockchain bridge requires a replica of the sending \RSM{} to send a committed contract to a replica of the receiving \RSM{}. Recently, several such blockchain bridges have popped up~\cite{polynetwork,rainbrow-bridge,axelar-bridge}. Unfortunately, they provide few formal
+guarantees, which has led to massive financial attacks and hacks~\cite{sok-cross-chain,zkbridge,trustboost}. Moreover, 
+these bridges continue to be impractical because of their high cost.
+For instance, zkBridge~\cite{zkbridge} uses zk-proof to create a secure contract that allows trustless asset conversion, but to create such a contract zkBridge requires $4096$ cores and at least $13$ seconds.
+Trusted operator systems are, in contrast, much more practical. They assume the existence of a trusted third party that tracks all the transactions communicated between the two \RSM{s}. 
+There exists numerous such solutions~\cite{polkadot,cosmos,blockchain-interoperability-survey}, but as the name suggests, they require centralized management.
+
+Note: Sidecar~\cite{sidecar} presents an orthogonal definition for the term quACK (quick acknowledgment).

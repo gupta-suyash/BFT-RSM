@@ -1,0 +1,255 @@
+\section{Evaluation}
+\label{s:eval}
+Our evaluation aims to answer the following three questions.
+\begin{enumerate}[nosep,wide]
+    \item How does \Scrooge{} scale in the absence of failures? 
+    \item Is \Scrooge{} robust to failures? 
+    \item Can \Scrooge{} successfully link heterogeneous \CFT{} and \BFT{} RSMs such as Algorand, PBFT, and Raft? 
+\end{enumerate}
+
+\textbf{Baselines.} In each experiment, we 
+assume bidirectional communication between two \RSM{s}. We consider two baselines: \ATA{} and \OTO{}. 
+We do not consider the recently proposed Cross-Chain Interoperability Protocol (CCIP)~\cite{ccip}
+as it uses a centralized risk management network, which developers cannot access. So, we cannot measure the performance of CCIP.
+\begin{enumerate}[nosep,wide]
+    \item {\bf \ATA{}}: all-to-all protocol (Figure~\ref{fig:c3b-protocols}(a)) 
+    where each replica of an \RSM{} sends every message to every replica of the other \RSM{}.
+    \ATA{} protocol creates and sends $O(\n{1}\times \n{2})$ copies of each message, 
+    which guarantees that every correct receiver will receive the message.
+    \item {\bf \OTO{}}: one-shot protocol (Figure~\ref{fig:c3b-protocols}(b)) 
+    where for each message there is exactly one sender-receiver pair. 
+    \OTO{} is meant as a performance upper-bound. It does not satisfy \CCC{} as message delivery cannot be guaranteed.
+\end{enumerate}
+
+%{\bf Choice of \RSM{}.}
+%Each \RSM{} can run the following four consensus sub-systems:
+%\begin{enumerate}[nosep,wide]
+%    \item {\bf \File{}.}
+%    We assume an in-memory file from which a replica can generate messages infinitely fast.
+%    A \File{} \RSM{} is aimed to saturate \CCC{} protocols as replicas can issue requests at an 
+%    unbounded rate without the overhead of consensus.
+%    \item {\bf \ResDB{}.}
+%    Each \ResDB{} \RSM{} runs the \pbft{} consensus to replicate each client request~\cite{geobft}.
+%    We select \ResDB{} as it is open-source and provides a well-optimized \pbft{} implementation.
+%    
+%    \item {\bf \Algo{}.}
+%    Each \Algo{} \RSM{} runs pure \PoS{} consensus~\cite{algorand}.
+%    We select \Algo{} as it has an open-source testnet for development and it is a representative \PoS{} protocol. 
+%    
+%    \item {\bf \Raft{}.} 
+%    We run Etcd's \Raft{} version v3.0 implementation as a representative \CFT{} protocol~\cite{etcd-raft}. 
+%\end{enumerate}
+
+{\bf Throughput Measurements.}
+In our experiments, we measure throughput at both the \RSM{s} and respective \CCC{} protocol.
+(1) \RSM{} throughput is the number of consensus invocations completed at an \RSM{} per unit of time
+(2) \CCC{} throughput is the number of completed \CCC{} invocations per unit of time.
+For \Scrooge{}, \CCC{} throughput refers to the number of unique \quack{s} per unit of time at a correct replica.
+\ATA{} and \OTO{} do not acknowledge received messages, 
+so \CCC{} throughput for these protocols is equal to the number of unique messages sent from sender \RSM{} to receiver \RSM{} per unit time.
+For similar reasons, we do not plot latency. While \ATA{} implements \CCC{} and thus guarantees eventual delivery, we cannot detect when delivery actually takes place. 
+%At an \RSM{}, we measure its throughput as its consensus throughput and 
+%latency as its {\em end-to-end} latency, which is the time from when a client sent its message to the \RSM{} 
+%to the time at which the client receives {\em acknowledgements} from the \CCC{} protocol that its request 
+%was delivered to the other \RSM{} (includes the time for consensus).
+%
+%For \Scrooge{}, we measure throughput as the number of completed \CCC{} invocations per unit of time \nc{That can't be right? This would mean that duplicate quacks count as two messages? Don't we measure throughput as the number of completed C3B invocations? Or as the number of committed operations that went through C3B?}
+%\sg{You are right, changed it.}\nc{What do we actually do in the code?}; we 
+%measure latency as the difference between the time a \Scrooge{} instance running at a replica receives a message $m$
+%that needs to be communication to the other \RSM{} and the time this \Scrooge{} instance receives a \quack{} for $m$.
+%For \ATA{} and \OTO{}, we measure throughput when a replica places $\n{}$ copies and one copy of a message on the network, respectively.
+%\nc{Why are throughput measurements different for all three schemes? Isn't it just "I invoke C3B, C3B finished" per unit of time?}
+%\sg{For ATA and OST, there is no notion of finished C3B because there is no notion of acknowledgments. So, we say "C3B finished" for them as soon as they place messages on the network. This is not the case for Scrooge as we can only call "C3B finished" when they a message gets quacked.}\nc{I understand that, but isn't just "You measure throughput as the number of C3B invocations? It's just so happens that C3B invocations complete at different times.}
+%We are unable to measure latency for other schemes:
+%(1) \OTO{} neither satisfies \CCC{}, nor it sends acknowledgments to the sender.
+%(2) \ATA{} assumes implicit message delivery. As a result, a sender only knows that a message will be eventually delivered.
+
+{\bf Setup.}
+We use Google Cloud to deploy up to $45$ c2-standard-8 nodes 
+(x86\_64 architecture, Intel Cascade Lake, $8$vCPU, $4$ cores and $32$ GiB RAM) 
+at uc-central-1a (Iowa).
+Each experiment runs for $180$ seconds ($30$ seconds warmup/cooldown) and 
+we report average throughput/latency over three runs. 
+%All the three \RSM{s} are issued uniform YCSB~\cite{ycsb} workload 
+%which generates key-value operations from a database of \SI{600}{k} records. 
+%\ResDB{} and \File{} issue client requests in a closed-loop, while \Algo{} works in an open-loop \nc{Why?}.
+
+
+{\bf Implementation.}
+We implement \Scrooge{} as a C++20 plug-and-play library that can be easily integrated with existing \RSM{s} (4500 lines of code). 
+For fairness, we also implemented \ATA{} and \OTO{} protocols as plug-and-play libraries in the same framework.
+As stated in Figure~\ref{fig:end-flow}, we assume each \RSM{} (\File{}, \ResDB{}, \Algo{} or \Raft{})
+interfaces with one of the communication protocols to transmit messages to the other \RSM{}.
+%We added communication mechanisms in these \RSM{s} to allow them to communicate with \CCC{} protocols;
+%RSMs and \CCC{} protocols use FIFO pipes~\cite{mkfifo} for inter-process communication.  
+In each \RSM{}, we introduce two additional threads (or go routines) to enable the RSM to forward messages to \Scrooge{}, and receive \quack{}s. 
+We ensure that the RSM waits to receive a \quack{} for a forwarded message before responding to the client. 
+We use NNG library (version $1.5.2$) and Google's protobuf 
+library (version 3.10.0) for network communication and message serialization. All experiments run \Scrooge{} with a $\phi$-list of 1000, which we experimentally verified offers the best performance for our specific network setup.
+
+%In \ResDB{}, we wait until a message has been \quack{}ed to send a response to the client. Specifically, \ResDB's execution-thread to enqueue the requests for the pipe writer, which dequeues them and writes to the FIFO pipe. 
+%Once the pipe-reader reads a cumulative acknowledgment from the pipe, it enqueues the acknowledgment for 
+%execution-thread, so that execution-thread dequeues them in future and replies to the clients.
+%
+%In \Algo{}, we also introduced two new go routines, a pipe-reader and a pipe-writer. 
+%Both are created during the startup phase of an \Algo{} node. 
+%The pipe-writer goroutine looks at the blocks for each round, and if the block has transactions, 
+%all of these transactions are written to the FIFO pipe. 
+%%We could easily filter the transactions to send by putting information in the notes section of the transaction indicating whether or not the it should be sent to Scrooge. 
+%Once Scrooge writes a \quack{} to the pipe, pipe-reader reads it from the pipe and sends the result to the client 
+%who originally sent the transaction. 
+%Both goroutines required fewer than $100$ lines of code and only used \Algo's node API for design.
+%
+%
+
+
+
+%\begin{figure}
+%        %\vspace{-5mm}
+%    \centering
+%    \setlength{\tabcolsep}{1pt}
+%    %\scalebox{0.6}{\ref{mainlegend}}\\[5pt]
+%    \begin{tabular}{cc@{\quad}cc}
+%    \graphFMsgB & \graphFMsgMB  \\
+%    \graphFFTP  & \graphFSTP    \\
+%    \graphGEO   & \scalebox{0.6}{\ref{mainlegend}}
+%    \end{tabular}
+%    
+%    \caption{Throughput of \CCC{} protocols as a function of network size and message size.}
+%    \label{fig:file-non-fail}
+%\end{figure}
+
+\begin{figure*}
+        %\vspace{-5mm}
+    \centering
+    \setlength{\tabcolsep}{1pt}
+    \scalebox{0.6}{\ref{mainlegend}}\\[5pt]
+    \begin{tabular}{ccccc}
+    \graphFMsgB & \graphFMsgMB  &   \graphFFTP  & \graphFSTP    &   \graphGEO   %& \scalebox{0.6}{\ref{mainlegend}}
+    \end{tabular}
+    \caption{Throughput of \CCC{} protocols as a function of network size, message size, and geo-replication.}
+    \label{fig:file-non-fail}
+\end{figure*}
+
+
+
+\subsection{\Scrooge{} Scalability}
+\label{ss:file}
+Our first set of experiments aim to stress test the three \CCC{} protocols (\Scrooge{}, \ATA{} and \OTO{})  
+by deploying each protocol between two \File{} \RSM{s}.
+In a \File{} \RSM{}, we assume an in-memory file from which one can artificially generate proposals at an "infinite" rate. The goal is to saturate the \CCC{} primitive implementations and identify their peak throughput. In all cases, we include the \OTO{} line as a reference point of what the maximum send/receive rate of our networking implementation is. \OTO{} \textit{does not} implement \CCC{} as it is not failure-tolerant. \OTO{} is thus strictly an upper-bound.
+
+{\bf Varying number of replicas in each \RSM{}.}
+We first consider the relative performance of \Scrooge{} over \ATA{} as a function of the network size.
+We fix the message size to \SI{0.1}{kB} and \SI{1}{MB} and increase the number of replicas in each \RSM{} from $4$ to $19$ (Figure~\ref{fig:file-non-fail}(i)-(ii)). For small network sizes, \Scrooge{} outperforms \ATA{} by a factor of $1.84\times$ (small messages) and $3.7\times$ (large messages). 
+This performance benefit of \Scrooge{} increases
+in the larger network ($8.4\times$ and $13.4\times$). \Scrooge{} sends only a linear number of messages whereas \ATA{} must send/receive quadratic number of messages. 
+%The relative gains for large network sizes and large messages are comparatively smaller as \Scrooge{} becomes network-bottlenecked.
+\OTO{}'s performance, as expected, increases with network size as increasing the number of replicas increases the number of messages that can be sent in parallel.
+
+{\bf Varying Message Size.}
+In Figure~\ref{fig:file-non-fail}(iii)-(iv), we fix the size of each \RSM{} to $n=4$ (small) and $n=19$ replicas (large)
+and increase the message size from \SI{0.1}{kB} to \SI{1}{MB}.  We confirm the expected results: the performance of each \CCC{} implementation drops as a linear function of message size. Scrooge outperforms \ATA{} by a factor of $3.25\times$ and $15.3\times$ (respectively for small and large networks) for large message sizes, 
+but only outperforms \ATA{} by a factor of $1.84\times$ and $8.4\times$ (respectively for small and large networks) for smaller messages. Larger messages hide the moderate compute overhead introduced by Scrooge; the relative performance gains are thus larger for bigger messages.
+
+{\bf Geo-replication.} 
+In Figure~\ref{fig:file-non-fail}(v), we run geo-replicated experiments by deploying one \RSM{} in Iowa and other \RSM{} in Hong Kong. 
+The available bandwidth between two replicas in different \RSM{s} is approximately \SI{135}{Mbits\per\sec} and ping time is \SI{163}{m\sec}.
+In these experiments, we fix the message size to \SI{1}{MB} and increase the number of replicas in each \RSM{} from $4$ to $19$. The lower bandwidth across \RSM{}s dis-proportionally affects \ATA{}. 
+In this setup, \Scrooge{} outperforms \ATA{} by $9.7\times$ (small network) and $24\times$ (large network). Somewhat counter-intuitively, the performance of both \Scrooge{} and \OTO{} increase as a function of network size: this is because bandwidth is bound to \SI{135}{Mbits\per\sec} 
+\textit{per pairwise connection}. Increasing the number of receivers thus gives senders access to more bandwidth. \Scrooge{} intentionally has its senders send to multiple receivers and thus (artificially) outperforms \OTO{}, which selects unique sender-receiver pairs. 
+
+
+\subsection{Performance under failures}
+
+\begin{figure}
+        %\vspace{-5mm}
+    \centering
+    \setlength{\tabcolsep}{1pt}
+    \scalebox{0.6}{\ref{mainlegend2}}
+    \scalebox{0.6}{\ref{mainlegend3}}\\[5pt]
+    \begin{tabular}{cc@{\quad}cc}
+    \graphFStake & \graphFail
+    \end{tabular}
+    \caption{Analyzing effect of stake and failures on \Scrooge{}.}
+    \label{fig:file-stake-fail}
+\end{figure}
+
+Next, we evaluate the performance of \Scrooge{} under failures. 
+We conduct a simple experiment in which we randomly fail 33\% of the replicas. These replicas do not send any messages. 
+We run these experiments by fixing the message size to \SI{1}{MB} and increase the number of replicas from $4$ to $19$. We see similar numbers for smaller messages.  We find that \Scrooge{} continues to outperform \ATA{} by $1.93\times$ on small networks (size 4), and up to $6.6\times$ on larger networks. 
+\Scrooge{}'s performance with failure is lower than the non-failure case because a third of each message must be resent, using up both CPU and bandwidth. Interestingly, \ATA{}'s performance does not degrade during failures: \ATA{}, in effect, preemptively assumes that replicas may fail and thus always has all replicas send all messages all the time. 
+
+\subsection{Varying replica stakes.}
+Next, in Figure~\ref{fig:file-stake-fail}(i), we fix the message size to \SI{1}{MB}
+and increase the number of replicas in each \RSM{} from $4$ to $19$.
+We answer two questions: (1) how does \Scrooge{} perform when stake grows large, and (2) how does unequal stake affect the performance of \Scrooge{}. To answer these questions, we consider  four scenarios:
+(i) Two \RSM{s} where the stake of each replica is different;
+each replica has stake equal to its logical identifier ($\Replica{i}{1}$ stake = 1, $\Replica{i}{2}$ stake = 2, ...). (\textit{\Scrooge-Graded})
+(ii) Two \RSM{s} where one replica holds $50\%$ stake and the remaining $50\%$ stake is divided among all the other replicas. All replicas continue to have equal computing power. (\textit{\Scrooge-Unfair})
+(iii) Two \RSM{s} where one replica holds $50\%$ stake and the remaining $50\%$ stake is divided among all the other replicas. All replicas continue to have equal computing power. (\textit{\Scrooge-Fair}, \textit{\ATA-Fair}). We artificially bound the network throughput of all replicas with low stake to \SI{1}{Gbits\per\sec} using TC~\cite{tc}.
+(iv) One \RSM{} with stake $\n{}$ and other with stake $\n{} * 1000$; the total stake continues to be divided among all the replicas (\textit{Scrooge-Large}).
+
+We make three observations. First, \ATA{}'s performance is not affected by stake when all replicas continue to have equal compute power as it requires every replica to send all messages. Second, \Scrooge-Large has identical throughput to the equal stake case. This is also expected, as \Scrooge{}'s apportionment and LCM logic will reduce the message sending/receiving pattern back to the fully equal stake case. Third, we find that unequal stake \textit{combined with equal compute} causes \Scrooge{}'s performance to drop (by $33\%$ for \Scrooge-Graded and $87\%$ for \Scrooge-Unfair) as the communication load is no longer balanced across replicas. This effect is especially pronounced in \Scrooge-Unfair where the one replica with $50\%$
+has to  both send 50\% of the messages to the other RSM as well as receive messages from 50\% of the other \RSM{}'s replicas. All replicas were already networked-bottleneck in the equal stake scenarios.
+In practice, nodes with higher stake typically have more computing power, as they are expected to do more work in the system. If we instead look at \Scrooge-Fair results, where the machine with the highest stake has 10x higher bandwidth than the other nodes, Scrooge outperforms \ATA-Fair by $5\times$ (small) and $8\times$ (large).
+\begin{figure}[t]
+    \centering
+    %\resdbCCCTp
+    \setlength{\tabcolsep}{1pt}
+    \begin{tabular}{ccc}
+    \hspace{-8mm}\algoCCCTp  & \resdbCCCTp   & \raftCCCTp
+    \end{tabular}
+    \caption{Throughput \Algo{} (A), \ResDB{} (B), and \Raft{} (C)
+    with Scrooge; $\n{}=4$ replicas}
+    \label{fig:systems}
+\end{figure}
+
+
+% message_size,latency,throughput,strategy,local_network_size,foreign_network_size
+% 1000000,0,27.883312317815374,All-to-All,4,4
+% 1000000,0,15.900000265000221,All-to-All,7,7
+% 1000000,0,10.96667416056202,All-to-All,10,10
+% 1000000,0,0.033333346666672,All-to-All,13,13
+% 1000000,0,6.483335269446867,All-to-All,16,16
+% 1000000,0,5.249999740000131,All-to-All,19,19
+% 1000000,0,105.69999656000023,Scrooge k=64+ resends,4,4
+% 1000000,0,104.69998509334587,Scrooge k=64+ resends,7,7
+% 1000000,0,76.16668948779224,Scrooge k=64+ resends,10,10
+% 1000000,0,89.3000304216826,Scrooge k=64+ resends,13,13
+% 1000000,0,48.43330666669511,Scrooge k=64+ resends,16,16
+% 1000000,0,44.01666936891273,Scrooge k=64+ resends,19,19
+
+
+
+\subsection{Case Study: Heterogenous \RSM{s}}
+In this section, we deploy \Scrooge{} between heterogeneous \RSM{s} (both CFT and BFT systems) to offer evidence that
+\Scrooge{} supports efficient communication between diverse, real-world \RSM{s}. 
+We consider three representative~\RSM{s}.
+\begin{enumerate}[nosep,wide]
+    \item {\bf \ResDB{}.}
+    Each \ResDB{} \RSM{} runs \pbft{} consensus to replicate  client request~\cite{resilientdb,vldb-demo,suyash-phd-thesis}.
+    We select \ResDB{} as it is open-source (incubating under Apache) and provides a well-optimized \pbft{} implementation. The observed throughput (no Scrooge) is 39,000 tx/sec.
+    \item {\bf \Algo{}.}
+    Each \Algo{} \RSM{} runs a pure \PoS{} consensus~\cite{algorand}.
+    We select \Algo{} as it has an open-source testnet for development and it is a representative \PoS{} protocol. The observed base throughput of this setup is 130 tx/second.
+    \item {\bf \Raft{}.}  Each Raft~\cite{raft} RSM runs Etcd's \Raft{} version v3.0. We select Raft as it is a popular open-source CFT consensus protocol~\cite{etcd-raft}. Base throughput for Raft is 39,000 tx/sec.
+\end{enumerate}
+In Figure~\ref{fig:systems}, we mix-and-match these \RSM{s} and confirm that: (1) \Scrooge{} has minimal impact on the throughput of any of the \RSM{s}, with less than 15\% decrease in throughput in the worst case.
+(2) \Scrooge{} successfully handles differences in throughput between RSM. The slow Algorand RSM can efficiently communicate with the much faster Raft RSM. 
+
+
+
+
+
+%\begin{figure}[t]
+%    \centering
+%    \begin{tabular}{ll}
+%    \hspace{-8mm}\klistTp & \hspace{-8mm}\klistLat
+%    \end{tabular}
+%    \caption{Performance measurements under one failure in each \File{} \RSM{s} as a function of $\phi$-list size.
+%    Here, $\n{} = 4$ and message size = \SI{100}{B}.
+%   }
+%    \label{fig:klist-costs}
+%\end{figure}
+
