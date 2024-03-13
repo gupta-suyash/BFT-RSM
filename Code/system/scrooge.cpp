@@ -28,12 +28,12 @@ auto lastSendTime = std::chrono::steady_clock::now();
 uint64_t numMsgsSentWithLastAck{};
 std::optional<uint64_t> lastSentAck{};
 uint64_t lastQuack = 0;
-constexpr uint64_t kAckWindowSize = 500;
-constexpr uint64_t kQAckWindowSize = 1000; // Failures maybe try (1<<20)
+constexpr uint64_t kAckWindowSize = 19;
+constexpr uint64_t kQAckWindowSize = 100; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
 // Good values with ack12 (and 16), quack1000, delay1000ms
-constexpr auto kMaxMessageDelay = 30ms;
-constexpr auto kNoopDelay = 200ms;
+constexpr auto kMaxMessageDelay = 500ms;
+constexpr auto kNoopDelay = 5ms;
 uint64_t noop_ack = 0;
 uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{},
     numResendsTooLow{}, searchDistance{}, searchChecks{};
@@ -387,32 +387,32 @@ static void runScroogeSendThread(
                 newMessageData = util::getNextMessage();
             }
             peekSN++;
-            const bool shouldContinue = handleNewMessage<kIsUsingFile>(
+            handleNewMessage<kIsUsingFile>(
                 curTime, messageScheduler, curQuack, pipeline.get(), acknowledgment.get(), newMessageData);
             // if (shouldContinue)
             // {
             //     continue;
             // }
         }
-        // else if (isAckFresh && isNoopTimeoutHit)
-        // {
-        //     static uint64_t receiver = 0;
+        else if (isAckFresh && isNoopTimeoutHit)
+        {
+            static uint64_t receiver = 0;
 
-        //     if constexpr (kIsUsingFile)
-        //     {
-        //         pipeline->forceSendFileToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
-        //     }
-        //     else
-        //     {
-        //         pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
-        //     }
+            if constexpr (kIsUsingFile)
+            {
+                pipeline->forceSendFileToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
+            }
+            else
+            {
+                pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
+            }
 
-        //     receiver++;
-        //     numMsgsSentWithLastAck++;
-        //     noop_ack++;
+            receiver++;
+            numMsgsSentWithLastAck++;
+            noop_ack++;
 
-        //     lastSendTime = curTime;
-        // }
+            lastSendTime = curTime;
+        }
 
         updateResendData(resendDataQueue.get(), curQuack);
 
@@ -669,6 +669,13 @@ void runScroogeReceiveThread(
                     }
                     acknowledgment->addToAckList(messageData.sequence_number());
                     timedMessages += is_test_recording();
+                }
+
+                if (crossChainMessage.data_size() == 0)
+                {
+                    // no useful data to rebroadcast
+                    nng_msg_free(receivedMessage.message);
+                    receivedMessage.message = nullptr;
                 }
 
                 const auto curForeignAck = (crossChainMessage.has_ack_count())
