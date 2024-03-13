@@ -210,6 +210,14 @@ while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
 	ar=($output)
 	num_ips_read="${#ar[@]}"
 done
+# && sudo wondershaper ens4 2000000 2000000'
+#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:0:19}";
+#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:19:19}";
+#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:0:19}";
+#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:19:19}";
+#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:1:18}";
+#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:20:18}";
+#sudo tc qdisc add dev eth0 root tbf rate 1mbit burst 64kbit latency 400ms0
 
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
 RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
