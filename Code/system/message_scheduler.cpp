@@ -264,7 +264,7 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
     bool isNodeFirstSender = firstSenderId == kOwnNodeId;
     if (isNodeFirstSender)
     {
-        destinations.push_back((uint16_t) firstReceiver);
+        destinations.push_back((uint16_t) firstReceiverId);
     }
 
     // Optimistic starting resender/rereceiver
