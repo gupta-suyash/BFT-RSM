@@ -13,181 +13,60 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include "ipc.h"
+#include <fstream>
+#include <cstring>
+#include <filesystem>
+#include <sys/errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <thread>
+#include "scrooge_message.pb.h"
+#include "scrooge_request.pb.h"
 
 int main(int argc, char *argv[])
 {
-    std::string path;
+    if (argc != 2)
     {
-        const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
-        const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
-                     kLogPath, kWorkingDir] = kCommandLineArguments;
-	const auto nwPath = "/home/scrooge/"s;
-        const auto kNetworkZeroConfigPath = nwPath + "network0urls.txt"s;
-        const auto kNetworkOneConfigPath = nwPath + "network1urls.txt"s;
-
-        const auto kOwnNetworkConfiguration =
-            parseNetworkUrlsAndStake(get_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
-        const auto kOtherNetworkConfiguration =
-            parseNetworkUrlsAndStake(get_other_rsm_id() ? kNetworkOneConfigPath : kNetworkZeroConfigPath);
-
-        const auto kNodeConfiguration =
-            createNodeConfiguration(kCommandLineArguments, kOwnNetworkConfiguration, kOtherNetworkConfiguration);
-
-        SPDLOG_CRITICAL(
-            "Config set: kNumLocalNodes = {}, kNumForeignNodes = {}, kMaxNumLocalFailedNodes = {}, "
-            "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, num_packets = {},  packet_size = {}, "
-            "kLogPath= '{}'",
-            kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId, get_rsm_id(),
-            get_number_of_packets(), get_packet_size(), kLogPath);
-        printMetrics(kLogPath); // Deletes the metrics!
-
-        const auto kQuorumSize = kNodeConfiguration.kOtherMaxNumFailedStake + 1;
-        constexpr auto kMessageBufferSize = MESSAGE_BUFFER_SIZE; // Old value: 256
-
-        const auto acknowledgment = std::make_shared<Acknowledgment>();
-        const auto pipeline = std::make_shared<Pipeline>(kOwnNetworkConfiguration.kNetworkUrls,
-                                                         kOtherNetworkConfiguration.kNetworkUrls, kNodeConfiguration);
-        const auto messageBuffer =
-            std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
-        const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
-        const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(32768 * 2);
-
-        pipeline->startPipeline();
-
-        const auto kTestStartTime = std::chrono::steady_clock::now();
-        const auto testStartRecordTime = kTestStartTime + get_test_warmup_duration();
-        const auto testEndTime = testStartRecordTime + get_test_duration();
-        set_test_start(kTestStartTime);
-
-        SPDLOG_INFO("Done setting up sockets between nodes.");
-
-        set_priv_key();
-
-        // if (get_rsm_id() == 1 && kNodeId % 3 == 1)
-        // {
-        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
-        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
-
-        //     std::this_thread::sleep_until(testEndTime);
-        //     end_test();
-
-        //     receiveThread.join();
-        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
-        //     remove(kLogPath.c_str());
-        //     return 0;
-        // }
-
-        // if (get_rsm_id() == 0 && kNodeId % 3 == 1)
-        // {
-        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
-        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
-
-        //     std::this_thread::sleep_until(testEndTime);
-        //     end_test();
-
-        //     receiveThread.join();
-        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
-        //     remove(kLogPath.c_str());
-        //     return 0;
-        // }
-
-        /*auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
-        SPDLOG_INFO("Created Generate message relay thread");
-*/
-#if SCROOGE
-#if FILE_RSM
-        auto sendThread = std::thread(runFileScroogeSendThread, messageBuffer, pipeline, acknowledgment,
-                                      resendDataQueue, quorumAck, kNodeConfiguration);
-#else
-        auto sendThread = std::thread(runScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
-                                      quorumAck, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
-        SPDLOG_INFO("Created Generate message relay thread");
-
-
-#endif
-
-        auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
-                                         kNodeConfiguration);
-#elif ALL_TO_ALL
-#if FILE_RSM
-        auto sendThread = std::thread(runFileAllToAllSendThread, messageBuffer, pipeline, acknowledgment,
-                                      resendDataQueue, quorumAck, kNodeConfiguration);
-#else
-        auto sendThread = std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
-                                      quorumAck, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
-        SPDLOG_INFO("Created Generate message relay thread");
-
-
-#endif
-
-        auto receiveThread = std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
-                                         kNodeConfiguration);
-#else
-#if FILE_RSM
-        auto sendThread = std::thread(runFileUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,
-                                      resendDataQueue, quorumAck, kNodeConfiguration);
-#else
-        auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,
-                                      resendDataQueue, quorumAck, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
-        SPDLOG_INFO("Created Generate message relay thread");
-
-
-#endif
-
-        auto receiveThread = std::thread(runUnfairOneToOneReceiveThread, pipeline, acknowledgment, resendDataQueue,
-                                         quorumAck, kNodeConfiguration);
-#endif
-
-        SPDLOG_INFO("Created Receiver Thread with ID={} ");
-
-        std::this_thread::sleep_until(testStartRecordTime);
-        const auto trueTestStartTime = std::chrono::steady_clock::now();
-        start_recording();
-        addMetric("starting_quack", quorumAck->getCurrentQuack().value_or(0));
-        addMetric("starting_ack", acknowledgment->getAckIterator().value_or(0));
-
-        std::this_thread::sleep_until(testEndTime);
-        const auto trueTestEndTime = std::chrono::steady_clock::now();
-        end_test();
-
-        sendThread.join();
-        receiveThread.join();
-        // relayRequestThread.join();
-        // relayTransactionThread.join();
-
-        SPDLOG_CRITICAL(
-            "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
-            "kMaxNumLocalFailedNodes = {}, "
-            "kMaxNumForeignFailedNodes = {}, kOwnNodeId = {}, g_rsm_id = {}, packet_size = {},  kLogPath= '{}'",
-            kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId, get_rsm_id(),
-            get_packet_size(), kLogPath);
-
-        const auto trueTestWarmupDuration = trueTestStartTime - kTestStartTime;
-        const auto trueTestDuration = trueTestEndTime - trueTestStartTime;
-        addMetric("message_size", get_packet_size());
-        addMetric("duration_seconds", std::chrono::duration<double>{trueTestDuration}.count()); // legacy for eval.py
-        addMetric("Experiment Time", std::chrono::duration<double>{trueTestDuration}.count());
-        addMetric("Warmup Time", std::chrono::duration<double>{trueTestWarmupDuration}.count());
-        addMetric("local_network_size", kOwnNetworkSize);
-        addMetric("foreign_network_size", kOtherNetworkSize);
-        addMetric("local_max_failed_stake", kOwnMaxNumFailedStake);
-        addMetric("foreign_max_failed_stake", kOtherMaxNumFailedStake);
-        addMetric("foreign_stake_total", kOtherMaxNumFailedStake);
-        addMetric("local_stake", kNodeConfiguration.kOwnNetworkStakes.at(kNodeId));
-        addMetric("kList_size", kListSize);
-        path = kLogPath;
+        SPDLOG_CRITICAL("Incorrect usage, call as `./scrooge pipe_path`");
+        return 1;
     }
-    printMetrics(path);
+
+    constexpr auto kMessageSizeBytes = 100;
+    const auto pipeWritingSpeed = 1.s / 10'000'000;
+    const auto pipePath = std::string(argv[1]);
+
+    createPipe(pipePath);
+
+    std::ofstream pipe{pipePath, std::ios_base::app};
+    if (!pipe.is_open())
+    {
+        SPDLOG_CRITICAL("Open Failed={}, {}", std::strerror(errno), getlogin());
+        return 1;
+    }
+    else
+    {
+        SPDLOG_CRITICAL("Open Success");
+    }
+
+    scrooge::ScroogeRequest scroogeRequest; 
+    auto messageContent = scroogeRequest.mutable_send_message_request()->mutable_content();
+    messageContent->set_message_content(std::string(kMessageSizeBytes, 'L'));
+
+    uint64_t curSequenceNumber{};
+    while (pipe.is_open())
+    {
+        const auto curTime = std::chrono::steady_clock::now();
+       
+        messageContent->set_sequence_number(curSequenceNumber);
+        const auto serializedRequest = scroogeRequest.SerializeAsString();
+        writeMessage(pipe, serializedRequest);
+
+        curSequenceNumber++;
+        std::this_thread::sleep_until(curTime + pipeWritingSpeed);
+    }
+
+    SPDLOG_CRITICAL("Pipe is closed, exiting...");
+
     return 0;
 }
