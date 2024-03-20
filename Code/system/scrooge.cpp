@@ -520,7 +520,7 @@ static void runScroogeSendThread(
                 continue;
             }
         }
-        else if (isNoopTimeoutHit) // Always send no-ops, maybe not enough messages to flush buffers?
+        else if (isAckFresh && isNoopTimeoutHit) // Always send no-ops, maybe not enough messages to flush buffers?
         {
             static uint64_t receiver = 0;
 

@@ -631,7 +631,7 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
     if (not shouldSend)
     {
-        SPDLOG_CRITICAL("NOT SENDING BATCH BECAUSE isOldEnough {} isBatchLargeEnough {}", isBatchOldEnough, isBatchLargeEnough);
+        //SPDLOG_CRITICAL("NOT SENDING BATCH BECAUSE isOldEnough {} isBatchLargeEnough {}", isBatchOldEnough, isBatchLargeEnough);
         return false;
     }
 

@@ -11,22 +11,22 @@
     "local_compile_script": "/home/scrooge/BFT-RSM/Code/build.sh",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
-      "10.128.6.20",
-      "10.128.6.21",
-      "10.128.6.22",
-      "10.128.6.23"
+      "10.128.7.13",
+      "10.128.7.14",
+      "10.128.7.15",
+      "10.128.7.16"
     ],
     "clusterOneIps": [
-      "10.128.6.24",
-      "10.128.6.25",
-      "10.128.6.26",
-      "10.128.6.27"
+      "10.128.7.17",
+      "10.128.7.18",
+      "10.128.7.19",
+      "10.128.7.20"
     ],
     "client_regions": [
       "US"
     ]
   },
-  "raft-raft-2": {
+  "raft-algo-testingggg": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 1,
     "simulate_latency": 0,

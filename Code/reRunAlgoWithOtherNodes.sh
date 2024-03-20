@@ -89,6 +89,18 @@ if [ $application_acknowledgement != "Y" ]; then
 	exit 1
 fi
 
+echo "YOU ARE RUNNING ALGORAND WITHOUT RERUN SCRIPT!!" 
+echo -n "Please acknolwedge and accept/reject. Type Y or N: "
+
+read application_acknowledgement
+
+if [ $application_acknowledgement != "Y" ]; then
+	echo "PLEASE CHANGE BACK TO START_ALGORAND"
+	echo "Otherwise you will be sad :') Exiting now..."
+	exit 1
+fi
+
+
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
 rsm1_size=(4)
 rsm2_size=(4)
@@ -117,9 +129,15 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-RSM1=(10.128.6.20 10.128.6.21 10.128.6.22 10.128.6.23)
-RSM2=(10.128.6.24 10.128.6.25 10.128.6.26 10.128.6.27)
-CLIENT=(10.128.6.28 10.128.6.29)
+#RSM1=(10.128.6.20 10.128.6.21 10.128.6.22 10.128.6.23)
+#RSM2=(10.128.6.24 10.128.6.25 10.128.6.26 10.128.6.27)
+#CLIENT=(10.128.6.28 10.128.6.29)
+
+RSM1=(10.128.7.13 10.128.7.14 10.128.7.15 10.128.7.16)
+RSM2=(10.128.7.17 10.128.7.18 10.128.7.19 10.128.7.20)
+CLIENT=(10.128.7.21 10.128.7.22)
+
+
 
 count=0
 while ((${count} < ${num_nodes_rsm_1})); do
@@ -380,8 +398,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         local raft_count=$2
         echo "IN BENCHMARK_RAFT ${joinedvar}"
         echo "" > benchmark_${raft_count}.log
-        for i in {1..5}; do
-            benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=500000 --val-size=256 &>> benchmark_${raft_count}.log
+        for i in {1..3}; do
+            benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256 &>> benchmark_${raft_count}.log
         done        
     }
 
@@ -390,7 +408,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 # Take in arguments
                 local cluster_num=$1
                 local size=$2
-        local client_ip=$3
+                local client_ip=$3
                 local RSM=("${!4}")
                 # Create a new kv server conf file
                 rm ${resdb_app_dir}/deploy/config/kv_performance_server.conf
@@ -408,6 +426,24 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 ${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
         }
 
+    # Setup all necessary external applications
+        function start_no_rerun_algorand() {
+                echo "######################################################Algorand RSM is being used!"
+                # Take in arguments
+                local client_ip=$1
+                local size=$2
+                local RSM=("${!3}")
+                echo "${RSM[@]}"
+        echo "###########################################FINISH RUNNING ALGORAND"
+        #Relay nodes
+        relay="true"
+        ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_relay_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"'' &
+                echo "Relay node is run!"
+        #Participation nodes
+        relay="false"
+                parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
+        echo "###########################################Algorand started and running!"
+        }
 	# Setup all necessary external applications
 	function start_algorand() {
 		echo "######################################################Algorand RSM is being used!"
@@ -417,10 +453,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local RSM=("${!3}")
 		echo "${RSM[@]}"
         echo "###########################################FINISH RUNNING ALGORAND"
-        # Step 1: Copy rerun script onto each machine
+        # Step 1: Copy rerun script and wallet script onto each machine
         scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/scripts/rerun.sh ${username}@${client_ip}:${workdir}
         parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/scripts/rerun.sh ${username}@{1}:${workdir} ::: "${RSM[@]:0:$((size))}";
-
+        parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/wallet_app/wallet_test.js ${username}@{1}:${algorand_app_dir}/wallet_app/ ::: "${RSM[@]:0:$((size))}";
+#
         # Step 2: Execute rerun script
         relay="true"
         ssh -o StrictHostKeyChecking=no -t "${client_ip}" '/home/scrooge/rerun.sh '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"':4161 default '"${relay}"''
@@ -429,12 +466,20 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         echo "Done with the parallel jobs!"        
 echo "###########################################Algorand started and running!"
 	}
+      parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'rm /tmp/scrooge-input; rm /tmp/scrooge-output' ::: "${RSM1[@]:0:4}";
+      parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'rm /tmp/scrooge-input; rm /tmp/scrooge-output' ::: "${RSM2[@]:0:4}";
+      parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'rm /tmp/scrooge-input; rm /tmp/scrooge-output' ::: "${CLIENT[@]:0:2}";
+       
     echo "About to start applications!"
     cluster_idx=1
     start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
-    start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
-    #start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
-	#start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+    #start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[0]}" "RSM1[@]"
+    #start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"    
+    cluster_idx=2
+    #start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[1]}" "RSM2[@]"
+    #start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"   
+    #start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+	start_no_rerun_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
 
 
     for algo in "${protocols[@]}"; do # Looping over all the protocols.
@@ -461,9 +506,9 @@ echo "###########################################Algorand started and running!"
 							cat config.h
 							cp config.h system/
 
-							make clean
-							make proto
-							make -j scrooge
+							#make clean
+							#make proto
+							#make -j scrooge
 
 							# Next, we make the experiment.json for backward compatibility.
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}

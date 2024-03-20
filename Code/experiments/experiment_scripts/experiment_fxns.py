@@ -225,7 +225,7 @@ def run(configJson, experimentName, expDir):
             ssh_key = config['experiment_independent_vars']['ssh_key']
             username = config['experiment_independent_vars']['username']
             count = 0
-            executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
+            #executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
 
             executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
             file_names = []
