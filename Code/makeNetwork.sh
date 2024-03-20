@@ -54,7 +54,7 @@ starting_algos=10000000000000000
 scrooge="true"
 all_to_all="false"
 one_to_one="false"
-
+geobft="false"
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
 file_rsm="true"
@@ -378,6 +378,9 @@ fi
 if [ "${one_to_one}" = "true" ]; then
 	protocols+=("one_to_one")
 fi
+if [ "${geobft}" = "true" ]; then
+    protocols+=("geobft")
+fi
 
 for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# First, we create the configuration file "network0urls.txt" through echoing and redirection.
@@ -594,11 +597,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		scrooge="false"
 		all_to_all="false"
 		one_to_one="false"
+        geobft="false"
 
 		if [ "${algo}" = "scrooge" ]; then
 			scrooge="true"
 		elif [ "${algo}" = "all_to_all" ]; then
 			all_to_all="true"
+        elif [ "${algo}" = "geobft" ]; then
+            geobft="true"
 		else
 			one_to_one="true"
 		fi
@@ -608,7 +614,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
-							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
+							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${file_rsm} ${use_debug_logs_bool}
 
 							cat config.h
 							cp config.h system/

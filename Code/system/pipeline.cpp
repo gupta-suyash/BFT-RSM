@@ -729,9 +729,76 @@ bool Pipeline::SendFileToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainM
                                    curTime);
 }
 
-/* This function is used to send message to a specific node in other RSM.
+/* This function is used to send message to f+1 nodes in the other RSM. 
+ * f+1 nodes are the minimum number of nodes the sending RSM needs to communicate with
+ * to maintain correctness while being optimal in GeoBFT. 
  *
- * @param nid is the identifier of the node in the other RSM.
+ */
+void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messageData,
+                                 std::chrono::steady_clock::time_point curTime)
+{
+    auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
+    auto batch = &mForeignMessageBatches.front().data;
+    auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
+
+    const auto newDataSize = messageData.ByteSizeLong();
+    batch->mutable_data()->Add(std::move(messageData));
+    *batchSize += newDataSize;
+
+    bool shouldSend = *batchSize >= kMinimumBatchSize || kMaxBatchCreationTime < curTime - *batchCreationTime;
+    if (not shouldSend)
+    {
+        return;
+    }
+    totalBatchesSent++;
+    totalBatchedMessages += batch->data_size();
+    numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
+    numSizeHits += *batchSize >= kMinimumBatchSize;
+
+    auto foreignAliveNodes = mAliveNodesForeign;
+    nng_msg *batchData = serializeProtobuf(*batch);
+   
+    uint64_t geobft_quorum_counter = 0; // TODO: Potential source of performance degradation
+    const uint64_t geobft_quorum_size = (kOwnConfiguration.kOtherNetworkSize - 1)/replication_factor + 1; // TODO: Move this
+    while (geobft_quorum_counter > geobft_quorum_size && not is_test_over())
+    {
+        const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
+        foreignAliveNodes.reset(curDestination);
+        const auto &curBuffer = mForeignSendBufs.at(curDestination);
+        nng_msg *curMessage;
+
+        if (foreignAliveNodes.any())
+        {
+            nng_msg_dup(&curMessage, batchData);
+        }
+        else
+        {
+            curMessage = batchData;
+        }
+
+        while (not curBuffer->try_enqueue(curMessage))
+        {
+            if (is_test_over())
+            {
+                const bool isLastIteration = geobft_quorum_counter > geobft_quorum_size;
+                if (not isLastIteration)
+                {
+                    nng_msg_free(batchData);
+                }
+                nng_msg_free(curMessage);
+
+                break;
+            }
+        }
+        geobft_quorum_counter += 1;
+    }
+    batch->Clear();
+    *batchSize = 0;
+    *batchCreationTime = curTime;
+}
+
+/* This function is used to send message to all nodes in the other RSM.
+ *
  */
 void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
                                  std::chrono::steady_clock::time_point curTime)
@@ -756,7 +823,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
 
     auto foreignAliveNodes = mAliveNodesForeign;
     nng_msg *batchData = serializeProtobuf(*batch);
-
+    
     while (foreignAliveNodes.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
