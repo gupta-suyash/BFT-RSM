@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "acknowledgment.h"
 #include "config.h"
 #include "global.h"
@@ -58,6 +59,9 @@ class Pipeline
 
     void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
     void SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
+    void SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
+    void SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
+
 
   private:
     bool bufferedMessageSend(scrooge::CrossChainMessageData &&message, pipeline::CrossChainMessageBatch *const batch,

@@ -1,5 +1,6 @@
 #include "acknowledgment.h"
 #include "all_to_all.h"
+#include "geobft.h"
 #include "config.h"
 #include "global.h"
 #include "iothread.h"
@@ -142,6 +143,8 @@ int main(int argc, char *argv[])
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 #endif
+        auto receiveThread = std::thread(runGeoBFTReceiveThread, pipeline, acknowledgment, resendDataQueue,
+                                         quorumAck, kNodeConfiguration);
     
 #else
 #if FILE_RSM

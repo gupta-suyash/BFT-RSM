@@ -42,35 +42,32 @@ void runGeoBFTReceiveThread(
             bool success = pipeline->rebroadcastToOwnRsm(message);
             if (success)
             {
-                message = nullptr; 
-            }
-        }
-            const auto [message, senderId] = pipeline->RecvFromOwnRsm();
-            if (message)
-            {
-                const auto messageData = nng_msg_body(message);
-                const auto messageSize = nng_msg_len(message);
-                bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
                 nng_msg_free(message);
-                if (not success)
-                {
-                    SPDLOG_CRITICAL("Cannot parse local message");
-                }
-
-                for (const auto &messageData : crossChainMessage.data())
-                {
-                    acknowledgment->addToAckList(messageData.sequence_number());
-                    timedMessages += is_test_recording();
-                }
             }
-            nng_msg_free(message);
         }
+        const auto [broadcast_msg, broadcast_senderId] = pipeline->RecvFromOwnRsm();
+        if (broadcast_msg)
+        {
+            const auto messageData = nng_msg_body(broadcast_msg);
+            const auto messageSize = nng_msg_len(broadcast_msg);
+            bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
+            if (not success)
+            {
+                SPDLOG_CRITICAL("Cannot parse local message");
+            }
+
+            for (const auto &messageData : crossChainMessage.data())
+            {
+                acknowledgment->addToAckList(messageData.sequence_number());
+                timedMessages += is_test_recording();
+            }
+        }
+        nng_msg_free(broadcast_msg);
     }
 
     addMetric("local_messages_received", 0);
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
-    addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
 }
 
 template <bool kIsUsingFile>
