@@ -134,7 +134,8 @@ void updateResendData(iothread::MessageQueue<acknowledgment_tracker::ResendData>
     //     resendDatas.erase_begin(kResendBlockSize);
     // }
 
-    while (resendDatas.size() && (resendDatas.front().sequenceNumber <= curQuack || resendDatas.front().numDestinationsSent == resendDatas.front().destinations.size()))
+    while (resendDatas.size() && (resendDatas.front().sequenceNumber <= curQuack ||
+                                  resendDatas.front().numDestinationsSent == resendDatas.front().destinations.size()))
     {
         // SPDLOG_CRITICAL("Removing resend data with s# {} Quack={}", resendDatas.front().sequenceNumber,
         // curQuack.value_or(0));
@@ -387,8 +388,8 @@ static void runScroogeSendThread(
                 newMessageData = util::getNextMessage();
             }
             peekSN++;
-            handleNewMessage<kIsUsingFile>(
-                curTime, messageScheduler, curQuack, pipeline.get(), acknowledgment.get(), newMessageData);
+            handleNewMessage<kIsUsingFile>(curTime, messageScheduler, curQuack, pipeline.get(), acknowledgment.get(),
+                                           newMessageData);
             // if (shouldContinue)
             // {
             //     continue;
@@ -445,7 +446,7 @@ static void runScroogeSendThread(
     addMetric("Ack-Fail", (double)numAckWindowFails / numSendChecks);
     addMetric("Timeout-Hits", (double)numIOTimeoutHits / numSendChecks);
     addMetric("Noop-Hits", (double)numNoopTimeoutHits / numSendChecks);
-    addMetric("Full-ResendBuf%", (double) numResendBufFullChecks / numSendChecks);
+    addMetric("Full-ResendBuf%", (double)numResendBufFullChecks / numSendChecks);
     addMetric("OutstandingResends", (double)outstandingResendRequests / numHandlResends);
     addMetric("Timeout-Exclusive-Hits", (double)numTimeoutExclusiveHits / numSendChecks);
 
@@ -497,8 +498,10 @@ void updateAckTrackers(const std::optional<uint64_t> curQuack, const uint64_t no
     const auto kNumAckTrackers = ackTrackers.size();
     const auto initialMessageTrack = curQuack.value_or(0ULL - 1ULL) + 1;
     const auto finialMessageTrack = std::min(initialMessageTrack + kNumAckTrackers - 1, util::getFinalAck(nodeAckView));
-    overlap += (finialMessageTrack >= initialMessageTrack)? ((int64_t)finialMessageTrack - (int64_t)initialMessageTrack + 1) : 0;
-    klistDelta += (int64_t) initialMessageTrack - (int64_t) util::getAckIterator(nodeAckView).value_or(0);
+    overlap += (finialMessageTrack >= initialMessageTrack)
+                   ? ((int64_t)finialMessageTrack - (int64_t)initialMessageTrack + 1)
+                   : 0;
+    klistDelta += (int64_t)initialMessageTrack - (int64_t)util::getAckIterator(nodeAckView).value_or(0);
 
     // SPDLOG_CRITICAL("MAKING UPDATE FOR NODE {} -- Q{} Init{} Final{}", nodeId, curQuack.value_or(0),
     // initialMessageTrack, finialMessageTrack);
@@ -596,7 +599,7 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
         util::JankAckView curView{};
         while (not viewQueue->try_dequeue(curView) && not is_test_over())
             ;
-        
+
         // while(viewQueue->try_dequeue(curView)); // try to throw all away
 
         // if (is_test_over())

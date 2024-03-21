@@ -65,7 +65,7 @@ void message_scheduler::scaleVector(std::vector<uint64_t> &v, uint64_t factor)
 
 static uint64_t bitCeil(uint64_t value)
 {
-    value--; // if value is already a power of 2
+    value--;             // if value is already a power of 2
     value |= value >> 1; // paint highest bit everywhere
     value |= value >> 2;
     value |= value >> 4;
@@ -120,7 +120,6 @@ std::vector<uint64_t> message_scheduler::apportionVector(uint64_t totalApportion
     return apportionedShares;
 }
 
-
 std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequenceNumber) const
 {
     const auto originalSender = sequenceNumber % kOwnApportionedStake;
@@ -136,14 +135,10 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
     const auto firstReReceiver = (firstReceiver + resendOffset + 1) % kOtherApportionedStake;
 
     // Actual Node Ids
-    const auto firstSenderId = message_scheduler::stakeToNode(
-        firstSender, kOwnRsmApportionedStakePrefixSum);
-    const auto firstReSenderId = message_scheduler::stakeToNode(
-        firstReSender, kOwnRsmApportionedStakePrefixSum);
-    const auto firstReceiverId = message_scheduler::stakeToNode(
-        firstReceiver, kOtherRsmApportionedStakePrefixSum);
-    const auto firstReReceiverId = message_scheduler::stakeToNode(
-        firstReReceiver, kOtherRsmApportionedStakePrefixSum);
+    const auto firstSenderId = message_scheduler::stakeToNode(firstSender, kOwnRsmApportionedStakePrefixSum);
+    const auto firstReSenderId = message_scheduler::stakeToNode(firstReSender, kOwnRsmApportionedStakePrefixSum);
+    const auto firstReceiverId = message_scheduler::stakeToNode(firstReceiver, kOtherRsmApportionedStakePrefixSum);
+    const auto firstReReceiverId = message_scheduler::stakeToNode(firstReReceiver, kOtherRsmApportionedStakePrefixSum);
 
     bool isNodeFirstSender = firstSenderId == kOwnNodeId;
     if (isNodeFirstSender)
@@ -159,12 +154,12 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
     int64_t stakeLeftInReceiver = message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
     uint64_t curResendNumber = 1;
 
-    const auto stakeSentInFirstMessage = std::min(
-        message_scheduler::stakeInNode(firstSenderId, kOwnRsmStakePrefixSum),
-        message_scheduler::stakeInNode(firstReceiverId, kOtherRsmStakePrefixSum));
+    const auto stakeSentInFirstMessage =
+        std::min(message_scheduler::stakeInNode(firstSenderId, kOwnRsmStakePrefixSum),
+                 message_scheduler::stakeInNode(firstReceiverId, kOtherRsmStakePrefixSum));
     stakeLeftInFirstReceiver -= stakeSentInFirstMessage;
 
-    int64_t remainingStakeToSend = (int64_t) kMinStakeToSend - (int64_t) stakeSentInFirstMessage;
+    int64_t remainingStakeToSend = (int64_t)kMinStakeToSend - (int64_t)stakeSentInFirstMessage;
 
     if (curSendNodeId == firstSenderId)
     {
@@ -175,9 +170,9 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
         stakeLeftInReceiver -= stakeSentInFirstMessage;
     }
 
-    // Simulate Sends -- skipping over firstSenderId and firstResenderId <- kind of a bug but dw about it -- current types can't handle gaps in resends
-    // We will still send enough stake in any case that this function halts :-)
-    // Just harder to see if the function halts in all cases or not ...
+    // Simulate Sends -- skipping over firstSenderId and firstResenderId <- kind of a bug but dw about it -- current
+    // types can't handle gaps in resends We will still send enough stake in any case that this function halts :-) Just
+    // harder to see if the function halts in all cases or not ...
     while (remainingStakeToSend > 0 && (curSendNodeId == firstSenderId))
     {
         while (stakeLeftInSender == 0)
@@ -188,9 +183,10 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
         while (stakeLeftInReceiver == 0)
         {
             curRecvNodeId = (curRecvNodeId + 1) % kOtherNetworkSize;
-            stakeLeftInReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInFirstReceiver : message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
+            stakeLeftInReceiver = (curRecvNodeId == firstReceiverId)
+                                      ? stakeLeftInFirstReceiver
+                                      : message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
         }
-
 
         if (curSendNodeId == kOwnNodeId)
         {
@@ -199,7 +195,7 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
         }
         const auto stakeSentInSimulatedMessage = std::min(stakeLeftInSender, stakeLeftInReceiver);
         stakeLeftInReceiver -= stakeSentInSimulatedMessage;
-        stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInReceiver : stakeLeftInFirstReceiver;
+        stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId) ? stakeLeftInReceiver : stakeLeftInFirstReceiver;
         stakeLeftInSender -= stakeSentInSimulatedMessage;
         curResendNumber++;
         remainingStakeToSend -= stakeSentInSimulatedMessage;
@@ -215,7 +211,9 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
         while (stakeLeftInReceiver == 0)
         {
             curRecvNodeId = (curRecvNodeId + 1) % kOtherNetworkSize;
-            stakeLeftInReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInFirstReceiver : message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
+            stakeLeftInReceiver = (curRecvNodeId == firstReceiverId)
+                                      ? stakeLeftInFirstReceiver
+                                      : message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
         }
 
         if (curSendNodeId == kOwnNodeId)
@@ -225,7 +223,7 @@ std::optional<uint64_t> MessageScheduler::computeGetResendNumber(uint64_t sequen
         }
         const auto stakeSentInSimulatedMessage = std::min(stakeLeftInSender, stakeLeftInReceiver);
         stakeLeftInReceiver -= stakeSentInSimulatedMessage;
-        stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInReceiver : stakeLeftInFirstReceiver;
+        stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId) ? stakeLeftInReceiver : stakeLeftInFirstReceiver;
         stakeLeftInSender -= stakeSentInSimulatedMessage;
         remainingStakeToSend -= stakeSentInSimulatedMessage;
         curResendNumber++;
@@ -250,21 +248,17 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
     const auto firstReReceiver = (firstReceiver + resendOffset + 1) % kOtherApportionedStake;
 
     // Actual Node Ids
-    const auto firstSenderId = message_scheduler::stakeToNode(
-        firstSender, kOwnRsmApportionedStakePrefixSum);
-    const auto firstReSenderId = message_scheduler::stakeToNode(
-        firstReSender, kOwnRsmApportionedStakePrefixSum);
-    const auto firstReceiverId = message_scheduler::stakeToNode(
-        firstReceiver, kOtherRsmApportionedStakePrefixSum);
-    const auto firstReReceiverId = message_scheduler::stakeToNode(
-        firstReReceiver, kOtherRsmApportionedStakePrefixSum);
+    const auto firstSenderId = message_scheduler::stakeToNode(firstSender, kOwnRsmApportionedStakePrefixSum);
+    const auto firstReSenderId = message_scheduler::stakeToNode(firstReSender, kOwnRsmApportionedStakePrefixSum);
+    const auto firstReceiverId = message_scheduler::stakeToNode(firstReceiver, kOtherRsmApportionedStakePrefixSum);
+    const auto firstReReceiverId = message_scheduler::stakeToNode(firstReReceiver, kOtherRsmApportionedStakePrefixSum);
 
     message_scheduler::CompactDestinationList destinations{};
 
     bool isNodeFirstSender = firstSenderId == kOwnNodeId;
     if (isNodeFirstSender)
     {
-        destinations.push_back((uint16_t) firstReceiverId);
+        destinations.push_back((uint16_t)firstReceiverId);
     }
 
     // Optimistic starting resender/rereceiver
@@ -275,12 +269,12 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
     int64_t stakeLeftInReceiver = message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
     uint64_t curResendNumber = 1;
 
-    const auto stakeSentInFirstMessage = std::min(
-        message_scheduler::stakeInNode(firstSenderId, kOwnRsmStakePrefixSum),
-        message_scheduler::stakeInNode(firstReceiverId, kOtherRsmStakePrefixSum));
+    const auto stakeSentInFirstMessage =
+        std::min(message_scheduler::stakeInNode(firstSenderId, kOwnRsmStakePrefixSum),
+                 message_scheduler::stakeInNode(firstReceiverId, kOtherRsmStakePrefixSum));
     stakeLeftInFirstReceiver -= stakeSentInFirstMessage;
 
-    int64_t remainingStakeToSend = (int64_t) kMinStakeToSend - (int64_t) stakeSentInFirstMessage;
+    int64_t remainingStakeToSend = (int64_t)kMinStakeToSend - (int64_t)stakeSentInFirstMessage;
 
     if (curSendNodeId == firstSenderId)
     {
@@ -291,9 +285,9 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
         stakeLeftInReceiver = stakeLeftInFirstReceiver;
     }
 
-    // Simulate Sends -- skipping over firstSenderId and firstResenderId <- kind of a bug but dw about it -- current types can't handle gaps in resends
-    // We will still send enough stake in any case that this function halts :-)
-    // Just harder to see if the function halts in all cases or not ...
+    // Simulate Sends -- skipping over firstSenderId and firstResenderId <- kind of a bug but dw about it -- current
+    // types can't handle gaps in resends We will still send enough stake in any case that this function halts :-) Just
+    // harder to see if the function halts in all cases or not ...
     while (remainingStakeToSend > 0 && (curSendNodeId == firstSenderId))
     {
         while (stakeLeftInSender == 0)
@@ -304,18 +298,19 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
         while (stakeLeftInReceiver == 0)
         {
             curRecvNodeId = (curRecvNodeId + 1) % kOtherNetworkSize;
-            stakeLeftInReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInFirstReceiver : message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
+            stakeLeftInReceiver = (curRecvNodeId == firstReceiverId)
+                                      ? stakeLeftInFirstReceiver
+                                      : message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
         }
-
 
         if (curSendNodeId == kOwnNodeId)
         {
             // I'm a sender ! I sent to curRecvNodeId
-            destinations.push_back((uint16_t) curRecvNodeId);
+            destinations.push_back((uint16_t)curRecvNodeId);
         }
         const auto stakeSentInSimulatedMessage = std::min(stakeLeftInSender, stakeLeftInReceiver);
         stakeLeftInReceiver -= stakeSentInSimulatedMessage;
-        stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInReceiver : stakeLeftInFirstReceiver;
+        stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId) ? stakeLeftInReceiver : stakeLeftInFirstReceiver;
         stakeLeftInSender -= stakeSentInSimulatedMessage;
         remainingStakeToSend -= stakeSentInSimulatedMessage;
         curResendNumber++;
@@ -331,17 +326,19 @@ message_scheduler::CompactDestinationList MessageScheduler::computeGetMessageDes
         while (stakeLeftInReceiver == 0)
         {
             curRecvNodeId = (curRecvNodeId + 1) % kOtherNetworkSize;
-            stakeLeftInReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInFirstReceiver : message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
+            stakeLeftInReceiver = (curRecvNodeId == firstReceiverId)
+                                      ? stakeLeftInFirstReceiver
+                                      : message_scheduler::stakeInNode(curRecvNodeId, kOtherRsmStakePrefixSum);
         }
 
         if (curSendNodeId == kOwnNodeId)
         {
             // I'm a sender ! I sent to curRecvNodeId
-            destinations.push_back((uint16_t) curRecvNodeId);
+            destinations.push_back((uint16_t)curRecvNodeId);
         }
         const auto stakeSentInSimulatedMessage = std::min(stakeLeftInSender, stakeLeftInReceiver);
         stakeLeftInReceiver -= stakeSentInSimulatedMessage;
-        stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId)? stakeLeftInReceiver : stakeLeftInFirstReceiver;
+        stakeLeftInFirstReceiver = (curRecvNodeId == firstReceiverId) ? stakeLeftInReceiver : stakeLeftInFirstReceiver;
         stakeLeftInSender -= stakeSentInSimulatedMessage;
         remainingStakeToSend -= stakeSentInSimulatedMessage;
         curResendNumber++;
@@ -414,7 +411,8 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
         // }
         // if (mResendNumberLookup.back().has_value())
         // {
-        //     SPDLOG_CRITICAL("FOR SN {}\t I AM RESENDER {} to [ {}]", sequenceNumber, mResendNumberLookup.back().value(), resendDests);
+        //     SPDLOG_CRITICAL("FOR SN {}\t I AM RESENDER {} to [ {}]", sequenceNumber,
+        //     mResendNumberLookup.back().value(), resendDests);
         // }
         // else
         // {

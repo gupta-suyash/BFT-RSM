@@ -206,7 +206,7 @@ void bindThreadBetweenCpu(const int cpuL, const int cpuH)
 void addMetric(std::string key, std::string value)
 {
     std::scoped_lock lock{metricsMutex};
-    SPDLOG_CRITICAL("ADDING METRIC {} : {}", key ,value);
+    SPDLOG_CRITICAL("ADDING METRIC {} : {}", key, value);
     metrics[key] = value;
 }
 
