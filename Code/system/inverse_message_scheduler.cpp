@@ -2,7 +2,7 @@
 
 static uint64_t bitCeil(uint64_t value)
 {
-    value--; // if value is already a power of 2
+    value--;             // if value is already a power of 2
     value |= value >> 1; // paint highest bit everywhere
     value |= value >> 2;
     value |= value >> 4;
@@ -17,20 +17,19 @@ InverseMessageScheduler::InverseMessageScheduler(const NodeConfiguration configu
 {
     for (uint64_t curSenderId = 0; curSenderId < configuration.kOtherNetworkSize; curSenderId++)
     {
-        const auto curSenderConfiguration = NodeConfiguration{
-            .kOwnNetworkSize = configuration.kOtherNetworkSize,
-            .kOtherNetworkSize = configuration.kOwnNetworkSize,
-            .kOwnNetworkStakes = configuration.kOtherNetworkStakes,
-            .kOtherNetworkStakes = configuration.kOwnNetworkStakes,
-            .kOwnMaxNumFailedStake = configuration.kOtherMaxNumFailedStake,
-            .kOtherMaxNumFailedStake = configuration.kOwnMaxNumFailedStake,
-            .kNodeId = curSenderId,
-            .kLogPath = "",
-            .kWorkingDir = ""
-        };
+        const auto curSenderConfiguration =
+            NodeConfiguration{.kOwnNetworkSize = configuration.kOtherNetworkSize,
+                              .kOtherNetworkSize = configuration.kOwnNetworkSize,
+                              .kOwnNetworkStakes = configuration.kOtherNetworkStakes,
+                              .kOtherNetworkStakes = configuration.kOwnNetworkStakes,
+                              .kOwnMaxNumFailedStake = configuration.kOtherMaxNumFailedStake,
+                              .kOtherMaxNumFailedStake = configuration.kOwnMaxNumFailedStake,
+                              .kNodeId = curSenderId,
+                              .kLogPath = "",
+                              .kWorkingDir = ""};
         const auto curSenderScheduler = MessageScheduler(curSenderConfiguration);
         const auto messageCycleLength = curSenderScheduler.getMessageCycleLength();
-        
+
         mResendNumberLookup.resize(std::max(mResendNumberLookup.size(), messageCycleLength));
 
         for (uint64_t curMessage{}; curMessage < messageCycleLength; curMessage++)
@@ -47,10 +46,10 @@ InverseMessageScheduler::InverseMessageScheduler(const NodeConfiguration configu
             }
         }
     }
-    assert("ResendNumberLookup must be a power of 2" && bitCeil(mResendNumberLookup.size()) == mResendNumberLookup.size());
+    assert("ResendNumberLookup must be a power of 2" &&
+           bitCeil(mResendNumberLookup.size()) == mResendNumberLookup.size());
     kResendNumberLookupBitMask = mResendNumberLookup.size() - 1;
 }
-
 
 std::optional<uint64_t> InverseMessageScheduler::getMinResendNumber(uint64_t sequenceNumber) const
 {
