@@ -55,6 +55,5 @@ class MessageScheduler
     std::vector<uint64_t> kOtherRsmApportionedStakePrefixSum{};
     uint64_t kCycleMask{};
     std::vector<std::optional<uint64_t>> mResendNumberLookup{};
-    std::vector<message_scheduler::CompactDestinationList>
-        mResendDestinationLookup{};
+    std::vector<message_scheduler::CompactDestinationList> mResendDestinationLookup{};
 };
