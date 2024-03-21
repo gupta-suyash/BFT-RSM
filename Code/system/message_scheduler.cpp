@@ -432,3 +432,8 @@ message_scheduler::CompactDestinationList MessageScheduler::getMessageDestinatio
 {
     return mResendDestinationLookup[sequenceNumber & kCycleMask];
 }
+
+uint64_t MessageScheduler::getMessageCycleLength() const
+{
+    return std::max(mResendNumberLookup.size(), mResendDestinationLookup.size());
+}

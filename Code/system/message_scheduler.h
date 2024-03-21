@@ -31,6 +31,7 @@ class MessageScheduler
     MessageScheduler(NodeConfiguration configuration);
     std::optional<uint64_t> getResendNumber(uint64_t sequenceNumber) const;
     message_scheduler::CompactDestinationList getMessageDestinations(uint64_t sequenceNumber) const;
+    uint64_t getMessageCycleLength() const;
     // TODO: Add method to detect if node should receive a certain message (only slightly helps to filter byzantine
     // attacks)
     //       Implementation plan: just reverse own/other variables, and check nodeid \in?
