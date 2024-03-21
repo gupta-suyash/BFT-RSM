@@ -1,32 +1,36 @@
 #include "geobft.h"
 #include "proto_utils.h"
 
-// TODO for sending:
-// Send to only f+1 other nodes as opposed to all
+// TODO:
+// - Make replication factor a variable in the config file
+// - Make sure you're not leaking memory
+// - Make sure the counter isn't too inefficient
 void runGeoBFTReceiveThread(
     const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
     const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
+    //SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
     uint64_t timedMessages{};
     scrooge::CrossChainMessage crossChainMessage;
 
     while (not is_test_over())
     {
-        const auto [message, senderId] = pipeline->RecvFromOtherRsm();
+        //SPDLOG_CRITICAL("RECEIVE: Beginning of while loop");
+        auto receivedMessage = pipeline->RecvFromOtherRsm();
+        const auto [message, senderId] = receivedMessage;
         if (not message)
         {
             std::this_thread::yield();
             continue;
         }
-
+        //SPDLOG_CRITICAL("RECEIVE: Received a message!");
         const auto messageData = nng_msg_body(message);
         const auto messageSize = nng_msg_len(message);
         bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
         if (not success)
         {
-            SPDLOG_CRITICAL("Cannot parse foreign message");
+            SPDLOG_CRITICAL("Cannot parse foreign message"); // TODO: Why is it ok to continue?
         }
  
         for (const auto &messageData : crossChainMessage.data())
@@ -35,16 +39,16 @@ void runGeoBFTReceiveThread(
             acknowledgment->addToAckList(messageData.sequence_number());
             timedMessages += is_test_recording();
         }
-        
+        //SPDLOG_CRITICAL("RECEIVE: Sorted through message data!");
         // Rebroadcasts the message to the RSM
-        if (message)
+        success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
+        if (not success) 
         {
-            bool success = pipeline->rebroadcastToOwnRsm(message);
-            if (success)
-            {
-                nng_msg_free(message);
-            }
+            SPDLOG_CRITICAL("Cannot rebroadcast message!");
+        } else {
+            receivedMessage.message = nullptr;
         }
+        //SPDLOG_CRITICAL("RECEIVE: Rebroadcast to the rest of the RSMs!"); // CORRECT Up to here
         const auto [broadcast_msg, broadcast_senderId] = pipeline->RecvFromOwnRsm();
         if (broadcast_msg)
         {
@@ -53,7 +57,7 @@ void runGeoBFTReceiveThread(
             bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
             if (not success)
             {
-                SPDLOG_CRITICAL("Cannot parse local message");
+                SPDLOG_CRITICAL("Cannot parse broadcast message");
             }
 
             for (const auto &messageData : crossChainMessage.data())
@@ -62,12 +66,14 @@ void runGeoBFTReceiveThread(
                 timedMessages += is_test_recording();
             }
         }
-        nng_msg_free(broadcast_msg);
+        //SPDLOG_CRITICAL("RECEIVE: Processed broadcast message!");
+        /*nng_msg_free(broadcast_msg); <-- TODO is this leaking memory?*/
     }
 
     addMetric("local_messages_received", 0);
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
+    addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
 }
 
 template <bool kIsUsingFile>
@@ -84,13 +90,12 @@ static void runGeoBFTSendThread(
     Acknowledgment sentMessages{};
     while (not is_test_over())
     {
-
         while (not is_test_over())
         {
             scrooge::CrossChainMessageData newMessageData = util::getNextMessage();
             const auto curSequenceNumber = newMessageData.sequence_number();
             auto curTime = std::chrono::steady_clock::now();
-
+            //SPDLOG_CRITICAL("SEND: Created new data and sequence number!");
             if constexpr (kIsUsingFile)
             {
                 pipeline->SendFileToGeoBFTQuorumOtherRsm(std::move(newMessageData), curTime);
@@ -102,6 +107,7 @@ static void runGeoBFTSendThread(
             sentMessages.addToAckList(curSequenceNumber);
             quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
+            //SPDLOG_CRITICAL("SEND: Done with this iteration!");
         }
     }
 

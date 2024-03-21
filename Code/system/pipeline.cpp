@@ -800,6 +800,7 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
 void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messageData,
                                      std::chrono::steady_clock::time_point curTime)
 {
+    //SPDLOG_CRITICAL("Beginning of Fil GeoBFT function");
     auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
     auto batch = &mForeignMessageBatches.front().data;
     auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
@@ -818,17 +819,19 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
     numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
     numSizeHits += *batchSize >= kMinimumBatchSize;
 
+    //SPDLOG_CRITICAL("Batch setup complete in File GeoBFT");
     auto foreignAliveNodes = mAliveNodesForeign;
     nng_msg *batchData = serializeFileProtobuf(*batch);
     uint64_t geobft_quorum_counter = 0; // TODO: Potential source of performance degradation
     const uint64_t geobft_quorum_size = (kOwnConfiguration.kOtherNetworkSize - 1)/replication_factor + 1; // TODO: Move this
+    //SPDLOG_CRITICAL("Two NEW vars for quorums in File GeoBFT: cntr - {}, sz - {}", geobft_quorum_counter, geobft_quorum_size);
     while (geobft_quorum_counter < geobft_quorum_size && not is_test_over())
     {
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
         foreignAliveNodes.reset(curDestination);
         const auto &curBuffer = mForeignSendBufs.at(curDestination);
         nng_msg *curMessage;
-
+        //SPDLOG_CRITICAL("First checks of the foreignAliveNodes variable");
         if (foreignAliveNodes.any())
         {
             nng_msg_dup(&curMessage, batchData);
@@ -837,7 +840,7 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
         {
             curMessage = batchData;
         }
-
+        //SPDLOG_CRITICAL("Checkpoint 1 in while loop");
         while (not curBuffer->try_enqueue(curMessage))
         {
             if (is_test_over())
@@ -848,11 +851,12 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
                     nng_msg_free(batchData);
                 }
                 nng_msg_free(curMessage);
-
+                //SPDLOG_CRITICAL("Breaking out of the loop!");
                 break;
             }
         }
         geobft_quorum_counter += 1;
+        //SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
     }
     batch->Clear();
     *batchSize = 0;

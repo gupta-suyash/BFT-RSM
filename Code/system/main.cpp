@@ -133,18 +133,24 @@ int main(int argc, char *argv[])
                                          kNodeConfiguration);
 #elif GEOBFT
 #if FILE_RSM
+        SPDLOG_CRITICAL("GEOBFT File Rsm BEFORE send thread");
         auto sendThread = std::thread(runFileGeoBFTSendThread, messageBuffer, pipeline, acknowledgment,
                                       resendDataQueue, quorumAck, kNodeConfiguration);
+        SPDLOG_CRITICAL("GEOBFT File Rsm BEGAN send thread");
 #else
+        SPDLOG_CRITICAL("GEOBFT Application Rsm BEFORE send thread");
         auto sendThread = std::thread(runGeoBFTSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
+        SPDLOG_CRITICAL("GEOBFT Application Rsm BEGAN send thread");
         auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         auto relayTransactionThread =
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        SPDLOG_CRITICAL("GEOBFT Application Rsm BEGAN other IPC threads");
         SPDLOG_INFO("Created Generate message relay thread");
 #endif
         auto receiveThread = std::thread(runGeoBFTReceiveThread, pipeline, acknowledgment, resendDataQueue,
                                          quorumAck, kNodeConfiguration);
+        SPDLOG_CRITICAL("GEOBFT Rsm BEGAN receive thread");
     
 #else
 #if FILE_RSM
