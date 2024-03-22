@@ -213,7 +213,10 @@ def run(configJson, experimentName, expDir):
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
-                cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
+                if config.experiment_independent_vars.replication_protocol == "scrooge":
+                    cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
+                else:
+                    cmd = 'scp ' + config['experiment_independent_vars']['exec_dir'] + "kafka "
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
