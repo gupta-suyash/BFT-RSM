@@ -51,9 +51,9 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
-all_to_all="false"
-one_to_one="false"
+scrooge="true"
+all_to_all="true"
+one_to_one="true"
 geobft="true"
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
@@ -105,7 +105,7 @@ rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
 klist_size=(64)
-packet_size=(1000)
+packet_size=(100 1000 10000 100000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -657,7 +657,7 @@ done
 echo "taking down experiment"
 
 ###### UNDO
-# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 

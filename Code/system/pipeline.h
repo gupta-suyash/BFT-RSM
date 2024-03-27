@@ -97,6 +97,7 @@ class Pipeline
     static constexpr auto kMaxBatchCreationTime = BATCH_CREATION_TIME;
     static constexpr auto kMaxNngBlockingTime = MAX_NNG_BLOCKING_TIME;
     static constexpr uint64_t kBufferSize = PIPELINE_BUFFER_SIZE;
+    // GeoBFT constants
     static constexpr uint64_t replication_factor = 3; // TODO: CHANGE! Make this variable
 
     const NodeConfiguration kOwnConfiguration;

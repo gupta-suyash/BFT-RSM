@@ -851,12 +851,12 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
                     nng_msg_free(batchData);
                 }
                 nng_msg_free(curMessage);
-                //SPDLOG_CRITICAL("Breaking out of the loop!");
+                SPDLOG_CRITICAL("Breaking out of the loop!");
                 break;
             }
         }
         geobft_quorum_counter += 1;
-        //SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
+        SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
     }
     batch->Clear();
     *batchSize = 0;
@@ -1016,10 +1016,12 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
         }
         else if (remainingDestinations.any() || failedSends.any())
         {
+            //SPDLOG_CRITICAL("REBROADCAST: NNG MSG DUP");
             nng_msg_dup(&curMessage, message);
         }
         else
         {
+            //SPDLOG_CRITICAL("REBROADCAST: SET CURR_MSG to MSG");
             curMessage = message;
         }
 
@@ -1030,6 +1032,7 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
         else
         {
             failedSends.set(curDestination);
+            //SPDLOG_CRITICAL("Bitset: {}", failedSends.to_string());
             // curMessage <- message that should be used next time
         }
     }
