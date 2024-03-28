@@ -46,6 +46,14 @@ InverseMessageScheduler::InverseMessageScheduler(const NodeConfiguration configu
             }
         }
     }
+    for (auto& resendNumber : mResendNumberLookup)
+    {
+        // If we are an original sender then don't worry about resending
+        if (resendNumber.value() == 0)
+        {
+            resendNumber.reset();
+        }
+    }
     assert("ResendNumberLookup must be a power of 2" &&
            bitCeil(mResendNumberLookup.size()) == mResendNumberLookup.size());
     kResendNumberLookupBitMask = mResendNumberLookup.size() - 1;
