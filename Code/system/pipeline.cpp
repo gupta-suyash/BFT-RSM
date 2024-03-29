@@ -856,7 +856,7 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
             }
         }
         geobft_quorum_counter += 1;
-        SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
+        //SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
     }
     batch->Clear();
     *batchSize = 0;
