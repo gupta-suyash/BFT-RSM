@@ -43,10 +43,10 @@ void runGeoBFTReceiveThread(
             success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
             if (not success) 
             {
-                SPDLOG_CRITICAL("Cannot rebroadcast message!");
+                //SPDLOG_CRITICAL("Cannot rebroadcast message!");
             }
-            //nng_msg_free(receivedMessage.message);
-            //receivedMessage.message = nullptr;
+            receivedMessage.message = nullptr;
+            //nng_msg_free(message);
             //SPDLOG_CRITICAL("RECEIVE: Rebroadcast to the rest of the RSMs!"); // CORRECT Up to here
         }
         
@@ -69,6 +69,7 @@ void runGeoBFTReceiveThread(
                 timedMessages += is_test_recording();
                 quorumAck->updateNodeAck(0, 0ULL - 1, messageData.sequence_number());
             }
+            //nng_msg_free(broadcast_msg);
         }
         //SPDLOG_CRITICAL("RECEIVE: Processed broadcast message!");
     }
@@ -114,7 +115,7 @@ static void runGeoBFTSendThread(
                 pipeline->SendToGeoBFTQuorumOtherRsm(std::move(newMessageData), curTime);
             }
             sentMessages.addToAckList(curSequenceNumber);
-            quorumAck->updateNodeAck(0, 0ULL - 1, curSequenceNumber);
+            //quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             //quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
             //SPDLOG_CRITICAL("SEND: Done with this iteration! Quack is at: {}", sentMessages.getAckIterator().value_or(0));

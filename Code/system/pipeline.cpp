@@ -171,6 +171,11 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
  */
 static int sendMessage(const nng_socket &socket, nng_msg *message)
 {
+    if (message == nullptr) 
+    {
+        SPDLOG_CRITICAL("MESSAGE IS NULL!");
+        return -1;
+    }
     const auto sendReturnValue = nng_sendmsg(socket, message, 0);
     const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN &&
                                sendReturnValue != nng_errno_enum::NNG_ETIMEDOUT;
@@ -178,7 +183,10 @@ static int sendMessage(const nng_socket &socket, nng_msg *message)
     {
         SPDLOG_CRITICAL("nng_send has error value = {}", nng_strerror(sendReturnValue));
     }
-
+    if (sendReturnValue != 0)
+    {
+        SPDLOG_CRITICAL("NNG SEND MESSAGE RETURN VALUE IS: {}", nng_strerror(sendReturnValue));
+    }
     return sendReturnValue;
 }
 
@@ -391,13 +399,21 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
                              const uint64_t destNodeId, const bool isLocal)
 {
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
-    SPDLOG_INFO("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
+    SPDLOG_CRITICAL("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
 
     if ((ALL_TO_ALL || ONE_TO_ONE) && isLocal)
     {
         return;
     }
     if (ONE_TO_ONE && destNodeId != kOwnConfiguration.kNodeId)
+    {
+        return;
+    }
+
+    // If we are running the GEOBFT protocol, and we are marked as sending
+    // messages to a remote RSM, we should not send messages unless our 
+    // ID is the sending node ID (in this case, this ID 0) 
+    if (GEOBFT && !isLocal && kOwnConfiguration.kNodeId != 0) // TODO: Make sender_id a global variable 
     {
         return;
     }
@@ -418,10 +434,6 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
             {
                 break;
             }
-            // if (sendBuffer->try_dequeue(newMessage))
-            // {
-            //     break;
-            // }
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
                 goto exit;
@@ -435,10 +447,6 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
             {
                 break;
             }
-            // if (sendMessage(sendSocket, newMessage) == kNngSendSuccess)
-            // {
-            //     break;
-            // }
             if (mShouldThreadStop.load(std::memory_order_relaxed))
             {
                 nng_msg_free(newMessage);
@@ -775,7 +783,7 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
         {
             curMessage = batchData;
         }
-
+        geobft_quorum_counter += 1;
         while (not curBuffer->try_enqueue(curMessage))
         {
             if (is_test_over())
@@ -790,13 +798,13 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
                 break;
             }
         }
-        geobft_quorum_counter += 1;
     }
     batch->Clear();
     *batchSize = 0;
     *batchCreationTime = curTime;
 }
 
+// Sends message to a quorum of nodes in a remote RSM
 void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messageData,
                                      std::chrono::steady_clock::time_point curTime)
 {
@@ -824,15 +832,15 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
     nng_msg *batchData = serializeFileProtobuf(*batch);
     uint64_t geobft_quorum_counter = 0; // TODO: Potential source of performance degradation
     const uint64_t geobft_quorum_size = (kOwnConfiguration.kOtherNetworkSize - 1)/replication_factor + 1; // TODO: Move this
-    //SPDLOG_CRITICAL("Two NEW vars for quorums in File GeoBFT: cntr - {}, sz - {}", geobft_quorum_counter, geobft_quorum_size);
     while (geobft_quorum_counter < geobft_quorum_size && not is_test_over())
     {
+        geobft_quorum_counter += 1;
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
         foreignAliveNodes.reset(curDestination);
         const auto &curBuffer = mForeignSendBufs.at(curDestination);
-        nng_msg *curMessage;
+        nng_msg *curMessage = batchData;
         //SPDLOG_CRITICAL("First checks of the foreignAliveNodes variable");
-        if (foreignAliveNodes.any())
+        if (geobft_quorum_counter < geobft_quorum_size)
         {
             nng_msg_dup(&curMessage, batchData);
         }
@@ -840,6 +848,7 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
         {
             curMessage = batchData;
         }
+        
         //SPDLOG_CRITICAL("Checkpoint 1 in while loop");
         while (not curBuffer->try_enqueue(curMessage))
         {
@@ -855,7 +864,6 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
                 break;
             }
         }
-        geobft_quorum_counter += 1;
         //SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
     }
     batch->Clear();
