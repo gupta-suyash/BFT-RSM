@@ -866,6 +866,7 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
         }
         //SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
     }
+    //nng_msg_free(batchData);
     batch->Clear();
     *batchSize = 0;
     *batchCreationTime = curTime;

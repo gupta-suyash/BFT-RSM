@@ -5,6 +5,7 @@
 #include "global.h"
 #include "iothread.h"
 #include "one_to_one.h"
+#include "leader_leader.h"
 #include "parser.h"
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
@@ -145,7 +146,21 @@ int main(int argc, char *argv[])
 #endif
         auto receiveThread = std::thread(runGeoBFTReceiveThread, pipeline, acknowledgment, resendDataQueue,
                                          quorumAck, kNodeConfiguration);
-    
+#elif LEADER
+#if FILE_RSM
+        auto sendThread = std::thread(runLeaderSendThread, messageBuffer, pipeline, acknowledgment,
+                                      resendDataQueue, quorumAck, kNodeConfiguration);
+#else
+        auto sendThread = std::thread(runLeaderSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        auto relayTransactionThread =
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        SPDLOG_INFO("GeoBFT: Created Generate message relay thread");
+#endif
+        auto receiveThread = std::thread(runLeaderReceiveThread, pipeline, acknowledgment, resendDataQueue,
+                                         quorumAck, kNodeConfiguration);
+
 #else
 #if FILE_RSM
         auto sendThread = std::thread(runFileUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,

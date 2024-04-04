@@ -51,10 +51,11 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="true"
-all_to_all="true"
-one_to_one="true"
-geobft="true"
+scrooge="false"
+all_to_all="false"
+one_to_one="false"
+geobft= "false" # "true"
+leader="true"
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
 file_rsm="true"
@@ -396,6 +397,9 @@ fi
 if [ "${geobft}" = "true" ]; then
     protocols+=("geobft")
 fi
+if [ "${leader}" = "true" ]; then
+    protocols+=("leader")
+fi
 
 for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# First, we create the configuration file "network0urls.txt" through echoing and redirection.
@@ -613,6 +617,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		all_to_all="false"
 		one_to_one="false"
         geobft="false"
+        leader="false"
 
 		if [ "${algo}" = "scrooge" ]; then
 			scrooge="true"
@@ -620,6 +625,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			all_to_all="true"
         elif [ "${algo}" = "geobft" ]; then
             geobft="true"
+        elif [ "${algo}" = "leader" ]; then
+            leader="true"
 		else
 			one_to_one="true"
 		fi
@@ -629,7 +636,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
-							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${file_rsm} ${use_debug_logs_bool}
+							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool}
 
 							cat config.h
 							cp config.h system/

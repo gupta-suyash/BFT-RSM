@@ -25,8 +25,9 @@ scrooge=${17}
 all_to_all=${18}
 one_to_one=${19}
 geobft=${20}
-file_rsm=${21}
-use_debug_logs_bool=${22}
+leader=${21}
+file_rsm=${22}
+use_debug_logs_bool=${23}
 
 
 echo -e "#ifndef _CONFIG_H_" > config.h
@@ -55,6 +56,7 @@ echo -e "#define SCROOGE ${scrooge}" >> config.h
 echo -e "#define ALL_TO_ALL ${all_to_all}" >> config.h
 echo -e "#define ONE_TO_ONE ${one_to_one}" >> config.h
 echo -e "#define GEOBFT ${geobft}" >> config.h
+echo -e "#define LEADER ${leader}" >> config.h
 echo -e "#define FILE_RSM ${file_rsm}" >> config.h
 
 echo -e "#endif" >> config.h
