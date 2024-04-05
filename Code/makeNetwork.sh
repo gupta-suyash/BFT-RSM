@@ -54,7 +54,7 @@ starting_algos=10000000000000000
 scrooge="false"
 all_to_all="false"
 one_to_one="false"
-geobft= "false" # "true"
+geobft="false" # "true"
 leader="true"
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
