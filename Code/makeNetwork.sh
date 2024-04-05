@@ -227,7 +227,7 @@ RSM1=(${ar[@]::${num_nodes_rsm_1}})
 RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
 CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
 ZOOKEEPER=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}+${client}:1})
-KAFKA=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}+${client}+1:${num_nodes_kafka} - 1})
+KAFKA=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}+$(("${client}" + 1)):$(("${num_nodes_kafka}" - 1))})
 
 echo "About to parallel!"
 #parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
@@ -521,7 +521,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			count=$((count + 1))
 		done
 		# Copy final wallet address files onto all machines
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
+		parallel -v --jobs=0  -o StrictHostKeyChecking=no -i "${kescpy_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
 
 		### Finish running Algorand
 		echo "###########################################FINISH RUNNING ALGORAND"
@@ -569,35 +569,84 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		sleep 120 # Sleeping to make sure resdb has had a chance to start
 	}
 
-	start_kafka() {
+		start_kafka() {
 		echo "Kafka is being used"!
 		local size=$1 #number of brokers
 		local zookeeper_ip=$2
 		local broker_ips=$3
 		count=0
 		#set up zookeeper node
-		ssh -o StrictHostKeyChecking=no -t ${zookeeper_ip}
+		#set up zookeeper.properties file by overwritting default file
+		echo "tickTime=2000" > config/zookeeper.properties
+		echo "dataDir=/var/lib/zookeeper" >> config/zookeeper.properties
+		echo "clientPort=2181" >> config/zookeeper.properties
+		#scp zookeeper.properties
+		scp -o StrictHostKeyChecking=no zookeeper.properties scrooge@"${zookeeper_ip}":kafka_2.13-3.7.0/config
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}"
+		sudo -su scrooge
 		#run source ~/.profile to update and enable scala & java
 		source ~/.profile 
 		# - start zookeeper
-		bin/zookeeper-server-start.sh config/zookeeper.properties
+		cd kafka_2.13-3.7.0 || exit
+		exec -a scrooge-kafka bin/zookeeper-server-start.sh config/zookeeper.properties &
 
-		#this takes over the terminal
-		#1 run in background, run command with new process using ampersand
-			#ssh to machine --> kill proccess named kafka --> start process in background as kafka
 		#iterate and start each broker node
-		while ((${count} < ${size})); do
-				ssh -o StrictHostKeyChecking=no -t ${broker_ips[count]}
-				printf "%s\n" "${broker[$count]}"
-				bin/kafka-server-start.sh config/server.properties
+		while ((count < size)); do
+				#create server.properties files
+				echo "broker.id=${count}" > server.properties
+				echo "listeners=PLAINTEXT://${broker_ips[$count]}" >> server.properties
+				echo "log.dirs=/tmp/kafka-logs-0" >> server.properties
+				echo "zookeeper.connect=${zookeeper_ip}:2181" >> server.properties
+				#scp server.properties to broker node
+				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":kafka_2.13-3.7.0/config
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}"
+
+				#check if kafka process is already running
+				pkill -f scrooge-kafka
 				#run source ~/.profile to update and enable scala & java
 				source ~/.profile
+				cd kafka_2.13-3.7.0 || exit
+				#create process named scrooge-kafka
+				exec -a scrooge-kafka bin/kafka-server-start.sh config/server.properties &
 				count=$((count + 1))
 		done
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}"
+		exec -a topic-1 --zookeeper "$zookeeper_ip":2181 --replication-factor 3 --topic topic-1 & 
+		exec -a topic-2 --zookeeper "$zookeeper_ip":2181 --replication-factor 3 --topic topic-2 &
+		#exit
+	}
 
-		# - create topics
-		bin/kafka-topics.sh --create --zookeeper ${zookeeper_ip}:2181 --replication-factor 3 --partitions 3 --topic topic-1
-		bin/kafka-topics.sh --create --zookeeper ${zookeeper_ip}:2181 --replication-factor 3 --partitions 3 --topic topic-2
+	print_kafka_json() {
+		OUTPUT_FILENAME=$1
+		topic1=$2
+		topic2=$3
+		rsm_id=$4
+		node_id=$5
+		broker_ips=$6
+		rsm_size=$7
+		read_from_pipe=$8
+		message=$9
+		benchmark_duration=${10}
+		warmup_duration=${11}
+		cooldown_duration=${12}
+		input_path=${13}
+		output_path=${14}
+		rm "$OUTPUT_FILENAME"
+		echo "{" >> "$OUTPUT_FILENAME"
+		echo "    \"topic1\": \"${topic1}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"topic2\": \"${topic2}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"rsm_id\": ${rsm_id}," >> "$OUTPUT_FILENAME"
+		echo "    \"node_id\": ${node_id}," >> "$OUTPUT_FILENAME"
+		echo "    \"broker_ips\": \"${broker_ips}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"rsm_size\": ${rsm_size}," >> "$OUTPUT_FILENAME"
+		echo "    \"read_from_pipe\": ${read_from_pipe}," >> "$OUTPUT_FILENAME"
+		echo "    \"message\": \"${message}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"benchmark_duration\": ${benchmark_duration}," >> "$OUTPUT_FILENAME"
+		echo "    \"warmup_duration\": ${warmup_duration}," >> "$OUTPUT_FILENAME"
+		echo "    \"cooldown_duration\": ${cooldown_duration}," >> "$OUTPUT_FILENAME"
+		echo "    \"input_path\": \"${input_path}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"output_path\": \"${output_path}\"" >> "$OUTPUT_FILENAME"
+		echo "}" >> "$OUTPUT_FILENAME"
 	}
 
 	# Sending RSM
@@ -616,9 +665,16 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "INVALID RECEIVING RSM."
 	fi
 
-	# Receiving RSM
+	
 	if [kafka = true] then
-		start_kafka 3 "${ZOOKEEPER}" "${KAFKA}"
+		#compile executable
+		#temporary clone in the executable, will change after adding kafka to this repository
+		# git clone https://github.com/chawinphat/scrooge-kafka.git
+		# cd scrooge-kafka
+		# sbt package --> not working so we will clone repo into each node instead of scp'ing executable
+	
+
+	# Receiving RSM
 	if [ "$receive_rsm" = "algo" ]; then
 		echo "Algo RSM is being used for receiving."
 		start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
@@ -652,13 +708,18 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
 							if [kafka = true]; do
-								for node in [1...rsm1_size]
-								    # make #node json for rsm 1
-									# 
-									# scp to ip_addr of node 1
-								for node in [1...rsm2_size]
-									#same thing
+								start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
 								
+								for node in [1...$rsm1_size]; do
+								    # make #node json for rsm 1
+									print_kafka_json "TEST.json" "topic-1" "topic-2" "1" "${node}" "${broker_ips[@]}" "3" "true" "helloo" "10" "3" "3" "./" "./"
+									scp-o -o StrictHostKeyChecking=no TEST.json "${RSM1[node]}":scrooge-kafka/src/main/resources/;
+								done
+								for node in [1...$rsm2_size]; do
+									#same thing
+									print_kafka_json "TEST.json" "topic-1" "topic-2" "2" "${node}" "${broker_ips[@]}" "3" "true" "helloo" "10" "3" "3" "./" "./"
+									scp-o -o StrictHostKeyChecking=no TEST.json "${RSM2[node]}":scrooge-kafka/src/main/resources/
+								done
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
