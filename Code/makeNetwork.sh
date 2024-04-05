@@ -51,19 +51,20 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="true"
+scrooge="false"
 all_to_all="false"
 one_to_one="false"
+kafka="true"
 
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
-file_rsm="true"
+file_rsm="file"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft", "file"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="file"
-receive_rsm="file"
+send_rsm="raft"
+receive_rsm="raft"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -172,11 +173,14 @@ pipeline_buffer_size=(8)
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
 client=0
+num_nodes_kafka=0
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
 done
 for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
+done
+if ["${kafka}" = "true"]; then num_nodes_kafka=4;
 done
 
 echo "SET RSM SIZES"
@@ -185,7 +189,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="big-sched-test"
 ZONE="us-central1-a"
-TEMPLATE="updated-app-template"
+TEMPLATE="kafka-unified-template-2"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
@@ -196,15 +200,15 @@ function exit_handler() {
 trap exit_handler INT
 echo "Create group name"
 echo "${GP_NAME}"
-echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
+echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
 
 rm /tmp/all_ips.txt
 num_ips_read=0
-while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
+while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka)))); do
 	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
 	output=$(cat /tmp/all_ips.txt)
 	ar=($output)
@@ -222,6 +226,9 @@ done
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
 RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
 CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
+ZOOKEEPER=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}+${client}:1})
+KAFKA=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}+${client}+1:${num_nodes_kafka} - 1})
+
 echo "About to parallel!"
 #parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
 
@@ -260,6 +267,7 @@ makeExperimentJson() {
 	r2fail=$4
 	pktsize=$5
 	expName=$6
+	isKafka=$7
 
 	echo -e "{" >experiments.json
 	echo -e "  \"experiment_independent_vars\": {" >>experiments.json
@@ -272,7 +280,10 @@ makeExperimentJson() {
 	echo -e "    \"local_setup_script\": \"${workdir}/BFT-RSM/Code/setup-seq.sh\"," >>experiments.json
 	echo -e "    \"remote_setup_script\": \"${workdir}/BFT-RSM/Code/setup_remote.sh\"," >>experiments.json
 	echo -e "    \"local_compile_script\": \"${workdir}/BFT-RSM/Code/build.sh\"," >>experiments.json
-	echo -e "    \"replication_protocol\": \"scrooge\"," >>experiments.json
+	if [${isKafka}='false']
+		echo -e "    \"replication_protocol\": \"scrooge\"," >>experiments.json
+	else
+		echo -e "    \"replication_protocol\": \"kafka\"," >>experiments.json
 
 	echo -e "    \"clusterZeroIps\": [" >>experiments.json
 	lcount=0
@@ -558,6 +569,37 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		sleep 120 # Sleeping to make sure resdb has had a chance to start
 	}
 
+	start_kafka() {
+		echo "Kafka is being used"!
+		local size=$1 #number of brokers
+		local zookeeper_ip=$2
+		local broker_ips=$3
+		count=0
+		#set up zookeeper node
+		ssh -o StrictHostKeyChecking=no -t ${zookeeper_ip}
+		#run source ~/.profile to update and enable scala & java
+		source ~/.profile 
+		# - start zookeeper
+		bin/zookeeper-server-start.sh config/zookeeper.properties
+
+		#this takes over the terminal
+		#1 run in background, run command with new process using ampersand
+			#ssh to machine --> kill proccess named kafka --> start process in background as kafka
+		#iterate and start each broker node
+		while ((${count} < ${size})); do
+				ssh -o StrictHostKeyChecking=no -t ${broker_ips[count]}
+				printf "%s\n" "${broker[$count]}"
+				bin/kafka-server-start.sh config/server.properties
+				#run source ~/.profile to update and enable scala & java
+				source ~/.profile
+				count=$((count + 1))
+		done
+
+		# - create topics
+		bin/kafka-topics.sh --create --zookeeper ${zookeeper_ip}:2181 --replication-factor 3 --partitions 3 --topic topic-1
+		bin/kafka-topics.sh --create --zookeeper ${zookeeper_ip}:2181 --replication-factor 3 --partitions 3 --topic topic-2
+	}
+
 	# Sending RSM
 	if [ "$send_rsm" = "algo" ]; then
 		start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
@@ -575,6 +617,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	fi
 
 	# Receiving RSM
+	if [kafka = true] then
+		start_kafka 3 "${ZOOKEEPER}" "${KAFKA}"
 	if [ "$receive_rsm" = "algo" ]; then
 		echo "Algo RSM is being used for receiving."
 		start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
@@ -607,6 +651,16 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				for bt_size in "${batch_size[@]}"; do                 # Looping over all the batch sizes.
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
+							if [kafka = true]; do
+								for node in [1...rsm1_size]
+								    # make #node json for rsm 1
+									# 
+									# scp to ip_addr of node 1
+								for node in [1...rsm2_size]
+									#same thing
+								
+								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
 							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
 
@@ -618,7 +672,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 							make -j scrooge
 
 							# Next, we make the experiment.json for backward compatibility.
-							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
+							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name} ${kafka}
 							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
