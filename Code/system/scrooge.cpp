@@ -436,7 +436,7 @@ static void runScroogeSendThread(
     addMetric("Noop Delay", std::chrono::duration<double>(kNoopDelay).count());
     addMetric("Ack Window", kAckWindowSize);
     addMetric("Quack Window", kQAckWindowSize);
-    addMetric("transfer_strategy", "Scrooge k=" + std::to_string(kListSize) + "+ resends");
+    addMetric("transfer_strategy", "Scrooge double-klist k=" + std::to_string(kListSize) + "+ resends");
     addMetric("num_msgs_sent_primary", numMessagesSent);
     addMetric("num_msgs_resent", numMessagesResent);
     addMetric("num_resend_checks", numResendChecks);
@@ -596,6 +596,7 @@ void updateLocalAckTrackers(const std::optional<uint64_t> curQuack, const uint64
                        iothread::MessageQueue<uint64_t> *const rebroadcastDataQueue,
                        const InverseMessageScheduler &inverseMessageScheduler)
 {
+    return;
     numRecvLocal++;
     const auto nodeId = nodeAckView.senderId;
     const auto kNumAckTrackers = ackTrackers.size();
@@ -704,7 +705,7 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
         if (curView.isLocal)
         {
             const auto senderStake = configuration.kOwnNetworkStakes.at(curView.senderId);
-            const auto currentQuack = localQuack->updateNodeAck(curView.senderId, senderStake, curView.ackOffset);
+            const auto currentQuack = localQuack->getCurrentQuack();
             updateLocalAckTrackers(currentQuack, senderStake, curView, localAckTrackers, rebroadcastDataQueue, inverseMessageScheduler);
         }
         else
@@ -717,10 +718,23 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
     }
     SPDLOG_CRITICAL("LAME THREAD ENDING");
 
+    uint64_t untochedLocal{}, untochedForeign{};
+    util::JankAckView curView{};
+
+    while (viewQueue->try_dequeue(curView))
+    {
+        untochedLocal += curView.isLocal;
+        untochedForeign += curView.isLocal ^ 1;
+    }
+
     addMetric("ResendRequests", numRequests);
     addMetric("klistDelta", (double)klistDelta / numRecv);
     addMetric("overlap", (double)overlap / numRecv);
-    addMetric("untouched klists", viewQueue->size_approx());
+    addMetric("untouched klists", untochedForeign);
+    addMetric("ResendRequestsLocal", numRequestsLocal);
+    addMetric("klistDeltaLocal", (double)klistDeltaLocal / numRecvLocal);
+    addMetric("overlapLocal", (double)overlapLocal / numRecvLocal);
+    addMetric("untouched klists Local", untochedLocal);
 }
 
 void runScroogeReceiveThread(
@@ -731,7 +745,7 @@ void runScroogeReceiveThread(
     bindThreadToCpu(2);
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
 
-    uint64_t timedMessages{};
+    uint64_t timedMessages{}, needlessRebroadcasts{};
     pipeline::ReceivedCrossChainMessage receivedMessage{};
 
     scrooge::CrossChainMessage crossChainMessage;
@@ -757,7 +771,7 @@ void runScroogeReceiveThread(
 
             if (receivedMessage.message != nullptr)
             {
-                const auto [message, senderId] = receivedMessage;
+                auto& [message, senderId] = receivedMessage;
 
                 const auto messageData = nng_msg_body(message);
                 const auto messageSize = nng_msg_len(message);
@@ -765,6 +779,8 @@ void runScroogeReceiveThread(
                 if (not success)
                 {
                     SPDLOG_CRITICAL("Cannot parse foreign message");
+                    nng_msg_free(message);
+                    continue;
                 }
 
                 bool isMessageValid = util::checkMessageMac(crossChainMessage);
@@ -797,14 +813,14 @@ void runScroogeReceiveThread(
                         // Delete the message because it is already delivered -- micro-op which can be attacked by byz nodes
                         // std::swap(crossChainMessage.mutable_data()->at(curMessageInd), crossChainMessage.mutable_data()->at(crossChainMessage.data_size()-1));
                         // crossChainMessage.mutable_data()->RemoveLast();
-                        SPDLOG_CRITICAL("Interesting... Maybe useful to optimize this");
+                        needlessRebroadcasts++;
                     }
                     if (isMessageRebroadcast)
                     {
                         const auto possibleRequest = rebroadcastRequests.find(curSequenceNumber);
                         if (possibleRequest != rebroadcastRequests.end())
                         {
-                            // we've been looking for this!
+                            // we've been looking for this! by doing nothing it'll get rebroadcast
                             rebroadcastRequests.erase(possibleRequest);
                         }
                         else
@@ -820,13 +836,6 @@ void runScroogeReceiveThread(
                     timedMessages += is_test_recording();
                 }
                 const auto newLocalQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake, acknowledgment->getAckIterator().value_or(0));
-
-                if (crossChainMessage.data_size() == 0)
-                {
-                    // no useful data to rebroadcast
-                    nng_msg_free(receivedMessage.message);
-                    receivedMessage.message = nullptr;
-                }
 
                 const auto curForeignAck = (crossChainMessage.has_ack_count())
                                                ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
@@ -868,31 +877,45 @@ void runScroogeReceiveThread(
                     }
                 }
 
+                const auto mstr = crossChainMessage.ack_count().SerializeAsString();
+                // Sign with own key.
+                std::string encoded = CmacSignString(get_priv_key(), mstr);
+                crossChainMessage.set_validity_proof(encoded);
+
                 const auto protoSize = crossChainMessage.ByteSizeLong();
-                nng_msg * newMessage{};
                 if (protoSize <= messageSize)
                 {
                     const auto sizeShrink = messageSize - protoSize;
                     nng_msg_chop(message, sizeShrink);
-                    newMessage = message;
+                    assert(message && "Spot1");
                 }
                 else
                 {
                     nng_msg_free(message);
-                    nng_msg_alloc(&newMessage, protoSize);
+                    nng_msg_alloc(&message, protoSize); // extending the msg may copy a bunch of unneeded data. Just make a new one
+                    assert(message && "Spot3");
                 }
 
-                crossChainMessage.SerializeToArray(nng_msg_body(newMessage), protoSize);
-                receivedMessage.message = newMessage; // legacy way to rebroadcast
+                assert(nng_msg_body(message) && "Spot4");
+                crossChainMessage.SerializeToArray(nng_msg_body(message), protoSize);
             }
         }
 
         if (receivedMessage.message)
         {
-            bool success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
-            if (success)
+            if (crossChainMessage.data_size() == 0)
             {
+                // no useful data to rebroadcast
+                nng_msg_free(receivedMessage.message);
                 receivedMessage.message = nullptr;
+            }
+            else
+            {
+                bool success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
+                if (success)
+                {
+                    receivedMessage.message = nullptr;
+                }
             }
         }
 
@@ -904,9 +927,29 @@ void runScroogeReceiveThread(
             const auto messageSize = nng_msg_len(message);
             bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
 
+            nng_msg_free(message);
+            if (not success)
+            {
+                SPDLOG_CRITICAL("Cannot parse local message");
+                nng_msg_free(message);
+                receivedMessage.message = nullptr;
+                receivedMessage.senderId = 0;
+                continue;
+            }
+
             const auto curForeignAck = (crossChainMessage.has_ack_count())
                                                ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
                                                : std::nullopt;
+
+            bool isMessageValid = util::checkMessageMac(crossChainMessage);
+            if (not isMessageValid)
+            {
+                SPDLOG_CRITICAL("Received invalid mac");
+                nng_msg_free(receivedMessage.message);
+                receivedMessage.message = nullptr;
+                receivedMessage.senderId = 0;
+                continue;
+            }
             const auto senderStake = configuration.kOwnNetworkStakes.at(senderId);
             if (curForeignAck.has_value())
             {
@@ -920,11 +963,6 @@ void runScroogeReceiveThread(
                                             .view = std::move(*crossChainMessage.mutable_ack_set())}) &&
                     not is_test_over())
                 ;
-            nng_msg_free(message);
-            if (not success)
-            {
-                SPDLOG_CRITICAL("Cannot parse local message");
-            }
 
             for (const auto &messageData : crossChainMessage.data())
             {
@@ -937,7 +975,7 @@ void runScroogeReceiveThread(
             }
             const auto curQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake, acknowledgment->getAckIterator().value_or(0));
 
-            if (curQuack.value_or(0) - lastRebroadcastGc > 1'000'000)
+            if ((int64_t)curQuack.value_or(0) - (int64_t) lastRebroadcastGc > 1'000'000)
             {
                 for (auto curReq = rebroadcastRequests.begin(); curReq != rebroadcastRequests.end();)
                 {
@@ -981,4 +1019,5 @@ void runScroogeReceiveThread(
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
+    addMetric("num_needless_rebroadcasts", needlessRebroadcasts);
 }

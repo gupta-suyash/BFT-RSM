@@ -51,7 +51,7 @@ InverseMessageScheduler::InverseMessageScheduler(const NodeConfiguration configu
         // If we are an original sender then don't worry about resending
         if (resendNumber.value() == 0)
         {
-            resendNumber.reset();
+            // resendNumber.reset();
         }
     }
     assert("ResendNumberLookup must be a power of 2" &&
