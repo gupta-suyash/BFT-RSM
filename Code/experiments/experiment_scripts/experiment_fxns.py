@@ -215,7 +215,7 @@ def run(configJson, experimentName, expDir):
             for j in range(0, clusterZerosz + clusterOnesz):
                 if config.experiment_independent_vars.replication_protocol == "scrooge":
                     cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
-                else:
+                else: #run kafka consumer & producer
                     cmd = "sbt \"runMain main.Consumer\" 2>curErrLog 1>curOutputLog & sbt \"runMain main.Producer\""
                 nodeId += 1
                 if nodeId == clusterZerosz:
