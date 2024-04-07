@@ -16,14 +16,12 @@ void runLeaderReceiveThread(
 
     while (not is_test_over())
     {
-        //SPDLOG_CRITICAL("RECEIVE: Beginning of while loop");
-        auto receivedMessage = pipeline->RecvFromOtherRsm();
-        const auto [message, senderId] = receivedMessage;
+  /*      pipeline::ReceivedCrossChainMessage receivedMessage = pipeline->RecvFromOtherRsm();
         
         // 1. If node receives messages from other RSM, process & rebroadcast
-        if (message && receivedMessage.message)
+        if (receivedMessage.message != nullptr)
         {
-            //SPDLOG_CRITICAL("RECEIVE: Received a message!");
+            const auto [message, senderId] = receivedMessage;
             const auto messageData = nng_msg_body(message);
             const auto messageSize = nng_msg_len(message);
             bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
@@ -35,9 +33,8 @@ void runLeaderReceiveThread(
             for (const auto &messageData : crossChainMessage.data())
             {
                 acknowledgment->addToAckList(messageData.sequence_number());
-                //timedMessages += is_test_recording();
+                timedMessages += is_test_recording();
             }
-            //SPDLOG_CRITICAL("RECEIVE: Sorted through message data!");
             
             // Rebroadcasts the message to the RSM
             success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
@@ -46,16 +43,15 @@ void runLeaderReceiveThread(
                 //SPDLOG_CRITICAL("Cannot rebroadcast message!");
             }
             receivedMessage.message = nullptr;
-            //nng_msg_free(message);
-            //SPDLOG_CRITICAL("RECEIVE: Rebroadcast to the rest of the RSMs!"); // CORRECT Up to here
         }
-        
+*/        
         const auto [broadcast_msg, broadcast_senderId] = pipeline->RecvFromOwnRsm();
         // 2. Process requests received from own RSM
         if (broadcast_msg)
         {
             const auto messageData = nng_msg_body(broadcast_msg);
             const auto messageSize = nng_msg_len(broadcast_msg);
+            //SPDLOG_CRITICAL("Leader Message size: {}", messageSize);
             bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
             nng_msg_free(broadcast_msg);
             if (not success)
@@ -73,7 +69,6 @@ void runLeaderReceiveThread(
         }
         //SPDLOG_CRITICAL("RECEIVE: Processed broadcast message!");
     }
-
     addMetric("local_messages_received", 0);
     addMetric("foreign_messages_received", timedMessages);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
@@ -108,14 +103,15 @@ static void runLeaderSendThread(
             //SPDLOG_CRITICAL("SEND: Created new data and sequence number!");
             if constexpr (kIsUsingFile)
             {
+                //SPDLOG_CRITICAL("SEND: Created new data and sequence number with size {}!", newMessageData.message_content().size());
                 pipeline->SendFileToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
             }
             else
             {
+                //SPDLOG_CRITICAL("SENDING TO WRONG PLACE");
                 pipeline->SendToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize, std::move(newMessageData), nullptr, curTime);
             }
             sentMessages.addToAckList(curSequenceNumber);
-            //quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             //quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
             numMessagesSent++;
             //SPDLOG_CRITICAL("SEND: Done with this iteration! Quack is at: {}", sentMessages.getAckIterator().value_or(0));

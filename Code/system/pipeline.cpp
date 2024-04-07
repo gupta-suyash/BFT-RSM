@@ -185,7 +185,7 @@ static int sendMessage(const nng_socket &socket, nng_msg *message)
     }
     if (sendReturnValue != 0)
     {
-        SPDLOG_CRITICAL("NNG SEND MESSAGE RETURN VALUE IS: {}", nng_strerror(sendReturnValue));
+        //SPDLOG_CRITICAL("NNG SEND MESSAGE RETURN VALUE IS: {}", nng_strerror(sendReturnValue));
     }
     return sendReturnValue;
 }
@@ -726,10 +726,11 @@ bool Pipeline::SendFileToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainM
                                   const Acknowledgment *const acknowledgment,
                                   std::chrono::steady_clock::time_point curTime)
 {
-    SPDLOG_DEBUG("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, AckId={}, size='{}']",
-                 receivingNodeId, message.data().sequence_number(), getLogAck(message),
-                 message.data().message_content().size());
-
+    //SPDLOG_CRITICAL("Beginning of function!!");
+    /*SPDLOG_CRITICAL("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, size='{}']",
+                 receivingNodeId, messageData.sequence_number(),
+                 messageData.message_content().size());
+    */
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
 
