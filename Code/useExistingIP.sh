@@ -208,9 +208,9 @@ echo "${ZONE}"
 echo "${TEMPLATE}"
 
 # STATIC IP ADDRESSES!!!
-RSM1=(10.128.6.20 10.128.6.21 10.128.6.22 10.128.6.23)
-RSM2=(10.128.6.24 10.128.6.25 10.128.6.26 10.128.6.27)
-CLIENT=(10.128.6.28 10.128.6.29)
+RSM1=(10.128.7.13 10.128.7.14 10.128.7.15 10.128.7.16)
+RSM2=(10.128.7.17 10.128.7.18 10.128.7.19 10.128.7.20)
+CLIENT=(10.128.7.21 10.128.7.22)
 echo "About to parallel!"
 
 count=0
@@ -476,66 +476,27 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256 &>> benchmark_${raft_count}.log
 		done		
 	}
-
-	# Setup all necessary external applications
-	function start_algorand() {
-		echo "######################################################Algorand RSM is being used!"
-		# Take in arguments
-		local client_ip=$1
-		local size=$2
-		local RSM=("${!3}")
-		echo "${RSM[@]}"
-
-		genesis_json=${algorand_scripts_dir}/scripts/genesis.json;
-		cat $genesis_json
-		per_node_algos=$((starting_algos / size));
-		echo $per_node_algos
-		rm -rf ${algorand_scripts_dir}/genesis_creation
-		rm -rf ${algorand_scripts_dir}/addresses
-		mkdir ${algorand_scripts_dir}/genesis_creation/
-		cp $genesis_json ${algorand_scripts_dir}/genesis_creation/
-		mkdir ${algorand_scripts_dir}/addresses/
-        #Relay nodes (which also happens to be the client nodes)
-		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/relay_config.json '"${per_node_algos}"' '"${client_ip}"''
-		echo "Sent Relay node information!"
-		#Participation nodes
-		parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/node_config.json '"${per_node_algos}"' '"${client_ip}"'' ::: "${RSM[@]:0:$((size))}";
-
-		### Get genesis files ###
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_gen.json ${algorand_scripts_dir}/genesis_creation/ ::: "${RSM[@]:0:$((size))}";
-		# Combine genesis pieces into one file
-		count=0
-		while ((count < size)); do
-			echo $(genesis=$(jq 'select(has("addr"))' ${algorand_scripts_dir}/genesis_creation/${RSM[$count]}_gen.json);jq --argjson genesis "$genesis" '.alloc += [ $genesis ]' ${algorand_scripts_dir}/genesis_creation/genesis.json) > ${algorand_scripts_dir}/genesis_creation/genesis.json
-			count=$((count + 1))
-		done
-		# Copy final genesis files onto all machines
-		scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@${client_ip}:${algorand_scripts_dir}/node/
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/genesis_creation/genesis.json ${username}@{1}:${algorand_scripts_dir}/node/ ::: "${RSM[@]:0:$((size))}";
-
-		### Get address matchings ###
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${username}@{1}:${algorand_scripts_dir}/{1}_addr.json ${algorand_scripts_dir}/addresses/ ::: "${RSM[@]:0:$((size))}";
-		# Runn address swap for each machine file
-		count=0
-        while ((count < size)); do
-            echo "COMMAND: ${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}"
-			${algorand_scripts_dir}/addr_swap.py ${algorand_scripts_dir}/addresses ${RSM[$count]} ${RSM[$(((count-1) % size))]} ${RSM[$(((count+1) % size))]}
-			count=$((count + 1))
-		done
-		# Copy final wallet address files onto all machines
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
-
-		### Finish running Algorand
-		echo "###########################################FINISH RUNNING ALGORAND"
-        #Relay nodes
+function start_algorand() {
+                echo "######################################################Algorand RSM is being used!"
+                # Take in arguments
+                local client_ip=$1
+                local size=$2
+                local RSM=("${!3}")
+                echo "${RSM[@]}"
+        echo "###########################################FINISH RUNNING ALGORAND"
+        # Step 1: Copy rerun script and wallet script onto each machine
+        scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/scripts/rerun.sh ${username}@${client_ip}:${workdir}        
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/scripts/rerun.sh ${username}@{1}:${workdir} ::: "${RSM[@]:0:$((size))}";
+       # parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/wallet_app/wallet_test.js ${username}@{1}:${algorand_app_dir}/wallet_app/ ::: "${RSM[@]:0:$((size))}";
+#
+        # Step 2: Execute rerun script
         relay="true"
-		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_relay_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"'' &
-		echo "Relay node is run!"
-        #Participation nodes
+        ssh -o StrictHostKeyChecking=no -t "${client_ip}" '/home/scrooge/rerun.sh '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"':4161 default '"${relay}"''
         relay="false"
-		parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
-        echo "###########################################Algorand started and running!"
-	}
+        parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '/home/scrooge/rerun.sh '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"':4161 default '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
+        echo "Done with the parallel jobs!"
+echo "###########################################Algorand started and running!"
+        }
 	
 	function start_resdb() {
 		echo "ResDB RSM is being used!"
@@ -612,16 +573,15 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                         	echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
                         	#exit 1
                         	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
-					
                             # Next, we call the script that makes the config.h. We need to pass all the arguments.
 							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
 
 							cat config.h
 							cp config.h system/
 
-							make clean
-							make proto
-							make -j scrooge
+							#make clean
+							#make proto
+							#make -j scrooge
 
 							# Next, we make the experiment.json for backward compatibility.
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
