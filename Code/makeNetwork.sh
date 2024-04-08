@@ -189,7 +189,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="big-sched-test"
 ZONE="us-central1-a"
-TEMPLATE="kafka-unified-3"
+TEMPLATE="kafka-unified-3-spot"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
