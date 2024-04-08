@@ -193,7 +193,7 @@ TEMPLATE="kafka-unified-3-spot"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
-	# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -205,7 +205,7 @@ echo "${ZONE}"
 echo "${TEMPLATE}"
 yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-
+#gcloud beta compute instance-groups managed create "teddy" --project=scrooge-398722 --base-instance-name="teddy" --size="$((4))" --template=projects/scrooge-398722/global/instanceTemplates/kafka-unified-3-spot --zone=us-central1-a --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 rm /tmp/all_ips.txt
 num_ips_read=0
 while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka)))); do
@@ -430,7 +430,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ip=$1
 		local size=$2
 		local RSM=("${!3}")
-
+		etcd_path="${raft_app_dir}/etcd-main"
+    		# Run setup build script
+           	#Client node
+           	ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${etcd_path}"'/scripts/build.sh'
+           	echo "Sent build information!"
+           	#Server nodes
+           	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${etcd_path}"'/scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
 		# Set constants
 		etcd_path="${raft_app_dir}/etcd-main"
 		etcd_bin_path="${etcd_path}/bin"
@@ -440,14 +446,20 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		count=0
 		machines=()
 		urls=()
+		cluster=()
+		rsm_w_ports=()
 		while ((${count} < ${size})); do
 			echo "RSM: ${RSM[$count]}"
+			echo "count: ${count}, size: ${size}"
 			machines+=("machine-$((count + 1))")
 			urls+=(http://"${RSM[$count]}":2380)
+			#count=$((count + 1))
+			cluster+=("machine-$((count + 1))"=http://"${RSM[$count]}":2380)
+			rsm_w_ports+=("${RSM[$count]}:2379")
 			count=$((count + 1))
 		done
 		# Run the first etcd cluster
-		printf -v cluster '%s,' "${machines[@]}=${urls[@]}"
+		printf -v cluster_list '%s,' "${cluster[@]}"
 		for i in ${!RSM[@]}; do
 			this_name=${machines[$i]}
 			this_ip=${RSM[$i]}
@@ -455,17 +467,22 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; 
 			   					    export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; 
 								    export CLUSTER_STATE=${CLUSTER_STATE}; 
-								    export CLUSTER="${joined%,}"; 
-								    export PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}; 
+								    export CLUSTER="${cluster_list%,}"; 
+								    export PATH=$PATH:${benchmark_bin_path};
+								    export PATH=$PATH:${etcd_bin_path}; 
 								    cd \$HOME;
 								    echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};
+								    killall -9 benchmark;
+								    sudo fuser -n tcp -k 2379 2380;
+								    sudo rm -rf \$HOME/data.etcd;
 								    etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN}" &
 		done
 		# Sleep to wait for Raft server to start
+		printf -v joined '%s,' "${rsm_w_ports[@]}"
+		echo "RSM w ports: ${joined%,}" 
 		sleep 60
 		# Start benchmark
 		echo "Running benchmark..."
-		printf -v joined '%s,' "${RSM[@]}:2379"
     		export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
 		benchmark --help
 		(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
