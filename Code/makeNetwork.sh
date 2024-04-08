@@ -586,7 +586,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		sleep 120 # Sleeping to make sure resdb has had a chance to start
 	}
 
-		start_kafka() {
+	function start_kafka() {
 		echo "Kafka is being used"!
 		local size=$1 #number of brokers
 		local zookeeper_ip=$2
@@ -737,6 +737,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 									scp-o -o StrictHostKeyChecking=no TEST.json "${RSM2[node]}":scrooge-kafka/src/main/resources/
 								done
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+								continue
 							fi
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
 							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
