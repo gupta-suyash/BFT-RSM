@@ -203,7 +203,7 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
 
 rm /tmp/all_ips.txt
@@ -472,7 +472,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
 		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
 		echo "DONE WITH FIRST RAFT ITERATION"
-		exit 1
+		#exit 1
 	}
 
 	# Setup all necessary external applications
@@ -746,7 +746,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	done
 	rcount=$((rcount + 1))
 done
-
 echo "taking down experiment"
 ###### UNDO
 # yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
