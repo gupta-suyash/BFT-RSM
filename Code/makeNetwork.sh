@@ -498,7 +498,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
 		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
 		echo "DONE WITH FIRST RAFT ITERATION"
-		exit 1
+		#exit 1
 	}
 
 	# Setup all necessary external applications
