@@ -748,6 +748,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 echo "taking down experiment"
 ###### UNDO
-# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
