@@ -1,119 +1,42 @@
-\section{System Model}
+\section{Formalising the \CCC{} primitive }
 \label{s:prelim}
-Prior to explaining our \Scrooge{} protocol, we model the systems employing \CCC{} primitive 
-and state the standard assumptions.
+The \CCC{} primitive should be sufficiently general to support different communication and failure models. 
+
+\subsection{System Model}
+
+Prior to formally defining our new \CCC{} primitive, we briefly summarize the system model.
+Consider a pair of communicating RSMS. For the sake of exposition,  we denote the sending \RSM{} $\SMR{s}$ as the {\bf sender} and the other \RSM{} $\SMR{r}$ as a {\bf receiver}. In practice, the communication between these \RSM{}s is full-duplex: both RSMs can send and receive messages.
+
+Most modern \RSM{s} are either \textit{crash-fault-tolerant} (they guarantee consensus when up to $\f{}$ nodes crash) or \textit{byzantine-fault-tolerant} (they guarantee consensus when up to $\f{}$ nodes behave arbitrarily). In line with Scrooge's stated generality and efficiency goals, we adopt the \textit{UpRight} failure model~\cite{upright}, as it allows us to consider Byzantine nodes and crashed nodes in a unified model, allowing us to design a system that optimizes for each type of failure. In the UpRight failure model, Byzantine nodes may exhibit {\em commission failures}; they may deviate from the protocol. All other faulty nodes suffer from \textit{omission failures} only: they follow the protocol but may fail to send/receive messages. Crashed nodes, for instance, suffer from permanent omission failures once crashed.
+In this setup, each \RSM{} consists of $\n{}$ replicas.  We denote the $j$-th replica at 
+the $i$-th \RSM{} as $\Replica{i}{j}$ (where $i$ is either the \textbf{s}ender or the \textbf{r}eceiver RSM). Each \RSM{} interacts with a set of clients, of which arbitrarily many can be faulty.
+
+We say that an \RSM{} is safe despite up to $\rf{}$ commission failures and live despite up to $\uf{}$ failures of any kind.
+For example, using UpRight model, we can describe traditional \BFT{} and \CFT{} \RSM{s} using just one equation: $2\uf{}+\rf{}+1$; 
+$\uf{}=\rf{}=\f{}$ is a $3\f{}+1$ \BFT{} and $\rf{}=0$ is a $2\f{}+1$ \CFT{} \RSM{}.
 %
-We assume existence of a set of systems that offer some {\em services} to clients.
-Each such system includes several nodes that manage client data and process client transactions.
-Often, these systems need to interact with each other to communicate client data and transactions.
-%Our \Scrooge{} protocol aims to establish such a reliable communication layer 
-%between any pair of communicating systems.
+Safety and liveness of any \RSM{} is defined as follows:
+\begin{description}
+\item[\bf Safety.]
+If two honest replicas $\Replica{i}{1}$ and $\Replica{i}{2}$ commit transactions $\Transaction{}$ and $\Transaction{'}$
+at sequence number $k$, then $\Transaction{} = \Transaction{'}$.
 
-{\bf Replica modeling.}
-A common way for a system to manage its state is to model it as a replicated state machines (\RSM{}).
-We denote the \RSM{} at $i$-th system as $\SMR{i}$. 
-We refer to the nodes of an \RSM{} as {\em replicas} and 
-denote the $l$-th replica of the $i$-th \RSM{} as $\Replica{i}{l}$.
+\item[\bf Liveness.]
+If a client sends a transaction $\Transaction{}$, then it will eventually receive a response for $\Transaction{}$.
+\end{description}
 
-\Ped{}
-All the replicas maintain an identical and complete state of the \RSM{}. 
-Different systems use different terminology, such as acceptors, or full nodes, to refer
-to the replicas of an \RSM{}.
+Note that we make no assumptions about the communication model of the underlying \RSM{}. 
+We only assume messages are eventually delivered and that the receiver \RSM{} $\SMR{r}$ can verify whether a transaction was in fact 
+committed by the sender \RSM{} $\SMR{s}$. 
+We denote a committed transaction as $\SignMessage{\Transaction}{Q}$.
 
-We use $\n{i}$ to denote the total number of replicas in the $i$-th \RSM{} 
-and assume that each replica is assigned a unique identifier in the range $[1, \n{i}]$.
-We assume each replica $\Replica{i}{l}$ has a share $\share{l}$, which represents its {\em weight} 
-in its \RSM{} $\SMR{i}$.
-This share helps to determine the {\em decision making power} of a replica.
-We use $\ts{i}$ to denote the total number of shares in the $i$-th \RSM{} $\SMR{i}$;
-$\ts{i} = \sum_{l=1}^{\abs{\n{i}}} \share{l}$.
-As a result, we assume each replica also has a {\em share identifier}, which 
-can be accessed through a call to function $\SID{}$.
-For example, a call to function $\SID{l}$ by the $l$-th replica returns the value 
-$\sum_{q=1}^{l} \share{q}$.
+We generalize our system model to support \textit{shares}. The notion of share is used in stake-based \BFT{} consensus protocols where the value of a share determines the \textit{decision making power of a replica}~\cite{blockchain-book}. We write
+$\share{ij}$ for the share of $\Replica{i}{j}$; the total amount of share in \RSM{} $\SMR{i}$ is then 
+$\sum_{l=1}^{\abs{\n{i}}} \share{l}$.
+A stake-based consensus algorithm is safe as  as long as replicas totaling no more than $\rf{i}$ shares behave maliciously. The system is live as long as no more than $\uf{i}$ shares fail. We further assume that the share assignment within an \RSM{} is publicly known. Traditional \CFT{} and \BFT{} algorithms simply set all shares equal to one.
 
-\Ped{}
-Traditional \RSM{s} assume all the replicas have the same weight. 
-However, several recent blockchain systems require any node interested to join 
-their \RSM{} to invest some of its resources. 
-This leads to variable shares; higher the share, greater the decision making power.
-If all replicas of the $i$-th \RSM{} have equal shares, then $\n{i} = \ts{i}$ and
-the \RSM{} identifiers and share identifiers are equal.
-
-
-
-
-{\bf \RSM{} modeling.}
-Each \RSM{} permits a subset of its replicas to fail; 
-we use $\f{i}$ to denote the number of replicas of the $i$-th \RSM{} that can fail.
-For each \RSM{}, we assume that $\f{i} < \ts{i}/2$.
-To guarantee consistent state despite failures, 
-each \RSM{} runs a consensus protocol to helps its replicas reach an agreement.
-We are interested in systems that employ the three popular types of consensus protocols:
-(1) Crash fault-tolerant (\CFT{}) protocols like Paxos and Raft,
-(2) traditional Byzantine Fault-Tolerant (\BFT{}) protocols like \pbft{} and \Name{HotStuff}, and 
-(3) Proof-of-Stake (\PoS{}) protocols employed by systems like Ethereum, Algorand, and Sui.
-
-\Ped{}
-In \CFT{} systems, replicas can only fail through crashes, while faulty replicas of \BFT{} and \PoS{} 
-systems can act arbitrary and perform Byzantine attacks.
-Generally, \CFT{} and \BFT{} replicas have equal shares, whereas
-in \PoS{} systems, the stake invested by a replica determines the value of its share.
-%as they present a sustainable design.
-
-
-{\bf Slow adaptive adversary.}
-We assume \RSM{} reconfigurations take place at the end of each {\em epoch}. 
-Specifically, within an epoch, each \RSM{} has a fixed configuration, and this 
-information is available to other \RSM{s} and the underlying protocol.
-At the end of each epoch, we allow the adversary to remove replicas from an \RSM{}, 
-add new replicas to the \RSM{}, and modify the shares of replicas. 
-However, the ratio of honest to byzantine replicas remains constant.
-Each epoch has at least $b$ blocks committed at the \RSM{} or 
-at least $\Delta$ time passed since the last epoch.
-In the case no reconfiguration takes place, the ongoing epoch has infinite size.
-
-Any reconfigurations triggering the epoch change should be {\em certified} by the remaining replicas of the \RSM{}; 
-a certificate identifies the replicas (and their shares) of the \RSM{} in the next epoch.
-We assume that existing \BFT{} and \PoS{} systems provide access to 
-a reconfiguration protocol that generates such certificates and honest replicas have access to 
-such certificates at the start of each epoch.
-
-
-
-
-\Ped{}
-Our slow adaptive adversary model logically follows from existing \BFT{} and \PoS{} systems as
-these systems do not support a fully adaptive adversary that can dynamically reconfigure an \RSM{}.
-On the one hand, existing \BFT{} protocols do not provide any reconfiguration protocol to
-guard against an adaptive adversary.
-On the one hand, \PoS{} systems like Ethereum and Sui assume that the change in shares of replicas 
-are rare or occur after every $b$ blocks, while
-Algorand assumes that a large percentage of shares is ``trusted and unchanging''
-(controlled by the Algorand Foundation).
-Specifically, in \PoS{} systems, each replica's share is determined by {\em what stake of its wealth 
-it is willing to burn}.
-We use the term burn as a replica cannot access the staked wealth till it is part of the \RSM{}, 
-and if a replica acts Byzantine or becomes non-responsive, it may end losing its staked resources.
-%Essentially, staking allows these \PoS{} systems to restrict frequent reconfiguration.
-
-
-%For each \RSM{} $\SMR{i}$, its replicas are assigned an identifier, starting from $0$, 
-%which can be obtained by calling the function $\ID{}$.
-
-%Depending on the fault model, to order the transactions, 
-%these clusters can employ a crash fault-tolerant protocol like Paxos or 
-%a byzantine fault-tolerant (\BFT{}) protocol like \pbft{}.
-
-{\bf \Scrooge{} modeling.}
-\Scrooge{} makes no assumption on the consensus protocol employed by the communicating \RSM{s},
-but needs to know the identity of the communicating replicas in each \RSM{}. 
-Specifically, for the $i$-th \RSM{}, \Scrooge{} needs to $\n{i}$, $\f{i}$,
-and the shares of each replica in the \RSM{}.
-
-\Scrooge{} guarantees safety and liveness in an asynchronous environment where messages 
-can delay or drop and at most one-third replicas in each \RSM{} act Byzantine.
-Notice that \Scrooge{} guarantees asynchronous communication even when the communicating 
-\RSM{s} are partially synchronous.
+{\bf Adversary Model and Reconfigurations.}
+We assume the existence of a standard adversary which can corrupt arbitrary nodes, delay and reorder messages but cannot break cryptographic primitives.
+We further assume the existence of periodic reconfigurations, either for membership changes or share redistribution. We assume that there exists a mechanism for an RSM to reliably learn of the new configuration and/or share assignments. This model aligns well with the model chosen in most existing consensus protocols. Proof-of-Stake blockchain protocols, for instance, assume a "slow" adversary and "slow changing stakes" such that there exists a period of time during which stake does not change and where the adversary cannot change which nodes it controls~\cite{ethereum-stake-withdrawl,algorand-stake-withdrawl}.  Similarly, all Raft implementations assume that, once crashed, a node will not recover independently~\cite{etcd-raft}. 
 
 

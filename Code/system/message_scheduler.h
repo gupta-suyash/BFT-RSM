@@ -20,6 +20,7 @@ std::vector<uint64_t> getStakePrefixSum(const std::vector<uint64_t> &networkStak
 uint64_t stakeToNode(uint64_t stakeIndex, const std::vector<uint64_t> &networkStakePrefixSum);
 uint64_t nodeToStake(uint64_t nodeIndex, const std::vector<uint64_t> &networkStakePrefixSum);
 uint64_t stakeInNetwork(const std::vector<uint64_t> &networkStakePrefixSum);
+uint64_t stakeInNode(uint64_t nodeIndex, const std::vector<uint64_t> &networkStakePrefixSum);
 void scaleVector(std::vector<uint64_t> &v, uint64_t factor);
 std::vector<uint64_t> apportionVector(uint64_t totalApportionedShares, const std::vector<uint64_t> &originalShares);
 }; // namespace message_scheduler
@@ -36,6 +37,8 @@ class MessageScheduler
     //       getMessageDestinations(senderId)
 
   private:
+    std::optional<uint64_t> computeGetResendNumber(uint64_t sequenceNumber) const;
+    message_scheduler::CompactDestinationList computeGetMessageDestinations(uint64_t sequenceNumber) const;
     uint64_t kOwnNodeId{};
     uint64_t kStakePerRsm{};
     uint64_t kOwnApportionedStake{};
@@ -49,7 +52,8 @@ class MessageScheduler
     std::vector<uint64_t> kOtherRsmStakePrefixSum{};
     std::vector<uint64_t> kOwnRsmApportionedStakePrefixSum{};
     std::vector<uint64_t> kOtherRsmApportionedStakePrefixSum{};
-    mutable std::vector<std::vector<std::optional<std::optional<uint64_t>>>> mResendNumberLookup{};
-    mutable std::vector<std::vector<std::optional<message_scheduler::CompactDestinationList>>>
+    uint64_t kCycleMask{};
+    std::vector<std::optional<uint64_t>> mResendNumberLookup{};
+    std::vector<message_scheduler::CompactDestinationList>
         mResendDestinationLookup{};
 };

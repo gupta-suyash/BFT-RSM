@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
         const auto messageBuffer =
             std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
         const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
-        const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(2048);
+        const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(32768 * 2);
 
         pipeline->startPipeline();
 
@@ -65,7 +65,21 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
-        // if (get_rsm_id() == 1 && kNodeId == 0)
+        // if (get_rsm_id() == 1 && kNodeId % 3 == 1)
+        // {
+        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
+        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
+
+        //     std::this_thread::sleep_until(testEndTime);
+        //     end_test();
+
+        //     receiveThread.join();
+        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
+        //     remove(kLogPath.c_str());
+        //     return 0;
+        // }
+
+        // if (get_rsm_id() == 0 && kNodeId % 3 == 1)
         // {
         //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
         //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);

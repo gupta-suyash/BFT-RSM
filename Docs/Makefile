@@ -1,5 +1,5 @@
-FILE = bftcomm
-$(FILE).pdf: $(FILE).tex intro.tex prelim.tex algo.tex failures.tex motivate.tex formalization.tex bridges.tex
+FILE = main
+$(FILE).pdf: $(FILE).tex intro.tex header.tex prelim.tex algo-nc.tex primitive.tex eval.tex related.tex conclusion.tex graphs.tex proofs.tex
 	pdflatex $(FILE)
 
 newcite: refined.bib $(FILE).pdf 

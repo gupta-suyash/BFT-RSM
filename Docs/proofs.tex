@@ -1,0 +1,159 @@
+\section{Proofs}
+Having described the \Scrooge{} protocol, we now prove its correctness.
+\Scrooge{} guarantees safety and liveness under asynchrony. 
+We first try to show that \Scrooge{} upholds the {\em eventual delivery} and {\em integrity} properties 
+expected of a \CCC{} protocol.
+%Additionally, we prove that \Scrooge{} does not requires replicas to have unbounded memory.
+%For the liveness proofs, we follow the proof structuring of existing asynchronous \BFT{} protocols and assume that messages are eventually delivered.
+\begin{lemma}\label{th:max-retransmit}
+    {\bf Retransmission Bound.} At most $\uf{s}+\uf{r}+1$  retransmission attempts are required to successfully send a message $m$ from 
+    \RSM{} $\SMR{s}$ to \RSM{} $\SMR{r}$, 
+    given that at most $\rf{s}$ replicas of $\SMR{s}$ and $\rf{r}$ replicas of $\SMR{r}$ are Byzantine.
+\end{lemma}
+\begin{proof}
+    In \Scrooge{}, for each message $m$, there is a predetermined initial sender-receiver pair and 
+    subsequent sender-receiver pairs until a correct replica of \RSM{} $\SMR{r}$ delivers $m$.
+    A failed send for $m$ is a result of the sender at $\SMR{s}$ and/or receiver at $\SMR{r}$ failing or acting Byzantine;
+    replicas of \RSM{} $\SMR{s}$ detect a failed send for $m$ through duplicate \quack{s} (\S\ref{ss:failures}).
+    \mk{I'm not following the logical flow here.}
+    \nc{I'm not either}
+    \nc{This proof only appears to apply to the non stake case.}
+
+    To increase the number of retransmissions for message $m$, 
+    an adversary needs to ensure that each faulty replica is paired to a correct replica; 
+    each sender-receiver pair can force only one message retransmission irrespective of whether the sender, receiver, or both are faulty.
+    Thus, following is a worst-case mapping for \Scrooge:  
+    the first $\uf{s}$ senders of $m$ are Byzantine, are paired to correct replicas of $\SMR{r}$, and 
+    decide to not send $m$ to these correct receivers.
+    This results in $\uf{s}$ retransmissions for $m$.
+    The following $\uf{r}$ senders of $m$ are correct, but are paired with Byzantine replicas of $\SMR{r}$, which decide to 
+    ignore messages from $\SMR{r}$. 
+    This results in an additional $\uf{r}$ retransmission for $m$.
+    As we have iterated over all the Byzantine replicas in both the \RSM{s}, the $(\uf{s}+\uf{r}+1)$-th retransmission of $m$ is 
+    guaranteed to be between a correct sender and a correct receiver, which
+    ensures that $m$ is eventually delivered.
+    %\nc{I feel this is assuming that no message can be spuriously retransmitted? Don't we need to handle this scenario?}
+    %\sg{I believe by spurious retransmissions, you mean the retransmissions by Byzantine parties, but that is not due to Scrooge. In this proof, we are only stating the maximum number of retries Scrooge needs per message.}\mk{I agree that we need an argument that every retransmission is "unique". Only then can we claim that it takes at most $(\f{s}+\f{r}+1)$ retransmissions to reach a correct pair. Also, is this assuming a fixed pairing?}
+    %\nc{You say that Scrooge will not retransmit a message more than fs+fs+1 times. There's two parts to this 1) Scrooge should never need to 2) it will never "exceed" this bound? This proof only covers 1. For example, if we only required 1 duplicated ack, the proof would still go through, yet we could restransmit messages more than that threshold}
+    %\sg{I agree with what both of you are saying. I believe I should modify the theorem statement? Instead of saying "at most", I should change it to "needs to"?}
+\end{proof}
+
+
+
+\begin{theorem} \label{th:liveness}
+    {\bf Liveness.} \Scrooge{} satisfies eventual delivery:
+    If \RSM{} $\SMR{s}$ transmits message $m$ to \RSM{} $\SMR{r}$, then $\SMR{r}$ will eventually deliver $m$.
+\end{theorem}
+\begin{proof}
+    For \Scrooge{} to satisfy eventual delivery: 
+    it is sufficient to show that the following two cases hold:
+    (1) if a correct replica in \RSM{} $\SMR{s}$ sends a message $m$, then eventually a correct replica in \RSM{} $\SMR{r}$ receives $m$.
+    (2) if a sender for message $m$ is faulty, then eventually $m$ will be sent by a correct sender. 
+
+    {\bf Case 1: Correct Sender.}
+    
+    If both the sender and receiver for message $m$ are correct, then \Scrooge{} trivially satisfies eventual delivery.
+    This is the case because any message sent by a correct sender to a correct receiver, 
+    will be received and broadcasted by the correct receiver. 
+    This will ensure that $m$ is eventually delivered by $\SMR{r}$.
+    
+    Next, we consider the case when the receiver is faulty.
+    We prove via induction on sequence number $\Seqn$ of message $m$ that if a correct replica of $\SMR{s}$ sends $m$, 
+    then then eventually a correct replica in \RSM{} $\SMR{r}$ receives $m$. 
+    
+    {\em Base case ($\Seqn = 1$):} 
+    We start by proving that the first message (sequence number $\Seqn = 1$) sent by a correct replica (say $\Replica{s}{i}$) 
+    is eventually received by a correct replica in $\SMR{r}$.
+    As $m$ is the first message to be sent, the last \quack{ed} message at each replica in $\SMR{s}$ is set to $\bot$.
+    From Section~\ref{ss:failures}, we know that replicas in $\SMR{s}$ detect a failed send of a message through duplicate $\quack{s}$
+    for the preceding \quack{ed} message (message with one less sequence number). 
+    In the case of $m$, $\Seqn=1$, a replica will detect a failed send of $m$ from a duplicate \quack{} for $\bot$ and 
+    identify the subsequent sender-receiver pair for $m, k=1$.
+    From Lemma~\ref{th:max-retransmit}, we know that at most $\uf{s}+\uf{r}$ sender and receiver pairs can have one faulty node.
+    This implies that $(\uf{s}+\uf{r}+1)$-th retransmission of $m, \Seqn=1$ will be between a correct sender-receiver pair.
+    This correct receiver will broadcast $m, \Seqn=1$ to all the replicas of $\SMR{r}$.
+
+    {\em Induction hypothesis:}
+    We assume that replicas in $\SMR{r}$ have received all messages till sequence number $k-1$.
+
+    {\em Induction case:}
+    For induction step, we show that if a correct replica of $\SMR{s}$ sends $m, \Seqn$ (sequence number for $m$ is $\Seqn$), 
+    then then eventually a correct replica in \RSM{} $\SMR{r}$ receives $m, \Seqn$.
+    Replicas of $\SMR{s}$ will detect a failed send for $m, \Seqn$ when they receive a duplicate \quack{} for $m, \Seqn-1$. 
+    As at most $\rf{s}+\rf{r}$ sender-receiver pairs can have a faulty node,
+    $(\uf{s}+\uf{r}+1)$-th retransmission of $m, \Seqn$ will be between a correct sender-receiver pair, which 
+    satisfies the validity property.
+
+    {\bf Case 2: Faulty Sender.}
+    
+    Next, we consider the case when message $m$ is assigned to a faulty replicas, which did not communicate $m$ from $\SMR{s}$ to $\SMR{r}$.
+    We prove this lemma through induction over the sequence number $\Seqn$ of message $m$.
+
+    {\em Base case ($\Seqn = 1$):}
+    We start by proving the base case for first message $m$ (sequence number $\Seqn = 1$).
+    As $m$ is the first message to be communicated, the last \quack{ed} message at each replica in $\SMR{s}$ is set to $\bot$.
+    Assume $m$ is assigned to a faulty replica, which did not communicate $m$ from $\SMR{s}$ to $\SMR{r}$.
+    If this is the case, then eventually all the correct replicas of $\SMR{s}$ will receive a duplicate \quack{} for $\bot$ and 
+    will detect a failed send for $m$.  
+    As proved in Lemma~\ref{th:max-retransmit}, this will lead to another sender-receiver pair for $m, \Seqn=1$.
+    If the sender is again faulty, then the correct replicas of $\SMR{s}$ will receive another duplicate \quack{} for $\bot$, 
+    which will lead to yet another sender-receiver pair for $m, \Seqn=1$.
+    This process will continue for at most $\uf{s}$ times as $(\uf{s}+1)$-th sender is guaranteed to be correct.
+    
+    {\em Induction hypothesis:}
+    We assume that all the messages till sequence number $\Seqn-1$ have been eventually sent by correct replicas in $\SMR{s}$.
+    Additionally, using Theorem~\ref{th:liveness}, we can conclude that all the messages till sequence number $\Seqn-1$ have been delivered by $\SMR{r}$.
+
+    {\em Induction case:}
+    Next, we show that a message $m$ with sequence number $\Seqn$ to be communicated from $\SMR{s}$ to $\SMR{r}$ 
+    is eventually sent by a correct replica in $\SMR{s}$.
+    As stated above, if the initial sender is correct, then the base case holds.
+    Otherwise, $m, \Seqn$ is initially assigned to a faulty sender.
+    Similar to the base case, eventually all the correct replicas of $\SMR{s}$ will receive a duplicate \quack{} for $m, \Seqn-1$ and 
+    will detect a failed send. 
+    Following this, $m, \Seqn$ will be eventually resent by a correct replica in at most $\uf{s}$ attempts.
+\end{proof}
+
+%Theorem~\ref{th:liveness} helps us to prove the liveness property where a message $m$ transmitted by \RSM{} $\SMR{s}$ will be 
+%delivered by \RSM{} $\SMR{r}$.
+%However, this theorem only discusses about the messages sent by correct replicas.
+%A subset ($\f{s} \%$) of messages to be communicated by \RSM{} $\SMR{s}$ is first sent by Byzantine replicas.
+%Next, we show how these messages are guaranteed to be eventually transmitted.
+
+
+
+
+
+
+\begin{theorem}
+    {\bf Safety.} \Scrooge{} satisfies the integrity property, that is, \RSM{} $\SMR{r}$ only delivers a message 
+    only if it was transmitted by $\RSM{}$ $\SMR{s}$.
+\end{theorem}
+\begin{proof}
+    We prove this theorem through contradiction by starting with the assumption that \RSM{} $\SMR{r}$ delivers a message $m$ that 
+    was not transmitted by $\RSM{}$ $\SMR{s}$.
+    If this is the case, then at least one of the replicas delivering $m$ was correct because \Scrooge{} marks a message delivered 
+    if the replicas of the sending \RSM{} $\SMR{s}$ receive acknowledgment for $m$ from $\uf{r}+1$ replicas (at least one correct replica).
+    A correct replica of $\SMR{r}$ will only acknowledge a message $m$ if $m$ carries a proof that proves $m$ was
+    committed by a quorum of replicas in $\SMR{s}$.
+    However, \RSM{} $\SMR{s}$ never transmits $m$, which means that $m$ was sent by a malicious replica in $\SMR{s}$ and 
+    $m$ does not have support of a quorum of replicas.
+    As a result, a correct replica will never acknowledge $m$, no sender will receive $\uf{r}+1$ acknowledgements, and 
+    $m$ will not be marked delivered, which contradicts our assumption.
+\end{proof}
+
+
+%\begin{theorem}
+%    {\bf Memory Bound.} \Scrooge{} permits a replica of sending \RSM{} $\SMR{s}$ to garbage collect a message $m$ 
+%    once it receives a \quack{} for $m$ from the receiving \RSM{} $\SMR{r}$. 
+%    \nc{I don't understand what is the theorem that you are trying to prove here? Are you trying to prove that validity holds even in the presence of garbage collection?}
+%\end{theorem}
+%\begin{proof}
+%    Garbage collecting a message $m$ can only have an effect of \Scrooge's liveness property \nc{What do you mean by liveness property? And why is that?}. 
+%    However, a replica $\Replica{s}{l}$ of $\SMR{s}$ only garbage collects $m$ once it receives a \quack{} for $m$ (\S~\ref{ss:garbage}).
+%    This \quack{} informs $\Replica{s}{l}$ that $m$ has been received by at least one correct replica of $\SMR{r}$.
+%    Even if there is another set (say $A$) of at least $\rf{s}+1$ replicas that has not received $m$ (due to a failed broadcast by the receiver)
+%    $\Replica{s}{l}$ can send them the sequence number of the highest \quack{ed} message.
+%    Once the replicas in set $A$ receive highest \quack{ed} value greater than or equal to $\Seqn$ from at least $\rf{s}+1$ senders, 
+%    they can increment their acknowledgment counter and make progress.
+%\end{proof}

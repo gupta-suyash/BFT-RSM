@@ -1,36 +1,27 @@
-\section{\CCCFull{}}
-In this section, we present the \CCCFull{} (\CCC{}) primitive, which aims to solve basic agreement 
-problem between two \RSM{s}.
-Every instance of \CCC{} has a {\em source} \RSM{} and a {\em destination} \RSM{}.
-In each instance of \CCC{}, a designated {\em sender} replica at the source \RSM{} 
-broadcasts a message $m$ to replicas at the destination \RSM{} ({\em receivers}).
-If the sender is honest, then every honest receiver delivers $m$.
-If the sender is faulty, then the primitive ensures that every honest replica at the  
-destination \RSM{} delivers the same message.
-
-The following four properties characterize the \CCC{} primitive: 
-{\em validity} is a liveness property, whereas 
-{\em no duplication}, {\em integrity}, and {\em consistency} are safety properties.
-
+\subsection{\CCCFull{}}
+\label{ss:c3b}
+The goal of the \CCCFull{} primitive (\CCC{}) is to enable efficient and reliable communication 
+between a sender \RSM{} and a receiver \RSM{}. 
+%\CCC{} problem defines the guarantees between a sender \RSM{} 
+%and a receiver \RSM{}.
+%
+To do so, we first need to define two new communication primitives that express exchanging messages between RSMs. These operations are thus at a coarser granularity than the traditional \textit{send} and \textit{receive} operations, which define the operations performed by a specific node or replica.
 \begin{description}
-\item[\bf Validity.]
-If an honest sender sends a message $m$, then eventually an honest receiver delivers $m$.
-
-\item[\bf No duplication.] 
-No message is delivered more than once.
-
-\item[\bf Integrity.]
-If an honest replica at the destination \RSM{} delivers a message $m$ from a sender 
-and sender is honest, 
-then $m$ was sent by the sender and committed at the source \RSM{}.
-
-\item[\bf Consistency.]
-If one honest replica at the destination \RSM{} delivers a message $m$ and another 
-honest replica at the destination \RSM{} delivers a message $m'$, then $m = m'$. 
+\item[\bf Transmit.]
+If a correct replica invokes C3B from $\SMR{s}$ to $\SMR{r}$ for message $m$, 
+we say that \RSM{} $\SMR{s}$ {\em transmits} message $m$ to \RSM{} $\SMR{r}$.
+\item[\bf Deliver.]
+If a correct replica from $\SMR{r}$ receives message $m$, we say that \RSM{} $\SMR{r}$ {\em delivers} message $m$ from $\SMR{s}$.
 \end{description}
 
-Existing literature includes several protocols that implement \CCC{} primitive. 
-However, these protocols either yield low throughput or require some trusted entity 
-that cannot be compromised.
-Our novel \Scrooge{} protocol is devoid of these challenges, and 
-in the upcoming sections, we illustrate how \Scrooge{} efficiently implements the \CCC{} primitive.
+Using these new communication primitives, we can then define the two correctness properties that all \CCC{} implementations must satisfy:
+\begin{description}
+\item[\bf Eventual Delivery.]
+If \RSM{} $\SMR{s}$ transmits message $m$ to \RSM{} $\SMR{r}$, then $\SMR{r}$ will eventually deliver $m$.
+%\nc{I don't follow, what does it mean for an RSM to be honest? Shouldn't we enforce validity regardless of whether the link is reliable?}
+\item[\bf Integrity.]
+For every message $m$, an \RSM{} $\SMR{r}$ delivers $m$ at most once from $\SMR{s}$ and only if $\SMR{s}$
+transmitted $m$ to $\SMR{r}$.
+\end{description}
+
+%In the next section, we introduce \Scrooge{}, a practical and efficient protocol that implements \CCC{}.
