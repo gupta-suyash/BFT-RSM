@@ -180,8 +180,8 @@ done
 for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
-if ["${kafka}" = "true"]; then num_nodes_kafka=4;
-done
+if [ $kafka="true" ]; then num_nodes_kafka=4; fi;
+
 
 echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
@@ -280,11 +280,11 @@ makeExperimentJson() {
 	echo -e "    \"local_setup_script\": \"${workdir}/BFT-RSM/Code/setup-seq.sh\"," >>experiments.json
 	echo -e "    \"remote_setup_script\": \"${workdir}/BFT-RSM/Code/setup_remote.sh\"," >>experiments.json
 	echo -e "    \"local_compile_script\": \"${workdir}/BFT-RSM/Code/build.sh\"," >>experiments.json
-	if [${isKafka}='false']
+	if [${isKafka}='false']; then
 		echo -e "    \"replication_protocol\": \"scrooge\"," >>experiments.json
 	else
 		echo -e "    \"replication_protocol\": \"kafka\"," >>experiments.json
-
+	fi
 	echo -e "    \"clusterZeroIps\": [" >>experiments.json
 	lcount=0
 	while ((lcount < r1size)); do
@@ -666,7 +666,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	fi
 
 	
-	if [kafka = true] then
+	#if [kafka = true] then
 		#compile executable
 		#temporary clone in the executable, will change after adding kafka to this repository
 		# git clone https://github.com/chawinphat/scrooge-kafka.git
@@ -707,9 +707,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				for bt_size in "${batch_size[@]}"; do                 # Looping over all the batch sizes.
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-							if [kafka = true]; do
+							if [$kafka="true"]; then
 								start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
-								
 								for node in [1...$rsm1_size]; do
 								    # make #node json for rsm 1
 									print_kafka_json "TEST.json" "topic-1" "topic-2" "1" "${node}" "${broker_ips[@]}" "3" "true" "helloo" "10" "3" "3" "./" "./"
@@ -721,7 +720,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 									scp-o -o StrictHostKeyChecking=no TEST.json "${RSM2[node]}":scrooge-kafka/src/main/resources/
 								done
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
-
+							fi
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
 							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
 
@@ -749,10 +748,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 
 echo "taking down experiment"
-
 ###### UNDO
 # yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
-
-
