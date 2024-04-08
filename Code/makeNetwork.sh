@@ -58,13 +58,13 @@ kafka="true"
 
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
-file_rsm="file"
+file_rsm="true"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft", "file"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="raft"
-receive_rsm="raft"
+send_rsm="file"
+receive_rsm="file"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -172,7 +172,7 @@ pipeline_buffer_size=(8)
 # Build the network from the description
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
-client=0
+client=2
 num_nodes_kafka=0
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
@@ -187,7 +187,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="big-sched-test"
+GP_NAME="${experiment_name}"
 ZONE="us-central1-a"
 TEMPLATE="kafka-unified-3-spot"
 
@@ -260,7 +260,7 @@ done
 # sleep 300
 echo "Starting Experiment"
 
-makeExperimentJson() {
+function makeExperimentJson() {
 	r1size=$1
 	r2size=$2
 	r1fail=$3
@@ -424,24 +424,35 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	############# Setup all necessary external applications #############
+	joinedvar1=""
+	joinedvar2=""
+	raft_count=1
+	
 	function start_raft() {
 		echo "Raft RSM is being used!"
 		# Take in arguments
 		local client_ip=$1
 		local size=$2
 		local RSM=("${!3}")
-		etcd_path="${raft_app_dir}/etcd-main"
+		etcd_path="${raft_app_dir}etcd-main/"
     		# Run setup build script
            	#Client node
-           	ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${etcd_path}"'/scripts/build.sh'
+		echo ${client_ip}
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh'
            	echo "Sent build information!"
            	#Server nodes
-           	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} ''"${etcd_path}"'/scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
+           	#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'pwd && cd '"${etcd_path}"' && pwd && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
+		for i in ${!RSM[@]}; do
+			echo "building etcd on RSM: ${RSM[$i]}"
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; echo \$(pwd); ./scripts/build.sh; exit"
+		done
 		# Set constants
-		etcd_path="${raft_app_dir}/etcd-main"
-		etcd_bin_path="${etcd_path}/bin"
-		benchmark_bin_path="${raft_app_dir}/bin"
-		TOKEN=token-77
+		
+		etcd_bin_path="${etcd_path}bin"
+		benchmark_bin_path="${raft_app_dir}bin"
+		echo "etcd bin path: ${etcd_bin_path}"
+		echo "benchmark bin path: ${benchmark_bin_path}"
+		TOKEN=token-99
 		CLUSTER_STATE=new
 		count=0
 		machines=()
@@ -452,44 +463,46 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			echo "RSM: ${RSM[$count]}"
 			echo "count: ${count}, size: ${size}"
 			machines+=("machine-$((count + 1))")
-			urls+=(http://"${RSM[$count]}":2380)
-			#count=$((count + 1))
+			url+=(http://"${RSM[$count]}":2380)
 			cluster+=("machine-$((count + 1))"=http://"${RSM[$count]}":2380)
 			rsm_w_ports+=("${RSM[$count]}:2379")
 			count=$((count + 1))
 		done
 		# Run the first etcd cluster
 		printf -v cluster_list '%s,' "${cluster[@]}"
+		#echo export "PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}" >> $HOME/.bashrc
 		for i in ${!RSM[@]}; do
 			this_name=${machines[$i]}
 			this_ip=${RSM[$i]}
 			this_url=${urls[$i]}
-			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; 
-			   					    export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; 
-								    export CLUSTER_STATE=${CLUSTER_STATE}; 
-								    export CLUSTER="${cluster_list%,}"; 
-								    export PATH=$PATH:${benchmark_bin_path};
-								    export PATH=$PATH:${etcd_bin_path}; 
-								    cd \$HOME;
-								    echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};
-								    killall -9 benchmark;
-								    sudo fuser -n tcp -k 2379 2380;
-								    sudo rm -rf \$HOME/data.etcd;
-								    etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN}" &
+			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
+
+			(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") &
 		done
-		# Sleep to wait for Raft server to start
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
-		echo "RSM w ports: ${joined%,}" 
-		sleep 60
+		echo "RSM w ports: ${joined%,}"
 		# Start benchmark
-		echo "Running benchmark..."
-    		export PATH=$PATH:${benchmark_bin_path}:${etcd_bin_path}
-		benchmark --help
-		(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
-		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
-		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
-		echo "DONE WITH FIRST RAFT ITERATION"
-		#exit 1
+    		export PATH=$PATH:${benchmark_bin_path}
+		
+		if [ "${raft_count}" -eq 1 ]; then
+			joinedvar1="${joined%,}"
+			echo "RSM1: ${joinedvar1}"
+			raft_count=2
+		else
+			joinedvar2="${joined%,}"
+			echo "RSM2: ${joinedvar2}"
+		fi
+		exit 1
+	}
+
+	function benchmark_raft() {
+		local joinedvar=$1
+		local raft_count=$2
+		echo "IN BENCHMARK_RAFT ${joinedvar}"
+		echo "" > benchmark_${raft_count}.log
+		for i in {1..3}; do
+			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256 &>> benchmark_${raft_count}.log
+		done		
 	}
 
 	# Setup all necessary external applications
@@ -737,6 +750,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 									scp-o -o StrictHostKeyChecking=no TEST.json "${RSM2[node]}":scrooge-kafka/src/main/resources/
 								done
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+								if [ "$send_rsm"="raft" ]; then
+									sleep 32
+									benchmark_raft "${joinedvar1}" 1
+								fi
 								continue
 							fi
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
