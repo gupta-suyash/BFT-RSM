@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "acknowledgment.h"
 #include "config.h"
 #include "global.h"
@@ -58,6 +59,9 @@ class Pipeline
 
     void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
     void SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
+    void SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
+    void SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
+
 
   private:
     bool bufferedMessageSend(scrooge::CrossChainMessageData &&message, pipeline::CrossChainMessageBatch *const batch,
@@ -93,6 +97,8 @@ class Pipeline
     static constexpr auto kMaxBatchCreationTime = BATCH_CREATION_TIME;
     static constexpr auto kMaxNngBlockingTime = MAX_NNG_BLOCKING_TIME;
     static constexpr uint64_t kBufferSize = PIPELINE_BUFFER_SIZE;
+    // GeoBFT constants
+    static constexpr uint64_t replication_factor = 3; // TODO: CHANGE! Make this variable
 
     const NodeConfiguration kOwnConfiguration;
     const std::vector<std::string> kOwnNetworkUrls;

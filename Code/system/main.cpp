@@ -1,9 +1,11 @@
 #include "acknowledgment.h"
 #include "all_to_all.h"
+#include "geobft.h"
 #include "config.h"
 #include "global.h"
 #include "iothread.h"
 #include "one_to_one.h"
+#include "leader_leader.h"
 #include "parser.h"
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
@@ -130,6 +132,35 @@ int main(int argc, char *argv[])
 
         auto receiveThread = std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
                                          kNodeConfiguration);
+#elif GEOBFT
+#if FILE_RSM
+        auto sendThread = std::thread(runFileGeoBFTSendThread, messageBuffer, pipeline, acknowledgment,
+                                      resendDataQueue, quorumAck, kNodeConfiguration);
+#else
+        auto sendThread = std::thread(runGeoBFTSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        auto relayTransactionThread =
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        SPDLOG_INFO("GeoBFT: Created Generate message relay thread");
+#endif
+        auto receiveThread = std::thread(runGeoBFTReceiveThread, pipeline, acknowledgment, resendDataQueue,
+                                         quorumAck, kNodeConfiguration);
+#elif LEADER
+#if FILE_RSM
+        auto sendThread = std::thread(runFileLeaderSendThread, messageBuffer, pipeline, acknowledgment,
+                                      resendDataQueue, quorumAck, kNodeConfiguration);
+#else
+        auto sendThread = std::thread(runLeaderSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
+        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        auto relayTransactionThread =
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        SPDLOG_INFO("Leader: Created Generate message relay thread");
+#endif
+        auto receiveThread = std::thread(runLeaderReceiveThread, pipeline, acknowledgment, resendDataQueue,
+                                         quorumAck, kNodeConfiguration);
+
 #else
 #if FILE_RSM
         auto sendThread = std::thread(runFileUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,

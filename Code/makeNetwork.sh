@@ -51,10 +51,11 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="true"
+scrooge="false"
 all_to_all="false"
 one_to_one="false"
-
+geobft="false" # "true"
+leader="true"
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
 file_rsm="true"
@@ -85,17 +86,31 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 # fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(19)
-rsm2_size=(19)
-rsm1_fail=(6 7)
-rsm2_fail=(6 7)
-RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#rsm1_size=(19)
+#rsm2_size=(19)
+#rsm1_fail=(6 7)
+#rsm2_fail=(6 7)
+#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#klist_size=(64)
+#packet_size=(1000000)
+#batch_size=(200000)
+#batch_creation_time=(1ms)
+#pipeline_buffer_size=(8)
+
+### GeoBFT Dummy Run
+rsm1_size=(4)
+rsm2_size=(4)
+rsm1_fail=(1)
+rsm2_fail=(1)
+RSM1_Stake=(1 1 1 1)
+RSM2_Stake=(1 1 1 1)
 klist_size=(64)
-packet_size=(1000000)
+packet_size=(100 1000 10000 100000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
+
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
 # rsm1_size=(4 13 25 46)
@@ -183,13 +198,14 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="big-sched-test"
+GP_NAME="$experiment_name"
+echo "$GP_NAME"
 ZONE="us-central1-a"
 TEMPLATE="updated-app-template"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
-	# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -199,7 +215,7 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
 
 rm /tmp/all_ips.txt
@@ -377,6 +393,12 @@ if [ "${all_to_all}" = "true" ]; then
 fi
 if [ "${one_to_one}" = "true" ]; then
 	protocols+=("one_to_one")
+fi
+if [ "${geobft}" = "true" ]; then
+    protocols+=("geobft")
+fi
+if [ "${leader}" = "true" ]; then
+    protocols+=("leader")
 fi
 
 for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
@@ -594,11 +616,17 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		scrooge="false"
 		all_to_all="false"
 		one_to_one="false"
+        geobft="false"
+        leader="false"
 
 		if [ "${algo}" = "scrooge" ]; then
 			scrooge="true"
 		elif [ "${algo}" = "all_to_all" ]; then
 			all_to_all="true"
+        elif [ "${algo}" = "geobft" ]; then
+            geobft="true"
+        elif [ "${algo}" = "leader" ]; then
+            leader="true"
 		else
 			one_to_one="true"
 		fi
@@ -608,7 +636,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
 							# Next, we call the script that makes the config.h. We need to pass all the arguments.
-							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
+							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool}
 
 							cat config.h
 							cp config.h system/
@@ -636,7 +664,7 @@ done
 echo "taking down experiment"
 
 ###### UNDO
-# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 
