@@ -86,17 +86,17 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 # fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(19)
-rsm2_size=(19)
-rsm1_fail=(6 7)
-rsm2_fail=(6 7)
-RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(64)
-packet_size=(1000000)
-batch_size=(200000)
-batch_creation_time=(1ms)
-pipeline_buffer_size=(8)
+#rsm1_size=(19)
+#rsm2_size=(19)
+#rsm1_fail=(6 7)
+#rsm2_fail=(6 7)
+#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#klist_size=(64)
+#packet_size=(1000000)
+#batch_size=(200000)
+#batch_creation_time=(1ms)
+#pipeline_buffer_size=(8)
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
 # rsm1_size=(4 13 25 46)
@@ -121,17 +121,17 @@ pipeline_buffer_size=(8)
 #packet_size=(100)
 
 ## Exp: Equal stake RSMs of size 4; message size 100, 1000
-#rsm1_size=(4)
-#rsm2_size=(4)
-#rsm1_fail=(1)
-#rsm2_fail=(1)
-#RSM1_Stake=(1 1 1 1)
-#RSM2_Stake=(1 1 1 1)
-#klist_size=(64)
-#packet_size=(100 1000 10000 50000 100000)
-#batch_size=(26214)
-#batch_creation_time=(1ms)
-#pipeline_buffer_size=(8)
+rsm1_size=(4)
+rsm2_size=(4)
+rsm1_fail=(1)
+rsm2_fail=(1)
+RSM1_Stake=(1 1 1 1)
+RSM2_Stake=(1 1 1 1)
+klist_size=(64)
+packet_size=(100)
+batch_size=(200000)
+batch_creation_time=(1ms)
+pipeline_buffer_size=(8)
 
 ### Exp: Equal stake RSMs of size 7; message size 1000.
 #rsm1_size=(7)
@@ -649,7 +649,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		#exit
 	}
 
-	print_kafka_json() {
+    function print_kafka_json() {
 		OUTPUT_FILENAME=$1
 		topic1=$2
 		topic2=$3
