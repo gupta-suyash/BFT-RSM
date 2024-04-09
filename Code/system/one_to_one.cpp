@@ -153,7 +153,6 @@ void runOneToOneReceiveThread(
 {
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
     uint64_t timedMessages{};
-    scrooge::CrossChainMessage crossChainMessage;
 
     while (not is_test_over())
     {
@@ -164,16 +163,7 @@ void runOneToOneReceiveThread(
             continue;
         }
 
-        const auto messageData = nng_msg_body(message);
-        const auto messageSize = nng_msg_len(message);
-        bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
-        nng_msg_free(message);
-        if (not success)
-        {
-            SPDLOG_CRITICAL("Cannot parse foreign message");
-        }
-
-        for (const auto &messageData : crossChainMessage.data())
+        for (const auto &messageData : message->data())
         {
             if (not util::isMessageDataValid(messageData))
             {

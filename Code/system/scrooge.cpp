@@ -748,7 +748,7 @@ void runScroogeReceiveThread(
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
 
     uint64_t timedMessages{}, needlessRebroadcasts{};
-    pipeline::ReceivedCrossChainMessage receivedMessage{};
+    pipeline::ForeignCrossChainMessage receivedMessage{};
 
     scrooge::CrossChainMessage crossChainMessage;
 
@@ -773,32 +773,21 @@ void runScroogeReceiveThread(
 
             if (receivedMessage.message != nullptr)
             {
-                auto& [message, senderId] = receivedMessage;
+                auto& [crossChainMessage, senderId] = receivedMessage;
 
-                const auto messageData = nng_msg_body(message);
-                const auto messageSize = nng_msg_len(message);
-                bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
-                if (not success)
-                {
-                    SPDLOG_CRITICAL("Cannot parse foreign message");
-                    nng_msg_free(message);
-                    continue;
-                }
-
-                bool isMessageValid = util::checkMessageMac(crossChainMessage);
+                bool isMessageValid = util::checkMessageMac(*crossChainMessage);
                 if (not isMessageValid)
                 {
                     SPDLOG_CRITICAL("Received invalid mac");
-                    nng_msg_free(receivedMessage.message);
-                    receivedMessage.message = nullptr;
+                    receivedMessage.message.reset();
                     receivedMessage.senderId = 0;
                     continue;
                 }
 
                 const auto curLocalQuack = localQuack.getCurrentQuack();
-                for (uint64_t curMessageInd = 0; curMessageInd < crossChainMessage.data_size(); curMessageInd++)
+                for (uint64_t curMessageInd = 0; curMessageInd < crossChainMessage->data_size(); curMessageInd++)
                 {
-                    const auto& messageData = crossChainMessage.data().at(curMessageInd);
+                    const auto& messageData = crossChainMessage->data().at(curMessageInd);
                     if (not util::isMessageDataValid(messageData))
                     {
                         continue;
@@ -828,9 +817,9 @@ void runScroogeReceiveThread(
                         else
                         {
                             // Don't broadcast just yet..
-                            rebroadcastDataBuffer.emplace(curSequenceNumber, std::move(crossChainMessage.mutable_data()->at(curMessageInd)));
-                            crossChainMessage.mutable_data()->at(curMessageInd) = std::move(crossChainMessage.mutable_data()->at(crossChainMessage.data_size()-1));
-                            crossChainMessage.mutable_data()->RemoveLast();
+                            rebroadcastDataBuffer.emplace(curSequenceNumber, std::move(crossChainMessage->mutable_data()->at(curMessageInd)));
+                            crossChainMessage->mutable_data()->at(curMessageInd) = std::move(crossChainMessage->mutable_data()->at(crossChainMessage->data_size()-1));
+                            crossChainMessage->mutable_data()->RemoveLast();
                             curMessageInd--;
                         }
                     }
@@ -839,8 +828,8 @@ void runScroogeReceiveThread(
                 }
                 const auto newLocalQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake, acknowledgment->getAckIterator().value_or(0));
 
-                const auto curForeignAck = (crossChainMessage.has_ack_count())
-                                               ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
+                const auto curForeignAck = (crossChainMessage->has_ack_count())
+                                               ? std::optional<uint64_t>(crossChainMessage->ack_count().value())
                                                : std::nullopt;
                 const auto senderStake = configuration.kOtherNetworkStakes.at(senderId);
                 if (curForeignAck.has_value())
@@ -852,16 +841,16 @@ void runScroogeReceiveThread(
                                              .isLocal = false,
                                              .senderId = (uint8_t)senderId,
                                              .ackOffset = (uint32_t)(curForeignAck.value_or(0ULL - 1ULL) + 2),
-                                             .view = std::move(*crossChainMessage.mutable_ack_set())}) &&
+                                             .view = std::move(*crossChainMessage->mutable_ack_set())}) &&
                        not is_test_over())
                     ;
                 const auto curAckView = acknowledgment->getAckView<(kListSize)>();
                 const auto ackIterator = std::max(newLocalQuack, acknowledgment::getAckIterator(curAckView)); // also micro-op maybe attackable by byz nodes
                 if (ackIterator.has_value())
                 {
-                    crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
+                    crossChainMessage->mutable_ack_count()->set_value(ackIterator.value());
                 }
-                *crossChainMessage.mutable_ack_set() = {curAckView.view.begin(),
+                *(crossChainMessage->mutable_ack_set()) = {curAckView.view.begin(),
                                                 std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
 
                 uint64_t curRebroadcastRequest{};
@@ -870,7 +859,7 @@ void runScroogeReceiveThread(
                     const auto possibleRebroadcastMessage = rebroadcastDataBuffer.find(curRebroadcastRequest);
                     if (possibleRebroadcastMessage != rebroadcastDataBuffer.end())
                     {
-                        crossChainMessage.mutable_data()->Add(std::move(possibleRebroadcastMessage->second));
+                        crossChainMessage->mutable_data()->Add(std::move(possibleRebroadcastMessage->second));
                         rebroadcastDataBuffer.erase(possibleRebroadcastMessage);
                     }
                     else
@@ -879,27 +868,10 @@ void runScroogeReceiveThread(
                     }
                 }
 
-                const auto mstr = crossChainMessage.ack_count().SerializeAsString();
-                // Sign with own key.
+                const auto mstr = crossChainMessage->ack_count().SerializeAsString();
+                // Mac with own key.
                 std::string encoded = CmacSignString(get_priv_key(), mstr);
-                crossChainMessage.set_validity_proof(encoded);
-
-                const auto protoSize = crossChainMessage.ByteSizeLong();
-                if (protoSize <= messageSize)
-                {
-                    const auto sizeShrink = messageSize - protoSize;
-                    nng_msg_chop(message, sizeShrink);
-                    assert(message && "Spot1");
-                }
-                else
-                {
-                    nng_msg_free(message);
-                    nng_msg_alloc(&message, protoSize); // extending the msg may copy a bunch of unneeded data. Just make a new one
-                    assert(message && "Spot3");
-                }
-
-                assert(nng_msg_body(message) && "Spot4");
-                crossChainMessage.SerializeToArray(nng_msg_body(message), protoSize);
+                crossChainMessage->set_validity_proof(encoded);
             }
         }
 
@@ -908,48 +880,33 @@ void runScroogeReceiveThread(
             if (crossChainMessage.data_size() == 0)
             {
                 // no useful data to rebroadcast
-                nng_msg_free(receivedMessage.message);
-                receivedMessage.message = nullptr;
+                receivedMessage.message.reset();
             }
             else
             {
                 bool success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
                 if (success)
                 {
-                    receivedMessage.message = nullptr;
+                    receivedMessage.message.reset();
                 }
             }
         }
 
-        const auto [message, senderId] = pipeline->RecvFromOwnRsm();
+        auto [localMessage, senderId] = pipeline->RecvFromOwnRsm();
 
-        if (message)
+        if (localMessage.has_value())
         {
-            const auto messageData = nng_msg_body(message);
-            const auto messageSize = nng_msg_len(message);
-            bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
-
-            nng_msg_free(message);
-            if (not success)
-            {
-                SPDLOG_CRITICAL("Cannot parse local message");
-                receivedMessage.message = nullptr;
-                receivedMessage.senderId = 0;
-                continue;
-            }
-
-            const auto curForeignAck = (crossChainMessage.has_ack_count())
-                                               ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
+            const auto curForeignAck = (localMessage->has_ack_count())
+                                               ? std::optional<uint64_t>(localMessage->ack_count().value())
                                                : std::nullopt;
 
-            bool isMessageValid = util::checkMessageMac(crossChainMessage);
+            bool isMessageValid = util::checkMessageMac(*localMessage);
             if (not isMessageValid)
             {
                 SPDLOG_CRITICAL("Received invalid mac");
-                receivedMessage.message = nullptr;
-                receivedMessage.senderId = 0;
                 continue;
             }
+            
             const auto senderStake = configuration.kOwnNetworkStakes.at(senderId);
             if (curForeignAck.has_value())
             {
@@ -960,11 +917,11 @@ void runScroogeReceiveThread(
                                             .isLocal = true,
                                             .senderId = (uint8_t)senderId,
                                             .ackOffset = (uint32_t)(curForeignAck.value_or(0ULL - 1ULL) + 2),
-                                            .view = std::move(*crossChainMessage.mutable_ack_set())}) &&
+                                            .view = std::move(*localMessage->mutable_ack_set())}) &&
                     not is_test_over())
                 ;
 
-            for (const auto &messageData : crossChainMessage.data())
+            for (const auto &messageData : localMessage->data())
             {
                 if (not util::isMessageDataValid(messageData))
                 {
@@ -1003,11 +960,6 @@ void runScroogeReceiveThread(
                 lastRebroadcastGc = curQuack.value_or(0);
             }
         }
-    }
-
-    if (receivedMessage.message)
-    {
-        nng_msg_free(receivedMessage.message);
     }
 
     lameThread.join();

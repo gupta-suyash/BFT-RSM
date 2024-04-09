@@ -18,9 +18,15 @@
 
 namespace pipeline
 {
-struct ReceivedCrossChainMessage
+struct LocalCrossChainMessage
 {
-    nng_msg *message{};
+    std::optional<scrooge::CrossChainMessage> message{};
+    uint64_t senderId{};
+};
+
+struct ForeignCrossChainMessage
+{
+    std::shared_ptr<scrooge::CrossChainMessage> message{};
     uint64_t senderId{};
 };
 
@@ -51,10 +57,10 @@ class Pipeline
                              std::chrono::steady_clock::time_point curTime);
     void forceSendFileToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
                                  std::chrono::steady_clock::time_point curTime);
-    bool rebroadcastToOwnRsm(nng_msg *message);
+    bool rebroadcastToOwnRsm(std::shared_ptr<scrooge::CrossChainMessage>& message);
 
-    pipeline::ReceivedCrossChainMessage RecvFromOtherRsm();
-    pipeline::ReceivedCrossChainMessage RecvFromOwnRsm();
+    pipeline::ForeignCrossChainMessage RecvFromOtherRsm();
+    pipeline::LocalCrossChainMessage RecvFromOwnRsm();
 
     void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
     void SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
@@ -62,25 +68,29 @@ class Pipeline
   private:
     bool bufferedMessageSend(scrooge::CrossChainMessageData &&message, pipeline::CrossChainMessageBatch *const batch,
                              const Acknowledgment *const acknowledgment,
-                             pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                             pipeline::MessageQueue<scrooge::CrossChainMessage> *const sendingQueue,
                              std::chrono::steady_clock::time_point curTime);
     bool bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
                                  pipeline::CrossChainMessageBatch *const batch,
                                  const Acknowledgment *const acknowledgment,
-                                 pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                 pipeline::MessageQueue<scrooge::CrossChainMessage> *const sendingQueue,
                                  std::chrono::steady_clock::time_point curTime);
     void flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch, const Acknowledgment *const acknowledgment,
-                              pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                              pipeline::MessageQueue<scrooge::CrossChainMessage> *const sendingQueue,
                               std::chrono::steady_clock::time_point curTime);
     void flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const batch,
                                   const Acknowledgment *const acknowledgment,
-                                  pipeline::MessageQueue<nng_msg *> *const sendingQueue,
+                                  pipeline::MessageQueue<scrooge::CrossChainMessage> *const sendingQueue,
                                   std::chrono::steady_clock::time_point curTime);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
-    void runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg *> *const sendBuffer,
+    void runSendThread(std::string sendUrl, pipeline::MessageQueue<scrooge::CrossChainMessage> *const sendBuffer,
                        const uint64_t destNodeId, const bool isLocal);
-    void runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg *> *const recvBuffer,
+    void runSharedSendThread(std::string sendUrl, pipeline::MessageQueue<std::shared_ptr<scrooge::CrossChainMessage>> *const sendBuffer,
+                             const uint64_t destNodeId, const bool isLocal);
+    void runRecvThread(std::string recvUrl, pipeline::MessageQueue<scrooge::CrossChainMessage> *const recvBuffer,
                        const uint64_t sendNodeId, const bool isLocal);
+    void runSharedRecvThread(std::string recvUrl, pipeline::MessageQueue<std::shared_ptr<scrooge::CrossChainMessage>> *const recvBuffer,
+                             const uint64_t sendNodeId, const bool isLocal);
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
@@ -112,10 +122,10 @@ class Pipeline
     std::vector<std::thread> mLocalRecvThreads;
     std::vector<std::thread> mForeignSendThreads;
     std::vector<std::thread> mForeignRecvThreads;
-    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mLocalSendBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mLocalRecvBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignSendBufs{};
-    std::vector<std::unique_ptr<pipeline::MessageQueue<nng_msg *>>> mForeignRecvBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<std::shared_ptr<scrooge::CrossChainMessage>>>> mLocalSendBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<scrooge::CrossChainMessage>>> mLocalRecvBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<scrooge::CrossChainMessage>>> mForeignSendBufs{};
+    std::vector<std::unique_ptr<pipeline::MessageQueue<std::shared_ptr<scrooge::CrossChainMessage>>>> mForeignRecvBufs{};
 
     std::vector<pipeline::CrossChainMessageBatch> mForeignMessageBatches{};
 };

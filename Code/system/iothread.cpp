@@ -170,15 +170,7 @@ void runCrashedNodeReceiveThread(const std::shared_ptr<Pipeline> pipeline)
     while (not is_test_over())
     {
         // steal other node's bandwidth but don't help in protocol
-        auto [foreignMessage, foreignSender] = pipeline->RecvFromOtherRsm();
-        if (foreignMessage)
-        {
-            nng_msg_free(foreignMessage);
-        }
-        auto [localMessage, localSender] = pipeline->RecvFromOwnRsm();
-        if (localMessage)
-        {
-            nng_msg_free(localMessage);
-        }
+        pipeline->RecvFromOtherRsm();
+        pipeline->RecvFromOwnRsm();
     }
 }
