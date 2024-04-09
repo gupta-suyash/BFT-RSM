@@ -179,6 +179,9 @@ def run(configJson, experimentName, expDir):
     cloudlab.experiment_name = experimentName
     # Experiment results dir on the machine
     cloudlab.project_dir = config['experiment_independent_vars']['project_dir']
+    # print("project_dir: " , config['experiment_independent_vars']['project_dir'])
+    # import pdb
+    # pdb.set_trace()
     # Source directory on the local machine (for compilation)
     cloudlab.src_dir = config['experiment_independent_vars']['src_dir']
     # The nbclients field is a list that contains a list of client counts.
@@ -213,10 +216,10 @@ def run(configJson, experimentName, expDir):
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
-                if config.experiment_independent_vars.replication_protocol == "scrooge":
+                if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
                     cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 else: #run kafka consumer & producer
-                    cmd = "sbt \"runMain main.Consumer\" 2>curErrLog 1>curOutputLog & sbt \"runMain main.Producer\""
+                    cmd = "/home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Consumer\" 2>curErrLog 1>curOutputLog & /home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Producer\""
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0

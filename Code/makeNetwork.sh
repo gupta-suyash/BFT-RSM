@@ -389,6 +389,9 @@ fi
 if [ "${one_to_one}" = "true" ]; then
 	protocols+=("one_to_one")
 fi
+if [ "${kafka}" = "true" ]; then
+	protocols+=("kafka")
+fi
 
 for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# First, we create the configuration file "network0urls.txt" through echoing and redirection.
@@ -724,11 +727,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		scrooge="false"
 		all_to_all="false"
 		one_to_one="false"
-
+		kafka="false"
 		if [ "${algo}" = "scrooge" ]; then
 			scrooge="true"
 		elif [ "${algo}" = "all_to_all" ]; then
 			all_to_all="true"
+		elif [ "${algo}" = "kafka" ]; then
+			kafka="true"
 		else
 			one_to_one="true"
 		fi
@@ -738,6 +743,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
 							if [$kafka="true"]; then
+								echo "running kafka"
 								start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
 								for node in [1...$rsm1_size]; do
 								    # make #node json for rsm 1
@@ -783,6 +789,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 echo "taking down experiment"
 ###### UNDO
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
