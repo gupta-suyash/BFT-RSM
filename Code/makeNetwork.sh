@@ -582,13 +582,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "clientPort=2181" >> config/zookeeper.properties
 		#scp zookeeper.properties
 		scp -o StrictHostKeyChecking=no zookeeper.properties scrooge@"${zookeeper_ip}":kafka_2.13-3.7.0/config
-		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}"
-		sudo -su scrooge
-		#run source ~/.profile to update and enable scala & java
-		source ~/.profile 
-		# - start zookeeper
-		cd kafka_2.13-3.7.0 || exit
-		exec -a scrooge-kafka bin/zookeeper-server-start.sh config/zookeeper.properties &
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && (cd kafka_2.13-3.7.0 || exit) && exec -a scrooge-kafka bin/zookeeper-server-start.sh config/zookeeper.properties &)'
 
 		#iterate and start each broker node
 		while ((count < size)); do
@@ -599,20 +593,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				echo "zookeeper.connect=${zookeeper_ip}:2181" >> server.properties
 				#scp server.properties to broker node
 				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":kafka_2.13-3.7.0/config
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}"
-
-				#check if kafka process is already running
-				pkill -f scrooge-kafka
-				#run source ~/.profile to update and enable scala & java
-				source ~/.profile
-				cd kafka_2.13-3.7.0 || exit
-				#create process named scrooge-kafka
-				exec -a scrooge-kafka bin/kafka-server-start.sh config/server.properties &
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka && source ~/.profile &&  (cd kafka_2.13-3.7.0 || exit) && exec -a scrooge-kafka bin/kafka-server-start.sh config/server.properties &'
 				count=$((count + 1))
 		done
-		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}"
-		exec -a topic-1 --zookeeper "$zookeeper_ip":2181 --replication-factor 3 --topic topic-1 & 
-		exec -a topic-2 --zookeeper "$zookeeper_ip":2181 --replication-factor 3 --topic topic-2 &
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 --zookeeper '"$zookeeper_ip"':2181 --replication-factor '"$size"' --topic topic-1 &) && (exec -a topic-2 --zookeeper '"$zookeeper_ip"':2181 --replication-factor '"$size"' --topic topic-2 &)'
 		#exit
 	}
 
