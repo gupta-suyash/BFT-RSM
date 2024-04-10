@@ -12,39 +12,45 @@ void runLeaderReceiveThread(
 {
     //SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
     uint64_t timedMessages{};
+    pipeline::ReceivedCrossChainMessage receivedMessage{};
     scrooge::CrossChainMessage crossChainMessage;
 
     while (not is_test_over())
     {
-  /*      pipeline::ReceivedCrossChainMessage receivedMessage = pipeline->RecvFromOtherRsm();
+        if (receivedMessage.message == nullptr) 
+        {
+            receivedMessage = pipeline->RecvFromOtherRsm();
         
-        // 1. If node receives messages from other RSM, process & rebroadcast
+            // 1. If node receives messages from other RSM, process & rebroadcast
+            if (receivedMessage.message != nullptr)
+            {
+                const auto [message, senderId] = receivedMessage;
+                const auto messageData = nng_msg_body(message);
+                const auto messageSize = nng_msg_len(message);
+                bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
+                if (not success)
+                {
+                    SPDLOG_CRITICAL("Cannot parse foreign message"); // TODO: Why is it ok to continue?
+                }
+ 
+                for (const auto &messageData : crossChainMessage.data())
+                {
+                    acknowledgment->addToAckList(messageData.sequence_number());
+                    timedMessages += is_test_recording();
+                }
+            }
+        }
+        
         if (receivedMessage.message != nullptr)
         {
-            const auto [message, senderId] = receivedMessage;
-            const auto messageData = nng_msg_body(message);
-            const auto messageSize = nng_msg_len(message);
-            bool success = crossChainMessage.ParseFromArray(messageData, messageSize);
-            if (not success)
-            {
-                SPDLOG_CRITICAL("Cannot parse foreign message"); // TODO: Why is it ok to continue?
-            }
- 
-            for (const auto &messageData : crossChainMessage.data())
-            {
-                acknowledgment->addToAckList(messageData.sequence_number());
-                timedMessages += is_test_recording();
-            }
-            
             // Rebroadcasts the message to the RSM
-            success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
-            if (not success) 
+            bool success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
+            if (success) 
             {
-                //SPDLOG_CRITICAL("Cannot rebroadcast message!");
+                receivedMessage.message = nullptr;
             }
-            receivedMessage.message = nullptr;
         }
-*/        
+        
         const auto [broadcast_msg, broadcast_senderId] = pipeline->RecvFromOwnRsm();
         // 2. Process requests received from own RSM
         if (broadcast_msg)
@@ -65,9 +71,12 @@ void runLeaderReceiveThread(
                 timedMessages += is_test_recording();
                 quorumAck->updateNodeAck(0, 0ULL - 1, messageData.sequence_number());
             }
-            //nng_msg_free(broadcast_msg);
         }
-        //SPDLOG_CRITICAL("RECEIVE: Processed broadcast message!");
+    }
+    
+    if (receivedMessage.message) 
+    {
+        nng_msg_free(receivedMessage.message);
     }
     addMetric("local_messages_received", 0);
     addMetric("foreign_messages_received", timedMessages);
