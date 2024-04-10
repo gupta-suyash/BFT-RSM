@@ -36,6 +36,7 @@ raft_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raft-application/
 algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/algorand/"
 resdb_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
 raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
+kafka_dir="${workdir}/kafka_2.13-3.7.0/"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
 message_buffer_size=256
@@ -280,7 +281,7 @@ function makeExperimentJson() {
 	echo -e "    \"local_setup_script\": \"${workdir}/BFT-RSM/Code/setup-seq.sh\"," >>experiments.json
 	echo -e "    \"remote_setup_script\": \"${workdir}/BFT-RSM/Code/setup_remote.sh\"," >>experiments.json
 	echo -e "    \"local_compile_script\": \"${workdir}/BFT-RSM/Code/build.sh\"," >>experiments.json
-	if [${isKafka}='false']; then
+	if [ ${isKafka} = "false" ]; then
 		echo -e "    \"replication_protocol\": \"scrooge\"," >>experiments.json
 	else
 		echo -e "    \"replication_protocol\": \"kafka\"," >>experiments.json
@@ -423,8 +424,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# scp network files to expected directory on other machines
 	count=0
 	r2size=${rsm2_size[$rcount]}
-	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	############# Setup all necessary external applications #############
 	joinedvar1=""
@@ -606,17 +607,18 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "Kafka is being used"!
 		local size=$1 #number of brokers
 		local zookeeper_ip=$2
-		local broker_ips=$3
+		local broker_ips=("${@:3}")
 		count=0
 		#set up zookeeper node
 		#set up zookeeper.properties file by overwritting default file
-		echo "tickTime=2000" > config/zookeeper.properties
-		echo "dataDir=/var/lib/zookeeper" >> config/zookeeper.properties
-		echo "clientPort=2181" >> config/zookeeper.properties
+		echo "tickTime=2000" > ${kafka_dir}/config/zookeeper.properties
+		echo "dataDir=/var/lib/zookeeper" >> ${kafka_dir}/config/zookeeper.properties
+		echo "clientPort=2181" >> ${kafka_dir}/config/zookeeper.properties
 		#scp zookeeper.properties
-		scp -o StrictHostKeyChecking=no zookeeper.properties scrooge@"${zookeeper_ip}":kafka_2.13-3.7.0/config
-		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && (cd kafka_2.13-3.7.0 || exit) && exec -a scrooge-kafka bin/zookeeper-server-start.sh config/zookeeper.properties &)'
-
+        echo "KAFKA LOG: Starting to scp and run zookeeper!"
+		scp -o StrictHostKeyChecking=no ${kafka_dir}/config/zookeeper.properties scrooge@"${zookeeper_ip}":${kafka_dir}/config
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka bin/zookeeper-server-start.sh config/zookeeper.properties &'
+        echo "KAFKA LOG: Zookeeper node successfully started!"
 		#iterate and start each broker node
 		while ((count < size)); do
 				#create server.properties files
@@ -625,12 +627,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				echo "log.dirs=/tmp/kafka-logs-0" >> server.properties
 				echo "zookeeper.connect=${zookeeper_ip}:2181" >> server.properties
 				#scp server.properties to broker node
-				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":kafka_2.13-3.7.0/config
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka && source ~/.profile &&  (cd kafka_2.13-3.7.0 || exit) && exec -a scrooge-kafka bin/kafka-server-start.sh config/server.properties &'
+				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka && source ~/.profile &&  (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka bin/kafka-server-start.sh config/server.properties &'
 				count=$((count + 1))
 		done
-		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 --zookeeper '"$zookeeper_ip"':2181 --replication-factor '"$size"' --topic topic-1 &) && (exec -a topic-2 --zookeeper '"$zookeeper_ip"':2181 --replication-factor '"$size"' --topic topic-2 &)'
+        echo "KAFKA LOG: All broker nodes started successfully!!"
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 bin/zookeeper-server-start.sh --zookeeper '"$zookeeper_ip"':2181 --replication-factor '"$size"' --topic topic-1 &) && (exec -a topic-2 bin/zookeeper-server-start.sh --zookeeper '"$zookeeper_ip"':2181 --replication-factor '"$size"' --topic topic-2 &)'
 		#exit
+        echo "KAFKA LOG: All kafka nodes started successfully!"
 	}
 
     function print_kafka_json() {
@@ -639,7 +643,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		topic2=$3
 		rsm_id=$4
 		node_id=$5
-		broker_ips=$6
+		broker_ips=("${@:3}")
 		rsm_size=$7
 		read_from_pipe=$8
 		message=$9
@@ -726,18 +730,18 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				for bt_size in "${batch_size[@]}"; do                 # Looping over all the batch sizes.
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-							if [$kafka="true"]; then
+							if [ $kafka = "true" ]; then
 								echo "running kafka"
 								start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
-								for node in [1...$rsm1_size]; do
+								for node in $(seq 0 $((rsm2_size - 1))); do
 								    # make #node json for rsm 1
-									print_kafka_json "TEST.json" "topic-1" "topic-2" "1" "${node}" "${broker_ips[@]}" "3" "true" "helloo" "10" "3" "3" "./" "./"
-									scp-o -o StrictHostKeyChecking=no TEST.json "${RSM1[node]}":scrooge-kafka/src/main/resources/;
+									print_kafka_json "TEST.json" "topic-1" "topic-2" "1" "${node}" "${KAFKA[@]}" "3" "false" "helloo" "10" "3" "3" "./" "./"
+									scp -o StrictHostKeyChecking=no TEST.json "${RSM1[node]}":~/scrooge-kafka/src/main/resources/
 								done
-								for node in [1...$rsm2_size]; do
+								for node in $(seq 0 $((rsm2_size - 1))); do
 									#same thing
-									print_kafka_json "TEST.json" "topic-1" "topic-2" "2" "${node}" "${broker_ips[@]}" "3" "true" "helloo" "10" "3" "3" "./" "./"
-									scp-o -o StrictHostKeyChecking=no TEST.json "${RSM2[node]}":scrooge-kafka/src/main/resources/
+									print_kafka_json "TEST.json" "topic-1" "topic-2" "2" "${node}" "${KAFKA[@]}" "3" "false" "helloo" "10" "3" "3" "./" "./"
+									scp -o StrictHostKeyChecking=no TEST.json "${RSM2[node]}":~/scrooge-kafka/src/main/resources/
 								done
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 								if [ "$send_rsm"="raft" ]; then
@@ -758,8 +762,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 							# Next, we make the experiment.json for backward compatibility.
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name} ${kafka}
-							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 							# Next, we run the script.
 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
