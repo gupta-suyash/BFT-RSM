@@ -400,9 +400,9 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<scrooge
 
     constexpr auto kNngSendSuccess = 0;
 
-    bindThreadBetweenCpu(5, 8);
+    bindThreadBetweenCpu(8, 8);
     nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
-    bindThreadBetweenCpu(4, 4);
+    bindThreadBetweenCpu(4, 7);
     scrooge::CrossChainMessage newMessage;
     uint64_t numSent{};
 
@@ -422,7 +422,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<scrooge
             {
                 goto exit;
             }
-            std::this_thread::yield();
+            std::this_thread::sleep_for(2ms);
         }
 
         nng_msg *serializedMessage;
@@ -435,6 +435,8 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<scrooge
         {
             serializedMessage = serializeProtobuf(newMessage);
         }
+        const auto curSN = (newMessage.data_size() > 0)? newMessage.data().at(0).sequence_number() : 0;
+        // SPDLOG_CRITICAL("Sending {} messages to {}:{}, FirstSN={}", newMessage.data_size(), destNodeId, nodenet, curSN);
 
         while (true)
         {
@@ -451,7 +453,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<scrooge
                 nng_msg_free(serializedMessage);
                 goto exit;
             }
-            std::this_thread::yield();
+            std::this_thread::sleep_for(2ms);
         }
         numSent++;
     }
@@ -480,14 +482,14 @@ void Pipeline::runSharedSendThread(std::string sendUrl, pipeline::MessageQueue<s
 
     constexpr auto kNngSendSuccess = 0;
 
-    bindThreadBetweenCpu(5, 8);
+    bindThreadBetweenCpu(8, 8);
     nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
-    bindThreadBetweenCpu(4, 4);
-    std::shared_ptr<scrooge::CrossChainMessage> newMessage{};
+    bindThreadBetweenCpu(4, 7);
     uint64_t numSent{};
 
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
+        std::shared_ptr<scrooge::CrossChainMessage> newMessage{};
         while (true)
         {
             if (sendBuffer->try_dequeue(newMessage))
@@ -502,19 +504,23 @@ void Pipeline::runSharedSendThread(std::string sendUrl, pipeline::MessageQueue<s
             {
                 goto exit;
             }
-            std::this_thread::yield();
+            std::this_thread::sleep_for(2ms);
         }
 
         nng_msg *serializedMessage;
+        auto localMsg = *newMessage;
 
         if constexpr (FILE_RSM)
         {
-            serializedMessage = serializeFileProtobuf(*newMessage);
+            serializedMessage = serializeFileProtobuf(localMsg);
         }
         else
         {
-            serializedMessage = serializeProtobuf(*newMessage);
+            serializedMessage = serializeProtobuf(localMsg);
         }
+        const auto curSN = (newMessage->data_size() > 0)? newMessage->data().at(0).sequence_number() : 0;
+        // SPDLOG_CRITICAL("Sending {} messages to {}:{}, FirstSN={}", newMessage->data_size(), destNodeId, nodenet, curSN);
+        newMessage.reset();
 
         while (true)
         {
@@ -531,7 +537,7 @@ void Pipeline::runSharedSendThread(std::string sendUrl, pipeline::MessageQueue<s
                 nng_msg_free(serializedMessage);
                 goto exit;
             }
-            std::this_thread::yield();
+            std::this_thread::sleep_for(2ms);
         }
         numSent++;
     }
@@ -558,9 +564,9 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<scrooge
         return;
     }
 
-    bindThreadBetweenCpu(5, 8);
+    bindThreadBetweenCpu(8, 8);
     nng_socket recvSocket = openReceiveSocket(recvUrl, kMaxNngBlockingTime);
-    bindThreadBetweenCpu(4, 4);
+    bindThreadBetweenCpu(4, 7);
     std::optional<nng_msg *> message;
     uint64_t numRecv{};
 
@@ -580,14 +586,17 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<scrooge
             {
                 goto exit;
             }
-            std::this_thread::yield();
+            std::this_thread::sleep_for(2ms);
         }
 
         scrooge::CrossChainMessage parsedMessage;
         const auto messageData = nng_msg_body(message.value());
         const auto messageSize = nng_msg_len(message.value());
-        nng_msg_free(message.value());
         bool success = parsedMessage.ParseFromArray(messageData, messageSize);
+        nng_msg_free(message.value());
+
+        const auto curSN = (parsedMessage.data_size() > 0)? parsedMessage.data().at(0).sequence_number() : 0;
+        // SPDLOG_CRITICAL("Received {} messages from {}:{}, FirstSN={}", parsedMessage.data_size(), sendNodeId, nodenet, curSN);
 
         if (not success)
         {
@@ -608,7 +617,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<scrooge
             {
                 goto exit;
             }
-            std::this_thread::yield();
+            std::this_thread::sleep_for(2ms);
         }
         numRecv++;
     }
@@ -635,9 +644,9 @@ void Pipeline::runSharedRecvThread(std::string recvUrl, pipeline::MessageQueue<s
         return;
     }
 
-    bindThreadBetweenCpu(5, 8);
+    bindThreadBetweenCpu(8, 8);
     nng_socket recvSocket = openReceiveSocket(recvUrl, kMaxNngBlockingTime);
-    bindThreadBetweenCpu(4, 4);
+    bindThreadBetweenCpu(4, 7);
     std::optional<nng_msg *> message;
     uint64_t numRecv{};
 
@@ -657,13 +666,15 @@ void Pipeline::runSharedRecvThread(std::string recvUrl, pipeline::MessageQueue<s
             {
                 goto exit;
             }
-            std::this_thread::yield();
+            std::this_thread::sleep_for(2ms);
         }
 
         auto parsedMessage = std::make_shared<scrooge::CrossChainMessage>();
         const auto messageData = nng_msg_body(message.value());
         const auto messageSize = nng_msg_len(message.value());
         bool success = parsedMessage->ParseFromArray(messageData, messageSize);
+        const auto curSN = (parsedMessage->data_size() > 0)? parsedMessage->data().at(0).sequence_number() : 0;
+        // SPDLOG_CRITICAL("Received {} messages from {}:{}, FirstSN={}", parsedMessage->data_size(), sendNodeId, nodenet, curSN);
         nng_msg_free(message.value());
 
         if (not success)
@@ -685,7 +696,7 @@ void Pipeline::runSharedRecvThread(std::string recvUrl, pipeline::MessageQueue<s
             {
                 goto exit;
             }
-            std::this_thread::yield();
+            std::this_thread::sleep_for(2ms);
         }
         numRecv++;
     }
@@ -977,14 +988,16 @@ bool Pipeline::rebroadcastToOwnRsm(std::shared_ptr<scrooge::CrossChainMessage>& 
         remainingDestinations.reset(curDestination);
         const auto &curBuffer = mLocalSendBufs.at(curDestination);
 
+        const auto curSN = (message->data_size() > 0)? message->data().at(0).sequence_number() : 0;
+        // SPDLOG_CRITICAL("ATTEMPTING REBROADCAST {} msgs TO {} first msg {}", message->data_size(), curDestination, curSN);
         bool isFinalSend = remainingDestinations.none() && failedSends.none();
-        if (isFinalSend && !curBuffer->try_enqueue(std::move(message)))
+        if (isFinalSend)
         {
-            failedSends.set(curDestination);
+            failedSends[curDestination] = !curBuffer->try_enqueue(std::move(message));
         }
-        else if (!curBuffer->try_enqueue(message))
+        else
         {
-            failedSends.set(curDestination);
+            failedSends[curDestination] = !curBuffer->try_enqueue(message);
         }
     }
     remainingDestinations = failedSends;

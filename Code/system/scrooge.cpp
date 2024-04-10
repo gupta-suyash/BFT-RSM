@@ -750,8 +750,6 @@ void runScroogeReceiveThread(
     uint64_t timedMessages{}, needlessRebroadcasts{};
     pipeline::ForeignCrossChainMessage receivedMessage{};
 
-    scrooge::CrossChainMessage crossChainMessage;
-
     moodycamel::ReaderWriterQueue<util::JankAckView> viewQueue(1 << 12);
     iothread::MessageQueue<uint64_t> rebroadcastDataQueue(1 << 12);
     InverseMessageScheduler inverseMessageScheduler{configuration};
@@ -773,7 +771,9 @@ void runScroogeReceiveThread(
 
             if (receivedMessage.message != nullptr)
             {
-                auto& [crossChainMessage, senderId] = receivedMessage;
+                const auto& [crossChainMessage, senderId] = receivedMessage;
+
+                // SPDLOG_CRITICAL("Received foreign {} msgs from {} id", crossChainMessage->data_size(), senderId);
 
                 bool isMessageValid = util::checkMessageMac(*crossChainMessage);
                 if (not isMessageValid)
@@ -875,16 +875,35 @@ void runScroogeReceiveThread(
             }
         }
 
+
         if (receivedMessage.message)
         {
-            if (crossChainMessage.data_size() == 0)
+            // SPDLOG_CRITICAL("Past Recv -- still carrying {} msgs from {} id", receivedMessage.message->data_size(), receivedMessage.senderId);
+        }
+        else
+        {
+            // SPDLOG_CRITICAL("PT 1: NO MESSAGE FOUND");
+        }
+        if (receivedMessage.message)
+        {
+            if (receivedMessage.message->data_size() == 0)
             {
                 // no useful data to rebroadcast
                 receivedMessage.message.reset();
             }
             else
             {
+                // SPDLOG_CRITICAL("Past Recv 1.5 -- still carrying {} msgs from {} id", receivedMessage.message->data_size(), receivedMessage.senderId);
                 bool success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
+
+                if (receivedMessage.message)
+                {
+                    // SPDLOG_CRITICAL("Past Recv PT 2 -- still carrying {} msgs from {} id", receivedMessage.message->data_size(), receivedMessage.senderId);
+                }
+                else
+                {
+                    // SPDLOG_CRITICAL("Finished rebroadcast");
+                }
                 if (success)
                 {
                     receivedMessage.message.reset();
