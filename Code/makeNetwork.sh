@@ -204,9 +204,8 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+#yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-exit 1
 rm /tmp/all_ips.txt
 num_ips_read=0
 while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka)))); do
@@ -620,11 +619,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         # echo "KAFKA LOG: Starting to scp and run zookeeper!"
 		# scp -o StrictHostKeyChecking=no ${kafka_dir}/config/zookeeper.properties scrooge@"${zookeeper_ip}":${kafka_dir}/config
 		#WORKING ONE
-		#ssh -f -o StrictHostKeyChecking=no -t 10.138.10.75 'source ~/.profile  && cd ~/kafka_2.13-3.7.0 && nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties >correct.log 2>error.log < /dev/null &'
+		ssh -f -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && cd '"${kafka_dir}"' && nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties >correct.log 2>error.log < /dev/null &'
 		#WORKING ONE 
-		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && cd '"${kafka_dir}"' && (nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties &)'
-		sleep(50)
-		#ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile && cd '"${kafka_dir}"' && exec -a scrooge-kafka ./bin/zookeeper-server-start.sh ./config/zookeeper.properties 1>/home/scrooge/kafka-zookeeper-log 2>&1 &'
         echo "KAFKA LOG: Zookeeper node successfully started!"
 		#iterate and start each broker node
 		while ((count < size)); do
@@ -636,7 +632,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				#scp server.properties to broker node
 				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
 				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka'
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  (nohup ./bin/kafka-server-start.sh ./config/server.properties &)'
+				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &'
 
 				#ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka ./bin/kafka-server-start.sh ./config/server.properties 1>/home/scrooge/kafka-broker-log 2>&1 &'
 				count=$((count + 1))
@@ -645,7 +641,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         broker_ips_string=$(printf "%s:9092," "${broker_ips[@]}")
 		broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 		echo "Broker IPs String: $broker_ips_string"
-		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-1 1>/home/scrooge/kafka-topic-log-1 2>&1 &) && (exec -a topic-2 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-2 1>/home/scrooge/kafka-topic-log-2 2>&1 &)'
+		#start kafka from script node instead?
+		cd ${kafka_dir}
+		./bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-1
+		./bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-2
+		
+		#ssh -f -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-1 1>/home/scrooge/kafka-topic-log-1 2>&1 &) && (exec -a topic-2 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-2 1>/home/scrooge/kafka-topic-log-2 2>&1 &)'
         echo "KAFKA LOG: All kafka nodes started successfully!"
 		exit 1
 	}
