@@ -204,8 +204,8 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-#yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
-#sleep 100
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+sleep 50
 #> /dev/null 2>&1
 rm /tmp/all_ips.txt
 num_ips_read=0
@@ -641,6 +641,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 		echo "Broker IPs String: $broker_ips_string"
 		#start kafka from script node instead?
+		sleep 50
 		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-1
 		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-2
 		
@@ -744,7 +745,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name} ${kafka}
                             if [ $kafka = "true" ]; then
 								echo "running kafka"
-								#start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
+								start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
 								 broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
 									broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 								for node in $(seq 0 $((rsm2_size - 1))); do
