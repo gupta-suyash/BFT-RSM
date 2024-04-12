@@ -188,18 +188,10 @@ def run(configJson, experimentName, expDir):
     # Ex, if this is listed: [1,2,4,8], the framework will run the experiment
     # 4 times: one with 1 clients, then with two, then four, then 8. The
     # format for collecting the data will be remoteExpDir/clientcount.
-    # If true, simulate latency with tc
-    simulateLatency = 0
-    try:
-        simulateLatency = int(config[experimentName]['simulate_latency'])
-    except:
-        simulateLatency = 0
-
-    # Setup latency on appropriate hosts if simulated
-    if (simulateLatency):
-        print("Simulating a " + str(simulateLatency) + " ms")
 
     increase_packet_size = Scaling_Client_Exp()
+    #import pdb
+    #pdb.set_trace()
     increase_packet_size.nb_rounds = int(config[experimentName]['nb_rounds'])
     # Run for each round, nbRepetitions time.
     
@@ -219,7 +211,7 @@ def run(configJson, experimentName, expDir):
                 if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
                     cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 else: #run kafka consumer & producer
-                    cmd = "/home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Consumer\" 2>curErrLog 1>curOutputLog & /home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Producer\""
+                    cmd = "source ~/.profile && cd ~/scrooge-kafka && (/home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Consumer\" 2>curErrLog 1>curOutputLog &) && /home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Producer\""
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0

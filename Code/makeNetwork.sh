@@ -205,6 +205,7 @@ echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
 #yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+#sleep 100
 #> /dev/null 2>&1
 rm /tmp/all_ips.txt
 num_ips_read=0
@@ -618,9 +619,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# #scp zookeeper.properties
         # echo "KAFKA LOG: Starting to scp and run zookeeper!"
 		# scp -o StrictHostKeyChecking=no ${kafka_dir}/config/zookeeper.properties scrooge@"${zookeeper_ip}":${kafka_dir}/config
-		#WORKING ONE
 		ssh -f -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && cd '"${kafka_dir}"' && nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties >correct.log 2>error.log < /dev/null &'
-		#WORKING ONE 
         echo "KAFKA LOG: Zookeeper node successfully started!"
 		#iterate and start each broker node
 		while ((count < size)); do
@@ -642,13 +641,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 		echo "Broker IPs String: $broker_ips_string"
 		#start kafka from script node instead?
-		cd ${kafka_dir}
-		./bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-1
-		./bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-2
+		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-1
+		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-2
 		
 		#ssh -f -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-1 1>/home/scrooge/kafka-topic-log-1 2>&1 &) && (exec -a topic-2 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-2 1>/home/scrooge/kafka-topic-log-2 2>&1 &)'
         echo "KAFKA LOG: All kafka nodes started successfully!"
-		exit 1
 	}
 
     function print_kafka_json() {
@@ -657,15 +654,15 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		topic2=$3
 		rsm_id=$4
 		node_id=$5
-		broker_ips=("${@:3}")
-		rsm_size=$7
-		read_from_pipe=$8
-		message=$9
-		benchmark_duration=${10}
-		warmup_duration=${11}
-		cooldown_duration=${12}
-		input_path=${13}
-		output_path=${14}
+		rsm_size=$6
+		read_from_pipe=$7
+		message=$8
+		benchmark_duration=${9}
+		warmup_duration=${10}
+		cooldown_duration=${11}
+		input_path=${12}
+		output_path=${13}
+		broker_ips=${14}
 		rm "$OUTPUT_FILENAME"
 		echo "{" >> "$OUTPUT_FILENAME"
 		echo "    \"topic1\": \"${topic1}\"," >> "$OUTPUT_FILENAME"
@@ -747,11 +744,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name} ${kafka}
                             if [ $kafka = "true" ]; then
 								echo "running kafka"
-								start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
-								echo "POTATO DONE"
+								#start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
+								 broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
+									broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 								for node in $(seq 0 $((rsm2_size - 1))); do
 								    # make #node json for rsm 1
-									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "${KAFKA[@]}" "3" "false" "helloo" "10" "3" "3" "./" "./"
+									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "false" "helloo" "10" "3" "3" "./" "./" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 								for node in $(seq 0 $((rsm2_size - 1))); do
