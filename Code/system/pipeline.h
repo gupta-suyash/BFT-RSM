@@ -37,6 +37,20 @@ struct CrossChainMessageBatch
     uint64_t batchSizeEstimate{};
 };
 
+struct NodeIdentifier
+{
+    std::string url{};
+    uint64_t nodeId{};
+    bool isLocal{};
+};
+
+struct MessageDelivery
+{
+    scrooge::CrossChainMessage message{};
+    uint16_t nodeId{};
+    bool isLocal{};
+};
+
 template <typename T> using MessageQueue = moodycamel::ReaderWriterQueue<T>;
 }; // namespace pipeline
 
@@ -83,16 +97,8 @@ class Pipeline
                                   pipeline::MessageQueue<scrooge::CrossChainMessage> *const sendingQueue,
                                   std::chrono::steady_clock::time_point curTime);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
-    void runSendThread(std::string sendUrl, pipeline::MessageQueue<scrooge::CrossChainMessage> *const sendBuffer,
-                       const uint64_t destNodeId, const bool isLocal);
-    void runSharedSendThread(std::string sendUrl,
-                             pipeline::MessageQueue<std::shared_ptr<scrooge::CrossChainMessage>> *const sendBuffer,
-                             const uint64_t destNodeId, const bool isLocal);
-    void runRecvThread(std::string recvUrl, pipeline::MessageQueue<scrooge::CrossChainMessage> *const recvBuffer,
-                       const uint64_t sendNodeId, const bool isLocal);
-    void runSharedRecvThread(std::string recvUrl,
-                             pipeline::MessageQueue<std::shared_ptr<scrooge::CrossChainMessage>> *const recvBuffer,
-                             const uint64_t sendNodeId, const bool isLocal);
+    void runSendThread(std::vector<pipeline::NodeIdentifier> nodeIds, std::vector<pipeline::MessageQueue<scrooge::CrossChainMessage>> *const sendBuffer);
+    void runRecvThread(std::vector<pipeline::NodeIdentifier> nodeIds, std::vector<pipeline::MessageQueue<scrooge::CrossChainMessage>> *const recvBuffer);
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
