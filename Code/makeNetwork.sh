@@ -189,12 +189,12 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="${experiment_name}"
-ZONE="us-central1-a"
+ZONE="us-west1-b"
 TEMPLATE="kafka-unified-3-spot"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
-	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -206,7 +206,7 @@ echo "${ZONE}"
 echo "${TEMPLATE}"
 yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-#gcloud beta compute instance-groups managed create "teddy" --project=scrooge-398722 --base-instance-name="teddy" --size="$((4))" --template=projects/scrooge-398722/global/instanceTemplates/kafka-unified-3-spot --zone=us-central1-a --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+exit 1
 rm /tmp/all_ips.txt
 num_ips_read=0
 while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka)))); do
@@ -608,33 +608,46 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local size=$1 #number of brokers
 		local zookeeper_ip=$2
 		local broker_ips=("${@:3}")
+		echo "ZOOKEEPER_IP: ${zookeeper_ip}"
+		echo "Broker IPS: ${broker_ips[@]}"
 		count=0
 		#set up zookeeper node
 		#set up zookeeper.properties file by overwritting default file
-		echo "tickTime=2000" > ${kafka_dir}/config/zookeeper.properties
-		echo "dataDir=/var/lib/zookeeper" >> ${kafka_dir}/config/zookeeper.properties
-		echo "clientPort=2181" >> ${kafka_dir}/config/zookeeper.properties
-		#scp zookeeper.properties
-        echo "KAFKA LOG: Starting to scp and run zookeeper!"
-		scp -o StrictHostKeyChecking=no ${kafka_dir}/config/zookeeper.properties scrooge@"${zookeeper_ip}":${kafka_dir}/config
-		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka bin/zookeeper-server-start.sh config/zookeeper.properties &'
+		# echo "tickTime=2000" > ${kafka_dir}/config/zookeeper.properties
+		# echo "dataDir=/var/lib/zookeeper" >> ${kafka_dir}/config/zookeeper.properties
+		# echo "clientPort=2181" >> ${kafka_dir}/config/zookeeper.properties
+		# #scp zookeeper.properties
+        # echo "KAFKA LOG: Starting to scp and run zookeeper!"
+		# scp -o StrictHostKeyChecking=no ${kafka_dir}/config/zookeeper.properties scrooge@"${zookeeper_ip}":${kafka_dir}/config
+		#WORKING ONE
+		#ssh -f -o StrictHostKeyChecking=no -t 10.138.10.75 'source ~/.profile  && cd ~/kafka_2.13-3.7.0 && nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties >correct.log 2>error.log < /dev/null &'
+		#WORKING ONE 
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && cd '"${kafka_dir}"' && (nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties &)'
+		sleep(50)
+		#ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile && cd '"${kafka_dir}"' && exec -a scrooge-kafka ./bin/zookeeper-server-start.sh ./config/zookeeper.properties 1>/home/scrooge/kafka-zookeeper-log 2>&1 &'
         echo "KAFKA LOG: Zookeeper node successfully started!"
 		#iterate and start each broker node
 		while ((count < size)); do
 				#create server.properties files
 				echo "broker.id=${count}" > server.properties
-				echo "listeners=PLAINTEXT://${broker_ips[$count]}" >> server.properties
+				echo "listeners=PLAINTEXT://${broker_ips[$count]}:9092" >> server.properties
 				echo "log.dirs=/tmp/kafka-logs-0" >> server.properties
 				echo "zookeeper.connect=${zookeeper_ip}:2181" >> server.properties
 				#scp server.properties to broker node
 				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka && source ~/.profile &&  (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka bin/kafka-server-start.sh config/server.properties &'
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka'
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  (nohup ./bin/kafka-server-start.sh ./config/server.properties &)'
+
+				#ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka ./bin/kafka-server-start.sh ./config/server.properties 1>/home/scrooge/kafka-broker-log 2>&1 &'
 				count=$((count + 1))
 		done
         echo "KAFKA LOG: All broker nodes started successfully!!"
-		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 bin/zookeeper-server-start.sh --zookeeper '"$zookeeper_ip"':2181 --replication-factor '"$size"' --topic topic-1 &) && (exec -a topic-2 bin/zookeeper-server-start.sh --zookeeper '"$zookeeper_ip"':2181 --replication-factor '"$size"' --topic topic-2 &)'
-		#exit
+        broker_ips_string=$(printf "%s:9092," "${broker_ips[@]}")
+		broker_ips_string="${broker_ips_string%,}" # removes trailing ,
+		echo "Broker IPs String: $broker_ips_string"
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-1 1>/home/scrooge/kafka-topic-log-1 2>&1 &) && (exec -a topic-2 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-2 1>/home/scrooge/kafka-topic-log-2 2>&1 &)'
         echo "KAFKA LOG: All kafka nodes started successfully!"
+		exit 1
 	}
 
     function print_kafka_json() {
@@ -730,18 +743,20 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				for bt_size in "${batch_size[@]}"; do                 # Looping over all the batch sizes.
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-							if [ $kafka = "true" ]; then
+							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name} ${kafka}
+                            if [ $kafka = "true" ]; then
 								echo "running kafka"
 								start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
+								echo "POTATO DONE"
 								for node in $(seq 0 $((rsm2_size - 1))); do
 								    # make #node json for rsm 1
-									print_kafka_json "TEST.json" "topic-1" "topic-2" "1" "${node}" "${KAFKA[@]}" "3" "false" "helloo" "10" "3" "3" "./" "./"
-									scp -o StrictHostKeyChecking=no TEST.json "${RSM1[node]}":~/scrooge-kafka/src/main/resources/
+									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "${KAFKA[@]}" "3" "false" "helloo" "10" "3" "3" "./" "./"
+									scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 								for node in $(seq 0 $((rsm2_size - 1))); do
 									#same thing
-									print_kafka_json "TEST.json" "topic-1" "topic-2" "2" "${node}" "${KAFKA[@]}" "3" "false" "helloo" "10" "3" "3" "./" "./"
-									scp -o StrictHostKeyChecking=no TEST.json "${RSM2[node]}":~/scrooge-kafka/src/main/resources/
+									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "${KAFKA[@]}" "3" "false" "helloo" "10" "3" "3" "./" "./"
+									scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 								if [ "$send_rsm"="raft" ]; then
@@ -761,7 +776,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 							make -j scrooge
 
 							# Next, we make the experiment.json for backward compatibility.
-							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name} ${kafka}
 							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
