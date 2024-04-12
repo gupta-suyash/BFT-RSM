@@ -46,7 +46,7 @@ InverseMessageScheduler::InverseMessageScheduler(const NodeConfiguration configu
             }
         }
     }
-    for (auto& resendNumber : mResendNumberLookup)
+    for (auto &resendNumber : mResendNumberLookup)
     {
         // If we are an original sender then don't worry about resending
         if (resendNumber.value() == 0)

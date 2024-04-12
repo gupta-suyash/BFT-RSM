@@ -19,7 +19,6 @@ void runAllToAllReceiveThread(
             continue;
         }
 
-
         for (const auto &messageData : message->data())
         {
             if (not util::isMessageDataValid(messageData))
