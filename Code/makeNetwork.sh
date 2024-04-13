@@ -194,7 +194,7 @@ TEMPLATE="kafka-unified-3-spot"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
-	#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -205,7 +205,6 @@ echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
 yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
-sleep 50
 #> /dev/null 2>&1
 rm /tmp/all_ips.txt
 num_ips_read=0
@@ -746,16 +745,16 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                             if [ $kafka = "true" ]; then
 								echo "running kafka"
 								start_kafka 3 "${ZOOKEEPER[0]}" "${KAFKA[@]}"
-								 broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
-									broker_ips_string="${broker_ips_string%,}" # removes trailing ,
-								for node in $(seq 0 $((rsm2_size - 1))); do
+								broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
+								broker_ips_string="${broker_ips_string%,}" # removes trailing ,
+								for node in $(seq 0 $((rsm1_size - 1))); do
 								    # make #node json for rsm 1
 									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "false" "helloo" "10" "3" "3" "./" "./" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 								for node in $(seq 0 $((rsm2_size - 1))); do
 									#same thing
-									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "${KAFKA[@]}" "3" "false" "helloo" "10" "3" "3" "./" "./"
+									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "false" "helloo" "10" "3" "3" "./" "./" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
