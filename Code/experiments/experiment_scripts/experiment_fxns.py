@@ -211,7 +211,7 @@ def run(configJson, experimentName, expDir):
                 if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
                     cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 else: #run kafka consumer & producer
-                    cmd = "source ~/.profile && cd ~/scrooge-kafka && (nohup /home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Producer\" 2>curErrLog 1>curOutputLog < /dev/null &) && /home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Consumer\""
+                    cmd = "source ~/.profile && cd ~/scrooge-kafka && (nohup /home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Consumer\" 2>curErrLog 1>curOutputLog < /dev/null &) && /home/scrooge/.local/share/coursier/bin/sbt \"runMain main.Producer\""
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
@@ -223,11 +223,13 @@ def run(configJson, experimentName, expDir):
             ssh_key = config['experiment_independent_vars']['ssh_key']
             username = config['experiment_independent_vars']['username']
             count = 0
-            executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
+            
             if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
+                executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
                 executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
             else: # run kafka specific function
-                executeParallelBlockingDifferentRemoteCommandsKafka(ip_list, scrooge_commands)
+                executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} ~/scrooge-kafka/src/main/scala/consumer.scala {username}@{{1}}:~/scrooge-kafka/src/main/scala/ ::: {" ".join(ip_list)}')
+                executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
             file_names = []
             ips = []
             for node_id, ip in enumerate(cluster_zero):
@@ -238,8 +240,11 @@ def run(configJson, experimentName, expDir):
                 cluster_id = 1
                 file_names.append(f'log_{cluster_id}_{node_id}')
                 ips.append(ip)
+            if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":    
+                executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
+            else: # run kafka specific function
+                executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 
-            executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
             executeCommand(f'mv node* {expDir}')
             executeCommand(f'cp config.h {expDir}')
         except Exception as e:
