@@ -98,6 +98,7 @@ class Pipeline
                                   std::chrono::steady_clock::time_point curTime);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
     void runSendThread(std::vector<pipeline::NodeIdentifier> nodeIds, std::vector<pipeline::MessageQueue<scrooge::CrossChainMessage>> *const sendBuffer);
+    void runWorkerThread(uint64_t workerId);
     void runRecvThread(std::vector<pipeline::NodeIdentifier> nodeIds, std::vector<pipeline::MessageQueue<scrooge::CrossChainMessage>> *const recvBuffer);
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
@@ -126,10 +127,12 @@ class Pipeline
     std::bitset<64> mAliveNodesLocal{};
     std::bitset<64> mAliveNodesForeign{};
 
-    std::vector<std::thread> mLocalSendThreads;
-    std::vector<std::thread> mLocalRecvThreads;
-    std::vector<std::thread> mForeignSendThreads;
-    std::vector<std::thread> mForeignRecvThreads;
+    static const uint64_t kNumWorkerThreads{std::min({OWN_RSM_SIZE, OTHER_RSM_SIZE, 8})};
+    std::vector<std::thread> mWorkerThreads;
+    std::vector<std::string> mLocalSendUrls;
+    std::vector<std::string> mLocalRecvUrls;
+    std::vector<std::string> mForeignSendUrls;
+    std::vector<std::string> mForeignRecvUrls;
     std::vector<std::unique_ptr<pipeline::MessageQueue<std::shared_ptr<scrooge::CrossChainMessage>>>> mLocalSendBufs{};
     std::vector<std::unique_ptr<pipeline::MessageQueue<scrooge::CrossChainMessage>>> mLocalRecvBufs{};
     std::vector<std::unique_ptr<pipeline::MessageQueue<scrooge::CrossChainMessage>>> mForeignSendBufs{};
