@@ -70,11 +70,11 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
+scrooge="true"
 all_to_all="false"
 one_to_one="false"
 geobft="false" # "true"
-leader="true"
+leader="false"
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
 file_rsm="true"
@@ -82,8 +82,8 @@ file_rsm="true"
 # Valid inputs: "algo", "resdb", "raft", "file"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="file"
-receive_rsm="file"
+send_rsm="raft"
+receive_rsm="raft"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -125,7 +125,7 @@ rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
 klist_size=(64)
-packet_size=(100 1000 10000 100000)
+packet_size=(100)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -219,7 +219,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="$experiment_name"
 echo "$GP_NAME"
-ZONE="us-central1-a"
+ZONE="us-east1-b"
 TEMPLATE="updated-app-template" # NOTE: Look at the algo-timing template, might be necessary to run applications
 
 function exit_handler() {
@@ -710,7 +710,7 @@ done
 echo "taking down experiment"
 
 ###### UNDO
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 
