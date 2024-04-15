@@ -470,18 +470,27 @@ void Pipeline::startPipeline()
 void Pipeline::runWorkerThread(uint64_t workerId)
 {
     // workerId is 0..(kNumWorkerThreads-1)
-    const uint64_t localNodesPerWorker = std::ceil(kOwnConfiguration.kOwnNetworkSize / kNumWorkerThreads);
-    const uint64_t foreignNodesPerWorker = std::ceil(kOwnConfiguration.kOtherNetworkSize / kNumWorkerThreads);
-    uint64_t pFirstLocalNode = localNodesPerWorker * workerId;
+    const uint64_t localNodesPerWorker = std::floor((double) kOwnConfiguration.kOwnNetworkSize / kNumWorkerThreads);
+    const uint64_t foreignNodesPerWorker = std::floor((double) kOwnConfiguration.kOtherNetworkSize / kNumWorkerThreads);
+    const uint64_t localNodesPerHeavyWorker = std::ceil((double) kOwnConfiguration.kOwnNetworkSize / kNumWorkerThreads);
+    const uint64_t foreignNodesPerHeavyWorker = std::ceil((double) kOwnConfiguration.kOtherNetworkSize / kNumWorkerThreads);
+    const uint64_t numLocalHeavyWorkers = kOwnConfiguration.kOwnNetworkSize % kNumWorkerThreads;
+    const uint64_t numForeignHeavyWorkers = kOwnConfiguration.kOtherNetworkSize % kNumWorkerThreads;
+    const uint64_t numLocalHeavyWorkerPredecessors = std::min(numLocalHeavyWorkers, workerId);
+    const uint64_t numForeignHeavyWorkerPredecessors = std::min(numForeignHeavyWorkers, workerId);
+    const uint64_t numLocalNodesAssigned = (workerId < numLocalHeavyWorkers)? localNodesPerHeavyWorker : localNodesPerWorker;
+    const uint64_t numForeignNodesAssigned = (workerId < numForeignHeavyWorkers)? foreignNodesPerHeavyWorker : foreignNodesPerWorker;
+    std::cout << "localNodesPerHeavyWorker = " << localNodesPerHeavyWorker << std::endl;
+    uint64_t pFirstLocalNode = numLocalHeavyWorkerPredecessors * localNodesPerHeavyWorker + (workerId - numLocalHeavyWorkerPredecessors) * localNodesPerWorker;
     uint64_t pLastLocalNode =
-        std::min<uint64_t>(kOwnConfiguration.kOwnNetworkSize, localNodesPerWorker * (workerId + 1)) - 1;
+        std::min<uint64_t>(kOwnConfiguration.kOwnNetworkSize, pFirstLocalNode + numLocalNodesAssigned) - 1;
     const uint64_t firstLocalNode =
         (pFirstLocalNode == kOwnConfiguration.kNodeId) ? pFirstLocalNode + 1 : pFirstLocalNode;
     const uint64_t lastLocalNode =
         (pLastLocalNode == kOwnConfiguration.kNodeId) ? std::min<uint64_t>(0, pLastLocalNode - 1) : pLastLocalNode;
-    const uint64_t firstForeignNode = foreignNodesPerWorker * workerId;
+    const uint64_t firstForeignNode = numForeignHeavyWorkerPredecessors * foreignNodesPerHeavyWorker + foreignNodesPerWorker * (workerId - numForeignHeavyWorkerPredecessors);
     const uint64_t lastForeignNode =
-        std::min<uint64_t>(kOwnConfiguration.kOtherNetworkSize, foreignNodesPerWorker * (workerId + 1)) - 1;
+        std::min<uint64_t>(kOwnConfiguration.kOtherNetworkSize, firstForeignNode + numForeignNodesAssigned) - 1;
 
     std::vector<nng_socket> localSockets{kOwnConfiguration.kOwnNetworkSize};
     std::vector<nng_socket> foreignSockets{kOwnConfiguration.kOtherNetworkSize};
@@ -494,11 +503,15 @@ void Pipeline::runWorkerThread(uint64_t workerId)
         kOwnConfiguration.kOtherNetworkSize, boost::circular_buffer<std::shared_ptr<scrooge::CrossChainMessage>>(8));
     scrooge::CrossChainMessage msg;
 
+    constexpr auto kNumCores = 16;
+
+    bindThreadBetweenCpu(4 + kNumWorkerThreads, kNumCores);
     for (uint64_t curForeignNode = firstForeignNode; curForeignNode <= lastForeignNode; curForeignNode++)
     {
         openSendRecvSocket(mForeignSendUrls[curForeignNode], mForeignRecvUrls[curForeignNode],
                            &(foreignSockets[curForeignNode]), 0ms);
     }
+    bindThreadBetweenCpu(4 + workerId, 4 + workerId);
 
     for (uint64_t curLocalNode = firstLocalNode; curLocalNode <= lastLocalNode; curLocalNode++)
     {
