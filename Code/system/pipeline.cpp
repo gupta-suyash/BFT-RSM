@@ -511,7 +511,6 @@ void Pipeline::runWorkerThread(uint64_t workerId)
         openSendRecvSocket(mForeignSendUrls[curForeignNode], mForeignRecvUrls[curForeignNode],
                            &(foreignSockets[curForeignNode]), 0ms);
     }
-    bindThreadBetweenCpu(4 + workerId, 4 + workerId);
 
     for (uint64_t curLocalNode = firstLocalNode; curLocalNode <= lastLocalNode; curLocalNode++)
     {
@@ -522,6 +521,8 @@ void Pipeline::runWorkerThread(uint64_t workerId)
         openSendRecvSocket(mLocalSendUrls[curLocalNode], mLocalRecvUrls[curLocalNode], &(localSockets[curLocalNode]),
                            0ms);
     }
+    
+    bindThreadBetweenCpu(4 + workerId, 4 + workerId);
 
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
