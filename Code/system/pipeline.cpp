@@ -4,8 +4,8 @@
 #include "crypto.h"
 
 #include <algorithm>
-#include <boost/container/small_vector.hpp>
 #include <boost/circular_buffer.hpp>
+#include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 #include <sched.h>
 
@@ -56,7 +56,8 @@ template <typename atomic_bitset> void reset_atomic_bit(atomic_bitset &set, uint
     }
 }
 
-void openSendRecvSocket(const std::string &sendUrl, const std::string &recvUrl, nng_socket* socket, std::chrono::milliseconds maxNngBlockingTime)
+void openSendRecvSocket(const std::string &sendUrl, const std::string &recvUrl, nng_socket *socket,
+                        std::chrono::milliseconds maxNngBlockingTime)
 {
     constexpr auto kSuccess = 0;
 
@@ -64,7 +65,8 @@ void openSendRecvSocket(const std::string &sendUrl, const std::string &recvUrl, 
     const bool cannotOpenSocket = kSuccess != openResult;
     if (cannotOpenSocket)
     {
-        SPDLOG_CRITICAL("Cannot open socket for send/recv on URL send {} recv {} ERROR: {}", sendUrl, recvUrl, nng_strerror(openResult));
+        SPDLOG_CRITICAL("Cannot open socket for send/recv on URL send {} recv {} ERROR: {}", sendUrl, recvUrl,
+                        nng_strerror(openResult));
         std::abort();
     }
 
@@ -81,10 +83,10 @@ void openSendRecvSocket(const std::string &sendUrl, const std::string &recvUrl, 
 
     if (nngDialResult != kSuccess)
     {
-        SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR SENDING on URL = '{}' Return value {}", sendUrl, nng_strerror(nngDialResult));
+        SPDLOG_CRITICAL("CANNOT OPEN SOCKET FOR SENDING on URL = '{}' Return value {}", sendUrl,
+                        nng_strerror(nngDialResult));
         std::abort();
     }
-
 
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = 2 * (OWN_RSM_SIZE + OTHER_RSM_SIZE);
@@ -101,7 +103,8 @@ void openSendRecvSocket(const std::string &sendUrl, const std::string &recvUrl, 
     bool nngSetSendTimeoutResult = nng_setopt_ms(*socket, NNG_OPT_SENDTIMEO, maxNngBlockingTime.count());
     if (nngSetSendTimeoutResult != kSuccess)
     {
-        SPDLOG_CRITICAL("Cannot set timeout for sending Return value {}", sendUrl, nng_strerror(nngSetSendTimeoutResult));
+        SPDLOG_CRITICAL("Cannot set timeout for sending Return value {}", sendUrl,
+                        nng_strerror(nngSetSendTimeoutResult));
         std::abort();
     }
     bool nngSetSndBufSizeResult = nng_socket_set_int(*socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
@@ -242,14 +245,12 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
     return socket;
 }
 
-
-
 /* Sending data to nodes of other RSM.
  *
  * @param buf is the outgoing message of protobuf type.
  * @param socket is the nng_socket to put the data into
  */
-static int sendMessage(const nng_socket &socket, nng_msg** message)
+static int sendMessage(const nng_socket &socket, nng_msg **message)
 {
     const auto sendReturnValue = nng_sendmsg(socket, *message, NNG_FLAG_NONBLOCK);
     const bool isActualError = sendReturnValue != 0 && sendReturnValue != nng_errno_enum::NNG_EAGAIN &&
@@ -472,23 +473,31 @@ void Pipeline::runWorkerThread(uint64_t workerId)
     const uint64_t localNodesPerWorker = std::ceil(kOwnConfiguration.kOwnNetworkSize / kNumWorkerThreads);
     const uint64_t foreignNodesPerWorker = std::ceil(kOwnConfiguration.kOtherNetworkSize / kNumWorkerThreads);
     uint64_t pFirstLocalNode = localNodesPerWorker * workerId;
-    uint64_t pLastLocalNode = std::min<uint64_t>(kOwnConfiguration.kOwnNetworkSize, localNodesPerWorker * (workerId + 1)) - 1;
-    const uint64_t firstLocalNode = (pFirstLocalNode == kOwnConfiguration.kNodeId)? pFirstLocalNode + 1 : pFirstLocalNode;
-    const uint64_t lastLocalNode = (pLastLocalNode == kOwnConfiguration.kNodeId)? std::min<uint64_t>(0, pLastLocalNode - 1) : pLastLocalNode;
+    uint64_t pLastLocalNode =
+        std::min<uint64_t>(kOwnConfiguration.kOwnNetworkSize, localNodesPerWorker * (workerId + 1)) - 1;
+    const uint64_t firstLocalNode =
+        (pFirstLocalNode == kOwnConfiguration.kNodeId) ? pFirstLocalNode + 1 : pFirstLocalNode;
+    const uint64_t lastLocalNode =
+        (pLastLocalNode == kOwnConfiguration.kNodeId) ? std::min<uint64_t>(0, pLastLocalNode - 1) : pLastLocalNode;
     const uint64_t firstForeignNode = foreignNodesPerWorker * workerId;
-    const uint64_t lastForeignNode = std::min<uint64_t>(kOwnConfiguration.kOtherNetworkSize, foreignNodesPerWorker * (workerId + 1)) - 1;
-    
+    const uint64_t lastForeignNode =
+        std::min<uint64_t>(kOwnConfiguration.kOtherNetworkSize, foreignNodesPerWorker * (workerId + 1)) - 1;
+
     std::vector<nng_socket> localSockets{kOwnConfiguration.kOwnNetworkSize};
     std::vector<nng_socket> foreignSockets{kOwnConfiguration.kOtherNetworkSize};
-    std::vector<boost::circular_buffer<nng_msg*>> localMsgRebroadcasts(kOwnConfiguration.kOwnNetworkSize, boost::circular_buffer<nng_msg*>(1024));
-    std::vector<nng_msg*> pendingForeignSends(kOwnConfiguration.kOtherNetworkSize);
-    std::vector<boost::circular_buffer<scrooge::CrossChainMessage>> receivedLocalMessages(kOwnConfiguration.kOwnNetworkSize, boost::circular_buffer<scrooge::CrossChainMessage>(1024));
-    std::vector<boost::circular_buffer<std::shared_ptr<scrooge::CrossChainMessage>>> receivedForeignMessages(kOwnConfiguration.kOtherNetworkSize, boost::circular_buffer<std::shared_ptr<scrooge::CrossChainMessage>>(1024));
+    std::vector<boost::circular_buffer<nng_msg *>> localMsgRebroadcasts(kOwnConfiguration.kOwnNetworkSize,
+                                                                        boost::circular_buffer<nng_msg *>(8));
+    std::vector<nng_msg *> pendingForeignSends(kOwnConfiguration.kOtherNetworkSize);
+    std::vector<boost::circular_buffer<scrooge::CrossChainMessage>> receivedLocalMessages(
+        kOwnConfiguration.kOwnNetworkSize, boost::circular_buffer<scrooge::CrossChainMessage>(8));
+    std::vector<boost::circular_buffer<std::shared_ptr<scrooge::CrossChainMessage>>> receivedForeignMessages(
+        kOwnConfiguration.kOtherNetworkSize, boost::circular_buffer<std::shared_ptr<scrooge::CrossChainMessage>>(8));
     scrooge::CrossChainMessage msg;
 
     for (uint64_t curForeignNode = firstForeignNode; curForeignNode <= lastForeignNode; curForeignNode++)
     {
-        openSendRecvSocket(mForeignSendUrls[curForeignNode], mForeignRecvUrls[curForeignNode], &(foreignSockets[curForeignNode]), 0ms);
+        openSendRecvSocket(mForeignSendUrls[curForeignNode], mForeignRecvUrls[curForeignNode],
+                           &(foreignSockets[curForeignNode]), 0ms);
     }
 
     for (uint64_t curLocalNode = firstLocalNode; curLocalNode <= lastLocalNode; curLocalNode++)
@@ -497,9 +506,9 @@ void Pipeline::runWorkerThread(uint64_t workerId)
         {
             continue;
         }
-        openSendRecvSocket(mLocalSendUrls[curLocalNode], mLocalRecvUrls[curLocalNode], &(localSockets[curLocalNode]), 0ms);
+        openSendRecvSocket(mLocalSendUrls[curLocalNode], mLocalRecvUrls[curLocalNode], &(localSockets[curLocalNode]),
+                           0ms);
     }
-
 
     while (not mShouldThreadStop.load(std::memory_order_relaxed))
     {
@@ -530,27 +539,31 @@ void Pipeline::runWorkerThread(uint64_t workerId)
         // service all foreign node recvs
         for (uint64_t curForeignNode = firstForeignNode; curForeignNode <= lastForeignNode; curForeignNode++)
         {
-            while (not receivedForeignMessages[curForeignNode].empty() && mForeignRecvBufs[curForeignNode]->try_enqueue(std::move(receivedForeignMessages[curForeignNode].front())))
+            while (not receivedForeignMessages[curForeignNode].empty() &&
+                   mForeignRecvBufs[curForeignNode]->try_enqueue(
+                       std::move(receivedForeignMessages[curForeignNode].front())))
             {
                 receivedForeignMessages[curForeignNode].pop_front();
             }
 
             std::optional<nng_msg *> curMessage{};
-            while (not receivedForeignMessages[curForeignNode].full() && (curMessage = receiveMessage(foreignSockets[curForeignNode])).has_value())
+            while (not receivedForeignMessages[curForeignNode].full() &&
+                   (curMessage = receiveMessage(foreignSockets[curForeignNode])).has_value())
             {
                 auto parsedMessage = std::make_shared<scrooge::CrossChainMessage>();
                 const auto messageData = nng_msg_body(*curMessage);
                 const auto messageSize = nng_msg_len(*curMessage);
                 bool success = parsedMessage->ParseFromArray(messageData, messageSize);
                 nng_msg_free(curMessage.value());
-                if (not (receivedForeignMessages[curForeignNode].empty() && mForeignRecvBufs[curForeignNode]->try_enqueue(std::move(parsedMessage))))
+                if (not(receivedForeignMessages[curForeignNode].empty() &&
+                        mForeignRecvBufs[curForeignNode]->try_enqueue(std::move(parsedMessage))))
                 {
                     // message wasn't able to be directly placed in recv queue. Store it for later
                     receivedForeignMessages[curForeignNode].push_back(std::move(parsedMessage));
                 }
             }
         }
-        
+
         if constexpr (ALL_TO_ALL || ONE_TO_ONE)
         {
             continue;
@@ -581,7 +594,7 @@ void Pipeline::runWorkerThread(uint64_t workerId)
             {
                 localMsgRebroadcasts[firstLocalNode].push_back(serializeProtobuf(msg));
             }
-            
+
             for (uint64_t curLocalNode = firstLocalNode + 1; curLocalNode <= lastLocalNode; curLocalNode++)
             {
                 if (curLocalNode == kOwnConfiguration.kNodeId)
@@ -611,7 +624,8 @@ void Pipeline::runWorkerThread(uint64_t workerId)
             {
                 continue;
             }
-            while (not receivedLocalMessages[curLocalNode].empty() && mLocalRecvBufs[curLocalNode]->try_enqueue(std::move(receivedLocalMessages[curLocalNode].front())))
+            while (not receivedLocalMessages[curLocalNode].empty() &&
+                   mLocalRecvBufs[curLocalNode]->try_enqueue(std::move(receivedLocalMessages[curLocalNode].front())))
             {
                 receivedLocalMessages[curLocalNode].pop_front();
             }
@@ -627,7 +641,8 @@ void Pipeline::runWorkerThread(uint64_t workerId)
                 const auto messageSize = nng_msg_len(*message);
                 bool success = parsedMessage.ParseFromArray(messageData, messageSize);
                 nng_msg_free(message.value());
-                if (not (receivedLocalMessages[curLocalNode].empty() && mLocalRecvBufs[curLocalNode]->try_enqueue(std::move(parsedMessage))))
+                if (not(receivedLocalMessages[curLocalNode].empty() &&
+                        mLocalRecvBufs[curLocalNode]->try_enqueue(std::move(parsedMessage))))
                 {
                     receivedLocalMessages[curLocalNode].push_back(std::move(parsedMessage));
                 }
@@ -635,7 +650,6 @@ void Pipeline::runWorkerThread(uint64_t workerId)
         }
     }
 }
-
 
 void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batch,
                                     const Acknowledgment *const acknowledgment,

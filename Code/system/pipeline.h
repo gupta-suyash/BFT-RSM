@@ -97,9 +97,11 @@ class Pipeline
                                   pipeline::MessageQueue<scrooge::CrossChainMessage> *const sendingQueue,
                                   std::chrono::steady_clock::time_point curTime);
     void reportFailedNode(const std::string &nodeUrl, uint64_t nodeId, bool isLocal);
-    void runSendThread(std::vector<pipeline::NodeIdentifier> nodeIds, std::vector<pipeline::MessageQueue<scrooge::CrossChainMessage>> *const sendBuffer);
+    void runSendThread(std::vector<pipeline::NodeIdentifier> nodeIds,
+                       std::vector<pipeline::MessageQueue<scrooge::CrossChainMessage>> *const sendBuffer);
     void runWorkerThread(uint64_t workerId);
-    void runRecvThread(std::vector<pipeline::NodeIdentifier> nodeIds, std::vector<pipeline::MessageQueue<scrooge::CrossChainMessage>> *const recvBuffer);
+    void runRecvThread(std::vector<pipeline::NodeIdentifier> nodeIds,
+                       std::vector<pipeline::MessageQueue<scrooge::CrossChainMessage>> *const recvBuffer);
 
     uint64_t getSendPort(uint64_t receiverId, bool isForeign);
     uint64_t getReceivePort(uint64_t senderId, bool isForeign);
