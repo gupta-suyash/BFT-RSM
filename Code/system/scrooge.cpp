@@ -328,7 +328,8 @@ static void runScroogeSendThread(
     const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageInput,
     const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration
+    )
 {
     SPDLOG_CRITICAL("SEND THREAD TID {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
@@ -674,7 +675,8 @@ void updateLocalAckTrackers(const std::optional<uint64_t> curQuack, const uint64
 void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *const quorumAck, QuorumAcknowledgment *const localQuack,
                    iothread::MessageQueue<acknowledgment_tracker::ResendData> *const resendDataQueue,
                    iothread::MessageQueue<uint64_t> *const rebroadcastDataQueue,
-                   moodycamel::ReaderWriterQueue<util::JankAckView> *const viewQueue, NodeConfiguration configuration)
+                   moodycamel::ReaderWriterQueue<util::JankAckView> *const viewQueue, NodeConfiguration configuration,
+                   moodycamel::ReaderWriterQueue<nng_msg*> *const rebroadcastQueue, Pipeline* pipeline)
 {
     bindThreadToCpu(3);
     SPDLOG_CRITICAL("STARTING LAME THREAD {}", gettid());
@@ -697,8 +699,21 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
                                                                               configuration.kOwnMaxNumFailedStake}});
     }
 
+    nng_msg* curMsg{};
     while (not is_test_over())
     {
+        while (curMsg != nullptr || rebroadcastQueue->try_dequeue(curMsg))
+        {
+            bool success = pipeline->rebroadcastToOwnRsm(curMsg);
+            if (success)
+            {
+                curMsg = nullptr;
+            }
+            else
+            {
+                break; // try again next time
+            }
+        }
         util::JankAckView curView{};
         while (not viewQueue->try_dequeue(curView) && not is_test_over())
             ;
@@ -752,6 +767,7 @@ void runScroogeReceiveThread(
 
     scrooge::CrossChainMessage crossChainMessage;
 
+    moodycamel::ReaderWriterQueue<nng_msg*> rebroadcastQueue(1<<15);
     moodycamel::ReaderWriterQueue<util::JankAckView> viewQueue(1 << 12);
     iothread::MessageQueue<uint64_t> rebroadcastDataQueue(1 << 12);
     InverseMessageScheduler inverseMessageScheduler{configuration};
@@ -762,7 +778,7 @@ void runScroogeReceiveThread(
     QuorumAcknowledgment localQuack(configuration.kOwnMaxNumFailedStake + 1);
     const auto kOwnNodeStake = configuration.kOwnNetworkStakes.at(configuration.kNodeId);
     std::thread lameThread(lameAckThread, acknowledgment.get(), quorumAck.get(), &localQuack, resendDataQueue.get(), &rebroadcastDataQueue, &viewQueue,
-                           configuration);
+                           configuration, &rebroadcastQueue, pipeline.get());
 
     uint64_t lastRebroadcastGc{};
     while (not is_test_over())
@@ -911,13 +927,9 @@ void runScroogeReceiveThread(
                 nng_msg_free(receivedMessage.message);
                 receivedMessage.message = nullptr;
             }
-            else
+            else if (rebroadcastQueue.try_enqueue(receivedMessage.message))
             {
-                bool success = pipeline->rebroadcastToOwnRsm(receivedMessage.message);
-                if (success)
-                {
-                    receivedMessage.message = nullptr;
-                }
+                receivedMessage.message = nullptr;
             }
         }
 
