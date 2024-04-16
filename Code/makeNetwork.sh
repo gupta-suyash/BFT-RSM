@@ -24,7 +24,7 @@ workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
 warmup_time=10s
-total_time=60s
+total_time=30s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -183,9 +183,9 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="reggie-test2"
-ZONE="us-central1-a"
-TEMPLATE="updated-app-template"
+GP_NAME="reggie-test4"
+ZONE="us-east1-b"
+TEMPLATE="boosted-updated-app"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"

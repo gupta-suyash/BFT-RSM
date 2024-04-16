@@ -22,10 +22,9 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/unordered/unordered_map.hpp>
 #include <boost/unordered/unordered_set.hpp>
-#include <nng/nng.h>
 
 boost::circular_buffer<scrooge::MessageResendData> resendDatas(1 << 20);
-boost::circular_buffer<acknowledgment_tracker::ResendData> requestedResends(1 << 12);
+boost::circular_buffer<acknowledgment_tracker::ResendData> requestedResends(1 << 25);
 
 auto lastSendTime = std::chrono::steady_clock::now();
 uint64_t numMsgsSentWithLastAck{};

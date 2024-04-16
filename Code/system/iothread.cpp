@@ -18,8 +18,6 @@
 #include <thread>
 #include <unistd.h>
 
-#include <nng/nng.h>
-
 // Generates fake messages of a given size for throughput testing
 void runGenerateMessageThreadWithIpc()
 {
