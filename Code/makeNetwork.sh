@@ -43,7 +43,7 @@ workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
 warmup_time=10s
-total_time=40s
+total_time=120s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -76,14 +76,12 @@ one_to_one="false"
 geobft="false" # "true"
 leader="false"
 #If this experiment is for File_RSM (not algo or resdb)
-#file_rsm="true"
-file_rsm="true"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft", "file"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="raft"
-receive_rsm="raft"
+#send_rsm="raft"
+#receive_rsm="raft"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -125,7 +123,7 @@ rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
 klist_size=(64)
-packet_size=(100)
+packet_size=(100) # 1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -205,7 +203,7 @@ pipeline_buffer_size=(8)
 # Build the network from the description
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
-client=0
+client=2
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
 done
@@ -505,7 +503,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			this_url=${urls[$i]}
 			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
 
-			(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") &
+			(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; echo \"before kilall\"; killall -9 benchmark; echo \"after kilall\"; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") &
 		done
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
 		echo "RSM w ports: ${joined%,}"
@@ -611,6 +609,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "HERE IS THE KV CONFIG:"	
 		cat ${resdb_app_dir}/deploy/config/kv_performance_server.conf		
 		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
+        echo "Resdb is started!!"
+        #exit 1
 	}
     
   for algo in "${protocols[@]}"; do # Looping over all the protocols.
@@ -673,7 +673,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                         	#echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
                         	#echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
                         	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
-				
+			#exit 1	
 				./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool}
 
 				cat config.h
@@ -690,14 +690,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 				# Next, we run the script.
 				./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
-				if [ "$send_rsm"="raft" ]; then
+				if [ "$send_rsm" = "raft" ]; then
 					sleep 32
 					benchmark_raft "${joinedvar1}" 1
 				fi
-				#if [ "$receive_rsm"="raft" ]; then
-				#	sleep 32
-				#	benchmark_raft "${joinedvar2}" 2
-				#fi
+				if [ "$receive_rsm" = "raft" ]; then
+					sleep 32
+					benchmark_raft "${joinedvar2}" 2
+				fi
 						done
 					done
 				done

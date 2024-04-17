@@ -113,7 +113,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             }
         }
     } else {
-        SPDLOG_CRITICAL("NOT FIRST SEND: {} isSentLater {}", resendNumber.value_or(0), isPossiblySentLater);
+        //SPDLOG_CRITICAL("NOT FIRST SEND: {} isSentLater {}", resendNumber.value_or(0), isPossiblySentLater);
     }
 
     if (isPossiblySentLater)
