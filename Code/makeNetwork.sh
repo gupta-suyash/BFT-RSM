@@ -748,20 +748,22 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 								broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
 								broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 
-								hb_file=$(<100b_file.txt)
-								kb_file=$(<1000b_file.txt)
-								mb_file=$(<1000000b_file.txt)
+								file_100b=$(<100b_file.txt)
+								file_1kb=$(<1000b_file.txt)
+								file_10kb=$(<10000b_file.txt)
+								file_100kb=$(<100000b_file.txt)
+								file_1mb=$(<1000000b_file.txt)
 
 								echo "KAFKA LOG: Running RSM 1"
 								for node in $(seq 0 $((rsm1_size - 1))); do
-									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "false" "${hb_file}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
+									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "false" "${file_1mb}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 
 								echo "KAFKA LOG: Running RSM 2"
 								for node in $(seq 0 $((rsm2_size - 1))); do
 									#same thing
-									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "false" "${hb_file}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
+									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "false" "${file_1mb}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 
