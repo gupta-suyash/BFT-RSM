@@ -759,14 +759,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 								echo "KAFKA LOG: Running RSM 1"
 								for node in $(seq 0 $((rsm1_size - 1))); do
-									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "false" "${file_100}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
+									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "true" "${file_100}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 
 								echo "KAFKA LOG: Running RSM 2"
 								for node in $(seq 0 $((rsm2_size - 1))); do
 									#same thing
-									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "false" "${file_100}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
+									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "true" "${file_100}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 
