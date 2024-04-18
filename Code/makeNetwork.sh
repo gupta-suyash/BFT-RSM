@@ -85,16 +85,17 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 # fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(4)
-rsm2_size=(4)
-rsm1_fail=(1)
-rsm2_fail=(1)
+
+rsm1_size=(4 19)
+rsm2_size=(4 19)
+rsm1_fail=(1 6)
+rsm2_fail=(1 6)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(200000)
-packet_size=(100)
+klist_size=(512)
+packet_size=(1000000)
 batch_size=(200000)
-batch_creation_time=(1ms)
+batch_creation_time=(1)
 pipeline_buffer_size=(8)
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -183,8 +184,9 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="reggie-test2"
-ZONE="us-central1-a"
+
+GP_NAME="reggie-exp"
+ZONE="us-west1-b"
 TEMPLATE="updated-app-template"
 
 function exit_handler() {

@@ -2,7 +2,7 @@
 
 #include "config.h"
 
-//#define NDEBUG
+#define NDEBUG
 #include <chrono>
 #include <cstdlib>
 #include <string>
