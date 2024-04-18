@@ -52,6 +52,10 @@ void runRelayIPCRequestThread(
     {
         //SPDLOG_CRITICAL("BEFORE READING");
         auto messageBytes = readMessage(pipe);
+        if (messageBytes.length() == 0) {
+            SPDLOG_CRITICAL("PIPE READ ERROR");
+            break;
+        }   
         //SPDLOG_CRITICAL("RIGHT AFTER READING");
         scrooge::ScroogeRequest newRequest;
         //SPDLOG_CRITICAL("ABOUT TO PARSE THE REQUEST");

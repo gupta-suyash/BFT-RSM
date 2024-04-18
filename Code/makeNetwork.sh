@@ -15,6 +15,13 @@ read experiment_name
 
 echo "Running Experiment: ${experiment_name}"
 
+
+echo -n "Are you using static machines? (T or F) "
+
+read static_machines
+
+echo "You have said ${static_machines} to using static machines."
+echo "NOTE: STATIC MACHINES ONLY WORK WITH 4 NODE CLUSTERS!!!"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
@@ -27,12 +34,17 @@ echo -n "Enter the name of the receiving application (4 options: algo, resdb, ra
 read receive_rsm
 echo "Receiving Application: ${receive_rsm}"
 
+echo -n "Are you rerunning an application? Only applies to algo-algo. (T of F): "
+read rerun_bool
+echo "You have chosen ${rerun_bool} for rerunning algo-algo experiment."
+
 #If this experiment is for File_RSM (not algo or resdb)
 file_rsm="true"
 if [ "$send_rsm" != "file" ] || [ "$receive_rsm" != "file" ]; then
     file_rsm="false"
 fi
-
+#file_rsm="true" # TODO TODO TAKE THIS OUT!!!
+#echo "ALWAYS RUNNING FILE RSM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
 # Name of profile we are running out of
 key_file="$HOME/.ssh/id_ed25519" # TODO: Replace with your ssh key
@@ -42,7 +54,7 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=10s
+warmup_time=20s
 total_time=120s
 num_packets=10000
 exec_dir="$HOME/"
@@ -70,8 +82,8 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="true"
-all_to_all="false"
+scrooge="false"
+all_to_all="true"
 one_to_one="false"
 geobft="false" # "true"
 leader="false"
@@ -123,7 +135,7 @@ rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
 klist_size=(64)
-packet_size=(100) # 1000000)
+packet_size=(100) #1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -217,7 +229,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="$experiment_name"
 echo "$GP_NAME"
-ZONE="us-east1-b"
+ZONE="us-west1-a"
 TEMPLATE="updated-app-template" # NOTE: Look at the algo-timing template, might be necessary to run applications
 
 function exit_handler() {
@@ -232,33 +244,42 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
-#> /dev/null 2>&1
-
-rm /tmp/all_ips.txt
-num_ips_read=0
-while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
-	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
-	output=$(cat /tmp/all_ips.txt)
-	ar=($output)
-	num_ips_read="${#ar[@]}"
-done
-# TODO: Change this back or it'll be confusing (also change in algo function and in scrooge for loop)
-# && sudo wondershaper ens4 2000000 2000000'
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:0:19}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:19:19}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:0:19}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:19:19}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:1:18}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:20:18}";
-#sudo tc qdisc add dev eth0 root tbf rate 1mbit burst 64kbit latency 400ms0
-
-RSM1=(${ar[@]::${num_nodes_rsm_1}})
-RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
-CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
-echo "About to parallel!"
-#parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
-
+RSM1=()
+RSM2=()
+CLIENT=()
+if [ $static_machines = "F" ]; then
+    echo "No static machines, creating cluster!"
+    yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+    #> /dev/null 2>&1
+    sleep 50
+    rm /tmp/all_ips.txt
+    num_ips_read=0
+    while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
+	    gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
+	    output=$(cat /tmp/all_ips.txt)
+	    ar=($output)
+	    num_ips_read="${#ar[@]}"
+    done
+    # TODO: Change this back or it'll be confusing (also change in algo function and in scrooge for loop)
+    # && sudo wondershaper ens4 2000000 2000000'
+    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:0:19}";
+    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:19:19}";
+    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:0:19}";
+    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:19:19}";
+    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:1:18}";
+    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:20:18}";
+    #sudo tc qdisc add dev eth0 root tbf rate 1mbit burst 64kbit latency 400ms0
+    RSM1=(${ar[@]::${num_nodes_rsm_1}})
+    RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
+    CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
+    echo "About to parallel!"
+    #parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
+else 
+    echo "Have static IPs!"
+    RSM1=(10.128.7.13 10.128.7.14 10.128.7.15 10.128.7.16)
+    RSM2=(10.128.7.18 10.128.7.19 10.128.7.20 10.128.7.21)
+    CLIENT=(10.128.7.17 10.128.7.22) # Machines: 5 and 10
+fi
 count=0
 while ((${count} < ${num_nodes_rsm_1})); do
 	echo "RSM1: ${RSM1[$count]}"
@@ -526,7 +547,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		echo "" > benchmark_${raft_count}.log
 		for i in {1..3}; do
-			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256 &>> benchmark_${raft_count}.log
+			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=400000 --val-size=256 &>> benchmark_${raft_count}.log
 		done		
 	}
 	
@@ -547,6 +568,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		mkdir ${algorand_scripts_dir}/genesis_creation/
 		cp $genesis_json ${algorand_scripts_dir}/genesis_creation/
 		mkdir ${algorand_scripts_dir}/addresses/
+        echo "Copy over message payload and node.go file!"
+        # Copy over message payload /home/scrooge/1M_byte_payload.txt
+        scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/1M_byte_payload.txt ${username}@${client_ip}:${workdir}/
+        parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/1M_byte_payload.txt ${username}@{1}:${workdir}/ ::: "${RSM[@]:0:$((size))}";
+        # Copy over node.go file - TODO
+        scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/node/node.go ${username}@${client_ip}:${algorand_app_dir}/node/
+        parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/node/node.go ${username}@{1}:${algorand_app_dir}/node/ ::: "${RSM[@]:0:$((size))}";
         #Relay nodes (which also happens to be the client nodes)
 		ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/setup_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${algorand_scripts_dir}"'/scripts/relay_config.json '"${per_node_algos}"' '"${client_ip}"''
 		echo "Sent Relay node information!"
@@ -588,6 +616,28 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
         echo "###########################################Algorand started and running!"
 	}
+
+    function rerun_algorand() {
+		echo "######################################################Algorand RSM is being used!"
+		# Take in arguments
+		local client_ip=$1
+		local size=$2
+		local RSM=("${!3}")
+		echo "${RSM[@]}"
+        echo "###########################################FINISH RUNNING ALGORAND"
+        # Step 1: Copy rerun script onto each machine
+        scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/scripts/rerun.sh ${username}@${client_ip}:${workdir}
+        parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/scripts/rerun.sh ${username}@{1}:${workdir} ::: "${RSM[@]:0:$((size))}";
+
+        # Step 2: Execute rerun script
+        relay="true"
+        ssh -o StrictHostKeyChecking=no -t "${client_ip}" '/home/scrooge/rerun.sh '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"':4161 default '"${relay}"''
+        relay="false"
+        parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '/home/scrooge/rerun.sh '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"':4161 default '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
+        echo "Done with the parallel jobs!"        
+echo "###########################################Algorand started and running!"
+	}
+
 	function start_resdb() {
 		echo "ResDB RSM is being used!"
 		# Take in arguments
@@ -637,10 +687,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			for bt_size in "${batch_size[@]}"; do     # Looping over all the batch sizes.
 				for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 					for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-				# Next, we call the script that makes the config.h. We need to pass all the arguments.
-				# Sending RSM
+				            # Next, we call the script that makes the config.h. We need to pass all the arguments.
+				            # Sending RSM
                         	if [ "$send_rsm" = "algo" ]; then
-                        		start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+                        		if [ "$rerun_bool" = "T" ]; then
+                                    rerun_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+                                else
+                                    start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+                                fi
                         	elif [ "$send_rsm" = "resdb" ]; then
                         		echo "ResDB RSM is being used for sending."
                         		cluster_idx=1
@@ -654,10 +708,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                         		echo "INVALID RECEIVING RSM."
                         	fi
                             	
-				# Receiving RSM 
-                            	if [ "$receive_rsm" = "algo" ]; then
+				            # Receiving RSM 
+                            if [ "$receive_rsm" = "algo" ]; then
                         		echo "Algo RSM is being used for receiving."
-                        		start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+                                if [ "$rerun_bool" = "T" ]; then
+                                    rerun_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+                                else
+                                    start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+                                fi
                         	elif [ "$receive_rsm" = "resdb" ]; then
                         		echo "ResDB RSM is being used for receiving."
                         		cluster_idx=2
@@ -689,7 +747,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 				# Next, we run the script.
-				./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+				./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 				if [ "$send_rsm" = "raft" ]; then
 					sleep 32
 					benchmark_raft "${joinedvar1}" 1
