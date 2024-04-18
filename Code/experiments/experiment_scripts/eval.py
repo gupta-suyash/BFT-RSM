@@ -177,7 +177,7 @@ def get_throughput_bandwidth(dataframe: pd.DataFrame) -> List[Graph]:
 
 def get_graphs(name: str, dataframe: pd.DataFrame) -> List[Graph]:
     graphs = []
-    #graphs.extend(get_throughput_latency(name, dataframe))
+    graphs.extend(get_throughput_latency(name, dataframe))
     graphs.extend(get_throughput_network_sz(name, dataframe))
     # graphs.extend(get_throughput_bandwidth(dataframe))
     return graphs

@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
-        // if (get_rsm_id() == 1 && kNodeId % 3 == 1)
+        // if (get_rsm_id() == 1 && kNodeId < std::min(6, BATCH_CREATION_TIME))
         // {
         //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
         //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         //     return 0;
         // }
 
-        // if (get_rsm_id() == 0 && kNodeId % 3 == 1)
+        // if (get_rsm_id() == 0 && kNodeId >= 6 && kNodeId < BATCH_CREATION_TIME)
         // {
         //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
         //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
