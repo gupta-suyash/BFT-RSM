@@ -584,6 +584,7 @@ uint64_t numRecvLocal = 0;
 uint64_t numRequestsLocal = 0;
 int64_t klistDeltaLocal = 0;
 int64_t overlapLocal = 0;
+int64_t kListSizeLocal = 0;
 
 struct LameLocalTracker
 {
@@ -596,7 +597,6 @@ void updateLocalAckTrackers(const std::optional<uint64_t> curQuack, const uint64
                        iothread::MessageQueue<uint64_t> *const rebroadcastDataQueue,
                        const InverseMessageScheduler &inverseMessageScheduler)
 {
-    return;
     numRecvLocal++;
     const auto nodeId = nodeAckView.senderId;
     const auto kNumAckTrackers = ackTrackers.size();
@@ -606,6 +606,7 @@ void updateLocalAckTrackers(const std::optional<uint64_t> curQuack, const uint64
                    ? ((int64_t)finialMessageTrack - (int64_t)initialMessageTrack + 1)
                    : 0;
     klistDeltaLocal += (int64_t)initialMessageTrack - (int64_t)util::getAckIterator(nodeAckView).value_or(0);
+    kListSizeLocal += (int64_t) finialMessageTrack - (int64_t) initialMessageTrack + 1;
 
     // SPDLOG_CRITICAL("MAKING UPDATE FOR NODE {} -- Q{} Init{} Final{}", nodeId, curQuack.value_or(0),
     // initialMessageTrack, finialMessageTrack);
@@ -735,6 +736,7 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
     addMetric("klistDeltaLocal", (double)klistDeltaLocal / numRecvLocal);
     addMetric("overlapLocal", (double)overlapLocal / numRecvLocal);
     addMetric("untouched klists Local", untochedLocal);
+    addMetric("Avg Klist size local", (double) kListSizeLocal / numRecvLocal);
 }
 
 void runScroogeReceiveThread(
@@ -931,7 +933,6 @@ void runScroogeReceiveThread(
             if (not success)
             {
                 SPDLOG_CRITICAL("Cannot parse local message");
-                nng_msg_free(message);
                 receivedMessage.message = nullptr;
                 receivedMessage.senderId = 0;
                 continue;
@@ -945,7 +946,6 @@ void runScroogeReceiveThread(
             if (not isMessageValid)
             {
                 SPDLOG_CRITICAL("Received invalid mac");
-                nng_msg_free(receivedMessage.message);
                 receivedMessage.message = nullptr;
                 receivedMessage.senderId = 0;
                 continue;
