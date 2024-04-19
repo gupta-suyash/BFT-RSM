@@ -163,8 +163,8 @@ int main(int argc, char *argv[])
 
         sendThread.join();
         receiveThread.join();
-        // relayRequestThread.join();
-        // relayTransactionThread.join();
+        relayRequestThread.join();
+        relayTransactionThread.join();
 
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "

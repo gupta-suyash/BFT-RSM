@@ -55,7 +55,8 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
 
     const auto resendNumber = messageScheduler.getResendNumber(sequenceNumber);
     const auto isMessageNeverSent = not resendNumber.has_value();
-    if (isMessageNeverSent)
+    SPDLOG_CRITICAL("Seqno: {}, ResendNumber: {}", sequenceNumber, resendNumber.value_or(9999));    
+if (isMessageNeverSent)
     {
         return true;
     }
@@ -338,6 +339,7 @@ static void runScroogeSendThread(
 
     while (not is_test_over())
     {
+        //SPDLOG_CRITICAL("Beginning of while loop!");
         // update window information
         const auto curAck = acknowledgment->getAckIterator();
         const auto curQuack = quorumAck->getCurrentQuack();
@@ -360,7 +362,7 @@ static void runScroogeSendThread(
         const bool isNoopTimeoutHit = curTime - lastSendTime > kNoopDelay;
         const bool isTimeoutHit = curTime - lastSendTime > kMaxMessageDelay;
         const bool shouldDequeue = isTimeoutHit || (isAckFresh && isSequenceNumberUseful);
-
+        //SPDLOG_CRITICAL("shouldDequeue: {}, isTimeoutHit: {}, isAckFresh: {}, isSequenceNumberUseful: {}, currTime: {}", shouldDequeue, isTimeoutHit, isAckFresh, isSequenceNumberUseful, std::chrono::duration<double>(curTime - lastSendTime).count());
         numSendChecks++;
         numQuackWindowFails += not isSequenceNumberUseful;
         numAckWindowFails += not isAckFresh;
@@ -377,7 +379,7 @@ static void runScroogeSendThread(
         }
         else
         {
-            shouldHandleNewMessage = not resendDatas.full() && shouldDequeue &&
+           shouldHandleNewMessage = not resendDatas.full() && shouldDequeue &&
                                      messageInput->try_dequeue(newMessageData) && not is_test_over();
         }
         if (shouldHandleNewMessage)
@@ -386,6 +388,7 @@ static void runScroogeSendThread(
             {
                 newMessageData = util::getNextMessage();
             }
+            SPDLOG_CRITICAL("MESSAGE DEQUED WITH SEQ NO {}", newMessageData.sequence_number());
             peekSN++;
             handleNewMessage<kIsUsingFile>(
                 curTime, messageScheduler, curQuack, pipeline.get(), acknowledgment.get(), newMessageData);
@@ -394,7 +397,7 @@ static void runScroogeSendThread(
             //     continue;
             // }
         }
-        else if (isAckFresh && isNoopTimeoutHit)
+        else if (/*isAckFresh && */isNoopTimeoutHit)
         {
             static uint64_t receiver = 0;
 
@@ -404,6 +407,7 @@ static void runScroogeSendThread(
             }
             else
             {
+                //SPDLOG_CRITICAL("PIPELINE Send to other RSM! shouldHandle is false");
                 pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
             }
 
@@ -411,13 +415,14 @@ static void runScroogeSendThread(
             numMsgsSentWithLastAck++;
             noop_ack++;
 
-            lastSendTime = curTime;
+            //lastSendTime = curTime;
         }
 
         updateResendData(resendDataQueue.get(), curQuack);
 
         if (not isResendDataUpdated || resendDatas.empty() || requestedResends.empty())
         {
+            //SPDLOG_CRITICAL("Continuing!");
             continue;
         }
 

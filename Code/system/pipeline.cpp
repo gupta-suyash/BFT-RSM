@@ -544,6 +544,14 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
     totalBatchedMessages += batch->data.data_size();
 
     nng_msg *batchData = serializeProtobuf(batch->data);
+    std::string seqNums{};
+    const uint64_t ackVal = (batch->data.has_ack_count())? batch->data.ack_count().value() : 0;
+    for (const auto& msg : batch->data.data())
+    {
+        seqNums += std::to_string(msg.sequence_number()) + " ";
+    }
+    if (batch->data.data_size() > 0) 
+        SPDLOG_CRITICAL("FLUSH MESSAGE ACK {}  SNs[{}]", ackVal, seqNums);
     batch->data.Clear();
     batch->batchSizeEstimate = 0;//kProtobufDefaultSize;
 
@@ -551,7 +559,6 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 
     while ((pushFailure = not sendingQueue->try_enqueue(batchData)) && not is_test_over())
         ;
-
     batch->creationTime = curTime;
 
     if (pushFailure)

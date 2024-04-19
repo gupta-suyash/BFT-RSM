@@ -1,0 +1,375 @@
+3c3
+< ## Has the most updated algorand, resdb functions (useExistingIP, this branch) and raft (commit 68bb9b0 on application-testing branch)
+---
+> ##
+13d12
+< 
+15d13
+< 
+18,24d15
+< 
+< echo -n "Are you using static machines? (T or F)"
+< 
+< read static_machines
+< 
+< echo "You have said ${static_machines} to using static machines."
+< echo "NOTE: STATIC MACHINES ONLY WORK WITH 4 NODE CLUSTERS!!!"
+43d33
+< 
+52,53c42,43
+< warmup_time=10s
+< total_time=90s
+---
+> warmup_time=20s
+> total_time=120s
+83,84c73
+< geobft="false" # "true"
+< leader="false"
+---
+> 
+87c76
+< # Valid inputs: "algo", "resdb", "raft", "file"
+---
+> # Valid inputs: "algo", "resdb", "raft"
+90,95d78
+< #send_rsm="raft"
+< #receive_rsm="raft"
+< echo "Send rsm: "
+< echo $send_rsm
+< echo "Receive rsm: "
+< echo $receive_rsm
+102c85
+< # echo -n "Please acknolwedge and accept/reject. Type Y or N: "
+---
+> echo -n "Please acknolwedge and accept/reject. Type Y or N: "
+104c87
+< # read application_acknowledgement
+---
+> read application_acknowledgement
+106,110c89,93
+< # if [ $application_acknowledgement != "Y" ]; then
+< # 	echo "Please check the application you are running."
+< # 	echo "Otherwise you will be sad :') Exiting now..."
+< # 	exit 1
+< # fi
+---
+> if [ $application_acknowledgement != "Y" ]; then
+> 	echo "Please check the application you are running."
+> 	echo "Otherwise you will be sad :') Exiting now..."
+> 	exit 1
+> fi
+113,125d95
+< #rsm1_size=(19)
+< #rsm2_size=(19)
+< #rsm1_fail=(6 7)
+< #rsm2_fail=(6 7)
+< #RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+< #RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+< #klist_size=(64)
+< #packet_size=(1000000)
+< #batch_size=(200000)
+< #batch_creation_time=(1ms)
+< #pipeline_buffer_size=(8)
+< 
+< ### GeoBFT Dummy Run
+128,129c98,99
+< rsm1_fail=(1)
+< rsm2_fail=(1)
+---
+> rsm1_fail=(0)
+> rsm2_fail=(0)
+133c103
+< packet_size=(100) #1000000)
+---
+> packet_size=(100)
+138d107
+< 
+225,228c194,196
+< GP_NAME="$experiment_name"
+< echo "$GP_NAME"
+< ZONE="us-west1-a"
+< TEMPLATE="updated-app-template" # NOTE: Look at the algo-timing template, might be necessary to run applications
+---
+> GP_NAME=${experiment_name}
+> ZONE="us-central1-a"
+> TEMPLATE="updated-app-template"
+231,232c199
+< 	echo "** Trapped CTRL-C, deleting experiment"
+< 	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+---
+>         echo "** Trapped CTRL-C, deleting experiment"
+242,277c209,215
+< RSM1=()
+< RSM2=()
+< CLIENT=()
+< if [ $static_machines = "F" ]; then
+<     echo "No static machines, creating cluster!"
+<     yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+<     #> /dev/null 2>&1
+<     sleep 50
+<     rm /tmp/all_ips.txt
+<     num_ips_read=0
+<     while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
+< 	    gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
+< 	    output=$(cat /tmp/all_ips.txt)
+< 	    ar=($output)
+< 	    num_ips_read="${#ar[@]}"
+<     done
+<     # TODO: Change this back or it'll be confusing (also change in algo function and in scrooge for loop)
+<     # && sudo wondershaper ens4 2000000 2000000'
+<     #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:0:19}";
+<     #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:19:19}";
+<     #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:0:19}";
+<     #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:19:19}";
+<     #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:1:18}";
+<     #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:20:18}";
+<     #sudo tc qdisc add dev eth0 root tbf rate 1mbit burst 64kbit latency 400ms0
+<     RSM1=(${ar[@]::${num_nodes_rsm_1}})
+<     RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
+<     CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
+<     echo "About to parallel!"
+<     #parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
+< else 
+<     echo "Have static IPs!"
+<     RSM1=(10.128.7.13 10.128.7.14 10.128.7.15 10.128.7.16)
+<     RSM2=(10.128.7.18 10.128.7.19 10.128.7.20 10.128.7.21)
+<     CLIENT=(10.128.7.17 10.128.7.22) # Machines: 5 and 10
+< fi
+---
+> 
+> # STATIC IP ADDRESSES!!!
+> RSM1=(10.128.4.137 10.128.4.138 10.128.4.139 10.128.4.140)
+> RSM2=(10.128.4.141 10.128.4.142 10.128.4.143 10.128.4.144)
+> CLIENT=(10.128.4.145 10.128.4.146)
+> echo "About to parallel!"
+> 
+302,303d239
+< 
+< #sleep 300
+431,436d366
+< if [ "${geobft}" = "true" ]; then
+<     protocols+=("geobft")
+< fi
+< if [ "${leader}" = "true" ]; then
+<     protocols+=("leader")
+< fi
+464c394,395
+<     # scp network files to expected directory on other machines
+---
+> 
+> 	# scp network files to expected directory on other machines
+467,468c398,399
+< 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+< 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+---
+> 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+> 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+471,473d401
+< 	joinedvar1=""
+< 	joinedvar2=""
+< 	raft_count=1
+483c411
+< 		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh'
+---
+>            	ssh -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh'
+486,490c414
+<            	#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'pwd && cd '"${etcd_path}"' && pwd && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
+< 		for i in ${!RSM[@]}; do
+< 			echo "building etcd on RSM: ${RSM[$i]}"
+< 			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; echo \$(pwd); ./scripts/build.sh; exit"
+< 		done
+---
+>            	parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'pwd && cd '"${etcd_path}"' && pwd && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
+492d415
+< 		
+495,497c418
+< 		echo "etcd bin path: ${etcd_bin_path}"
+< 		echo "benchmark bin path: ${benchmark_bin_path}"
+< 		TOKEN=token-99
+---
+> 		TOKEN=token-77
+508c429,430
+< 			url+=(http://"${RSM[$count]}":2380)
+---
+> 			urls+=(http://"${RSM[$count]}":2380)
+> 			#count=$((count + 1))
+515d436
+< 		#echo export "PATH=\$PATH:${benchmark_bin_path}:${etcd_bin_path}" >> $HOME/.bashrc
+520,522c441
+< 			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
+< 
+< 			(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; echo \"before kilall\"; killall -9 benchmark; echo \"after kilall\"; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") &
+---
+> 			ssh -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name};export THIS_IP=${this_ip}; export TOKEN=${TOKEN};export CLUSTER_STATE=${CLUSTER_STATE};export CLUSTER="${cluster_list%,}";export PATH=\$PATH:${benchmark_bin_path};export PATH=\$PATH:${etcd_bin_path}; cd \$HOME;echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER};killall -9 benchmark;sudo fuser -n tcp -k 2379 2380;sudo rm -rf \$HOME/data.etcd;etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_${this_ip}.log;" &
+523a443
+> 		# Sleep to wait for Raft server to start
+525a446
+> 		echo "######################################################ABOUT TO SLEEP#####################################" 
+526a448
+> 		echo "#####################################Running benchmark...#############################################"
+528,536c450,456
+< 		
+< 		if [ "${raft_count}" -eq 1 ]; then
+< 			joinedvar1="${joined%,}"
+< 			echo "RSM1: ${joinedvar1}"
+< 			raft_count=2
+< 		else
+< 			joinedvar2="${joined%,}"
+< 			echo "RSM2: ${joinedvar2}"
+< 		fi
+---
+> 		export PATH=$PATH:${etcd_bin_path}
+> 		benchmark --help
+> 		(benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256 
+> 		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=1500000 --val-size=256
+> 		benchmark --endpoints="${joined%,}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=2000000 --val-size=256) &
+> 		echo "DONE WITH FIRST RAFT ITERATION"
+> 		exit 1
+539,548c459
+< 	function benchmark_raft() {
+< 		local joinedvar=$1
+< 		local raft_count=$2
+< 		echo "IN BENCHMARK_RAFT ${joinedvar}"
+< 		echo "" > benchmark_${raft_count}.log
+< 		for i in {1..3}; do
+< 			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=400000 --val-size=256 &>> benchmark_${raft_count}.log
+< 		done		
+< 	}
+< 	
+---
+> 	# Setup all necessary external applications
+566,572d476
+<         echo "Copy over message payload and node.go file!"
+<         # Copy over message payload /home/scrooge/1M_byte_payload.txt
+<         scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/1M_byte_payload.txt ${username}@${client_ip}:${workdir}/
+<         parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/1M_byte_payload.txt ${username}@{1}:${workdir}/ ::: "${RSM[@]:0:$((size))}";
+<         # Copy over node.go file - TODO
+<         scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/node/node.go ${username}@${client_ip}:${algorand_app_dir}/node/
+<         parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/node/node.go ${username}@{1}:${algorand_app_dir}/node/ ::: "${RSM[@]:0:$((size))}";
+613a518
+> 	
+619c524
+<         	local client_ip=$3
+---
+>         local client_ip=$3
+629c534
+<         	printf "%s\n" "${client_ip}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+---
+>         printf "%s\n" "${client_ip}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+635,636d539
+<         echo "Resdb is started!!"
+<         #exit 1
+638,639d540
+<     
+<   for algo in "${protocols[@]}"; do # Looping over all the protocols.
+641,664c542,559
+< 	scrooge="false"
+< 	all_to_all="false"
+< 	one_to_one="false"
+<         geobft="false"
+<         leader="false"
+< 
+< 	if [ "${algo}" = "scrooge" ]; then
+< 		scrooge="true"
+< 	elif [ "${algo}" = "all_to_all" ]; then
+< 		all_to_all="true"
+<         elif [ "${algo}" = "geobft" ]; then
+<            	geobft="true"
+<         elif [ "${algo}" = "leader" ]; then
+<             	leader="true"
+< 	else
+< 		one_to_one="true"
+< 	fi
+< 	for kl_size in "${klist_size[@]}"; do            # Looping over all the klist_sizes.
+< 		for pk_size in "${packet_size[@]}"; do   # Looping over all the packet sizes.
+< 			for bt_size in "${batch_size[@]}"; do     # Looping over all the batch sizes.
+< 				for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
+< 					for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
+< 				# Next, we call the script that makes the config.h. We need to pass all the arguments.
+< 				# Sending RSM
+---
+> 	for algo in "${protocols[@]}"; do # Looping over all the protocols.
+> 		scrooge="false"
+> 		all_to_all="false"
+> 		one_to_one="false"
+> 
+> 		if [ "${algo}" = "scrooge" ]; then
+> 			scrooge="true"
+> 		elif [ "${algo}" = "all_to_all" ]; then
+> 			all_to_all="true"
+> 		else
+> 			one_to_one="true"
+> 		fi
+> 		for kl_size in "${klist_size[@]}"; do                   # Looping over all the klist_sizes.
+> 			for pk_size in "${packet_size[@]}"; do                 # Looping over all the packet sizes.
+> 				for bt_size in "${batch_size[@]}"; do                 # Looping over all the batch sizes.
+> 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
+> 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
+>                             # Sending RSM
+679,681c574,575
+<                             	
+< 				# Receiving RSM 
+<                             	if [ "$receive_rsm" = "algo" ]; then
+---
+>                             # Receiving RSM 
+>                             if [ "$receive_rsm" = "algo" ]; then
+696,697c590,592
+<                         	#echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
+<                         	#echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
+---
+>                         	echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
+>                         	echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
+>                         	#exit 1
+699,703c594,608
+< 			#exit 1	
+< 				./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool}
+< 
+< 				cat config.h
+< 				cp config.h system/
+---
+> 					
+>                             # Next, we call the script that makes the config.h. We need to pass all the arguments.
+> 							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
+> 
+> 							cat config.h
+> 							cp config.h system/
+> 
+> 							make clean
+> 							make proto
+> 							make -j scrooge
+> 
+> 							# Next, we make the experiment.json for backward compatibility.
+> 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
+> 							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+> 							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+705,723c610,611
+< 				make clean
+< 				make proto
+< 				make -j scrooge
+< 
+< 				# Next, we make the experiment.json for backward compatibility.
+< 				makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
+< 				parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+< 				parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+< 
+< 				# Next, we run the script.
+< 				./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
+< 				if [ "$send_rsm" = "raft" ]; then
+< 					sleep 32
+< 					benchmark_raft "${joinedvar1}" 1
+< 				fi
+< 				if [ "$receive_rsm" = "raft" ]; then
+< 					sleep 32
+< 					benchmark_raft "${joinedvar2}" 2
+< 				fi
+---
+> 							# Next, we run the script.
+> 							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+734,740d621
+< 
+< ###### UNDO
+< #yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+< 
+< ############# DID YOU DELETE THE MACHINES?????????????????
+< 
+< 

@@ -1,5 +1,5 @@
 CC=clang++
-CFLAGS=-Wall -std=c++20 -O3 -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer -flto
+CFLAGS=-Wall -std=c++20 -O3 -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer #-flto
 NNMSG=${PWD}/deps/nng
 BOOST=${PWD}/deps/boost_1_80_0
 SANITIZERS=-fsanitize=address -fsanitize=undefined
@@ -11,7 +11,7 @@ DEPS = -I$(NNMSG)/include -I$(BOOST)
 
 PROTO_DIR = ./protobuf/
 
-CFLAGS += $(DEPS)
+CFLAGS += $(DEPS) $(SANITIZERS)
 LDFLAGS = -L$(NNMSG)/lib 
 LDFLAGS += $(CFLAGS)
 LIBS = -lnng -lanl -ldl -lprotobuf -lpthread -ljsoncpp -latomic -lcryptopp

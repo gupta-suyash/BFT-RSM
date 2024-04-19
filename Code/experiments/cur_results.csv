@@ -1,0 +1,2 @@
+message_size,latency,throughput,strategy,local_network_size,foreign_network_size
+100,0,6813698.623034244,Scrooge k=64+ resends,4,4
