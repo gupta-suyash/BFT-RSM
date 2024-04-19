@@ -82,8 +82,8 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
-all_to_all="true"
+scrooge="true"
+all_to_all="false"
 one_to_one="false"
 geobft="false" # "true"
 leader="false"
@@ -135,7 +135,7 @@ rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1)
 RSM2_Stake=(1 1 1 1)
 klist_size=(64)
-packet_size=(100) #1000000)
+packet_size=(100)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -547,7 +547,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		echo "" > benchmark_${raft_count}.log
 		for i in {1..3}; do
-			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=400000 --val-size=256 &>> benchmark_${raft_count}.log
+			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=100 &>> benchmark_${raft_count}.log
 		done		
 	}
 	
@@ -556,7 +556,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# Take in arguments
 		local client_ip=$1
 		local size=$2
-		local RSM=("${!3}")
+        local pk_file=$3
+		local RSM=("${!4}")
 		echo "${RSM[@]}"
 
 		genesis_json=${algorand_scripts_dir}/scripts/genesis.json;
@@ -568,11 +569,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		mkdir ${algorand_scripts_dir}/genesis_creation/
 		cp $genesis_json ${algorand_scripts_dir}/genesis_creation/
 		mkdir ${algorand_scripts_dir}/addresses/
-        echo "Copy over message payload and node.go file!"
-        # Copy over message payload /home/scrooge/1M_byte_payload.txt
-        scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/1M_byte_payload.txt ${username}@${client_ip}:${workdir}/
-        parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/1M_byte_payload.txt ${username}@{1}:${workdir}/ ::: "${RSM[@]:0:$((size))}";
-        # Copy over node.go file - TODO
+        # Delete old log file to preserve correctness
+        ssh -o StrictHostKeyChecking=no -t "${client_ip}" 'rm -rf '"${algorand_scripts_dir}"'/genesis_creation && rm -rf '"${algorand_scripts_dir}"'/addresses && mkdir '"${algorand_scripts_dir}"'/genesis_creation/ && mkdir '"${algorand_scripts_dir}"'/addresses/'
+        parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'rm -rf '"${algorand_scripts_dir}"'/genesis_creation && rm -rf '"${algorand_scripts_dir}"'/addresses && mkdir '"${algorand_scripts_dir}"'/genesis_creation/ && mkdir '"${algorand_scripts_dir}"'/addresses/' ::: "${RSM[@]:0:$((size))}";
+		echo "Copy over message payload and node.go file!"
+        # Copy over message payload, passed in as an argument - TODO need to change name of payload file
+        scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/${pk_file} ${username}@${client_ip}:${workdir}/1M_byte_payload.txt
+        parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/${pk_file} ${username}@{1}:${workdir}/1M_byte_payload.txt ::: "${RSM[@]:0:$((size))}";
+        # Copy over node.go file
         scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/node/node.go ${username}@${client_ip}:${algorand_app_dir}/node/
         parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/node/node.go ${username}@{1}:${algorand_app_dir}/node/ ::: "${RSM[@]:0:$((size))}";
         #Relay nodes (which also happens to be the client nodes)
@@ -622,9 +626,18 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# Take in arguments
 		local client_ip=$1
 		local size=$2
-		local RSM=("${!3}")
+        local pk_file=$3
+		local RSM=("${!4}")
 		echo "${RSM[@]}"
         echo "###########################################FINISH RUNNING ALGORAND"
+        # Step 0: Copy wallet testing file onto each machine
+        echo "Copy new wallet testing file!"
+        scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/wallet_app/wallet_test.js ${username}@${client_ip}:${algorand_app_dir}/wallet_app/
+        parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_app_dir}/wallet_app/wallet_test.js ${username}@{1}:${algorand_app_dir}/wallet_app/ ::: "${RSM[@]:0:$((size))}";
+        # Step 0.5: Copy new payload onto each machine
+        # NOTE: This is currently very unintuitive due to the default file name starting with 1M. TODO: Change name (must chande node.go)
+        scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/${pk_file} ${username}@${client_ip}:${workdir}/1M_byte_payload.txt
+        parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${workdir}/BFT-RSM/Code/${pk_file} ${username}@{1}:${workdir}/1M_byte_payload.txt ::: "${RSM[@]:0:$((size))}";
         # Step 1: Copy rerun script onto each machine
         scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/scripts/rerun.sh ${username}@${client_ip}:${workdir}
         parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/scripts/rerun.sh ${username}@{1}:${workdir} ::: "${RSM[@]:0:$((size))}";
@@ -635,17 +648,42 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         relay="false"
         parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '/home/scrooge/rerun.sh '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"':4161 default '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
         echo "Done with the parallel jobs!"        
-echo "###########################################Algorand started and running!"
+        echo "###########################################Algorand started and running!"
 	}
+    
+    # Algorand Startup Verion #3: Does not rerun anything, directly starts another experiment on the same algorand instance
+    function start_no_rerun_algorand() {
+        echo "######################################################Algorand RSM is being used!"
+        # Take in arguments
+        local client_ip=$1
+        local size=$2
+        local RSM=("${!3}")
+        echo "${RSM[@]}"
+        echo "###########################################FINISH RUNNING ALGORAND"
+        #Relay nodes
+        relay="true"
+        ssh -o StrictHostKeyChecking=no -t "${client_ip}" ''"${algorand_scripts_dir}"'/run_relay_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"'' &
+        echo "Relay node is run!"
+        #Participation nodes
+        relay="false"
+        parallel -v --jobs=0 'ssh -o StrictHostKeyChecking=no -t {1} '''"${algorand_scripts_dir}"'/run_algorand.py '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"' '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
+        echo "###########################################Algorand started and running!"
+    }
 
 	function start_resdb() {
 		echo "ResDB RSM is being used!"
 		# Take in arguments
 		local cluster_num=$1
 		local size=$2
-        	local client_ip=$3
+        local client_ip=$3
 		local RSM=("${!4}")
-		# Create a new kv server conf file
+        # Delete old log file to save space
+        echo "Gonna delete log files!"
+        ssh -o StrictHostKeyChecking=no -t "${client_ip}" 'rm kv_server_performance*.log'
+        echo "Delete log files on client!"
+        parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'rm kv_server_performance*.log' ::: "${RSM[@]:0:$((size))}";
+		echo "Deleted old log files!"
+        # Create a new kv server conf file
 		rm ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		printf "%s\n" "iplist=(" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		count=0
@@ -653,7 +691,7 @@ echo "###########################################Algorand started and running!"
 				printf "%s\n" "${RSM[$count]}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 				count=$((count + 1))
 		done
-        	printf "%s\n" "${client_ip}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
+        printf "%s\n" "${client_ip}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		printf "%s\n\n" ")" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		echo "server=//kv_server:kv_server_performance" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		echo "HERE IS THE KV CONFIG:"	
@@ -688,12 +726,25 @@ echo "###########################################Algorand started and running!"
 				for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 					for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
 				            # Next, we call the script that makes the config.h. We need to pass all the arguments.
-				            # Sending RSM
+				            # First, get payload file name
+                            pk_file=""
+                            if [ "$pk_size" -eq 100 ]; then # TODO
+                                pk_file="100_byte_payload.txt"
+                            elif [ "$pk_size" -eq 1000 ]; then
+                                pk_file="1K_byte_payload.txt"
+                            elif [ "$pk_size" -eq 10000 ]; then
+                                pk_file="10K_byte_payload.txt"
+                            elif [ "$pk_size" -eq 100000 ]; then
+                                pk_file="100K_byte_payload.txt"
+                            else
+                                pk_file="1M_byte_payload.txt"
+                            fi
+                            # Start sending RSM
                         	if [ "$send_rsm" = "algo" ]; then
                         		if [ "$rerun_bool" = "T" ]; then
-                                    rerun_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+                                    rerun_algorand "${CLIENT[0]}" "$r1_size" "$pk_file" "RSM1[@]"
                                 else
-                                    start_algorand "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+                                    start_algorand "${CLIENT[0]}" "$r1_size" "$pk_file" "RSM1[@]"
                                 fi
                         	elif [ "$send_rsm" = "resdb" ]; then
                         		echo "ResDB RSM is being used for sending."
@@ -712,9 +763,9 @@ echo "###########################################Algorand started and running!"
                             if [ "$receive_rsm" = "algo" ]; then
                         		echo "Algo RSM is being used for receiving."
                                 if [ "$rerun_bool" = "T" ]; then
-                                    rerun_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+                                    rerun_algorand "${CLIENT[1]}" "$r1_size" "$pk_file" "RSM2[@]"
                                 else
-                                    start_algorand "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+                                    start_algorand "${CLIENT[1]}" "$r1_size" "$pk_file" "RSM2[@]"
                                 fi
                         	elif [ "$receive_rsm" = "resdb" ]; then
                         		echo "ResDB RSM is being used for receiving."

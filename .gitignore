@@ -24,6 +24,8 @@ Docs/*.log
 Docs/*.out
 Code/experiments/experiment_scripts/cur_results.csv
 Code/go1.20.1.linux-386.tar.gz*
+Code/experiments/experiment_scripts/throughput_vs_network_size@msg=1000.0KB.png
+Code/experiments/experiment_scripts/throughput_vs_network_size@msg=0.1KB.png
 Code/experiments/experiment_scripts/Equal Stake Confirmation Latency.png
 Code/experiments/experiment_scripts/Equal Stake Confirmation Throughput.png
 Code/experiments/experiment_scripts/algorand/simple.sh

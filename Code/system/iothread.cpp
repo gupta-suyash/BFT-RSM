@@ -114,11 +114,15 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
         const auto curQuorumAck = quorumAck->getCurrentQuack();
         if (lastQuorumAck < curQuorumAck)
         {
-            //SPDLOG_CRITICAL("QUACK ACTUALLY SENT! CurQuack: {}", curQuorumAck.value());
+            while (lastQuorumAck < curQuorumAck)
+            {
+                //SPDLOG_CRITICAL("QUACK ACTUALLY SENT! CurQuack: {}", curQuorumAck.value());
+                lastQuorumAck = lastQuorumAck.value_or(-1ULL) + 1;
+                mutableCommitAck->set_sequence_number(lastQuorumAck.value());
+                const auto serializedTransfer = transfer.SerializeAsString();
+                writeMessage(pipe, serializedTransfer);
+            }
             lastQuorumAck = curQuorumAck;
-            mutableCommitAck->set_sequence_number(lastQuorumAck.value());
-            const auto serializedTransfer = transfer.SerializeAsString();
-            writeMessage(pipe, serializedTransfer);
             //SPDLOG_CRITICAL("Successfully wrote quack {}",lastQuorumAck.value());
         }
     }

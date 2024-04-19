@@ -28,12 +28,12 @@ auto lastSendTime = std::chrono::steady_clock::now();
 uint64_t numMsgsSentWithLastAck{};
 std::optional<uint64_t> lastSentAck{};
 uint64_t lastQuack = 0;
-constexpr uint64_t kAckWindowSize = 1000;
+constexpr uint64_t kAckWindowSize = 99999999999;
 constexpr uint64_t kQAckWindowSize = 1000000000; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
 // Good values with ack12 (and 16), quack1000, delay1000ms
-constexpr auto kMaxMessageDelay = 500ms;
-constexpr auto kNoopDelay = 5ms;
+constexpr auto kMaxMessageDelay = 1ms;
+constexpr auto kNoopDelay = 1ms;
 uint64_t noop_ack = 0;
 uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{},
     numResendsTooLow{}, searchDistance{}, searchChecks{};
@@ -345,6 +345,7 @@ static void runScroogeSendThread(
 
     while (not is_test_over())
     {
+        std::this_thread::sleep_for(1us);
         // update window information
         const auto curAck = acknowledgment->getAckIterator();
         const auto curQuack = quorumAck->getCurrentQuack();
@@ -643,6 +644,7 @@ void runScroogeReceiveThread(
 
     while (not is_test_over())
     {
+        std::this_thread::sleep_for(1us);
         if (receivedMessage.message == nullptr)
         {
             receivedMessage = pipeline->RecvFromOtherRsm();
