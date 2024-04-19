@@ -244,6 +244,7 @@ def run(configJson, experimentName, expDir):
             if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":    
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
             else: # run kafka specific function
+                time.sleep(60)
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 
             executeCommand(f'mv node* {expDir}')

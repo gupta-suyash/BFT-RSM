@@ -59,13 +59,13 @@ kafka="true"
 
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
-file_rsm="true"
+file_rsm="false"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft", "file"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="file"
-receive_rsm="file"
+send_rsm="raft"
+receive_rsm="raft"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -189,8 +189,8 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="${experiment_name}"
-ZONE="us-east1-b"
-TEMPLATE="kafka-updated-4-13-template" # "kafka-unified-3-spot"
+ZONE="us-central1-a"
+TEMPLATE="updated-app-template-with-kafka-standard-1" # "kafka-unified-3-spot"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
@@ -495,7 +495,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			joinedvar2="${joined%,}"
 			echo "RSM2: ${joinedvar2}"
 		fi
-		exit 1
+		#exit 1
 	}
 
 	function benchmark_raft() {
@@ -705,7 +705,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# cd scrooge-kafka
 		# sbt package --> not working so we will clone repo into each node instead of scp'ing executable
 	
-
 	# Receiving RSM
 	if [ "$receive_rsm" = "algo" ]; then
 		echo "Algo RSM is being used for receiving."
@@ -759,41 +758,48 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 								echo "KAFKA LOG: Running RSM 1"
 								for node in $(seq 0 $((rsm1_size - 1))); do
-									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "true" "${file_100}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
+									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "true" "${file_100}" "20" "10" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 
 								echo "KAFKA LOG: Running RSM 2"
 								for node in $(seq 0 $((rsm2_size - 1))); do
 									#same thing
-									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "true" "${file_100}" "20" "10" "3" "./" "/tmp/" "${broker_ips_string}"
+									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "true" "${file_100}" "20" "10" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 
 								echo "KAFKA LOG: Running experiment"
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 								if [ "$send_rsm" = "raft" ]; then
+									echo "Running Send_RSM Benchmark Raft"
 									sleep 32
 									benchmark_raft "${joinedvar1}" 1
+									# tail -f <file_name>
+								fi
+								if [ "$receive_rsm" = "raft" ]; then
+									echo "Running Receive_RSM Benchmark Raft"
+									sleep 32
+									benchmark_raft "${joinedvar2}" 2
 								fi
 								continue
 							fi
-							# Next, we call the script that makes the config.h. We need to pass all the arguments.
-							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
+							# # Next, we call the script that makes the config.h. We need to pass all the arguments.
+							# ./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
 
-							cat config.h
-							cp config.h system/
+							# cat config.h
+							# cp config.h system/
 
-							make clean
-							make proto
-							make -j scrooge
+							# make clean
+							# make proto
+							# make -j scrooge
 
-							# Next, we make the experiment.json for backward compatibility.
-							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+							# # Next, we make the experiment.json for backward compatibility.
+							# parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+							# parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
-							# Next, we run the script.
-							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+							# # Next, we run the script.
+							# ./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 						done
 					done
 				done
