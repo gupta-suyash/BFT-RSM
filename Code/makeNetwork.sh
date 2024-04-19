@@ -771,17 +771,17 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 								echo "KAFKA LOG: Running experiment"
 								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
-								if [ "$send_rsm" = "raft" ]; then
-									echo "Running Send_RSM Benchmark Raft"
-									sleep 32
-									benchmark_raft "${joinedvar1}" 1
-									# tail -f <file_name>
-								fi
-								if [ "$receive_rsm" = "raft" ]; then
-									echo "Running Receive_RSM Benchmark Raft"
-									sleep 32
-									benchmark_raft "${joinedvar2}" 2
-								fi
+								# if [ "$send_rsm" = "raft" ]; then
+								# 	echo "Running Send_RSM Benchmark Raft"
+								# 	sleep 32
+								# 	benchmark_raft "${joinedvar1}" 1
+								# 	# tail -f <file_name>
+								# fi
+								# if [ "$receive_rsm" = "raft" ]; then
+								# 	echo "Running Receive_RSM Benchmark Raft"
+								# 	sleep 32
+								# 	benchmark_raft "${joinedvar2}" 2
+								# fi
 								continue
 							fi
 							# # Next, we call the script that makes the config.h. We need to pass all the arguments.

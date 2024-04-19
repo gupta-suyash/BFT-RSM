@@ -228,8 +228,8 @@ def run(configJson, experimentName, expDir):
                 executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
                 executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
             else: # run kafka specific function
-                executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} ~/scrooge-kafka/src/main/scala/producer.scala {username}@{{1}}:~/scrooge-kafka/src/main/scala/ ::: {" ".join(ip_list)}')
-                executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} ~/scrooge-kafka/src/main/scala/consumer.scala {username}@{{1}}:~/scrooge-kafka/src/main/scala/ ::: {" ".join(ip_list)}')
+                # executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} ~/scrooge-kafka/src/main/scala/producer.scala {username}@{{1}}:~/scrooge-kafka/src/main/scala/ ::: {" ".join(ip_list)}')
+                # executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} ~/scrooge-kafka/src/main/scala/consumer.scala {username}@{{1}}:~/scrooge-kafka/src/main/scala/ ::: {" ".join(ip_list)}')
                 executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
             file_names = []
             ips = []
