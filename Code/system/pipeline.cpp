@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
+#include <random>
 #include <sched.h>
 
 int64_t numTimeoutHits{}, numSizeHits{}, totalBatchedMessages{}, totalBatchesSent{};
@@ -36,6 +37,22 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
     if (ackIterator.has_value())
     {
         message->mutable_ack_count()->set_value(ackIterator.value());
+    }
+    *message->mutable_ack_set() = {curAckView.view.begin(),
+                                   std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+}
+
+static std::random_device rd;
+static std::mt19937 gen(rd());
+static std::uniform_int_distribution<uint64_t> dis(0, 999'999'999);
+
+static void setIncorrectAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
+{
+    const auto curAckView = acknowledgment.getAckView<(kListSize)>();
+    const auto ackIterator = acknowledgment::getAckIterator(curAckView);
+    if (ackIterator.has_value())
+    {
+        message->mutable_ack_count()->set_value(dis(gen));
     }
     *message->mutable_ack_set() = {curAckView.view.begin(),
                                    std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
@@ -551,7 +568,14 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 
     if (acknowledgment)
     {
-        setAckValue(&batch->data, *acknowledgment);
+        if (false && kOwnConfiguration.kNodeId % 3 == 1)
+        {
+            setIncorrectAckValue(&batch->data, *acknowledgment);
+        }
+        else
+        {
+            setAckValue(&batch->data, *acknowledgment);
+        }
         generateMessageMac(&batch->data);
     }
 
@@ -588,7 +612,14 @@ void Pipeline::flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const 
 
     if (acknowledgment)
     {
-        setAckValue(&batch->data, *acknowledgment);
+        if (false && kOwnConfiguration.kNodeId % 3 == 1)
+        {
+            setIncorrectAckValue(&batch->data, *acknowledgment);
+        }
+        else
+        {
+            setAckValue(&batch->data, *acknowledgment);
+        }
         generateMessageMac(&batch->data);
     }
 
