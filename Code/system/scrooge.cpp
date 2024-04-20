@@ -859,6 +859,14 @@ void runScroogeReceiveThread(
                 const auto ackIterator = std::max(newLocalQuack, acknowledgment::getAckIterator(curAckView)); // also micro-op maybe attackable by byz nodes
                 if (ackIterator.has_value())
                 {
+                    // if (configuration.kNodeId % 3 == 1)
+                    // {
+                    //     crossChainMessage.mutable_ack_count()->set_value(999'999'999);
+                    // }
+                    // else
+                    // {
+                    //     crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
+                    // }
                     crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
                 }
                 *crossChainMessage.mutable_ack_set() = {curAckView.view.begin(),
