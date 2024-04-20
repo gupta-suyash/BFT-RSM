@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <thread>
 #include <unistd.h>
+#include <random>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/unordered/unordered_map.hpp>
@@ -35,7 +36,7 @@ constexpr uint64_t kAckWindowSize = 30;
 constexpr uint64_t kQAckWindowSize = 2000; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
 // Good values with ack12 (and 16), quack1000, delay1000ms
-constexpr auto kMaxMessageDelay = 10ms;
+constexpr auto kMaxMessageDelay = 6ms;
 constexpr auto kNoopDelay = 1ms;
 uint64_t noop_ack = 0;
 uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{},
@@ -747,6 +748,10 @@ void runScroogeReceiveThread(
     bindThreadToCpu(2);
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
 
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint64_t> dis(0, 999'999'999);
+
     uint64_t timedMessages{}, needlessRebroadcasts{};
     pipeline::ReceivedCrossChainMessage receivedMessage{};
 
@@ -807,7 +812,7 @@ void runScroogeReceiveThread(
                     acknowledgment->addToAckList(curSequenceNumber);
                     
                     const auto resendNumber = inverseMessageScheduler.getMinResendNumber(curSequenceNumber);
-                    assert(resendNumber.has_value() && "Should fix this");
+                    // assert(resendNumber.has_value() && "Should fix this");
                     const bool isMessageRebroadcast = resendNumber > 0;
                     const bool isMessageDelivered = curLocalQuack > curSequenceNumber;
                     if (isMessageDelivered)
@@ -859,7 +864,14 @@ void runScroogeReceiveThread(
                 const auto ackIterator = std::max(newLocalQuack, acknowledgment::getAckIterator(curAckView)); // also micro-op maybe attackable by byz nodes
                 if (ackIterator.has_value())
                 {
-                    crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
+                    if (configuration.kNodeId % 3 == 1)
+                    {
+                        crossChainMessage.mutable_ack_count()->set_value(dis(gen));
+                    }
+                    else
+                    {
+                        crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
+                    }
                 }
                 *crossChainMessage.mutable_ack_set() = {curAckView.view.begin(),
                                                 std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
@@ -889,16 +901,12 @@ void runScroogeReceiveThread(
                 {
                     const auto sizeShrink = messageSize - protoSize;
                     nng_msg_chop(message, sizeShrink);
-                    assert(message && "Spot1");
                 }
                 else
                 {
                     nng_msg_free(message);
                     nng_msg_alloc(&message, protoSize); // extending the msg may copy a bunch of unneeded data. Just make a new one
-                    assert(message && "Spot3");
                 }
-
-                assert(nng_msg_body(message) && "Spot4");
                 crossChainMessage.SerializeToArray(nng_msg_body(message), protoSize);
             }
         }
