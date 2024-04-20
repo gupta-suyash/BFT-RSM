@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <thread>
 #include <unistd.h>
-#include <random>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/unordered/unordered_map.hpp>
@@ -36,7 +35,7 @@ constexpr uint64_t kAckWindowSize = 30;
 constexpr uint64_t kQAckWindowSize = 2000; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
 // Good values with ack12 (and 16), quack1000, delay1000ms
-constexpr auto kMaxMessageDelay = 6ms;
+constexpr auto kMaxMessageDelay = 7ms;
 constexpr auto kNoopDelay = 1ms;
 uint64_t noop_ack = 0;
 uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{},
@@ -748,10 +747,6 @@ void runScroogeReceiveThread(
     bindThreadToCpu(2);
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis(0, 999'999'999);
-
     uint64_t timedMessages{}, needlessRebroadcasts{};
     pipeline::ReceivedCrossChainMessage receivedMessage{};
 
@@ -864,14 +859,7 @@ void runScroogeReceiveThread(
                 const auto ackIterator = std::max(newLocalQuack, acknowledgment::getAckIterator(curAckView)); // also micro-op maybe attackable by byz nodes
                 if (ackIterator.has_value())
                 {
-                    if (configuration.kNodeId % 3 == 1)
-                    {
-                        crossChainMessage.mutable_ack_count()->set_value(dis(gen));
-                    }
-                    else
-                    {
-                        crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
-                    }
+                    crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
                 }
                 *crossChainMessage.mutable_ack_set() = {curAckView.view.begin(),
                                                 std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
