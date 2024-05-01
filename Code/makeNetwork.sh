@@ -104,7 +104,7 @@ rsm1_fail=(1 2 3 4 5 6)
 rsm2_fail=(1 2 3 4 5 6)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(128)
+klist_size=(0 64 128)
 packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
@@ -198,7 +198,7 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 
-GP_NAME="reggie-exp-4"
+GP_NAME="exp-reggie-1"
 ZONE="us-west1-b"
 TEMPLATE="updated-app-template"
 
