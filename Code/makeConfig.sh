@@ -68,3 +68,4 @@ echo -e "#define QUACK_WINDOW ${quack_window}" >> config.h
 echo -e "#define ACK_WINDOW ${ack_window}" >> config.h
 
 echo -e "#endif" >> config.h
+echo -e "" >> config.h
