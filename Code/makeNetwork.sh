@@ -109,6 +109,10 @@ packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
+noop_delays=(1ms)
+max_message_delays=(10ms)
+quack_windows=(500)
+ack_windows=(30)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -635,23 +639,31 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				for bt_size in "${batch_size[@]}"; do                 # Looping over all the batch sizes.
 					for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-							# Next, we call the script that makes the config.h. We need to pass all the arguments.
-							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool}
+							for noop_delay in "${noop_delays[@]}"; do
+								for max_message_delay in "${max_message_delays[@]}"; do
+									for quack_window in "${quack_windows[@]}"; do
+										for ack_window in "${ack_windows[@]}"; do
+											# Next, we call the script that makes the config.h. We need to pass all the arguments.
+											./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window}
 
-							cat config.h
-							cp config.h system/
+											cat config.h
+											cp config.h system/
 
-							make clean
-							make proto
-							make -j scrooge
+											make clean
+											make proto
+											make -j scrooge
 
-							# Next, we make the experiment.json for backward compatibility.
-							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
-							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-							parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+											# Next, we make the experiment.json for backward compatibility.
+											makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
+											parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+											parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
-							# Next, we run the script.
-							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+											# Next, we run the script.
+											./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+										done
+									done
+								done
+							done
 						done
 					done
 				done

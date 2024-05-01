@@ -20,7 +20,9 @@
 #define SCROOGE true
 #define ALL_TO_ALL false
 #define ONE_TO_ONE false
-#define GEOBFT false
-#define LEADER false
-#define FILE_RSM false
+#define FILE_RSM true
+#define NOOP_DELAY 1ms
+#define MAX_MESSAGE_DELAY 10ms
+#define QUACK_WINDOW 500
+#define ACK_WINDOW 10
 #endif
