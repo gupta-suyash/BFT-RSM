@@ -35,7 +35,8 @@ constexpr uint64_t kAckWindowSize = ACK_WINDOW;
 constexpr uint64_t kQAckWindowSize = QUACK_WINDOW; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
 // Good values with ack12 (and 16), quack1000, delay1000ms
-constexpr std::chrono::nanoseconds kMaxMessageDelay = std::chrono::duration_cast<std::chrono::nanoseconds>(MAX_MESSAGE_DELAY);
+constexpr std::chrono::nanoseconds kMaxMessageDelay =
+    std::chrono::duration_cast<std::chrono::nanoseconds>(MAX_MESSAGE_DELAY);
 constexpr std::chrono::nanoseconds kNoopDelay = std::chrono::duration_cast<std::chrono::nanoseconds>(NOOP_DELAY);
 uint64_t noop_ack = 0;
 uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{},
@@ -437,12 +438,12 @@ static void runScroogeSendThread(
     addMetric("Max message delay", std::chrono::duration<double>(kMaxMessageDelay).count());
     addMetric("Ack Window", kAckWindowSize);
     addMetric("Quack Window", kQAckWindowSize);
-    addMetric("transfer_strategy", "Scrooge double-klist"s
-        + " k=" + std::to_string(kListSize)
-        + " noop[" + std::to_string(std::chrono::duration<double>(kNoopDelay).count()*1000)
-        + "ms] MMDelay[" + std::to_string(std::chrono::duration<double>(kMaxMessageDelay).count() * 1000) + "ms]"
-        + " quackWindow[" + std::to_string(kQAckWindowSize)
-        + "] ackWindow[" + std::to_string(kAckWindowSize) + "]");
+    addMetric("transfer_strategy", "Scrooge double-klist"s + " k=" + std::to_string(kListSize) + " noop[" +
+                                       std::to_string(std::chrono::duration<double>(kNoopDelay).count() * 1000) +
+                                       "ms] MMDelay[" +
+                                       std::to_string(std::chrono::duration<double>(kMaxMessageDelay).count() * 1000) +
+                                       "ms]" + " quackWindow[" + std::to_string(kQAckWindowSize) + "] ackWindow[" +
+                                       std::to_string(kAckWindowSize) + "]");
     addMetric("num_msgs_sent_primary", numMessagesSent);
     addMetric("num_msgs_resent", numMessagesResent);
     addMetric("num_resend_checks", numResendChecks);
@@ -498,9 +499,9 @@ struct LameTracker
     AcknowledgmentTracker ackTracker;
 };
 void updateForeignAckTrackers(const std::optional<uint64_t> curQuack, const uint64_t nodeStake,
-                       const util::JankAckView nodeAckView, std::vector<LameTracker> &ackTrackers,
-                       iothread::MessageQueue<acknowledgment_tracker::ResendData> *const resendDataQueue,
-                       const MessageScheduler &messageScheduler)
+                              const util::JankAckView nodeAckView, std::vector<LameTracker> &ackTrackers,
+                              iothread::MessageQueue<acknowledgment_tracker::ResendData> *const resendDataQueue,
+                              const MessageScheduler &messageScheduler)
 {
     numRecv++;
     const auto nodeId = nodeAckView.senderId;
@@ -599,9 +600,9 @@ struct LameLocalTracker
     AcknowledgmentTracker ackTracker;
 };
 void updateLocalAckTrackers(const std::optional<uint64_t> curQuack, const uint64_t nodeStake,
-                       const util::JankAckView nodeAckView, std::vector<LameLocalTracker> &ackTrackers,
-                       iothread::MessageQueue<uint64_t> *const rebroadcastDataQueue,
-                       const InverseMessageScheduler &inverseMessageScheduler)
+                            const util::JankAckView nodeAckView, std::vector<LameLocalTracker> &ackTrackers,
+                            iothread::MessageQueue<uint64_t> *const rebroadcastDataQueue,
+                            const InverseMessageScheduler &inverseMessageScheduler)
 {
     numRecvLocal++;
     const auto nodeId = nodeAckView.senderId;
@@ -609,10 +610,10 @@ void updateLocalAckTrackers(const std::optional<uint64_t> curQuack, const uint64
     const auto initialMessageTrack = curQuack.value_or(0ULL - 1ULL) + 1;
     const auto finialMessageTrack = std::min(initialMessageTrack + kNumAckTrackers - 1, util::getFinalAck(nodeAckView));
     overlapLocal += (finialMessageTrack >= initialMessageTrack)
-                   ? ((int64_t)finialMessageTrack - (int64_t)initialMessageTrack + 1)
-                   : 0;
+                        ? ((int64_t)finialMessageTrack - (int64_t)initialMessageTrack + 1)
+                        : 0;
     klistDeltaLocal += (int64_t)initialMessageTrack - (int64_t)util::getAckIterator(nodeAckView).value_or(0);
-    kListSizeLocal += (int64_t) finialMessageTrack - (int64_t) initialMessageTrack + 1;
+    kListSizeLocal += (int64_t)finialMessageTrack - (int64_t)initialMessageTrack + 1;
 
     // SPDLOG_CRITICAL("MAKING UPDATE FOR NODE {} -- Q{} Init{} Final{}", nodeId, curQuack.value_or(0),
     // initialMessageTrack, finialMessageTrack);
@@ -677,7 +678,8 @@ void updateLocalAckTrackers(const std::optional<uint64_t> curQuack, const uint64
     }
 }
 
-void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *const quorumAck, QuorumAcknowledgment *const localQuack,
+void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *const quorumAck,
+                   QuorumAcknowledgment *const localQuack,
                    iothread::MessageQueue<acknowledgment_tracker::ResendData> *const resendDataQueue,
                    iothread::MessageQueue<uint64_t> *const rebroadcastDataQueue,
                    moodycamel::ReaderWriterQueue<util::JankAckView> *const viewQueue, NodeConfiguration configuration)
@@ -692,15 +694,16 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
     std::vector<LameLocalTracker> localAckTrackers;
     for (uint64_t i = 0; i < kNumAckTrackers; i++)
     {
-        foreignAckTrackers.push_back(LameTracker{.sequenceNumber = -1ULL,
-                                          .firstResendNum = -1ULL,
-                                          .lastResendNum = -1ULL,
-                                          .ackTracker = AcknowledgmentTracker{configuration.kOtherNetworkSize,
-                                                                              configuration.kOtherMaxNumFailedStake}});
-        localAckTrackers.push_back(LameLocalTracker{.sequenceNumber = -1ULL,
-                                          .minResendNumber = -1ULL,
-                                          .ackTracker = AcknowledgmentTracker{configuration.kOwnNetworkSize,
-                                                                              configuration.kOwnMaxNumFailedStake}});
+        foreignAckTrackers.push_back(
+            LameTracker{.sequenceNumber = -1ULL,
+                        .firstResendNum = -1ULL,
+                        .lastResendNum = -1ULL,
+                        .ackTracker = AcknowledgmentTracker{configuration.kOtherNetworkSize,
+                                                            configuration.kOtherMaxNumFailedStake}});
+        localAckTrackers.push_back(LameLocalTracker{
+            .sequenceNumber = -1ULL,
+            .minResendNumber = -1ULL,
+            .ackTracker = AcknowledgmentTracker{configuration.kOwnNetworkSize, configuration.kOwnMaxNumFailedStake}});
     }
 
     while (not is_test_over())
@@ -713,15 +716,16 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
         {
             const auto senderStake = configuration.kOwnNetworkStakes.at(curView.senderId);
             const auto currentQuack = localQuack->getCurrentQuack();
-            updateLocalAckTrackers(currentQuack, senderStake, curView, localAckTrackers, rebroadcastDataQueue, inverseMessageScheduler);
+            updateLocalAckTrackers(currentQuack, senderStake, curView, localAckTrackers, rebroadcastDataQueue,
+                                   inverseMessageScheduler);
         }
         else
         {
             const auto senderStake = configuration.kOtherNetworkStakes.at(curView.senderId);
             const auto currentQuack = quorumAck->getCurrentQuack();
-            updateForeignAckTrackers(currentQuack, senderStake, curView, foreignAckTrackers, resendDataQueue, messageScheduler);
+            updateForeignAckTrackers(currentQuack, senderStake, curView, foreignAckTrackers, resendDataQueue,
+                                     messageScheduler);
         }
-        
     }
     SPDLOG_CRITICAL("LAME THREAD ENDING");
 
@@ -742,7 +746,7 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
     addMetric("klistDeltaLocal", (double)klistDeltaLocal / numRecvLocal);
     addMetric("overlapLocal", (double)overlapLocal / numRecvLocal);
     addMetric("untouched klists Local", untochedLocal);
-    addMetric("Avg Klist size local", (double) kListSizeLocal / numRecvLocal);
+    addMetric("Avg Klist size local", (double)kListSizeLocal / numRecvLocal);
 }
 
 void runScroogeReceiveThread(
@@ -763,12 +767,12 @@ void runScroogeReceiveThread(
     InverseMessageScheduler inverseMessageScheduler{configuration};
     boost::unordered_set<uint64_t> rebroadcastRequests;
     boost::unordered_map<uint64_t, scrooge::CrossChainMessageData> rebroadcastDataBuffer; // Please make me faster
-    boost::circular_buffer<scrooge::CrossChainMessageData> rebraodcastRequestBuffer(1<<15);
+    boost::circular_buffer<scrooge::CrossChainMessageData> rebraodcastRequestBuffer(1 << 15);
     // boost::circular_buffer<scrooge::CrossChainMessageData> rebraodcastDataBuffer(1<<18);
     QuorumAcknowledgment localQuack(configuration.kOwnMaxNumFailedStake + 1);
     const auto kOwnNodeStake = configuration.kOwnNetworkStakes.at(configuration.kNodeId);
-    std::thread lameThread(lameAckThread, acknowledgment.get(), quorumAck.get(), &localQuack, resendDataQueue.get(), &rebroadcastDataQueue, &viewQueue,
-                           configuration);
+    std::thread lameThread(lameAckThread, acknowledgment.get(), quorumAck.get(), &localQuack, resendDataQueue.get(),
+                           &rebroadcastDataQueue, &viewQueue, configuration);
 
     uint64_t lastRebroadcastGc{};
     while (not is_test_over())
@@ -779,7 +783,7 @@ void runScroogeReceiveThread(
 
             if (receivedMessage.message != nullptr)
             {
-                auto& [message, senderId] = receivedMessage;
+                auto &[message, senderId] = receivedMessage;
 
                 const auto messageData = nng_msg_body(message);
                 const auto messageSize = nng_msg_len(message);
@@ -804,22 +808,23 @@ void runScroogeReceiveThread(
                 const auto curLocalQuack = localQuack.getCurrentQuack();
                 for (uint64_t curMessageInd = 0; curMessageInd < crossChainMessage.data_size(); curMessageInd++)
                 {
-                    const auto& messageData = crossChainMessage.data().at(curMessageInd);
+                    const auto &messageData = crossChainMessage.data().at(curMessageInd);
                     if (not util::isMessageDataValid(messageData))
                     {
                         continue;
                     }
                     const auto curSequenceNumber = messageData.sequence_number();
                     acknowledgment->addToAckList(curSequenceNumber);
-                    
+
                     const auto resendNumber = inverseMessageScheduler.getMinResendNumber(curSequenceNumber);
                     // assert(resendNumber.has_value() && "Should fix this");
                     const bool isMessageRebroadcast = resendNumber > 0;
                     const bool isMessageDelivered = curLocalQuack > curSequenceNumber;
                     if (isMessageDelivered)
                     {
-                        // Delete the message because it is already delivered -- micro-op which can be attacked by byz nodes
-                        // std::swap(crossChainMessage.mutable_data()->at(curMessageInd), crossChainMessage.mutable_data()->at(crossChainMessage.data_size()-1));
+                        // Delete the message because it is already delivered -- micro-op which can be attacked by byz
+                        // nodes std::swap(crossChainMessage.mutable_data()->at(curMessageInd),
+                        // crossChainMessage.mutable_data()->at(crossChainMessage.data_size()-1));
                         // crossChainMessage.mutable_data()->RemoveLast();
                         needlessRebroadcasts++;
                     }
@@ -834,16 +839,19 @@ void runScroogeReceiveThread(
                         else
                         {
                             // Don't broadcast just yet..
-                            rebroadcastDataBuffer.emplace(curSequenceNumber, std::move(crossChainMessage.mutable_data()->at(curMessageInd)));
-                            crossChainMessage.mutable_data()->at(curMessageInd) = std::move(crossChainMessage.mutable_data()->at(crossChainMessage.data_size()-1));
+                            rebroadcastDataBuffer.emplace(
+                                curSequenceNumber, std::move(crossChainMessage.mutable_data()->at(curMessageInd)));
+                            crossChainMessage.mutable_data()->at(curMessageInd) =
+                                std::move(crossChainMessage.mutable_data()->at(crossChainMessage.data_size() - 1));
                             crossChainMessage.mutable_data()->RemoveLast();
                             curMessageInd--;
                         }
                     }
-                    
+
                     timedMessages += is_test_recording();
                 }
-                const auto newLocalQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake, acknowledgment->getAckIterator().value_or(0));
+                const auto newLocalQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake,
+                                                                    acknowledgment->getAckIterator().value_or(0));
 
                 const auto curForeignAck = (crossChainMessage.has_ack_count())
                                                ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
@@ -854,15 +862,16 @@ void runScroogeReceiveThread(
                     quorumAck->updateNodeAck(senderId, senderStake, *curForeignAck);
                 }
                 while (not viewQueue.try_enqueue(
-                           util::JankAckView{
-                                             .isLocal = false,
+                           util::JankAckView{.isLocal = false,
                                              .senderId = (uint8_t)senderId,
                                              .ackOffset = (uint32_t)(curForeignAck.value_or(0ULL - 1ULL) + 2),
                                              .view = std::move(*crossChainMessage.mutable_ack_set())}) &&
                        not is_test_over())
                     ;
                 const auto curAckView = acknowledgment->getAckView<(kListSize)>();
-                const auto ackIterator = std::max(newLocalQuack, acknowledgment::getAckIterator(curAckView)); // also micro-op maybe attackable by byz nodes
+                const auto ackIterator =
+                    std::max(newLocalQuack,
+                             acknowledgment::getAckIterator(curAckView)); // also micro-op maybe attackable by byz nodes
                 if (ackIterator.has_value())
                 {
                     // if (configuration.kNodeId % 3 == 1)
@@ -876,7 +885,7 @@ void runScroogeReceiveThread(
                     crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
                 }
                 *crossChainMessage.mutable_ack_set() = {curAckView.view.begin(),
-                                                std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+                                                        std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
 
                 uint64_t curRebroadcastRequest{};
                 while (rebroadcastDataQueue.try_dequeue(curRebroadcastRequest))
@@ -907,7 +916,9 @@ void runScroogeReceiveThread(
                 else
                 {
                     nng_msg_free(message);
-                    nng_msg_alloc(&message, protoSize); // extending the msg may copy a bunch of unneeded data. Just make a new one
+                    nng_msg_alloc(
+                        &message,
+                        protoSize); // extending the msg may copy a bunch of unneeded data. Just make a new one
                 }
                 crossChainMessage.SerializeToArray(nng_msg_body(message), protoSize);
             }
@@ -949,8 +960,8 @@ void runScroogeReceiveThread(
             }
 
             const auto curForeignAck = (crossChainMessage.has_ack_count())
-                                               ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
-                                               : std::nullopt;
+                                           ? std::optional<uint64_t>(crossChainMessage.ack_count().value())
+                                           : std::nullopt;
 
             bool isMessageValid = util::checkMessageMac(crossChainMessage);
             if (not isMessageValid)
@@ -966,12 +977,11 @@ void runScroogeReceiveThread(
                 localQuack.updateNodeAck(senderId, senderStake, *curForeignAck);
             }
             while (not viewQueue.try_enqueue(
-                        util::JankAckView{
-                                            .isLocal = true,
-                                            .senderId = (uint8_t)senderId,
-                                            .ackOffset = (uint32_t)(curForeignAck.value_or(0ULL - 1ULL) + 2),
-                                            .view = std::move(*crossChainMessage.mutable_ack_set())}) &&
-                    not is_test_over())
+                       util::JankAckView{.isLocal = true,
+                                         .senderId = (uint8_t)senderId,
+                                         .ackOffset = (uint32_t)(curForeignAck.value_or(0ULL - 1ULL) + 2),
+                                         .view = std::move(*crossChainMessage.mutable_ack_set())}) &&
+                   not is_test_over())
                 ;
 
             for (const auto &messageData : crossChainMessage.data())
@@ -983,9 +993,10 @@ void runScroogeReceiveThread(
                 acknowledgment->addToAckList(messageData.sequence_number());
                 timedMessages += is_test_recording();
             }
-            const auto curQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake, acknowledgment->getAckIterator().value_or(0));
+            const auto curQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake,
+                                                           acknowledgment->getAckIterator().value_or(0));
 
-            if ((int64_t)curQuack.value_or(0) - (int64_t) lastRebroadcastGc > 1'000'000)
+            if ((int64_t)curQuack.value_or(0) - (int64_t)lastRebroadcastGc > 1'000'000)
             {
                 for (auto curReq = rebroadcastRequests.begin(); curReq != rebroadcastRequests.end();)
                 {
