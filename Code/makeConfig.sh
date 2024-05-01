@@ -26,6 +26,10 @@ all_to_all=${18}
 one_to_one=${19}
 file_rsm=${20}
 use_debug_logs_bool=${21}
+noop_delay=${22}
+max_message_delay=${23}
+quack_window=${24}
+ack_window=${25}
 
 
 echo -e "#ifndef _CONFIG_H_" > config.h
@@ -54,5 +58,9 @@ echo -e "#define SCROOGE ${scrooge}" >> config.h
 echo -e "#define ALL_TO_ALL ${all_to_all}" >> config.h
 echo -e "#define ONE_TO_ONE ${one_to_one}" >> config.h
 echo -e "#define FILE_RSM ${file_rsm}" >> config.h
+echo -e "#define NOOP_DELAY ${noop_delay}" >> config.h
+echo -e "#define MAX_MESSAGE_DELAY ${max_message_delay}" >> config.h
+echo -e "#define QUACK_WINDOW ${quack_window}" >> config.h
+echo -e "#define ACK_WINDOW ${ack_window}" >> config.h
 
 echo -e "#endif" >> config.h
