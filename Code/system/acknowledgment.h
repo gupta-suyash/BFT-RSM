@@ -39,7 +39,7 @@ template <uint64_t kViewSize> uint64_t getFinalAck(const AckView<kViewSize> &ack
             const auto numRighZeros = std::countl_zero(ackView.view[i]);
             if (numRighZeros != 64)
             {
-                return ackView.ackOffset + (i * 64) + (64 - numRighZeros) - 1;
+                return std::min<uint64_t>(ackView.ackOffset + kTrueKlistSize - 1, ackView.ackOffset + (i * 64) + (64 - numRighZeros) - 1);
             }
         }
     }
