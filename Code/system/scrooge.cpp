@@ -35,8 +35,8 @@ constexpr uint64_t kAckWindowSize = ACK_WINDOW;
 constexpr uint64_t kQAckWindowSize = QUACK_WINDOW; // Failures maybe try (1<<20)
 // Optimal window size for non-stake: 12*16 and for stake: 12*8
 // Good values with ack12 (and 16), quack1000, delay1000ms
-constexpr std::chrono::nanoseconds kMaxMessageDelay = MAX_MESSAGE_DELAY;
-constexpr std::chrono::nanoseconds kNoopDelay = NOOP_DELAY;
+constexpr std::chrono::nanoseconds kMaxMessageDelay = std::chrono::duration_cast<std::chrono::nanoseconds>(MAX_MESSAGE_DELAY);
+constexpr std::chrono::nanoseconds kNoopDelay = std::chrono::duration_cast<std::chrono::nanoseconds>(NOOP_DELAY);
 uint64_t noop_ack = 0;
 uint64_t numResendChecks{}, numActiveResends{}, numResendsOverQuack{}, numMessagesSent{}, numResendsTooHigh{},
     numResendsTooLow{}, searchDistance{}, searchChecks{};
@@ -440,7 +440,7 @@ static void runScroogeSendThread(
     addMetric("transfer_strategy", "Scrooge double-klist"s
         + " k=" + std::to_string(kListSize)
         + " noop[" + std::to_string(std::chrono::duration<double>(kNoopDelay).count()*1000)
-        + "ms] MMDelay[" + std::to_string(std::chrono::duration<double>(kMaxMessageDelay) * 1000) + "ms]"
+        + "ms] MMDelay[" + std::to_string(std::chrono::duration<double>(kMaxMessageDelay).count() * 1000) + "ms]"
         + " quackWindow[" + std::to_string(kQAckWindowSize)
         + "] ackWindow[" + std::to_string(kAckWindowSize) + "]");
     addMetric("num_msgs_sent_primary", numMessagesSent);

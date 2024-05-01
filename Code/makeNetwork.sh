@@ -86,21 +86,21 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
 
-rsm1_size=(4 7 10 13 16 19)
-rsm2_size=(4 7 10 13 16 19)
-rsm1_fail=(1 2 3 4 5 6)
-rsm2_fail=(1 2 3 4 5 6)
+rsm1_size=(7 13 16 19)
+rsm2_size=(7 13 16 19)
+rsm1_fail=(2 4 5 6)
+rsm2_fail=(2 4 5 6)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(0 64 128)
+klist_size=(0 64)
 packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1)
 pipeline_buffer_size=(8)
-noop_delays=(1ms)
-max_message_delays=(10ms)
-quack_windows=(500)
-ack_windows=(30)
+noop_delays=(.8ms 1ms 12ms 100ms)
+max_message_delays=(.8ms 1ms 12ms 100ms)
+quack_windows=(100 500 1000 2000)
+ack_windows=(10 30 100 500 1000)
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
 # rsm1_size=(4 13 25 46)
@@ -205,7 +205,7 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
 # exit
 
