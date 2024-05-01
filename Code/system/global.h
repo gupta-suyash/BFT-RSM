@@ -13,7 +13,8 @@
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 
-constexpr uint64_t kListSize = KLIST_SIZE;
+constexpr uint64_t kListSize = (KLIST_SIZE < 64)? 64 : KLIST_SIZE;
+constexpr uint64_t kTrueKlistSize = KLIST_SIZE;
 static_assert(kListSize % 64 == 0, "kListSize must be a multiple of 64");
 
 struct NodeConfiguration
