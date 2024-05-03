@@ -23,8 +23,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=10s
-total_time=40s
+warmup_time=20s
+total_time=50s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -85,10 +85,10 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 # fi
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-rsm1_size=(19)
-rsm2_size=(19)
-rsm1_fail=(6 7)
-rsm2_fail=(6 7)
+rsm1_size=(16)
+rsm2_size=(16)
+rsm1_fail=(5)
+rsm2_fail=(5)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
@@ -201,6 +201,7 @@ echo "${ZONE}"
 echo "${TEMPLATE}"
 # yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
+# exit
 
 rm /tmp/all_ips.txt
 num_ips_read=0
