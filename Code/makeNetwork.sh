@@ -225,6 +225,7 @@ if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
 fi
 
 exit
+exit
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
