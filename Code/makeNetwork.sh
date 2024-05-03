@@ -215,7 +215,8 @@ else
   git stash --include-untracked
   git stash apply
   git switch -c "AUTOMATED_BRANCH/$(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
-  git commit -am "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
+  git add .
+  git commit -m "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
   git push -u origin HEAD
 fi
 
@@ -224,6 +225,7 @@ if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
 	git stash pop
 fi
 
+exit
 exit
 
 function exit_handler() {
