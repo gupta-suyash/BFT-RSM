@@ -226,7 +226,7 @@ function exit_handler() {
 	  git switch -
 	  git stash pop
 	fi
-	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -694,7 +694,7 @@ done
 echo "taking down experiment"
 
 ###### UNDO
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 
