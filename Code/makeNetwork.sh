@@ -98,21 +98,21 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(7 13 16 19)
-rsm2_size=(7 13 16 19)
-rsm1_fail=(2 4 5 6)
-rsm2_fail=(2 4 5 6)
+rsm1_size=(16)
+rsm2_size=(16)
+rsm1_fail=(5)
+rsm2_fail=(5)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(0 64)
+klist_size=(64)
 packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
-noop_delays=(.8ms 1ms 12ms 100ms)
-max_message_delays=(.8ms 1ms 12ms 100ms)
-quack_windows=(100 500 1000 2000)
-ack_windows=(10 30 100 500 1000)
+noop_delays=(1ms)
+max_message_delays=(.8ms 1ms 4ms 8ms 12ms 20ms 30ms)
+quack_windows=(2000)
+ack_windows=(19)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -203,7 +203,7 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 
 GP_NAME="exp-reggie-1"
-ZONE="us-west1-b"
+ZONE="us-central1-a"
 TEMPLATE="updated-app-template"
 
 WORKING_DIR_CLEAN="TRUE"
@@ -236,9 +236,9 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-# exit
+exit
 
 rm /tmp/all_ips.txt
 num_ips_read=0
