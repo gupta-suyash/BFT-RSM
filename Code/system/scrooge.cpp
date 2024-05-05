@@ -757,7 +757,7 @@ void runScroogeReceiveThread(
     bindThreadToCpu(2);
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
 
-    uint64_t timedMessages{}, needlessRebroadcasts{};
+    uint64_t timedMessages{}, needlessRebroadcasts{}, numMsgsFromOtherRsm{}, numMsgsFromOwnRsm{};
     pipeline::ReceivedCrossChainMessage receivedMessage{};
 
     scrooge::CrossChainMessage crossChainMessage;
@@ -849,6 +849,7 @@ void runScroogeReceiveThread(
                     }
 
                     timedMessages += is_test_recording();
+                    numMsgsFromOtherRsm++;
                 }
                 const auto newLocalQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake,
                                                                     acknowledgment->getAckIterator().value_or(0));
@@ -992,6 +993,7 @@ void runScroogeReceiveThread(
                 }
                 acknowledgment->addToAckList(messageData.sequence_number());
                 timedMessages += is_test_recording();
+                numMsgsFromOwnRsm++;
             }
             const auto curQuack = localQuack.updateNodeAck(configuration.kNodeId, kOwnNodeStake,
                                                            acknowledgment->getAckIterator().value_or(0));
@@ -1037,7 +1039,9 @@ void runScroogeReceiveThread(
     addMetric("Average Missing Acks", (double)numMissing / (double)numChecked);
     addMetric("Average KList Size", (double)numChecked / (double)numRecv);
     addMetric("NumKListRecv", numRecv);
-    addMetric("foreign_messages_received", timedMessages);
+    addMetric("timed_messages", timedMessages);
+    addMetric("foreign_messages_received_from_other_rsm", numMsgsFromOtherRsm);
+    addMetric("foreign_messages_received_from_own_rsm", numMsgsFromOwnRsm);
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
     addMetric("num_needless_rebroadcasts", needlessRebroadcasts);
