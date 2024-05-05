@@ -112,7 +112,7 @@ pipeline_buffer_size=(256)
 noop_delays=(10ms)
 max_message_delays=(75ms)
 quack_windows=(2500 5000)
-ack_windows=(1000)
+ack_windows=(20 50 100 1000)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
