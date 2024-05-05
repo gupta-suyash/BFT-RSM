@@ -940,6 +940,10 @@ void runScroogeReceiveThread(
                 {
                     receivedMessage.message = nullptr;
                 }
+                else
+                {
+                    std::this_thread::sleep_for(10ms);
+                }
             }
         }
 
