@@ -157,7 +157,7 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = 2 * (OWN_RSM_SIZE + OTHER_RSM_SIZE);
     const long kNumOfBufferedElements =(isLocal)? 64 :
-        std::min<long>(16, (double)kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(250000, PACKET_SIZE));
+        32;
     addMetric("socket-buffer-size-send", kNumOfBufferedElements);
     bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
     if (nngSetSndBufSizeResult != 0)

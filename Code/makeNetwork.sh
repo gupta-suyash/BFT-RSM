@@ -106,13 +106,13 @@ RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
 packet_size=(1000000)
-batch_size=(200000)
+batch_size=(2000000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
 noop_delays=(1ms)
 max_message_delays=(.8ms 1ms 4ms 8ms 12ms 20ms 30ms)
-quack_windows=(2000)
-ack_windows=(19)
+quack_windows=(2000 3000 4000 5000)
+ack_windows=(15 19 30 60)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
