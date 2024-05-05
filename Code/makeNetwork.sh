@@ -110,9 +110,9 @@ batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
 noop_delays=(1ms)
-max_message_delays=(.8ms 1ms 4ms 8ms 12ms 20ms 30ms)
-quack_windows=(2000)
-ack_windows=(19)
+max_message_delays=(75ms)
+quack_windows=(750 1500)
+ack_windows=(19 100)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -237,9 +237,9 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-# exit
+exit
 
 rm /tmp/all_ips.txt
 num_ips_read=0
