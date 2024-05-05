@@ -223,6 +223,7 @@ fi
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
 	if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
+	  git reset --hard HEAD
 	  git switch -
 	  git stash pop
 	fi
@@ -699,6 +700,7 @@ yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 ############# DID YOU DELETE THE MACHINES?????????????????
 
 if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
+	git reset --hard HEAD
 	git switch -
 	git stash pop
 fi
