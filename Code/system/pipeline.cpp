@@ -455,15 +455,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
             {
                 goto exit;
             }
-            std::this_thread::yield();
-            if (sendBuffer->try_dequeue(newMessage))
-            {
-                break;
-            }
-            else
-            {
-                SPDLOG_CRITICAL("OH MY GOD ITS ON ME");
-            }
+            std::this_thread::sleep_for(6ms);
         }
 
         while (true)
@@ -544,15 +536,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
                 nng_msg_free(*message);
                 goto exit;
             }
-            std::this_thread::yield();
-            if (recvBuffer->try_enqueue(*message))
-            {
-                break;
-            }
-            else
-            {
-                SPDLOG_CRITICAL("OH GOD ITS ON ME");
-            }
+            std::this_thread::sleep_for(6ms);
         }
         numRecv++;
     }
