@@ -455,7 +455,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
             {
                 goto exit;
             }
-            std::this_thread::sleep_for(6ms);
+            std::this_thread::sleep_for(3ms);
         }
 
         while (true)
@@ -536,7 +536,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
                 nng_msg_free(*message);
                 goto exit;
             }
-            std::this_thread::sleep_for(6ms);
+            std::this_thread::sleep_for(3ms);
         }
         numRecv++;
     }
