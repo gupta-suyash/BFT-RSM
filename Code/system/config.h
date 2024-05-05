@@ -13,8 +13,8 @@
 #define TOTAL_TIME 40s
 #define BATCH_SIZE 200000
 #define BATCH_CREATION_TIME 1ms
-#define MAX_NNG_BLOCKING_TIME 500ms
-#define PIPELINE_BUFFER_SIZE 8
+#define MAX_NNG_BLOCKING_TIME 2s
+#define PIPELINE_BUFFER_SIZE 256
 #define MESSAGE_BUFFER_SIZE 256
 #define KLIST_SIZE 64
 #define SCROOGE true
@@ -25,7 +25,7 @@
 #define FILE_RSM true
 #define NOOP_DELAY 1ms
 #define MAX_MESSAGE_DELAY 75ms
-#define QUACK_WINDOW 1500
+#define QUACK_WINDOW 3000
 #define ACK_WINDOW 100
 #endif
 

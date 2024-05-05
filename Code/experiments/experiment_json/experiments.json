@@ -50,7 +50,7 @@
       "US"
     ]
   },
-  "whatever-bruh-2": {
+  "horrid": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 1,
     "simulate_latency": 0,

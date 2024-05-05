@@ -37,7 +37,7 @@ algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/alg
 resdb_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
 raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
 use_debug_logs_bool="false"
-max_nng_blocking_time=2s
+max_nng_blocking_time=10ms
 message_buffer_size=256
 
 # Set rarely changing experiment application parameters
@@ -111,8 +111,8 @@ batch_creation_time=(1ms)
 pipeline_buffer_size=(256)
 noop_delays=(1ms)
 max_message_delays=(75ms)
-quack_windows=(750 1500 3000)
-ack_windows=(19 100)
+quack_windows=(10000)
+ack_windows=(10000)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
