@@ -109,10 +109,10 @@ packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(256)
-noop_delays=(10ms)
+noop_delays=(1ms 2ms 3ms 5ms 7ms 8ms 9ms 10ms)
 max_message_delays=(75ms)
 quack_windows=(2500 5000)
-ack_windows=(20 50 100 1000)
+ack_windows=(20)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
