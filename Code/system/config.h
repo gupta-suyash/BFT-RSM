@@ -25,7 +25,7 @@
 #define FILE_RSM true
 #define NOOP_DELAY 1ms
 #define MAX_MESSAGE_DELAY 75ms
-#define QUACK_WINDOW 1000000000
+#define QUACK_WINDOW 10000
 #define ACK_WINDOW 10000
 #endif
 
