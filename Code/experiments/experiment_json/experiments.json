@@ -56,7 +56,7 @@
       "US"
     ]
   },
-  "birthday-run": {
+  "bday-run": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 1,
     "simulate_latency": 0,
