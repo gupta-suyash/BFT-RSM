@@ -100,8 +100,8 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 
 rsm1_size=(13 16 19)
 rsm2_size=(13 16 19)
-rsm1_fail=(1 2 3 4 5 6)
-rsm2_fail=(1 2 3 4 5 6)
+rsm1_fail=(4 5 6)
+rsm2_fail=(4 5 6)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(0 16 32 64 128)

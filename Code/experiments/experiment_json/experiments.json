@@ -63,10 +63,10 @@
           13
         ],
         "local_max_nodes_fail": [
-          4
+          1
         ],
         "foreign_max_nodes_fail": [
-          4
+          1
         ],
         "num_packets": [
           10000
@@ -83,10 +83,10 @@
           13
         ],
         "local_max_nodes_fail": [
-          4
+          1
         ],
         "foreign_max_nodes_fail": [
-          4
+          1
         ],
         "num_packets": [
           10000
