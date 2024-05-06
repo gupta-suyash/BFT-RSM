@@ -28,6 +28,7 @@ boost::circular_buffer<scrooge::MessageResendData> resendDatas(1 << 20);
 boost::circular_buffer<acknowledgment_tracker::ResendData> requestedResends(1 << 12);
 
 auto lastSendTime = std::chrono::steady_clock::now();
+auto lastNoopSendTime = std::chrono::steady_clock::now();
 uint64_t numMsgsSentWithLastAck{};
 std::optional<uint64_t> lastSentAck{};
 uint64_t lastQuack = 0;
@@ -362,7 +363,7 @@ static void runScroogeSendThread(
         const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
         const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
         const auto curTime = std::chrono::steady_clock::now();
-        const bool isNoopTimeoutHit = curTime - lastSendTime > kNoopDelay;
+        const bool isNoopTimeoutHit = curTime - lastNoopSendTime > kNoopDelay;
         const bool isTimeoutHit = curTime - lastSendTime > kMaxMessageDelay;
         const bool shouldDequeue = isTimeoutHit || (isAckFresh && isSequenceNumberUseful);
 
@@ -416,7 +417,7 @@ static void runScroogeSendThread(
             numMsgsSentWithLastAck++;
             noop_ack++;
 
-            // lastSendTime = curTime;
+            lastNoopSendTime = curTime;
         }
 
         updateResendData(resendDataQueue.get(), curQuack);
