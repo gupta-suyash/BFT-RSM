@@ -439,7 +439,7 @@ static void runScroogeSendThread(
     addMetric("Max message delay", std::chrono::duration<double>(kMaxMessageDelay).count());
     addMetric("Ack Window", kAckWindowSize);
     addMetric("Quack Window", kQAckWindowSize);
-    addMetric("transfer_strategy", "Scrooge double-klist"s + " k=" + std::to_string(kListSize) + " noop[" +
+    addMetric("transfer_strategy", "Scrooge double-klist"s + " k=" + std::to_string(kTrueKlistSize) + " noop[" +
                                        std::to_string(std::chrono::duration<double>(kNoopDelay).count() * 1000) +
                                        "ms] MMDelay[" +
                                        std::to_string(std::chrono::duration<double>(kMaxMessageDelay).count() * 1000) +
