@@ -16,7 +16,7 @@
 #define MAX_NNG_BLOCKING_TIME 10ms
 #define PIPELINE_BUFFER_SIZE 256
 #define MESSAGE_BUFFER_SIZE 256
-#define KLIST_SIZE 64
+#define KLIST_SIZE 1024
 #define SCROOGE true
 #define ALL_TO_ALL false
 #define ONE_TO_ONE false
@@ -26,6 +26,6 @@
 #define NOOP_DELAY 10ms
 #define MAX_MESSAGE_DELAY 75ms
 #define QUACK_WINDOW 2500
-#define ACK_WINDOW 50
+#define ACK_WINDOW 20
 #endif
 

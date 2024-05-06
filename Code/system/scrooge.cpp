@@ -399,7 +399,7 @@ static void runScroogeSendThread(
             //     continue;
             // }
         }
-        else if (isAckFresh && isNoopTimeoutHit)
+        else if (isNoopTimeoutHit)
         {
             static uint64_t receiver = 0;
 
