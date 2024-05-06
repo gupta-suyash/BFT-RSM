@@ -56,7 +56,7 @@
       "US"
     ]
   },
-  "birthday-yay": {
+  "bday-first": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 1,
     "simulate_latency": 0,
