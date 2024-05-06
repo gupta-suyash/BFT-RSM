@@ -903,25 +903,28 @@ void runScroogeReceiveThread(
                     }
                 }
 
-                const auto mstr = crossChainMessage.ack_count().SerializeAsString();
-                // Sign with own key.
-                std::string encoded = CmacSignString(get_priv_key(), mstr);
-                crossChainMessage.set_validity_proof(encoded);
+                if (crossChainMessage.data_size() != 0)
+                {
+                    const auto mstr = crossChainMessage.ack_count().SerializeAsString();
+                    // Sign with own key.
+                    std::string encoded = CmacSignString(get_priv_key(), mstr);
+                    crossChainMessage.set_validity_proof(encoded);
 
-                const auto protoSize = crossChainMessage.ByteSizeLong();
-                if (protoSize <= messageSize)
-                {
-                    const auto sizeShrink = messageSize - protoSize;
-                    nng_msg_chop(message, sizeShrink);
+                    const auto protoSize = crossChainMessage.ByteSizeLong();
+                    if (protoSize <= messageSize)
+                    {
+                        const auto sizeShrink = messageSize - protoSize;
+                        nng_msg_chop(message, sizeShrink);
+                    }
+                    else
+                    {
+                        nng_msg_free(message);
+                        nng_msg_alloc(
+                            &message,
+                            protoSize); // extending the msg may copy a bunch of unneeded data. Just make a new one
+                    }
+                    crossChainMessage.SerializeToArray(nng_msg_body(message), protoSize);
                 }
-                else
-                {
-                    nng_msg_free(message);
-                    nng_msg_alloc(
-                        &message,
-                        protoSize); // extending the msg may copy a bunch of unneeded data. Just make a new one
-                }
-                crossChainMessage.SerializeToArray(nng_msg_body(message), protoSize);
             }
         }
 
