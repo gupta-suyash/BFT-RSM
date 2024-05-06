@@ -23,7 +23,7 @@
 #define GEOBFT false
 #define LEADER false
 #define FILE_RSM true
-#define NOOP_DELAY 10ms
+#define NOOP_DELAY 3ms
 #define MAX_MESSAGE_DELAY 75ms
 #define QUACK_WINDOW 2500
 #define ACK_WINDOW 20
