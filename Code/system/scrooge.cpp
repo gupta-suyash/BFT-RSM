@@ -416,7 +416,7 @@ static void runScroogeSendThread(
             numMsgsSentWithLastAck++;
             noop_ack++;
 
-            lastSendTime = curTime;
+            // lastSendTime = curTime;
         }
 
         updateResendData(resendDataQueue.get(), curQuack);
