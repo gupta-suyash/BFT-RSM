@@ -26,6 +26,6 @@
 #define NOOP_DELAY 10ms
 #define MAX_MESSAGE_DELAY 75ms
 #define QUACK_WINDOW 5000
-#define ACK_WINDOW 1000
+#define ACK_WINDOW 50
 #endif
 
