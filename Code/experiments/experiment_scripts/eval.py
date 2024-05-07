@@ -209,7 +209,7 @@ def make_fig(graph: Graph) -> go.Figure:
         title = graph.title,
         xaxis_title = graph.x_axis_name,
         yaxis_title = graph.y_axis_name,
-        showlegend = True
+        showlegend = False
     )
 
     fig.update_xaxes(type="log")
