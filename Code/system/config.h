@@ -1,7 +1,12 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
+<<<<<<< Updated upstream
 #define OWN_RSM_SIZE 4
 #define OTHER_RSM_SIZE 4
+=======
+#define OWN_RSM_SIZE 13
+#define OTHER_RSM_SIZE 13
+>>>>>>> Stashed changes
 #define OWN_RSM_MAX_NODES_FAIL 1
 #define OTHER_RSM_MAX_NODES_FAIL 1
 #define NUMBER_PACKETS 10000
@@ -16,7 +21,11 @@
 #define MAX_NNG_BLOCKING_TIME 10ms
 #define PIPELINE_BUFFER_SIZE 256
 #define MESSAGE_BUFFER_SIZE 256
+<<<<<<< Updated upstream
 #define KLIST_SIZE 192
+=======
+#define KLIST_SIZE 128
+>>>>>>> Stashed changes
 #define SCROOGE true
 #define ALL_TO_ALL false
 #define ONE_TO_ONE false
