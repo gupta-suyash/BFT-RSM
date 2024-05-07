@@ -189,8 +189,8 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="${experiment_name}"
-ZONE="us-central1-a"
-TEMPLATE="updated-app-template-with-kafka-standard-1" # "kafka-unified-3-spot"
+ZONE="us-west1-b"
+TEMPLATE="scrooge-kafka-raft-nsdi" # "kafka-unified-3-spot"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
@@ -394,37 +394,37 @@ if [ "${kafka}" = "true" ]; then
 fi
 
 for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
-	# First, we create the configuration file "network0urls.txt" through echoing and redirection.
-	rm -f network0urls.txt
-	count=0
-	while ((count < r1_size)); do
-		echo -n "${RSM1[$count]}" >>network0urls.txt
-		echo -n " " >>network0urls.txt
-		echo "${RSM1_Stake[$count]}" >>network0urls.txt
-		count=$((count + 1))
-	done
-	cat network0urls.txt
-	cp network0urls.txt ${network_dir} #cops to the expected folder.
-	echo " "
+	# # First, we create the configuration file "network0urls.txt" through echoing and redirection.
+	# rm -f network0urls.txt
+	# count=0
+	# while ((count < r1_size)); do
+	# 	echo -n "${RSM1[$count]}" >>network0urls.txt
+	# 	echo -n " " >>network0urls.txt
+	# 	echo "${RSM1_Stake[$count]}" >>network0urls.txt
+	# 	count=$((count + 1))
+	# done
+	# cat network0urls.txt
+	# cp network0urls.txt ${network_dir} #cops to the expected folder.
+	# echo " "
 
-	# Next, we create the configuration file "network1urls.txt" through echoing and redirection.
-	rm -f network1urls.txt
-	count=0
-	while ((${count} < ${rsm2_size[$rcount]})); do
-		echo -n "${RSM2[$count]}" >>network1urls.txt
-		echo -n " " >>network1urls.txt
-		echo "${RSM2_Stake[$count]}" >>network1urls.txt
-		count=$((count + 1))
-	done
-	cat network1urls.txt
-	cp network1urls.txt ${network_dir} #copy to the expected folder.
-	echo " "
+	# # Next, we create the configuration file "network1urls.txt" through echoing and redirection.
+	# rm -f network1urls.txt
+	# count=0
+	# while ((${count} < ${rsm2_size[$rcount]})); do
+	# 	echo -n "${RSM2[$count]}" >>network1urls.txt
+	# 	echo -n " " >>network1urls.txt
+	# 	echo "${RSM2_Stake[$count]}" >>network1urls.txt
+	# 	count=$((count + 1))
+	# done
+	# cat network1urls.txt
+	# cp network1urls.txt ${network_dir} #copy to the expected folder.
+	# echo " "
 
-	# scp network files to expected directory on other machines
-	count=0
-	r2size=${rsm2_size[$rcount]}
-	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+	# # scp network files to expected directory on other machines
+	# count=0
+	# r2size=${rsm2_size[$rcount]}
+	# parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+	# parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	############# Setup all necessary external applications #############
 	joinedvar1=""
@@ -638,9 +638,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         echo "KAFKA LOG: All Broker Nodes successfully started!"
         broker_ips_string=$(printf "%s:9092," "${broker_ips[@]}")
 		broker_ips_string="${broker_ips_string%,}" # removes trailing ,
-		echo "KAFKA LOG: Creating Topic w/ Bootstrap Server ($broker_ips_string)"
 		#start kafka from script node instead?
-		sleep 100
+		sleep 20
+		echo "KAFKA LOG: Creating Topic w/ Bootstrap Server ($broker_ips_string)"
 		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-1 --partitions $num_partitions
 		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-2 --partitions $num_partitions
 		echo "KAFKA LOG: Topics successfully created!"
@@ -758,30 +758,30 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 								echo "KAFKA LOG: Running RSM 1"
 								for node in $(seq 0 $((rsm1_size - 1))); do
-									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "true" "${file_100}" "20" "10" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
+									print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "true" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 
 								echo "KAFKA LOG: Running RSM 2"
 								for node in $(seq 0 $((rsm2_size - 1))); do
 									#same thing
-									print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "true" "${file_100}" "20" "10" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
+									print_kafka_json "config.json" "topic-2" "topic-1" "2" "${node}" "3" "true" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
 									scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 								done
 
 								echo "KAFKA LOG: Running experiment"
-								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
-								# if [ "$send_rsm" = "raft" ]; then
-								# 	echo "Running Send_RSM Benchmark Raft"
-								# 	sleep 32
-								# 	benchmark_raft "${joinedvar1}" 1
-								# 	# tail -f <file_name>
-								# fi
-								# if [ "$receive_rsm" = "raft" ]; then
-								# 	echo "Running Receive_RSM Benchmark Raft"
-								# 	sleep 32
-								# 	benchmark_raft "${joinedvar2}" 2
-								# fi
+								./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
+								if [ "$send_rsm" = "raft" ]; then
+									echo "Running Send_RSM Benchmark Raft"
+									sleep 32
+									benchmark_raft "${joinedvar1}" 1
+									# tail -f <file_name>
+								fi
+								if [ "$receive_rsm" = "raft" ]; then
+									echo "Running Receive_RSM Benchmark Raft"
+									sleep 32
+									benchmark_raft "${joinedvar2}" 2
+								fi
 								continue
 							fi
 							# # Next, we call the script that makes the config.h. We need to pass all the arguments.
@@ -810,6 +810,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 echo "taking down experiment"
 ###### UNDO
-# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
