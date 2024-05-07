@@ -1,0 +1,2 @@
+message_size,latency,throughput,strategy,local_network_size,foreign_network_size
+1000000,0,39.71428996938821,Scrooge double-klist k=64 noop[1.000000ms] MMDelay[100.000000ms] quackWindow[1000] ackWindow[100],7,7

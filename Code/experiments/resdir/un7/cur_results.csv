@@ -1,0 +1,9 @@
+message_size,latency,throughput,strategy,local_network_size,foreign_network_size
+1000000,0,36.76428920500045,Scrooge double-klist k=64 noop[1.000000ms] MMDelay[100.000000ms] quackWindow[1000] ackWindow[100],7,7
+1000000,0,38.86428817163285,Scrooge double-klist k=64 noop[1.000000ms] MMDelay[100.000000ms] quackWindow[1000] ackWindow[500],7,7
+1000000,0,40.84286122714327,Scrooge double-klist k=64 noop[1.000000ms] MMDelay[100.000000ms] quackWindow[2000] ackWindow[100],7,7
+1000000,0,35.27142967867365,Scrooge double-klist k=64 noop[1.000000ms] MMDelay[100.000000ms] quackWindow[2000] ackWindow[500],7,7
+1000000,0,9.664285714183675,Scrooge double-klist k=64 noop[100.000000ms] MMDelay[100.000000ms] quackWindow[1000] ackWindow[100],7,7
+1000000,0,8.70714316653105,Scrooge double-klist k=64 noop[100.000000ms] MMDelay[100.000000ms] quackWindow[1000] ackWindow[500],7,7
+1000000,0,9.900000848571503,Scrooge double-klist k=64 noop[100.000000ms] MMDelay[100.000000ms] quackWindow[2000] ackWindow[100],7,7
+1000000,0,10.150000942653152,Scrooge double-klist k=64 noop[100.000000ms] MMDelay[100.000000ms] quackWindow[2000] ackWindow[500],7,7

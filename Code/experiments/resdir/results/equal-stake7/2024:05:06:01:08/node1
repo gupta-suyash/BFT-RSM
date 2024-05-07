@@ -1,0 +1,128 @@
+[2024-05-06 01:08:28.659] [[1m[41mcritical[m] [main.cpp:43] Config set: kNumLocalNodes = 7, kNumForeignNodes = 7, kMaxNumLocalFailedNodes = 2, kMaxNumForeignFailedNodes = 2, kOwnNodeId = 1, g_rsm_id = 0, num_packets = 10000,  packet_size = 1000000, kLogPath= '/tmp/log_0_1.yaml'
+[2024-05-06 01:08:28.847] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Batch Size : 200000
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Batch Timeout : 0.001000
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Pipeline Buffer Size : 8
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [0 : 0] : URL=tcp://10.138.2.205:7001
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [2 : 0] : URL=tcp://10.138.2.207:7001
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [3 : 0] : URL=tcp://10.138.2.200:7001
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [4 : 0] : URL=tcp://10.138.2.202:7001
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [5 : 0] : URL=tcp://10.138.2.204:7001
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [6 : 0] : URL=tcp://10.138.2.196:7001
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [0 : 1] : URL=tcp://10.138.2.197:7008
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [1 : 1] : URL=tcp://10.138.2.208:7008
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [2 : 1] : URL=tcp://10.138.2.201:7008
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [3 : 1] : URL=tcp://10.138.2.203:7008
+[2024-05-06 01:08:28.848] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [4 : 1] : URL=tcp://10.138.2.206:7008
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [5 : 1] : URL=tcp://10.138.2.209:7008
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [pipeline.cpp:421] Sending to [6 : 1] : URL=tcp://10.138.2.198:7008
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [scrooge.cpp:334] SEND THREAD TID 79291
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [scrooge.cpp:758] RECV THREAD TID 79293
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-send : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.850] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC socket-buffer-size-receive : 64
+[2024-05-06 01:08:28.863] [[1m[41mcritical[m] [scrooge.cpp:688] STARTING LAME THREAD 79308
+[2024-05-06 01:08:38.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC starting_quack : 0
+[2024-05-06 01:08:38.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC starting_ack : 90
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Noop Acks : 437
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Noop Delay : 0.001000
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Max message delay : 0.012000
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Ack Window : 30
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Quack Window : 2000
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC transfer_strategy : Scrooge double-klist k=64 noop[1.000000ms] MMDelay[12.000000ms] quackWindow[2000] ackWindow[30]
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num_msgs_sent_primary : 1146
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num_msgs_resent : 2
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num_resend_checks : 26
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_resend_active : 1.000000
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_resend_active_over_quack : 1.000000
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_resend_too_low : 0.000000
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_resend_too_high : 0.000000
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg_search_dist : 15.038462
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Quack-Fail : 0.792818
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Ack-Fail : 0.960950
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Timeout-Hits : 0.000034
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Noop-Hits : 0.917690
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Full-ResendBuf% : 0.000000
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC OutstandingResends : 1.130435
+[2024-05-06 01:09:48.849] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Timeout-Exclusive-Hits : 0.000034
+[2024-05-06 01:09:48.850] [[1m[41mcritical[m] [scrooge.cpp:730] LAME THREAD ENDING
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC ResendRequests : 26
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC klistDelta : -4.328801
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC overlap : 76.160692
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC untouched klists : 0
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC ResendRequestsLocal : 0
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC klistDeltaLocal : 97.520678
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC overlapLocal : 48.933984
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC untouched klists Local : 0
+[2024-05-06 01:09:48.851] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Avg Klist size local : -32.279990
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Average Missing Acks : 0.372730
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Average KList Size : 42.618047
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC NumKListRecv : 809
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC foreign_messages_received : 4718
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC max_acknowledgment : 3173
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC max_quorum_acknowledgment : 49
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num_needless_rebroadcasts : 11
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [main.cpp:203] SCROOGE COMPLETE. For node with config: kNumLocalNodes = 7, kNumForeignNodes = 7, kMaxNumLocalFailedNodes = 2, kMaxNumForeignFailedNodes = 2, kOwnNodeId = 1, g_rsm_id = 0, packet_size = 1000000,  kLogPath= '/tmp/log_0_1.yaml'
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC message_size : 1000000
+[2024-05-06 01:09:48.852] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC duration_seconds : 69.999997
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Experiment Time : 69.999997
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC Warmup Time : 10.000071
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC local_network_size : 7
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC foreign_network_size : 7
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC local_max_failed_stake : 2
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC foreign_max_failed_stake : 2
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC foreign_stake_total : 2
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC local_stake : 1
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC kList_size : 64
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num-timeout-hits : 1171
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC num-size-hits : 1172
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [global.cpp:209] ADDING METRIC avg-num-msgs-in-batch : 0.810942
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 196 many to [4 : 1] : URL=tcp://10.138.2.206:7008
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 143 many from [2 : 1] : URL=tcp://10.138.2.199:7009
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 126 many from [1 : 1] : URL=tcp://10.138.2.199:7008
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 126 many from [4 : 1] : URL=tcp://10.138.2.199:7011
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 750 many to [5 : 0] : URL=tcp://10.138.2.204:7001
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 232 many to [1 : 1] : URL=tcp://10.138.2.208:7008
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 194 many to [5 : 1] : URL=tcp://10.138.2.209:7008
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 750 many to [4 : 0] : URL=tcp://10.138.2.202:7001
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 130 many from [6 : 1] : URL=tcp://10.138.2.199:7013
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 199 many to [0 : 1] : URL=tcp://10.138.2.197:7008
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 135 many from [5 : 1] : URL=tcp://10.138.2.199:7012
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 122 many from [3 : 1] : URL=tcp://10.138.2.199:7010
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 750 many to [3 : 0] : URL=tcp://10.138.2.200:7001
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 750 many to [2 : 0] : URL=tcp://10.138.2.207:7001
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 131 many from [0 : 1] : URL=tcp://10.138.2.199:7007
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 198 many to [6 : 1] : URL=tcp://10.138.2.198:7008
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 750 many to [0 : 0] : URL=tcp://10.138.2.205:7001
+[2024-05-06 01:09:48.853] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 206 many to [3 : 1] : URL=tcp://10.138.2.203:7008
+[2024-05-06 01:09:48.870] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 467 many from [4 : 0] : URL=tcp://10.138.2.199:7004
+[2024-05-06 01:09:48.921] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 847 many from [5 : 0] : URL=tcp://10.138.2.199:7005
+[2024-05-06 01:09:48.956] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 565 many from [2 : 0] : URL=tcp://10.138.2.199:7002
+[2024-05-06 01:09:48.962] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 809 many from [0 : 0] : URL=tcp://10.138.2.199:7000
+[2024-05-06 01:09:48.992] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 734 many to [6 : 0] : URL=tcp://10.138.2.196:7001
+[2024-05-06 01:09:49.146] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 611 many from [6 : 0] : URL=tcp://10.138.2.199:7006
+[2024-05-06 01:09:49.216] [[1m[41mcritical[m] [pipeline.cpp:547] Recv 599 many from [3 : 0] : URL=tcp://10.138.2.199:7003
+[2024-05-06 01:09:49.282] [[1m[41mcritical[m] [pipeline.cpp:480] Sent 202 many to [2 : 1] : URL=tcp://10.138.2.201:7008
+Connection to 10.138.2.199 closed.

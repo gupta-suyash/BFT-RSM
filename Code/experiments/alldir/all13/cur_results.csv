@@ -1,0 +1,2 @@
+message_size,latency,throughput,strategy,local_network_size,foreign_network_size
+1000000,0,8.435714345816328,All-to-All,13,13

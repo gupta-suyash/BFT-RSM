@@ -1,0 +1,58 @@
+Ack Window: 100
+Ack-Fail: 0.836382
+Average KList Size: 32.898118
+Average Missing Acks: 0.081776
+Avg Klist size local: 11.161651
+Batch Size: 200000
+Batch Timeout: 0.001000
+Experiment Time: 69.999996
+Full-ResendBuf%: 0.000000
+Max message delay: 0.100000
+Noop Acks: 8146
+Noop Delay: 0.001000
+Noop-Hits: 0.829745
+NumKListRecv: 7332
+OutstandingResends: 1.450000
+Pipeline Buffer Size: 8
+Quack Window: 500
+Quack-Fail: 0.976794
+ResendRequests: 87
+ResendRequestsLocal: 0
+Timeout-Exclusive-Hits: 0.000003
+Timeout-Hits: 0.000003
+Warmup Time: 10.000037
+avg-num-msgs-in-batch: 0.086544
+avg_resend_active: 1.000000
+avg_resend_active_over_quack: 1.000000
+avg_resend_too_high: 0.000000
+avg_resend_too_low: 0.000000
+avg_search_dist: 21.126437
+duration_seconds: 69.999996
+foreign_max_failed_stake: 2
+foreign_messages_received: 4403
+foreign_network_size: 7
+foreign_stake_total: 2
+kList_size: 64
+klistDelta: 77.814239
+klistDeltaLocal: 54.213380
+local_max_failed_stake: 2
+local_network_size: 7
+local_stake: 1
+max_acknowledgment: 3655
+max_quorum_acknowledgment: 4183
+message_size: 1000000
+num-size-hits: 757
+num-timeout-hits: 751
+num_msgs_resent: 63
+num_msgs_sent_primary: 670
+num_needless_rebroadcasts: 34
+num_resend_checks: 87
+overlap: 57.748227
+overlapLocal: 51.463069
+socket-buffer-size-receive: 64
+socket-buffer-size-send: 64
+starting_ack: 207
+starting_quack: 73
+transfer_strategy: Scrooge double-klist k=64 noop[1.000000ms] MMDelay[100.000000ms] quackWindow[500] ackWindow[100]
+untouched klists: 0
+untouched klists Local: 0

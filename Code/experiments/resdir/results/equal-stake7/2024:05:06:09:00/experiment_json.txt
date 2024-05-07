@@ -1,0 +1,88 @@
+{
+  "experiment_independent_vars": {
+    "project_dir": "/home/scrooge/BFT-RSM/Code/experiments/results/",
+    "src_dir": "/home/scrooge/BFT-RSM/Code/",
+    "network_dir": "/home/scrooge/BFT-RSM/Code/configuration/",
+    "exec_dir": "/home/scrooge/",
+    "ssh_key": "/home/scrooge/.ssh/id_ed25519",
+    "username": "scrooge",
+    "local_setup_script": "/home/scrooge/BFT-RSM/Code/setup-seq.sh",
+    "remote_setup_script": "/home/scrooge/BFT-RSM/Code/setup_remote.sh",
+    "local_compile_script": "/home/scrooge/BFT-RSM/Code/build.sh",
+    "replication_protocol": "scrooge",
+    "clusterZeroIps": [
+      "10.138.2.205",
+      "10.138.2.199",
+      "10.138.2.207",
+      "10.138.2.200",
+      "10.138.2.202",
+      "10.138.2.204",
+      "10.138.2.196"
+    ],
+    "clusterOneIps": [
+      "10.138.2.197",
+      "10.138.2.208",
+      "10.138.2.201",
+      "10.138.2.203",
+      "10.138.2.206",
+      "10.138.2.209",
+      "10.138.2.198"
+    ],
+    "client_regions": [
+      "US"
+    ]
+  },
+  "equal-stake7": {
+    "experiment_name": "increase_packet_size",
+    "nb_rounds": 1,
+    "simulate_latency": 0,
+    "duration": 4,
+    "scrooge_args": {
+      "general": {
+        "use_debug_logs_bool": 0,
+        "log_path": "/home/scrooge/BFT-RSM/Code/experiments/results/",
+        "max_num_packets": 10000
+      },
+      "cluster_0": {
+        "local_num_nodes": [
+          7
+        ],
+        "foreign_num_nodes": [
+          7
+        ],
+        "local_max_nodes_fail": [
+          2
+        ],
+        "foreign_max_nodes_fail": [
+          2
+        ],
+        "num_packets": [
+          10000
+        ],
+        "packet_size": [
+          1000000
+        ]
+      },
+      "cluster_1": {
+        "local_num_nodes": [
+          7
+        ],
+        "foreign_num_nodes": [
+          7
+        ],
+        "local_max_nodes_fail": [
+          2
+        ],
+        "foreign_max_nodes_fail": [
+          2
+        ],
+        "num_packets": [
+          10000
+        ],
+        "packet_size": [
+          1000000
+        ]
+      }
+    }
+  }
+}

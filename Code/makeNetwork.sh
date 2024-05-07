@@ -24,7 +24,7 @@ workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
 warmup_time=10s
-total_time=40s
+total_time=80s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -52,10 +52,10 @@ starting_algos=10000000000000000
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
 scrooge="false"
-all_to_all="false"
+all_to_all="true"
 one_to_one="false"
 geobft="false" # "true"
-leader="true"
+leader="false"
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
 file_rsm="true"
@@ -69,6 +69,12 @@ echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
 echo $receive_rsm
+
+# If you are running stake experiments, then set this to true. 
+# For stake experiments, we need to modify bandwidth of different nodes and these parameters needs to be set.
+stake="true"
+
+
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
@@ -98,21 +104,55 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(7 13 16 19)
-rsm2_size=(7 13 16 19)
-rsm1_fail=(2 4 5 6)
-rsm2_fail=(2 4 5 6)
-RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(0 64)
+#rsm1_size=(7 13 16 19)
+#rsm2_size=(7 13 16 19)
+#rsm1_fail=(2 4 5 6)
+#rsm2_fail=(2 4 5 6)
+#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#klist_size=(0 64)
+#packet_size=(1000000)
+#batch_size=(200000)
+#batch_creation_time=(1ms)
+#pipeline_buffer_size=(8)
+#noop_delays=(.8ms 1ms 12ms 100ms)
+#max_message_delays=(.8ms 1ms 12ms 100ms)
+#quack_windows=(100 500 1000 2000)
+#ack_windows=(10 30 100 500 1000)
+
+
+rsm1_size=(19)
+rsm2_size=(19)
+rsm1_fail=(6)
+rsm2_fail=(6)
+RSM1_Stake=(18 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+RSM2_Stake=(18 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+klist_size=(64) # 64
 packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
-noop_delays=(.8ms 1ms 12ms 100ms)
-max_message_delays=(.8ms 1ms 12ms 100ms)
-quack_windows=(100 500 1000 2000)
-ack_windows=(10 30 100 500 1000)
+noop_delays=(1ms) # 1 100
+max_message_delays=(100ms) # 100ms
+quack_windows=(1000) # 1000 2000
+ack_windows=(100) # 100 500
+
+
+#rsm1_size=(19)
+#rsm2_size=(19)
+#rsm1_fail=(6)
+#rsm2_fail=(6)
+#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#klist_size=(64) # 64
+#packet_size=(1000000)
+#batch_size=(200000)
+#batch_creation_time=(1ms)
+#pipeline_buffer_size=(8)
+#noop_delays=(1ms) # 1 100
+#max_message_delays=(100ms) # 100ms
+#quack_windows=(500) # 500 1000 2000
+#ack_windows=(100) # 100 500
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -128,36 +168,6 @@ ack_windows=(10 30 100 500 1000)
 # batch_creation_time=(1ms)
 # pipeline_buffer_size=(8)
 
-### Exp: Equal stake RSMs of size 4; message size 100.
-#rsm1_size=(4)
-#rsm2_size=(4)
-#rsm1_fail=(1)
-#rsm2_fail=(1)
-#RSM1_Stake=(1 1 1 1)
-#RSM2_Stake=(1 1 1 1)
-#packet_size=(100)
-
-## Exp: Equal stake RSMs of size 4; message size 100, 1000
-#rsm1_size=(4)
-#rsm2_size=(4)
-#rsm1_fail=(1)
-#rsm2_fail=(1)
-#RSM1_Stake=(1 1 1 1)
-#RSM2_Stake=(1 1 1 1)
-#klist_size=(64)
-#packet_size=(100 1000 10000 50000 100000)
-#batch_size=(26214)
-#batch_creation_time=(1ms)
-#pipeline_buffer_size=(8)
-
-### Exp: Equal stake RSMs of size 7; message size 1000.
-#rsm1_size=(7)
-#rsm2_size=(7)
-#rsm1_fail=(2)
-#rsm2_fail=(2)
-#RSM1_Stake=(1 1 1 1 1 1 1)
-#RSM2_Stake=(1 1 1 1 1 1 1)
-#packet_size=(1000)
 
 ### Exp: Equal stake RSMs of various sizes; message size 100.
 #rsm1_size=(4 7 10)
@@ -202,13 +212,13 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 
-GP_NAME="exp-reggie-1"
+GP_NAME="exp-suyash-1"
 ZONE="us-west1-b"
 TEMPLATE="updated-app-template"
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
-	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -218,9 +228,13 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+#yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-# exit
+#exit
+
+#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+#exit
+
 
 rm /tmp/all_ips.txt
 num_ips_read=0
@@ -270,8 +284,10 @@ while ((${count} < ${client})); do
 	fi
 done
 
+
 # sleep 300
 echo "Starting Experiment"
+
 
 makeExperimentJson() {
 	r1size=$1
@@ -437,6 +453,40 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	r2size=${rsm2_size[$rcount]}
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+
+
+    
+    # scp stake bandwidth and network files to expected directory on other machines
+    #if [ "$stake" = "true" ]; then
+	#    # First, we create the url file "net0urls.txt" for RSM1.
+	#    rm -f net0urls.txt
+	#    count=0
+	#    while ((count < r1_size)); do
+	#    	echo "${RSM1[$count]}" >>net0urls.txt
+	#    	count=$((count + 1))
+	#    done
+	#    cat net0urls.txt
+	#    cp net0urls.txt ${network_dir} 
+	#    echo " "
+
+	#    # Next, we create the url file "net1urls.txt" for RSM2.
+	#    rm -f net1urls.txt
+	#    count=0
+	#    while ((${count} < ${rsm2_size[$rcount]})); do
+	#    	echo "${RSM2[$count]}" >>net1urls.txt
+	#    	count=$((count + 1))
+	#    done
+	#    cat net1urls.txt
+	#    cp net1urls.txt ${network_dir} 
+
+    #    parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: net0urls.txt net1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+	#    parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: net0urls.txt net1urls.txt ::: "${RSM2[@]:0:$r2size}"
+
+
+	#    parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0_bw.txt network1_bw.txt ::: "${RSM1[@]:0:$r1_size}"
+	#    parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0_bw.txt network1_bw.txt ::: "${RSM2[@]:0:$r2size}"
+    #fi
+
 
 	############# Setup all necessary external applications #############
 	function start_raft() {
@@ -634,6 +684,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		else
 			one_to_one="true"
 		fi
+
+
 		for kl_size in "${klist_size[@]}"; do                   # Looping over all the klist_sizes.
 			for pk_size in "${packet_size[@]}"; do                 # Looping over all the packet sizes.
 				for bt_size in "${batch_size[@]}"; do                 # Looping over all the batch sizes.
@@ -649,9 +701,44 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 											cat config.h
 											cp config.h system/
 
+
+                                            if [ "$stake" = "true" ]; then
+                                                # Setting node bandwidths for RSM1.
+                                                echo "Changing bandwidths"
+                                                icount=0
+                                                while ((${icount} < ${rsm1_size[$rcount]})); do
+		                                            echo "${RSM1[$icount]}"
+                                                    #ssh -o StrictHostKeyChecking=no -i "${key_file}" ${username}@${RSM1[$icount]} "sudo apt update" 
+                                                    #ssh -o StrictHostKeyChecking=no -i "${key_file}" ${username}@${RSM1[$icount]} "sudo apt install wondershaper"
+
+                                                    #if [ ${icount} != 0 ]; then
+                                                        echo "Low stake RSM1"
+                                                        ssh -o StrictHostKeyChecking=no -i "${key_file}" ${username}@${RSM1[$icount]} "sudo wondershaper ens4 10000000 10000000"
+                                                    #fi
+                                            
+                                                    icount=$((icount + 1))
+	                                            done
+
+                                                # Setting node bandwidths for RSM2.
+                                                icount=0
+                                                while ((${icount} < ${rsm2_size[$rcount]})); do
+		                                            echo "${RSM2[$icount]}"
+                                                    #ssh -o StrictHostKeyChecking=no -i "${key_file}" ${username}@${RSM2[$icount]} "sudo apt update" 
+                                                    #ssh -o StrictHostKeyChecking=no -i "${key_file}" ${username}@${RSM2[$icount]} "sudo apt install wondershaper"
+
+                                                    #if [ ${icount} != 0 ]; then
+                                                        echo "Low stake RSM2"
+                                                        ssh -o StrictHostKeyChecking=no -i "${key_file}" ${username}@${RSM2[$icount]} "sudo wondershaper ens4 10000000 10000000"
+                                                    #fi
+
+		                                            icount=$((icount + 1))
+	                                            done
+                                            fi
+
 											make clean
 											make proto
 											make -j scrooge
+
 
 											# Next, we make the experiment.json for backward compatibility.
 											makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
@@ -676,7 +763,7 @@ done
 echo "taking down experiment"
 
 ###### UNDO
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 

@@ -1,0 +1,94 @@
+{
+  "experiment_independent_vars": {
+    "project_dir": "/home/scrooge/BFT-RSM/Code/experiments/results/",
+    "src_dir": "/home/scrooge/BFT-RSM/Code/",
+    "network_dir": "/home/scrooge/BFT-RSM/Code/configuration/",
+    "exec_dir": "/home/scrooge/",
+    "ssh_key": "/home/scrooge/.ssh/id_ed25519",
+    "username": "scrooge",
+    "local_setup_script": "/home/scrooge/BFT-RSM/Code/setup-seq.sh",
+    "remote_setup_script": "/home/scrooge/BFT-RSM/Code/setup_remote.sh",
+    "local_compile_script": "/home/scrooge/BFT-RSM/Code/build.sh",
+    "replication_protocol": "scrooge",
+    "clusterZeroIps": [
+      "10.138.4.119",
+      "10.138.4.128",
+      "10.138.4.147",
+      "10.138.4.122",
+      "10.138.4.123",
+      "10.138.4.133",
+      "10.138.4.121",
+      "10.138.4.127",
+      "10.138.4.138",
+      "10.138.4.145"
+    ],
+    "clusterOneIps": [
+      "10.138.4.132",
+      "10.138.4.136",
+      "10.138.4.144",
+      "10.138.4.126",
+      "10.138.4.118",
+      "10.138.4.137",
+      "10.138.4.141",
+      "10.138.4.142",
+      "10.138.4.125",
+      "10.138.4.129"
+    ],
+    "client_regions": [
+      "US"
+    ]
+  },
+  "equal-stake-101319-rerun": {
+    "experiment_name": "increase_packet_size",
+    "nb_rounds": 1,
+    "simulate_latency": 0,
+    "duration": 4,
+    "scrooge_args": {
+      "general": {
+        "use_debug_logs_bool": 0,
+        "log_path": "/home/scrooge/BFT-RSM/Code/experiments/results/",
+        "max_num_packets": 10000
+      },
+      "cluster_0": {
+        "local_num_nodes": [
+          10
+        ],
+        "foreign_num_nodes": [
+          10
+        ],
+        "local_max_nodes_fail": [
+          3
+        ],
+        "foreign_max_nodes_fail": [
+          3
+        ],
+        "num_packets": [
+          10000
+        ],
+        "packet_size": [
+          1000000
+        ]
+      },
+      "cluster_1": {
+        "local_num_nodes": [
+          10
+        ],
+        "foreign_num_nodes": [
+          10
+        ],
+        "local_max_nodes_fail": [
+          3
+        ],
+        "foreign_max_nodes_fail": [
+          3
+        ],
+        "num_packets": [
+          10000
+        ],
+        "packet_size": [
+          1000000
+        ]
+      }
+    }
+  }
+}
