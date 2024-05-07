@@ -439,12 +439,13 @@ static void runScroogeSendThread(
     addMetric("Max message delay", std::chrono::duration<double>(kMaxMessageDelay).count());
     addMetric("Ack Window", kAckWindowSize);
     addMetric("Quack Window", kQAckWindowSize);
-    addMetric("transfer_strategy", "Scrooge double-klist"s + " k=" + std::to_string(kTrueKlistSize) + " noop[" +
-                                       std::to_string(std::chrono::duration<double>(kNoopDelay).count() * 1000) +
-                                       "ms] MMDelay[" +
-                                       std::to_string(std::chrono::duration<double>(kMaxMessageDelay).count() * 1000) +
-                                       "ms]" + " quackWindow[" + std::to_string(kQAckWindowSize) + "] ackWindow[" +
-                                       std::to_string(kAckWindowSize) + "]");
+    // addMetric("transfer_strategy", "Scrooge double-klist"s + " k=" + std::to_string(kTrueKlistSize) + " noop[" +
+    //                                    std::to_string(std::chrono::duration<double>(kNoopDelay).count() * 1000) +
+    //                                    "ms] MMDelay[" +
+    //                                    std::to_string(std::chrono::duration<double>(kMaxMessageDelay).count() * 1000) +
+    //                                    "ms]" + " quackWindow[" + std::to_string(kQAckWindowSize) + "] ackWindow[" +
+    //                                    std::to_string(kAckWindowSize) + "]");
+    addMetric("transfer_strategy", "Scrooge ByzAck High");
     addMetric("num_msgs_sent_primary", numMessagesSent);
     addMetric("num_msgs_resent", numMessagesResent);
     addMetric("num_resend_checks", numResendChecks);
@@ -876,15 +877,15 @@ void runScroogeReceiveThread(
                              acknowledgment::getAckIterator(curAckView)); // also micro-op maybe attackable by byz nodes
                 if (ackIterator.has_value())
                 {
-                    // if (configuration.kNodeId % 3 == 1)
-                    // {
-                    //     crossChainMessage.mutable_ack_count()->set_value(999'999'999);
-                    // }
-                    // else
-                    // {
-                    //     crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
-                    // }
-                    crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
+                    if (configuration.kNodeId % 3 == 1)
+                    {
+                        crossChainMessage.mutable_ack_count()->set_value(999'999'999);
+                    }
+                    else
+                    {
+                        crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
+                    }
+                    // crossChainMessage.mutable_ack_count()->set_value(ackIterator.value());
                 }
                 *crossChainMessage.mutable_ack_set() = {curAckView.view.begin(),
                                                         std::find(curAckView.view.begin(), curAckView.view.end(), 0)};

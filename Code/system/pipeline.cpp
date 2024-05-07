@@ -598,16 +598,16 @@ void Pipeline::flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const 
 
     if (acknowledgment)
     {
-        // if (kOwnConfiguration.kNodeId % 3 == 1)
-        // {
-        //     setIncorrectAckValue(&batch->data, *acknowledgment);
-        // }
-        // else
-        // {
-        //     setAckValue(&batch->data, *acknowledgment);
-        // }
+        if (kOwnConfiguration.kNodeId % 3 == 1)
+        {
+            setIncorrectAckValue(&batch->data, *acknowledgment);
+        }
+        else
+        {
+            setAckValue(&batch->data, *acknowledgment);
+        }
 
-        setAckValue(&batch->data, *acknowledgment);
+        // setAckValue(&batch->data, *acknowledgment);
         generateMessageMac(&batch->data);
     }
 
