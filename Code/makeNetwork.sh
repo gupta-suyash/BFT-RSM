@@ -244,7 +244,7 @@ echo "${TEMPLATE}"
 rm /tmp/all_ips.txt
 num_ips_read=0
 while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
-	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' | shuf >  /tmp/all_ips.txt
+	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
 	output=$(cat /tmp/all_ips.txt)
 	ar=($output)
 	num_ips_read="${#ar[@]}"
