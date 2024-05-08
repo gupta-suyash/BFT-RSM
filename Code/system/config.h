@@ -1,9 +1,9 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
-#define OWN_RSM_SIZE 13
-#define OTHER_RSM_SIZE 13
-#define OWN_RSM_MAX_NODES_FAIL 4
-#define OTHER_RSM_MAX_NODES_FAIL 40000
+#define OWN_RSM_SIZE 19
+#define OTHER_RSM_SIZE 19
+#define OWN_RSM_MAX_NODES_FAIL 60000
+#define OTHER_RSM_MAX_NODES_FAIL 60000
 #define NUMBER_PACKETS 10000
 #define PACKET_SIZE 1000000
 #define NETWORK_DIR "/home/scrooge/BFT-RSM/Code/configuration/"
