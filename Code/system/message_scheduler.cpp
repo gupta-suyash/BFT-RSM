@@ -365,8 +365,8 @@ MessageScheduler::MessageScheduler(NodeConfiguration configuration)
     const auto stakeInOwnNetwork = message_scheduler::stakeInNetwork(ownNetworkStakePrefixSum);
     const auto stakeInOtherNetwork = message_scheduler::stakeInNetwork(otherNetworkStakePrefixSum);
     const auto networkStakeLcm = std::lcm(stakeInOwnNetwork, stakeInOtherNetwork);
-    const auto ownApportionedStake = std::min<uint64_t>(networkStakeLcm, 100);
-    const auto otherApportionedStake = std::min<uint64_t>(networkStakeLcm, 100);
+    const auto ownApportionedStake = std::min<uint64_t>(stakeInOwnNetwork, stakeInOtherNetwork);
+    const auto otherApportionedStake = std::min<uint64_t>(stakeInOwnNetwork, stakeInOtherNetwork);
     const auto ownNetworkApportionedStakes =
         message_scheduler::apportionVector(ownApportionedStake, configuration.kOwnNetworkStakes);
     const auto otherNetworkApportionedStakes =
