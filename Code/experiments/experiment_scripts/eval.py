@@ -9,6 +9,7 @@ import numpy as np
 import yaml
 import sys
 import plotly.graph_objects as go
+from concurrent.futures import ThreadPoolExecutor
 
 @dataclass
 class Line:
@@ -36,16 +37,25 @@ def get_log_file_names(paths: List[str]) -> List[str]:
         file_names += [os.path.join(path, file) for file in os.listdir(path) if file.startswith("log_") and file.endswith(".yaml")]
     return file_names
 
-def make_dataframe(file_names: List[str]) -> pd.DataFrame:
-    rows = []
-    for file_name in file_names:
-        try:
-            log_data = yaml.safe_load(Path(file_name).read_text())
+def process_file(file_name: str):
+    try:
+        file_text = Path(file_name).read_text()
+        if file_text:
+            log_data = yaml.safe_load(file_text)
             if len(log_data):
-                rows.append(log_data)
-        except:
-            usage(f'Unable to parse {file_name} -- is it correct yaml format?')
-    basic_df =  pd.DataFrame.from_dict(rows)
+                return log_data
+    except Exception as e:
+        print(f'Unable to parse {file_name} -- is it correct yaml format? Error: {e}')
+    return None
+
+def make_dataframe(file_names: List[str]) -> pd.DataFrame:
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(process_file, file_names))
+
+    # Filter out any None values from failed processing
+    rows = [result for result in results if result is not None]
+
+    basic_df = pd.DataFrame.from_dict(rows)
     return basic_df.replace("[+-]?[Nn][Aa][Nn]", np.NaN, regex=True)
 
 # modifies dataframe in place
