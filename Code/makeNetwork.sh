@@ -111,7 +111,7 @@ batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
 noop_delays=(.8ms)
 max_message_delays=(.8ms)
-quack_windows=(10000 50000)
+quack_windows=(100000 500000 1000000 5000000)
 ack_windows=(100)
 
 
