@@ -51,11 +51,11 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
+scrooge="true"
 all_to_all="false"
 one_to_one="false"
 geobft="false" # "true"
-leader="true"
+leader="false"
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
 file_rsm="true"
@@ -237,9 +237,9 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=on-permanent-instance-deletion --no-force-update-on-repair --standby-policy-mode=manual --default-action-on-vm-failure=repair
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=on-permanent-instance-deletion --no-force-update-on-repair --standby-policy-mode=manual --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-# exit
+exit
 
 rm /tmp/all_ips.txt
 num_ips_read=0
@@ -695,7 +695,7 @@ done
 echo "taking down experiment"
 
 ###### UNDO
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 
