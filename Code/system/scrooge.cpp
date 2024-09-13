@@ -340,6 +340,8 @@ static void runScroogeSendThread(
 
     const MessageScheduler messageScheduler(configuration);
     uint64_t peekSN = 0;
+    const double max_txn_per_s = 800'000.0;
+    const auto test_start_time = std::chrono::steady_clock::now();
 
     while (not is_test_over())
     {
@@ -358,6 +360,16 @@ static void runScroogeSendThread(
         {
             pendingSequenceNum = pendingSequenceNum = (messageInput->peek()) ? messageInput->peek()->sequence_number()
                                                                              : kQAckWindowSize + curQuack.value_or(0);
+        }
+        else
+        {
+            const auto cur_time = std::chrono::steady_clock::now();
+            const auto test_duration_seconds = std::chrono::duration<double>(cur_time - test_start_time);
+            const auto cur_throughput = ((int64_t)pendingSequenceNum - 5000) / test_duration_seconds.count();
+            if (cur_throughput > max_txn_per_s)
+            {
+                pendingSequenceNumber = kQAckWindowSize + curQuack.value_or(0);
+            }
         }
         const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
         const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
