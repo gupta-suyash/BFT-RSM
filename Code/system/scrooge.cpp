@@ -368,7 +368,7 @@ static void runScroogeSendThread(
             const auto cur_throughput = ((int64_t)pendingSequenceNum - 5000) / test_duration_seconds.count();
             if (cur_throughput > max_txn_per_s)
             {
-                pendingSequenceNumber = kQAckWindowSize + curQuack.value_or(0);
+                pendingSequenceNum = kQAckWindowSize + curQuack.value_or(0);
             }
         }
         const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
