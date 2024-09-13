@@ -227,7 +227,7 @@ function exit_handler() {
 	  git switch -
 	  git stash pop
 	fi
-	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+	# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
 
@@ -237,9 +237,9 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=on-permanent-instance-deletion --no-force-update-on-repair --standby-policy-mode=manual --default-action-on-vm-failure=repair
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=on-permanent-instance-deletion --no-force-update-on-repair --standby-policy-mode=manual --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-# exit
+exit
 
 rm /tmp/all_ips.txt
 num_ips_read=0
