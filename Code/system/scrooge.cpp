@@ -361,16 +361,6 @@ static void runScroogeSendThread(
             pendingSequenceNum = pendingSequenceNum = (messageInput->peek()) ? messageInput->peek()->sequence_number()
                                                                              : kQAckWindowSize + curQuack.value_or(0);
         }
-        else
-        {
-            const auto cur_time = std::chrono::steady_clock::now();
-            const auto test_duration_seconds = std::chrono::duration<double>(cur_time - test_start_time);
-            const auto cur_throughput = ((int64_t)pendingSequenceNum - 5000) / test_duration_seconds.count();
-            if (cur_throughput > max_txn_per_s)
-            {
-                pendingSequenceNum = kQAckWindowSize + curQuack.value_or(0);
-            }
-        }
         const bool isAckFresh = numMsgsSentWithLastAck < kAckWindowSize;
         const bool isSequenceNumberUseful = pendingSequenceNum - curQuack.value_or(0ULL - 1) < kQAckWindowSize;
         const auto curTime = std::chrono::steady_clock::now();
@@ -389,7 +379,12 @@ static void runScroogeSendThread(
         bool shouldHandleNewMessage;
         if constexpr (kIsUsingFile)
         {
-            shouldHandleNewMessage = not resendDatas.full() && shouldDequeue;
+            const auto cur_time = std::chrono::steady_clock::now();
+            const auto test_duration_seconds = std::chrono::duration<double>(cur_time - test_start_time);
+            const auto cur_throughput = ((int64_t)pendingSequenceNum - 5000) / test_duration_seconds.count();
+            const auto is_max_tp_exceeded =  cur_throughput > max_txn_per_s;
+
+            shouldHandleNewMessage = not resendDatas.full() && shouldDequeue && not is_max_tp_exceeded;
             numResendBufFullChecks += resendDatas.full();
         }
         else
