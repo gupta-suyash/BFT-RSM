@@ -207,7 +207,8 @@ ZONE="us-west1-b"
 TEMPLATE="updated-app-template"
 
 WORKING_DIR_CLEAN="TRUE"
-if output=$(git status --porcelain) && [ -z "$output" ]; then
+output=$(git status --porcelain)
+if [ -z "$output" ] || [ "$1" == "DEV" ]; then
   echo "Working Directory is clean!"
   WORKING_DIR_CLEAN="TRUE"
 else 
