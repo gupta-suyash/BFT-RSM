@@ -340,7 +340,7 @@ static void runScroogeSendThread(
 
     const MessageScheduler messageScheduler(configuration);
     uint64_t peekSN = 0;
-    const double max_txn_per_s = 600'000.0;
+    const double max_txn_per_s = 1'000'000.0;
     const auto test_start_time = std::chrono::steady_clock::now();
 
     while (not is_test_over())
