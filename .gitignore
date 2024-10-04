@@ -31,6 +31,15 @@ Code/experiments/experiment_scripts/algorand/simple.py
 Code/experiments/experiment_scripts/algorand/genesis_creation/
 Code/experiments/experiment_scripts/algorand/node/
 Code/experiments/experiment_scripts/algorand/addresses/
+
+## IGNORE KAFKA BUILD FILES ##
+Code/config.json
+Code/curOutputLogConsumer
+Code/currErrLog
+Code/experiments.json
+Code/experiments/experiment_json/experiments.json
+Code/server.properties
+
 ## IGNORE VSCODE ##
 .vscode/
 !.vscode/settings.json

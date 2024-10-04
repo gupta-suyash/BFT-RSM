@@ -59,13 +59,13 @@ kafka="true"
 
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
-file_rsm="false"
+file_rsm="true"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft", "file"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="raft"
-receive_rsm="raft"
+send_rsm="file"
+receive_rsm="file"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -189,7 +189,7 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="${experiment_name}"
-ZONE="us-west1-b"
+ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
 TEMPLATE="scrooge-kafka-raft-nsdi" # "kafka-unified-3-spot"
 
 function exit_handler() {
@@ -742,7 +742,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 						for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
 							makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name} ${kafka}
                             if [ $kafka = "true" ]; then
-								echo "KAFKA LOG: Running Kafka Cluster - TODO ASSUMES RSM 2 size!"
+								sleep 60 # sleep 60 seconds before setting up Kafka
+                                echo "KAFKA LOG: Running Kafka Cluster - TODO ASSUMES RSM 2 size!"
 								start_kafka 3 "${ZOOKEEPER[0]}" $rsm2_size "${KAFKA[@]}"
 								broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
 								broker_ips_string="${broker_ips_string%,}" # removes trailing ,
@@ -816,6 +817,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 echo "taking down experiment"
 ###### UNDO
-yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
+# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
 ############# DID YOU DELETE THE MACHINES?????????????????
