@@ -10,6 +10,8 @@ message ScroogeTransfer {
     oneof transfer {
         UnvalidatedCrossChainMessage unvalidated_cross_chain_message = 1;
 		CommitAcknowledgment commit_acknowledgment = 2;
+        KeyValue key_value_update = 3;
+        KeyValueHash key_value_hash = 4;
     }
 }
 
@@ -25,4 +27,14 @@ message UnvalidatedCrossChainMessage {
 message CommitAcknowledgment {
 	// Sequence number of request committed at other RSM.
 	uint64 sequence_number = 1;
+}
+
+message KeyValue {
+    string key = 1;
+    string value = 2;
+}
+
+message KeyValueHash {
+    string key = 1;
+    string value_md5_hash = 2;
 }
