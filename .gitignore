@@ -250,3 +250,12 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# ignore ./makeNetwork.sh files
+config.h
+experiments.json
+Code/configuration/network0urls.txt
+Code/configuration/network1urls.txt
+Code/experiments/experiment_json/experiments.json
+Code/experiments/nsdi-results/
+
