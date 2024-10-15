@@ -189,45 +189,80 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="${experiment_name}"
-ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
-TEMPLATE="scrooge-kafka-raft-nsdi" # "kafka-unified-3-spot"
+TEMPLATE="kafka-unified-3-spot"
 
-function exit_handler() {
-	echo "** Trapped CTRL-C, deleting experiment"
-	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-	exit 1
-}
+RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
+RSM2_ZONE="us-west4-a"
+KAFKA_ZONE="us-west4-a"
+
+echo "Create group name"
+echo "Group Name: ${GP_NAME}"
+echo "num_nodes_total: $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
+echo "RSM1 Zone: ${RSM1_ZONE}"
+echo "RSM2 Zone: ${RSM1_ZONE}"
+if [ $kafka="true" ];then
+ echo "KAFKA Zone: ${RSM1_ZONE}"
+fi
+echo "Template: ${TEMPLATE}"
+
+
+echo -n "Do you need machines created? type Y if yes: "
+read create_machines
+
+if [ "$create_machines" = "Y" ]; then
+	yes | gcloud beta compute instance-groups managed create "${GP_NAME}-rsm-1" --project=scrooge-398722 --base-instance-name="${GP_NAME}-rsm-1" --size="$((num_nodes_rsm_1+(client+1)/2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${RSM1_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
+	yes | gcloud beta compute instance-groups managed create "${GP_NAME}-rsm-2" --project=scrooge-398722 --base-instance-name="${GP_NAME}-rsm-2" --size="$((num_nodes_rsm_2+client/2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${RSM2_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
+	if [ "$kafka" = "true" ]; then
+	  yes | gcloud beta compute instance-groups managed create "${GP_NAME}-kafka" --project=scrooge-398722 --base-instance-name="${GP_NAME}-kafka" --size="$((num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${KAFKA_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
+	fi
+	wait
+	echo -n "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
+	exit
+fi
+
+echo -n "Do you want to keep you machines after this exp? type Y if yes: "
+read keep_machines
 
 trap exit_handler INT
-echo "Create group name"
-echo "${GP_NAME}"
-echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
-echo "${ZONE}"
-echo "${TEMPLATE}"
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
+function exit_handler() {
+	echo "** Trapped CTRL-C"
+	if [ "$keep_machines" != "Y" ]; then
+		echo "deleting experiment"
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $ZONE &
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
+		wait
+		exit 0
+	fi
+	echo "keeping machines for future experiments"
+	exit 0
+}
+
 #> /dev/null 2>&1
-rm /tmp/all_ips.txt
+
+gcloud compute instances list --filter="name~^${GP_NAME}-rsm-1" --format='value(networkInterfaces[0].networkIP)' > /tmp/RSM1_ips.txt &
+gcloud compute instances list --filter="name~^${GP_NAME}-rsm-2" --format='value(networkInterfaces[0].networkIP)' > /tmp/RSM2_ips.txt &
+gcloud compute instances list --filter="name~^${GP_NAME}-kafka" --format='value(networkInterfaces[0].networkIP)' > /tmp/KAFKA_ips.txt &
+wait
+
 num_ips_read=0
 while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka)))); do
-	gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
 	output=$(cat /tmp/all_ips.txt)
 	ar=($output)
 	num_ips_read="${#ar[@]}"
 done
-# && sudo wondershaper ens4 2000000 2000000'
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:0:19}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:19:19}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:0:19}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:19:19}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:1:18}";
-#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:20:18}";
-#sudo tc qdisc add dev eth0 root tbf rate 1mbit burst 64kbit latency 400ms0
 
+ar=($(cat /tmp/RSM1_ips.txt))
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
-RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
-CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
-ZOOKEEPER=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}+${client}:1})
-KAFKA=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}+$(("${client}" + 1)):$(("${num_nodes_kafka}" - 1))})
+CLIENT=(${ar[@]:${num_nodes_rsm_1}}) # First client node is in RSM1
+
+ar=($(cat /tmp/RSM2_ips.txt))
+RSM2=(${ar[@]::${num_nodes_rsm_2}})
+CLIENT+=(${ar[@]:${num_nodes_rsm_2}}) # Second client node would be in RSM2
+
+ar=($(cat /tmp/KAFKA_ips.txt))
+ZOOKEEPER=(${ar[@]::1})
+KAFKA=(${ar[@]:1})
 
 echo "About to parallel!"
 #parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
@@ -394,37 +429,37 @@ if [ "${kafka}" = "true" ]; then
 fi
 
 for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
-	# # First, we create the configuration file "network0urls.txt" through echoing and redirection.
-	# rm -f network0urls.txt
-	# count=0
-	# while ((count < r1_size)); do
-	# 	echo -n "${RSM1[$count]}" >>network0urls.txt
-	# 	echo -n " " >>network0urls.txt
-	# 	echo "${RSM1_Stake[$count]}" >>network0urls.txt
-	# 	count=$((count + 1))
-	# done
-	# cat network0urls.txt
-	# cp network0urls.txt ${network_dir} #cops to the expected folder.
-	# echo " "
+	# First, we create the configuration file "network0urls.txt" through echoing and redirection.
+	rm -f network0urls.txt
+	count=0
+	while ((count < r1_size)); do
+		echo -n "${RSM1[$count]}" >>network0urls.txt
+		echo -n " " >>network0urls.txt
+		echo "${RSM1_Stake[$count]}" >>network0urls.txt
+		count=$((count + 1))
+	done
+	cat network0urls.txt
+	cp network0urls.txt ${network_dir} #cops to the expected folder.
+	echo " "
 
-	# # Next, we create the configuration file "network1urls.txt" through echoing and redirection.
-	# rm -f network1urls.txt
-	# count=0
-	# while ((${count} < ${rsm2_size[$rcount]})); do
-	# 	echo -n "${RSM2[$count]}" >>network1urls.txt
-	# 	echo -n " " >>network1urls.txt
-	# 	echo "${RSM2_Stake[$count]}" >>network1urls.txt
-	# 	count=$((count + 1))
-	# done
-	# cat network1urls.txt
-	# cp network1urls.txt ${network_dir} #copy to the expected folder.
-	# echo " "
+	# Next, we create the configuration file "network1urls.txt" through echoing and redirection.
+	rm -f network1urls.txt
+	count=0
+	while ((${count} < ${rsm2_size[$rcount]})); do
+		echo -n "${RSM2[$count]}" >>network1urls.txt
+		echo -n " " >>network1urls.txt
+		echo "${RSM2_Stake[$count]}" >>network1urls.txt
+		count=$((count + 1))
+	done
+	cat network1urls.txt
+	cp network1urls.txt ${network_dir} #copy to the expected folder.
+	echo " "
 
-	# # scp network files to expected directory on other machines
-	# count=0
-	# r2size=${rsm2_size[$rcount]}
-	# parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-	# parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+	# scp network files to expected directory on other machines
+	count=0
+	r2size=${rsm2_size[$rcount]}
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	############# Setup all necessary external applications #############
 	joinedvar1=""
@@ -792,21 +827,21 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 								continue
 							fi
 							# # Next, we call the script that makes the config.h. We need to pass all the arguments.
-							# ./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
+							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
 
 							# cat config.h
-							# cp config.h system/
+							cp config.h system/
 
-							# make clean
-							# make proto
-							# make -j scrooge
+							make clean
+							make proto
+							make -j scrooge
 
 							# # Next, we make the experiment.json for backward compatibility.
-							# parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-							# parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+							parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 							# # Next, we run the script.
-							# ./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
+							./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name}
 						done
 					done
 				done
@@ -816,7 +851,15 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	rcount=$((rcount + 1))
 done
 echo "taking down experiment"
-###### UNDO
-# yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 
-############# DID YOU DELETE THE MACHINES?????????????????
+
+echo "** Trapped CTRL-C"
+if [ "$keep_machines" != "Y" ]; then
+	echo "deleting experiment"
+	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
+	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $ZONE &
+	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
+	wait
+	exit 0
+fi
+echo "keeping machines for future experiments"
