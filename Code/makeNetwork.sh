@@ -52,20 +52,20 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
+scrooge="true"
 all_to_all="false"
 one_to_one="false"
-kafka="true"
+kafka="false"
 
 #If this experiment is for File_RSM (not algo or resdb)
 #file_rsm="true"
-file_rsm="true"
+file_rsm="false"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft", "file"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
-send_rsm="file"
-receive_rsm="file"
+send_rsm="raft"
+receive_rsm="raft"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
@@ -122,12 +122,12 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #packet_size=(100)
 
 ## Exp: Equal stake RSMs of size 4; message size 100, 1000
-rsm1_size=(4)
-rsm2_size=(4)
+rsm1_size=(3)
+rsm2_size=(3)
 rsm1_fail=(1)
 rsm2_fail=(1)
-RSM1_Stake=(1 1 1 1)
-RSM2_Stake=(1 1 1 1)
+RSM1_Stake=(1 1 1)
+RSM2_Stake=(1 1 1)
 klist_size=(64)
 packet_size=(100)
 batch_size=(200000)
@@ -189,7 +189,7 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="${experiment_name}"
-TEMPLATE="kafka-unified-3-spot"
+TEMPLATE="updated-app-template" # "kafka-unified-3-spot"
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
 RSM2_ZONE="us-west4-a"
