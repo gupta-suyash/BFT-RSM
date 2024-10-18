@@ -66,10 +66,27 @@ file_rsm="false"
 # receiving RSM, then receive_rsm="resdb"
 send_rsm="raft"
 receive_rsm="raft"
+run_dr="false"
+run_ccf="false"
 echo "Send rsm: "
 echo $send_rsm
 echo "Receive rsm: "
 echo $receive_rsm
+
+if [ "$run_dr" = "true" ]; then
+	if [ "$run_ccf" = "true" ]; then
+		echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
+		exit 1
+	fi
+fi
+
+if [ "$run_dr" = "true" ]; then
+	echo "RUNNING DR"
+fi
+
+if [ "$run_ccf" = "true" ]; then
+	echo "RUNNING CCF"
+fi
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
@@ -466,6 +483,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local size=$2
 		local RSM=("${!3}")
 		local raft_pids=()
+		local send_dr_txns=$4
+		local send_ccf_txns=$5
+		local single_replica_rsm=$6
 		etcd_path="${raft_app_dir}etcd-main/"
     		# Run setup build script
            	#Client node
@@ -513,8 +533,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			this_ip=${RSM[$i]}
 			this_url=${urls[$i]}
 			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
-
-			(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") &
+			if [ "${single_replica_rsm}" = "false" ]; then
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export dr_sender=${send_dr_txns}; export ccf_sender=${send_ccf_txns}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} --dr_sender=\${dr_sender} --ccf_sender=\${ccf_sender} &> background_raft_\${THIS_IP}.log") &
+			else
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export dr_sender=${send_dr_txns}; export ccf_sender=${send_ccf_txns}; export CLUSTER=${this_ip}; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} --dr_sender=\${dr_sender} --ccf_sender=\${ccf_sender} &> background_raft_\${THIS_IP}.log") &
+			fi
 		done
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
 		echo "RSM w ports: ${joined%,}"
@@ -724,7 +747,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM1[@]"
 	elif [ "$send_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for sending."
-		start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+		start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]" "${run_dr}" "${run_ccf}" "false"
 	elif [ "$send_rsm" = "file" ]; then
 		echo "File RSM is being used for sending. No extra setup necessary."
 	else
@@ -749,7 +772,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		start_resdb "${cluster_idx}" "${r1_size}" "RSM2[@]"
 	elif [ "$receive_rsm" = "raft" ]; then
 		echo "Raft RSM is being used for receiving."
-		start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+		start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]" "false" "${run_ccf}" "${run_dr}"
 	elif [ "$receive_rsm" = "file" ]; then
 		echo "File RSM is being used for receiving. No extra setup necessary."
 	else
@@ -818,14 +841,16 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 									# tail -f <file_name>
 								fi
 								if [ "$receive_rsm" = "raft" ]; then
-									echo "Running Receive_RSM Benchmark Raft"
-									benchmark_raft "${joinedvar2}" 2
+									if [ "$run_dr" = "false" ]; then
+										echo "Running Receive_RSM Benchmark Raft"
+										benchmark_raft "${joinedvar2}" 2
+									fi
 								fi
 								continue
 							fi
 
 							# # Next, we call the script that makes the config.h. We need to pass all the arguments.
-							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool}
+							./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${file_rsm} ${use_debug_logs_bool} ${run_dr} ${run_ccf}
 
 							# cat config.h
 							cp config.h system/
@@ -840,8 +865,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 								# tail -f <file_name>
 							fi
 							if [ "$receive_rsm" = "raft" ]; then
-								echo "Running Receive_RSM Benchmark Raft"
-								benchmark_raft "${joinedvar2}" 2
+								if [ "$run_dr" = "false" ]; then
+									echo "Running Receive_RSM Benchmark Raft"
+									benchmark_raft "${joinedvar2}" 2
+								fi
 							fi
 
 							# # Next, we make the experiment.json for backward compatibility.

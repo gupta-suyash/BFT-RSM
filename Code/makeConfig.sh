@@ -26,6 +26,8 @@ all_to_all=${18}
 one_to_one=${19}
 file_rsm=${20}
 use_debug_logs_bool=${21}
+write_dr_txns=${22}
+write_ccf_txns=${23}
 
 
 echo -e "#ifndef _CONFIG_H_" > config.h
@@ -54,5 +56,7 @@ echo -e "#define SCROOGE ${scrooge}" >> config.h
 echo -e "#define ALL_TO_ALL ${all_to_all}" >> config.h
 echo -e "#define ONE_TO_ONE ${one_to_one}" >> config.h
 echo -e "#define FILE_RSM ${file_rsm}" >> config.h
+echo -e "#define WRITE_DR ${write_dr_txns}" >> config.h
+echo -e "#define WRITE_CCF ${write_ccf_txns}" >> config.h
 
 echo -e "#endif" >> config.h
