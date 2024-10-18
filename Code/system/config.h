@@ -21,4 +21,6 @@
 #define ALL_TO_ALL false
 #define ONE_TO_ONE false
 #define FILE_RSM true
+#define WRITE_DR false
+#define WRITE_CCF true
 #endif

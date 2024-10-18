@@ -36,9 +36,11 @@ void runFileUnfairOneToOneSendThread(
 void runOneToOneReceiveThread(
     std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
     std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
+    std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration,
+    std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue);
 
 void runUnfairOneToOneReceiveThread(
     const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration);
+    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration,
+    std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue);

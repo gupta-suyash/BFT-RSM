@@ -21,7 +21,8 @@ void runRelayIPCRequestThread(std::shared_ptr<iothread::MessageQueue<scrooge::Cr
                               NodeConfiguration kNodeConfiguration);
 
 void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
-                                  NodeConfiguration kNodeConfiguration);
+                                  NodeConfiguration kNodeConfiguration,
+                                  std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue);
 
 void runGenerateMessageThreadWithIpc();
 

@@ -619,7 +619,8 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
 void runScroogeReceiveThread(
     const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration,
+    const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue)
 {
     bindThreadToCpu(2);
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
@@ -698,6 +699,9 @@ void runScroogeReceiveThread(
                 // crossChainMessage.SerializeToArray(messageData, protoSize);
                 // const auto sizeShrink = messageSize - protoSize;
                 // nng_msg_chop(message, sizeShrink);
+#if WRITE_DR || WRITE_CCF
+                while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+#endif
             }
         }
 
@@ -732,6 +736,9 @@ void runScroogeReceiveThread(
                 acknowledgment->addToAckList(messageData.sequence_number());
                 timedMessages += is_test_recording();
             }
+#if WRITE_DR || WRITE_CCF
+            while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+#endif
         }
     }
 

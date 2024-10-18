@@ -57,6 +57,7 @@ class Acknowledgment
 {
   public:
     void addToAckList(uint64_t ack);
+    bool testAck(uint64_t test) const;
     std::optional<uint64_t> getAckIterator() const;
 
     template <uint64_t kViewSize> acknowledgment::AckView<kViewSize> getAckView() const

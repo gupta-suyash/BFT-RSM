@@ -1,5 +1,6 @@
 #include "iothread.h"
 
+#include "acknowledgment.h"
 #include "crypto.h"
 #include "ipc.h"
 #include "proto_utils.h"
@@ -132,7 +133,8 @@ void runRelayIPCRequestThread(
 }
 
 void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
-                                  NodeConfiguration kNodeConfiguration)
+                                  NodeConfiguration kNodeConfiguration,
+                                  std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue)
 {
     bindThreadToCpu(1);
     std::ofstream pipe{scroogeOutputPipePath, std::ios_base::app};
@@ -147,19 +149,63 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
 
     std::optional<uint64_t> lastQuorumAck{};
     scrooge::ScroogeTransfer transfer;
-    const auto mutableCommitAck = transfer.mutable_commit_acknowledgment();
+#if WRITE_DR
+    Acknowledgment transferredMessages{};
+    scrooge::CrossChainMessage receivedMessage;
+    scrooge::ScroogeTransfer drTransfer;
+#elif WRITE_CCF
+    Acknowledgment transferredMessages{};
+    scrooge::CrossChainMessage receivedMessage;
+    scrooge::ScroogeTransfer ccfTransfer;
+#endif
     while (not is_test_over())
     {
         const auto curQuorumAck = quorumAck->getCurrentQuack();
         if (lastQuorumAck < curQuorumAck)
         {
             lastQuorumAck = curQuorumAck;
-            mutableCommitAck->set_sequence_number(lastQuorumAck.value());
+            transfer.mutable_commit_acknowledgment()->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
             // SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId,
             // get_rsm_id());
             writeMessage(pipe, serializedTransfer);
         }
+
+#if WRITE_DR
+        while (receivedMessageQueue->try_dequeue(receivedMessage))
+        {
+            for (auto& msg : receivedMessage.data())
+            {
+                scrooge::KeyValue receivedKeyValue;
+                const auto isparseSuccessful = receivedKeyValue.ParseFromString(msg.message_content());
+                if (not isparseSuccessful)
+                {
+                    SPDLOG_CRITICAL("Could not parse DR received KeyValue, received data '{}'", msg.message_content());
+                    continue;
+                }
+                *drTransfer.mutable_key_value_update() = std::move(receivedKeyValue);
+                const auto serializedDrTransfer = drTransfer.SerializeAsString();
+                writeMessage(pipe, serializedDrTransfer);
+            }
+        }
+#elif WRITE_CCF
+        while (receivedMessageQueue->try_dequeue(receivedMessage))
+        {
+            for (auto& msg : receivedMessage.data())
+            {
+                scrooge::KeyValue receivedKeyValue;
+                const auto isparseSuccessful = receivedKeyValue.ParseFromString(msg.message_content());
+                if (not isparseSuccessful)
+                {
+                    SPDLOG_CRITICAL("Could not parse DR received KeyValue, received data '{}'", msg.message_content());
+                    continue;
+                }
+                *ccfTransfer.mutable_key_value_update() = std::move(receivedKeyValue);
+                const auto serializedCcfTransfer = ccfTransfer.SerializeAsString();
+                writeMessage(pipe, serializedCcfTransfer);
+            }
+        }
+#endif
     }
     pipe.close();
     addMetric("IPC test", true);

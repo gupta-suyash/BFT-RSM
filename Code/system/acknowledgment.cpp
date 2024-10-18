@@ -38,3 +38,10 @@ std::optional<uint64_t> Acknowledgment::getAckIterator() const
     // std::scoped_lock lock{mMutex};
     return mAckValue.load(std::memory_order_acquire);
 }
+
+
+    bool Acknowledgment::testAck(uint64_t test) const
+    {
+        // technically doesn't work if querying > kWindowSize messages in the future ~3Billion messages
+        return mAckWindow[test / 64] & (1ULL << (test % 64));
+    }

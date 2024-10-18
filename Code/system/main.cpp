@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
             std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
         const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
         const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(32768 * 2);
+        const auto receivedMessageQueue = std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessage>>(1 << 15);
 
         pipeline->startPipeline();
 
@@ -93,7 +94,7 @@ int main(int argc, char *argv[])
 
         /*auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("Created Generate message relay thread");
 */
 #if SCROOGE
@@ -105,14 +106,14 @@ int main(int argc, char *argv[])
                                       quorumAck, kNodeConfiguration);
         auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("Created Generate message relay thread");
 
 
 #endif
 
         auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
-                                         kNodeConfiguration);
+                                         kNodeConfiguration, receivedMessageQueue);
 #elif ALL_TO_ALL
 #if FILE_RSM
         auto sendThread = std::thread(runFileAllToAllSendThread, messageBuffer, pipeline, acknowledgment,
@@ -122,14 +123,14 @@ int main(int argc, char *argv[])
                                       quorumAck, kNodeConfiguration);
         auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("Created Generate message relay thread");
 
 
 #endif
 
         auto receiveThread = std::thread(runAllToAllReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
-                                         kNodeConfiguration);
+                                         kNodeConfiguration, receivedMessageQueue);
 #else
 #if FILE_RSM
         auto sendThread = std::thread(runFileUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,
@@ -139,14 +140,14 @@ int main(int argc, char *argv[])
                                       resendDataQueue, quorumAck, kNodeConfiguration);
         auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("Created Generate message relay thread");
 
 
 #endif
 
         auto receiveThread = std::thread(runUnfairOneToOneReceiveThread, pipeline, acknowledgment, resendDataQueue,
-                                         quorumAck, kNodeConfiguration);
+                                         quorumAck, kNodeConfiguration, receivedMessageQueue);
 #endif
 
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
