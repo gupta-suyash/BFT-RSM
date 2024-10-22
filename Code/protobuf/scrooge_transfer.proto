@@ -8,7 +8,7 @@ option go_package="/scrooge";
 // Message with data scrooge sends to appliaction/protocol users
 message ScroogeTransfer {
     oneof transfer {
-        UnvalidatedCrossChainMessage unvalidated_cross_chain_message = 1;
+        CrossChainMessage unvalidated_cross_chain_message = 1;
 		CommitAcknowledgment commit_acknowledgment = 2;
         KeyValue key_value_update = 3;
         KeyValueHash key_value_hash = 4;
