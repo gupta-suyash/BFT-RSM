@@ -46,6 +46,7 @@ uint64_t numQuackWindowFails{}, numAckWindowFails{}, numSendChecks{}, numIOTimeo
 bool isResendDataUpdated{};
 uint64_t maxResendRequest{};
 uint64_t numMessagesResent{};
+static uint64_t counter = 0;
 
 template <bool kIsUsingFile>
 bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const MessageScheduler &messageScheduler,
@@ -61,6 +62,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
     const auto isMessageNeverSent = not resendNumber.has_value();
     if (isMessageNeverSent)
     {
+        //SPDLOG_CRITICAL("MESSAGE {} NEVER SENT", sequenceNumber);
         return true;
     }
 
@@ -86,6 +88,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment, curTime);
+                  //  SPDLOG_CRITICAL("POSSIBLY LATE Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -105,6 +108,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment, curTime);
+                //SPDLOG_CRITICAL("FIRST TIME Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -112,6 +116,8 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
                 numMsgsSentWithLastAck++;
             }
         }
+    } else {
+        //SPDLOG_CRITICAL("NOT FIRST SEND: {} isSentLater {}", resendNumber.value_or(0), isPossiblySentLater);
     }
 
     if (isPossiblySentLater)
@@ -125,6 +131,8 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
                                                          .destinations = destinations});
         isResendDataUpdated |= sequenceNumber <= maxResendRequest;
     }
+    //SPDLOG_CRITICAL("HANDLING: MESSAGE #{} with: SEQNO {} CURQUACK {}", counter, sequenceNumber, lastQuack);
+    counter += 1;
     return false;
 }
 
@@ -334,7 +342,6 @@ static void runScroogeSendThread(
     SPDLOG_CRITICAL("SEND THREAD TID {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
-
     bindThreadToCpu(1);
     SPDLOG_INFO("Send Thread starting with TID = {}", gettid());
 
@@ -343,6 +350,7 @@ static void runScroogeSendThread(
 
     while (not is_test_over())
     {
+        std::this_thread::sleep_for(1us);
         // update window information
         const auto curAck = acknowledgment->getAckIterator();
         const auto curQuack = quorumAck->getCurrentQuack();
@@ -399,7 +407,7 @@ static void runScroogeSendThread(
             //     continue;
             // }
         }
-        else if (isAckFresh && isNoopTimeoutHit)
+        else if (isAckFresh && isNoopTimeoutHit) // Always send no-ops, maybe not enough messages to flush buffers?
         {
             static uint64_t receiver = 0;
 
@@ -409,6 +417,7 @@ static void runScroogeSendThread(
             }
             else
             {
+                //SPDLOG_CRITICAL("Are we force sending to other rsm?");
                 pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
             }
 
@@ -777,6 +786,7 @@ void runScroogeReceiveThread(
     uint64_t lastRebroadcastGc{};
     while (not is_test_over())
     {
+        std::this_thread::sleep_for(1us);
         if (receivedMessage.message == nullptr)
         {
             receivedMessage = pipeline->RecvFromOtherRsm();
@@ -811,6 +821,7 @@ void runScroogeReceiveThread(
                     const auto &messageData = crossChainMessage.data().at(curMessageInd);
                     if (not util::isMessageDataValid(messageData))
                     {
+                        SPDLOG_CRITICAL("Message Data is invalid!");
                         continue;
                     }
                     const auto curSequenceNumber = messageData.sequence_number();
@@ -989,9 +1000,11 @@ void runScroogeReceiveThread(
             {
                 if (not util::isMessageDataValid(messageData))
                 {
+                    SPDLOG_CRITICAL("Message is invalid!");
                     continue;
                 }
                 acknowledgment->addToAckList(messageData.sequence_number());
+                //SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 840: {}", messageData.sequence_number()); 
                 timedMessages += is_test_recording();
                 numMsgsFromOwnRsm++;
             }

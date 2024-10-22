@@ -1,0 +1,82 @@
+{
+  "experiment_independent_vars": {
+    "project_dir": "/home/scrooge/BFT-RSM/Code/experiments/results/",
+    "src_dir": "/home/scrooge/BFT-RSM/Code/",
+    "network_dir": "/home/scrooge/BFT-RSM/Code/configuration/",
+    "exec_dir": "/home/scrooge/",
+    "ssh_key": "/home/scrooge/.ssh/id_ed25519",
+    "username": "scrooge",
+    "local_setup_script": "/home/scrooge/BFT-RSM/Code/setup-seq.sh",
+    "remote_setup_script": "/home/scrooge/BFT-RSM/Code/setup_remote.sh",
+    "local_compile_script": "/home/scrooge/BFT-RSM/Code/build.sh",
+    "replication_protocol": "scrooge",
+    "clusterZeroIps": [
+      "10.128.6.20",
+      "10.128.6.21",
+      "10.128.6.22",
+      "10.128.6.23"
+    ],
+    "clusterOneIps": [
+      "10.128.6.24",
+      "10.128.6.25",
+      "10.128.6.26",
+      "10.128.6.27"
+    ],
+    "client_regions": [
+      "US"
+    ]
+  },
+  "resdb-algo-1": {
+    "experiment_name": "increase_packet_size",
+    "nb_rounds": 1,
+    "simulate_latency": 0,
+    "duration": 4,
+    "scrooge_args": {
+      "general": {
+        "use_debug_logs_bool": 0,
+        "log_path": "/home/scrooge/BFT-RSM/Code/experiments/results/",
+        "max_num_packets": 10000
+      },
+      "cluster_0": {
+        "local_num_nodes": [
+          4
+        ],
+        "foreign_num_nodes": [
+          4
+        ],
+        "local_max_nodes_fail": [
+          0
+        ],
+        "foreign_max_nodes_fail": [
+          0
+        ],
+        "num_packets": [
+          10000
+        ],
+        "packet_size": [
+          100
+        ]
+      },
+      "cluster_1": {
+        "local_num_nodes": [
+          4
+        ],
+        "foreign_num_nodes": [
+          4
+        ],
+        "local_max_nodes_fail": [
+          0
+        ],
+        "foreign_max_nodes_fail": [
+          0
+        ],
+        "num_packets": [
+          10000
+        ],
+        "packet_size": [
+          100
+        ]
+      }
+    }
+  }
+}

@@ -6,10 +6,12 @@
 echo "####################### IN INSTALL SCRIPT"
 
 # Create Algorand Node directory
-rm -rf "$1/node/"
-mkdir "$1/node/"
 export ALGORAND_DATA=$1/node/
 echo $ALGORAND_DATA
+~/go/bin/goal kmd stop
+~/go/bin/goal node stop
+rm -rf "$1/node/"
+mkdir "$1/node/"
 
 # Generate initial tokens, copies template setup jsons and creates the wallet
 cd $ALGORAND_DATA

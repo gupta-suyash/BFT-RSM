@@ -18,6 +18,8 @@
 
 int main(int argc, char *argv[])
 {
+    std::thread relayRequestThread;
+    std::thread relayTransactionThread;    
     std::string path;
     {
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
@@ -94,8 +96,8 @@ int main(int argc, char *argv[])
         //     return 0;
         // }
 
-        /*auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
+        /*relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        relayTransactionThread =
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 */
@@ -106,9 +108,9 @@ int main(int argc, char *argv[])
 #else
         auto sendThread = std::thread(runScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-            std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        relayTransactionThread =
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 
 #endif
@@ -122,9 +124,10 @@ int main(int argc, char *argv[])
 #else
         auto sendThread = std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-            std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        // Not using auto anymore here (in case anything breaks - from merge of algo logging)
+        relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        relayTransactionThread =
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 
 #endif
@@ -138,9 +141,9 @@ int main(int argc, char *argv[])
 #else
         auto sendThread = std::thread(runGeoBFTSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-            std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        relayTransactionThread =
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("GeoBFT: Created Generate message relay thread");
 #endif
         auto receiveThread = std::thread(runGeoBFTReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
@@ -152,9 +155,9 @@ int main(int argc, char *argv[])
 #else
         auto sendThread = std::thread(runLeaderSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-            std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        relayTransactionThread =
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Leader: Created Generate message relay thread");
 #endif
         auto receiveThread = std::thread(runLeaderReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
@@ -167,9 +170,9 @@ int main(int argc, char *argv[])
 #else
         auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,
                                       resendDataQueue, quorumAck, kNodeConfiguration);
-        auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-            std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
+        relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
+        relayTransactionThread =
+             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 
 #endif
@@ -180,7 +183,7 @@ int main(int argc, char *argv[])
 
         SPDLOG_INFO("Created Receiver Thread with ID={} ");
 
-        std::this_thread::sleep_until(testStartRecordTime);
+        //std::this_thread::sleep_until(testStartRecordTime);
         const auto trueTestStartTime = std::chrono::steady_clock::now();
         start_recording();
         addMetric("starting_quack", quorumAck->getCurrentQuack().value_or(0));
@@ -192,9 +195,6 @@ int main(int argc, char *argv[])
 
         sendThread.join();
         receiveThread.join();
-        // relayRequestThread.join();
-        // relayTransactionThread.join();
-
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
             "kMaxNumLocalFailedNodes = {}, "
@@ -218,5 +218,9 @@ int main(int argc, char *argv[])
         path = kLogPath;
     }
     printMetrics(path);
-    return 0;
+    #if !FILE_RSM
+        relayRequestThread.join();
+        relayTransactionThread.join();
+    #endif
+   return 0;
 }

@@ -20,6 +20,8 @@
 #define SCROOGE true
 #define ALL_TO_ALL false
 #define ONE_TO_ONE false
+#define GEOBFT false
+#define LEADER false
 #define FILE_RSM true
 #define NOOP_DELAY .8ms
 #define MAX_MESSAGE_DELAY .8ms
