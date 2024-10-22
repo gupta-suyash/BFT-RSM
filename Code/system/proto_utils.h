@@ -7,7 +7,8 @@ namespace util
 {
 struct JankAckView
 {
-    uint32_t senderId;
+    uint16_t isLocal{};
+    uint16_t senderId;
     uint32_t ackOffset;
     google::protobuf::RepeatedField<uint64_t> view;
 };

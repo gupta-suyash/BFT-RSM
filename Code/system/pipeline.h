@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "acknowledgment.h"
 #include "config.h"
 #include "global.h"
@@ -59,9 +58,10 @@ class Pipeline
 
     void SendToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
     void SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
-    void SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
-    void SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&message, std::chrono::steady_clock::time_point curTime);
-
+    void SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&message,
+                                    std::chrono::steady_clock::time_point curTime);
+    void SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&message,
+                                        std::chrono::steady_clock::time_point curTime);
 
   private:
     bool bufferedMessageSend(scrooge::CrossChainMessageData &&message, pipeline::CrossChainMessageBatch *const batch,
@@ -94,7 +94,7 @@ class Pipeline
     static constexpr uint64_t kMinimumBatchSize = BATCH_SIZE; // bytes
     // batches can be larger than kMinimumBatchSize, but the total excess will be <= kMaxBudgetDeficit
     static constexpr uint64_t kMaxBudgetDeficit = 26214 * 8 * 4; // bytes
-    static constexpr auto kMaxBatchCreationTime = BATCH_CREATION_TIME;
+    static constexpr auto kMaxBatchCreationTime = 1ms;
     static constexpr auto kMaxNngBlockingTime = MAX_NNG_BLOCKING_TIME;
     static constexpr uint64_t kBufferSize = PIPELINE_BUFFER_SIZE;
     // GeoBFT constants

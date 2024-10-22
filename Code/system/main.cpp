@@ -1,11 +1,11 @@
 #include "acknowledgment.h"
 #include "all_to_all.h"
-#include "geobft.h"
 #include "config.h"
+#include "geobft.h"
 #include "global.h"
 #include "iothread.h"
-#include "one_to_one.h"
 #include "leader_leader.h"
+#include "one_to_one.h"
 #include "parser.h"
 #include "pipeline.h"
 #include "quorum_acknowledgment.h"
@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
         const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnMaxNumFailedStake, kOtherMaxNumFailedStake, kNodeId,
                      kLogPath, kWorkingDir] = kCommandLineArguments;
-	const auto nwPath = "/home/scrooge/"s;
+        const auto nwPath = "/home/scrooge/"s;
         const auto kNetworkZeroConfigPath = nwPath + "network0urls.txt"s;
         const auto kNetworkOneConfigPath = nwPath + "network1urls.txt"s;
 
@@ -54,7 +54,8 @@ int main(int argc, char *argv[])
         const auto messageBuffer =
             std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
         const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
-        const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(32768 * 2);
+        const auto resendDataQueue =
+            std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(32768 * 2);
 
         pipeline->startPipeline();
 
@@ -67,7 +68,7 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
-        // if (get_rsm_id() == 1 && kNodeId % 3 == 1)
+        // if (get_rsm_id() == 1 && kNodeId < std::min(6, BATCH_CREATION_TIME))
         // {
         //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
         //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
@@ -81,7 +82,7 @@ int main(int argc, char *argv[])
         //     return 0;
         // }
 
-        // if (get_rsm_id() == 0 && kNodeId % 3 == 1)
+        // if (get_rsm_id() == 0 && kNodeId >= 6 && kNodeId < BATCH_CREATION_TIME)
         // {
         //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
         //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
@@ -112,7 +113,6 @@ int main(int argc, char *argv[])
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
 
-
 #endif
 
         auto receiveThread = std::thread(runScroogeReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
@@ -124,11 +124,11 @@ int main(int argc, char *argv[])
 #else
         auto sendThread = std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
+        // Not using auto anymore here (in case anything breaks - from merge of algo logging)
         relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
         relayTransactionThread =
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
-
 
 #endif
 
@@ -136,8 +136,8 @@ int main(int argc, char *argv[])
                                          kNodeConfiguration);
 #elif GEOBFT
 #if FILE_RSM
-        auto sendThread = std::thread(runFileGeoBFTSendThread, messageBuffer, pipeline, acknowledgment,
-                                      resendDataQueue, quorumAck, kNodeConfiguration);
+        auto sendThread = std::thread(runFileGeoBFTSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
 #else
         auto sendThread = std::thread(runGeoBFTSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
@@ -146,12 +146,12 @@ int main(int argc, char *argv[])
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("GeoBFT: Created Generate message relay thread");
 #endif
-        auto receiveThread = std::thread(runGeoBFTReceiveThread, pipeline, acknowledgment, resendDataQueue,
-                                         quorumAck, kNodeConfiguration);
+        auto receiveThread = std::thread(runGeoBFTReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                         kNodeConfiguration);
 #elif LEADER
 #if FILE_RSM
-        auto sendThread = std::thread(runFileLeaderSendThread, messageBuffer, pipeline, acknowledgment,
-                                      resendDataQueue, quorumAck, kNodeConfiguration);
+        auto sendThread = std::thread(runFileLeaderSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
+                                      quorumAck, kNodeConfiguration);
 #else
         auto sendThread = std::thread(runLeaderSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
@@ -160,8 +160,8 @@ int main(int argc, char *argv[])
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Leader: Created Generate message relay thread");
 #endif
-        auto receiveThread = std::thread(runLeaderReceiveThread, pipeline, acknowledgment, resendDataQueue,
-                                         quorumAck, kNodeConfiguration);
+        auto receiveThread = std::thread(runLeaderReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
+                                         kNodeConfiguration);
 
 #else
 #if FILE_RSM
@@ -174,7 +174,6 @@ int main(int argc, char *argv[])
         relayTransactionThread =
              std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration);
         SPDLOG_INFO("Created Generate message relay thread");
-
 
 #endif
 

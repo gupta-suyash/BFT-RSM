@@ -33,6 +33,10 @@ Code/experiments/experiment_scripts/algorand/simple.py
 Code/experiments/experiment_scripts/algorand/genesis_creation/
 Code/experiments/experiment_scripts/algorand/node/
 Code/experiments/experiment_scripts/algorand/addresses/
+Code/experiments/*.png
+Code/experiments/*.csv
+Code/experiments/experiment_scripts/*.png
+Code/experiments/experiment_scripts/*.csv
 ## IGNORE VSCODE ##
 .vscode/
 !.vscode/settings.json
@@ -247,3 +251,8 @@ Temporary Items
 # ignore ./makeNetwork.sh files
 config.h
 experiments.json
+Code/configuration/network0urls.txt
+Code/configuration/network1urls.txt
+Code/experiments/experiment_json/experiments.json
+Code/experiments/nsdi-results/
+

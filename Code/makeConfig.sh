@@ -28,6 +28,10 @@ geobft=${20}
 leader=${21}
 file_rsm=${22}
 use_debug_logs_bool=${23}
+noop_delay=${24}
+max_message_delay=${25}
+quack_window=${26}
+ack_window=${27}
 
 
 echo -e "#ifndef _CONFIG_H_" > config.h
@@ -58,5 +62,10 @@ echo -e "#define ONE_TO_ONE ${one_to_one}" >> config.h
 echo -e "#define GEOBFT ${geobft}" >> config.h
 echo -e "#define LEADER ${leader}" >> config.h
 echo -e "#define FILE_RSM ${file_rsm}" >> config.h
+echo -e "#define NOOP_DELAY ${noop_delay}" >> config.h
+echo -e "#define MAX_MESSAGE_DELAY ${max_message_delay}" >> config.h
+echo -e "#define QUACK_WINDOW ${quack_window}" >> config.h
+echo -e "#define ACK_WINDOW ${ack_window}" >> config.h
 
 echo -e "#endif" >> config.h
+echo -e "" >> config.h

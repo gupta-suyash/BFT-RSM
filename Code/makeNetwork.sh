@@ -127,18 +127,21 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-### GeoBFT Dummy Run
-rsm1_size=(4)
-rsm2_size=(4)
-rsm1_fail=(1)
-rsm2_fail=(1)
-RSM1_Stake=(1 1 1 1)
-RSM2_Stake=(1 1 1 1)
-klist_size=(64)
-packet_size=(100)
+rsm1_size=(7 13 16 19)
+rsm2_size=(7 13 16 19)
+rsm1_fail=(2 4 5 6)
+rsm2_fail=(2 4 5 6)
+RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+klist_size=(0 64)
+packet_size=(1000000)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
+noop_delays=(.8ms 1ms 12ms 100ms)
+max_message_delays=(.8ms 1ms 12ms 100ms)
+quack_windows=(100 500 1000 2000)
+ack_windows=(10 30 100 500 1000)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -229,11 +232,30 @@ echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="$experiment_name"
 echo "$GP_NAME"
-ZONE="us-west1-a"
+ZONE="us-west1-b"
 TEMPLATE="updated-app-template" # NOTE: Look at the algo-timing template, might be necessary to run applications
+
+WORKING_DIR_CLEAN="TRUE"
+if output=$(git status --porcelain) && [ -z "$output" ]; then
+  echo "Working Directory is clean!"
+  WORKING_DIR_CLEAN="TRUE"
+else 
+  WORKING_DIR_CLEAN="FALSE"
+  git stash --include-untracked
+  git stash apply
+  git switch -c "AUTOMATED_BRANCH/$(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
+  git add .
+  git commit -m "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
+  git push -u origin HEAD
+fi
 
 function exit_handler() {
 	echo "** Trapped CTRL-C, deleting experiment"
+	if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
+	  git reset --hard HEAD
+	  git switch -
+	  git stash pop
+	fi
 	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
 	exit 1
 }
@@ -702,29 +724,33 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	}
     
   for algo in "${protocols[@]}"; do # Looping over all the protocols.
+    scrooge="false"
+    all_to_all="false"
+    one_to_one="false"
+    geobft="false"
+    leader="false"
 
-	scrooge="false"
-	all_to_all="false"
-	one_to_one="false"
-        geobft="false"
-        leader="false"
+    if [ "${algo}" = "scrooge" ]; then
+      scrooge="true"
+    elif [ "${algo}" = "all_to_all" ]; then
+      all_to_all="true"
+    elif [ "${algo}" = "geobft" ]; then
+       geobft="true"
+    elif [ "${algo}" = "leader" ]; then
 
-	if [ "${algo}" = "scrooge" ]; then
-		scrooge="true"
-	elif [ "${algo}" = "all_to_all" ]; then
-		all_to_all="true"
-        elif [ "${algo}" = "geobft" ]; then
-           	geobft="true"
-        elif [ "${algo}" = "leader" ]; then
-            	leader="true"
-	else
-		one_to_one="true"
-	fi
+       leader="true"
+    else
+        one_to_one="true"
+    fi
 	for kl_size in "${klist_size[@]}"; do            # Looping over all the klist_sizes.
 		for pk_size in "${packet_size[@]}"; do   # Looping over all the packet sizes.
 			for bt_size in "${batch_size[@]}"; do     # Looping over all the batch sizes.
 				for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
 					for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
+            for noop_delay in "${noop_delays[@]}"; do
+								for max_message_delay in "${max_message_delays[@]}"; do
+									for quack_window in "${quack_windows[@]}"; do
+										for ack_window in "${ack_windows[@]}"; do
 				            # Next, we call the script that makes the config.h. We need to pass all the arguments.
 				            # First, get payload file name
                             pk_file=""
@@ -783,7 +809,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                         	#echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
                         	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
 			#exit 1	
-				./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool}
+				./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window}
 
 				cat config.h
 				cp config.h system/
@@ -807,6 +833,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					sleep 32
 					benchmark_raft "${joinedvar2}" 2
 				fi
+
+										done
+									done
+								done
+							done
 						done
 					done
 				done
@@ -823,4 +854,9 @@ echo "taking down experiment"
 
 ############# DID YOU DELETE THE MACHINES?????????????????
 
+if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
+	git reset --hard HEAD
+	git switch -
+	git stash pop
+fi
 

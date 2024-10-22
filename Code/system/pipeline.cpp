@@ -42,6 +42,18 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
                                    std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
 }
 
+static void setIncorrectAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
+{
+    const auto curAckView = acknowledgment.getAckView<(kListSize)>();
+    const auto ackIterator = acknowledgment::getAckIterator(curAckView);
+    if (ackIterator.has_value())
+    {
+        message->mutable_ack_count()->set_value(999'999'999);
+    }
+    *message->mutable_ack_set() = {curAckView.view.begin(),
+                                   std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+}
+
 template <typename atomic_bitset> void reset_atomic_bit(atomic_bitset &set, uint64_t bit)
 {
     auto curSet = set.load();
@@ -80,31 +92,35 @@ static nng_socket openReceiveSocket(const std::string &url, std::chrono::millise
 
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = 2 * (OWN_RSM_SIZE + OTHER_RSM_SIZE);
-    const long kNumOfBufferedElements = std::min<long>(64, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(250000, PACKET_SIZE));
+    const long kNumOfBufferedElements =
+        std::min<long>(64, (double)kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(250000, PACKET_SIZE));
     addMetric("socket-buffer-size-receive", kNumOfBufferedElements);
     bool nngSetTimeoutResult = nng_socket_set_ms(socket, NNG_OPT_RECVTIMEO, maxNngBlockingTime.count());
     if (nngSetTimeoutResult != 0)
     {
-        SPDLOG_CRITICAL("Cannot set timeout for listening url {} Return value {}", url, nng_strerror(nngSetTimeoutResult));
+        SPDLOG_CRITICAL("Cannot set timeout for listening url {} Return value {}", url,
+                        nng_strerror(nngSetTimeoutResult));
         std::abort();
     }
     bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
     if (nngSetSndBufSizeResult != 0)
     {
-        SPDLOG_CRITICAL("Cannot set send buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetSndBufSizeResult));
+        SPDLOG_CRITICAL("Cannot set send buf size {} for url {} RV {}", kNumOfBufferedElements, url,
+                        nng_strerror(nngSetSndBufSizeResult));
         std::abort();
     }
     bool nngSetRecBufSizeResult = nng_socket_set_int(socket, NNG_OPT_RECVBUF, kNumOfBufferedElements);
     if (nngSetRecBufSizeResult != 0)
     {
-        SPDLOG_CRITICAL("Cannot set rec buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetRecBufSizeResult));
+        SPDLOG_CRITICAL("Cannot set rec buf size {} for url {} RV {}", kNumOfBufferedElements, url,
+                        nng_strerror(nngSetRecBufSizeResult));
         std::abort();
     }
     bool nngSetRcvMaxSize = nng_socket_set_size(socket, NNG_OPT_RECVMAXSZ, 0);
     if (nngSetRcvMaxSize != 0)
     {
-	    SPDLOG_CRITICAL("Cannot set max receive size for url {} RV {}", url, nng_strerror(nngSetRcvMaxSize));
-	    std::abort();
+        SPDLOG_CRITICAL("Cannot set max receive size for url {} RV {}", url, nng_strerror(nngSetRcvMaxSize));
+        std::abort();
     }
 
     return socket;
@@ -141,25 +157,28 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
 
     const long kDesiredMemoryUsage = 12ULL * (1ULL << 30);
     const auto kNumSocketsTotal = 2 * (OWN_RSM_SIZE + OTHER_RSM_SIZE);
-    const long kNumOfBufferedElements = std::min<long>(64, (double) kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(250000, PACKET_SIZE));
+    const long kNumOfBufferedElements =
+        std::min<long>(64, (double)kDesiredMemoryUsage / kNumSocketsTotal / std::max<long>(250000, PACKET_SIZE));
     addMetric("socket-buffer-size-send", kNumOfBufferedElements);
     bool nngSetSndBufSizeResult = nng_socket_set_int(socket, NNG_OPT_SENDBUF, kNumOfBufferedElements);
     if (nngSetSndBufSizeResult != 0)
     {
-        SPDLOG_CRITICAL("Cannot set send buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetSndBufSizeResult));
+        SPDLOG_CRITICAL("Cannot set send buf size {} for url {} RV {}", kNumOfBufferedElements, url,
+                        nng_strerror(nngSetSndBufSizeResult));
         std::abort();
     }
     bool nngSetRecBufSizeResult = nng_socket_set_int(socket, NNG_OPT_RECVBUF, kNumOfBufferedElements);
     if (nngSetRecBufSizeResult != 0)
     {
-        SPDLOG_CRITICAL("Cannot set rec buf size {} for url {} RV {}", kNumOfBufferedElements, url, nng_strerror(nngSetRecBufSizeResult));
+        SPDLOG_CRITICAL("Cannot set rec buf size {} for url {} RV {}", kNumOfBufferedElements, url,
+                        nng_strerror(nngSetRecBufSizeResult));
         std::abort();
     }
     bool nngSetRcvMaxSize = nng_socket_set_size(socket, NNG_OPT_RECVMAXSZ, 0);
     if (nngSetRcvMaxSize != 0)
     {
-	    SPDLOG_CRITICAL("Cannot set max receive size for url {} RV {}", url, nng_strerror(nngSetRcvMaxSize));
-	    std::abort();
+        SPDLOG_CRITICAL("Cannot set max receive size for url {} RV {}", url, nng_strerror(nngSetRcvMaxSize));
+        std::abort();
     }
 
     return socket;
@@ -172,7 +191,7 @@ static nng_socket openSendSocket(const std::string &url, std::chrono::millisecon
  */
 static int sendMessage(const nng_socket &socket, nng_msg *message)
 {
-    if (message == nullptr) 
+    if (message == nullptr)
     {
         SPDLOG_CRITICAL("MESSAGE IS NULL!");
         return -1;
@@ -186,7 +205,7 @@ static int sendMessage(const nng_socket &socket, nng_msg *message)
     }
     if (sendReturnValue != 0)
     {
-        //SPDLOG_CRITICAL("NNG SEND MESSAGE RETURN VALUE IS: {}", nng_strerror(sendReturnValue));
+        // SPDLOG_CRITICAL("NNG SEND MESSAGE RETURN VALUE IS: {}", nng_strerror(sendReturnValue));
     }
     return sendReturnValue;
 }
@@ -412,18 +431,18 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
     }
 
     // If we are running the GEOBFT protocol, and we are marked as sending
-    // messages to a remote RSM, we should not send messages unless our 
-    // ID is the sending node ID (in this case, this ID 0) 
-    if (GEOBFT && !isLocal && kOwnConfiguration.kNodeId != 0) // TODO: Make sender_id a global variable 
+    // messages to a remote RSM, we should not send messages unless our
+    // ID is the sending node ID (in this case, this ID 0)
+    if (GEOBFT && !isLocal && kOwnConfiguration.kNodeId != 0) // TODO: Make sender_id a global variable
     {
         return;
     }
 
     constexpr auto kNngSendSuccess = 0;
 
-    bindThreadBetweenCpu(5,8);
+    bindThreadBetweenCpu(5, 8);
     nng_socket sendSocket = openSendSocket(sendUrl, kMaxNngBlockingTime);
-    bindThreadBetweenCpu(4,4);
+    bindThreadBetweenCpu(4, 4);
     nng_msg *newMessage;
     uint64_t numSent{};
 
@@ -441,7 +460,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
             }
             std::this_thread::yield();
         }
-        
+
         while (true)
         {
             if (sendMessage(sendSocket, newMessage) == kNngSendSuccess)
@@ -480,9 +499,9 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
         return;
     }
 
-    bindThreadBetweenCpu(5,8);
+    bindThreadBetweenCpu(5, 8);
     nng_socket recvSocket = openReceiveSocket(recvUrl, kMaxNngBlockingTime);
-    bindThreadBetweenCpu(4,4);
+    bindThreadBetweenCpu(4, 4);
     std::optional<nng_msg *> message;
     uint64_t numRecv{};
 
@@ -560,7 +579,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 
     nng_msg *batchData = serializeProtobuf(batch->data);
     batch->data.Clear();
-    batch->batchSizeEstimate = 0;//kProtobufDefaultSize;
+    batch->batchSizeEstimate = 0; // kProtobufDefaultSize;
 
     bool pushFailure{};
 
@@ -588,6 +607,15 @@ void Pipeline::flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const 
 
     if (acknowledgment)
     {
+        // if (kOwnConfiguration.kNodeId % 3 == 1)
+        // {
+        //     setIncorrectAckValue(&batch->data, *acknowledgment);
+        // }
+        // else
+        // {
+        //     setAckValue(&batch->data, *acknowledgment);
+        // }
+
         setAckValue(&batch->data, *acknowledgment);
         generateMessageMac(&batch->data);
     }
@@ -650,7 +678,7 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
         flushBufferedMessage(batch, acknowledgment, sendingQueue, curTime);
         return true;
     }
-    
+
     return false;
 }
 bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
@@ -691,7 +719,7 @@ bool Pipeline::bufferedFileMessageSend(scrooge::CrossChainMessageData &&message,
         flushBufferedFileMessage(batch, acknowledgment, sendingQueue, curTime);
         return true;
     }
-    
+
     return false;
 }
 void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
@@ -735,7 +763,7 @@ bool Pipeline::SendFileToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainM
                                   const Acknowledgment *const acknowledgment,
                                   std::chrono::steady_clock::time_point curTime)
 {
-    //SPDLOG_CRITICAL("Beginning of function!!");
+    // SPDLOG_CRITICAL("Beginning of function!!");
     /*SPDLOG_CRITICAL("Queueing Send message to other RSM: nodeId = {}, message = [SequenceId={}, size='{}']",
                  receivingNodeId, messageData.sequence_number(),
                  messageData.message_content().size());
@@ -747,13 +775,13 @@ bool Pipeline::SendFileToOtherRsm(uint64_t receivingNodeId, scrooge::CrossChainM
                                    curTime);
 }
 
-/* This function is used to send message to f+1 nodes in the other RSM. 
+/* This function is used to send message to f+1 nodes in the other RSM.
  * f+1 nodes are the minimum number of nodes the sending RSM needs to communicate with
- * to maintain correctness while being optimal in GeoBFT. 
+ * to maintain correctness while being optimal in GeoBFT.
  *
  */
 void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messageData,
-                                 std::chrono::steady_clock::time_point curTime)
+                                          std::chrono::steady_clock::time_point curTime)
 {
     auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
     auto batch = &mForeignMessageBatches.front().data;
@@ -775,9 +803,10 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
 
     auto foreignAliveNodes = mAliveNodesForeign;
     nng_msg *batchData = serializeProtobuf(*batch);
-   
+
     uint64_t geobft_quorum_counter = 0; // TODO: Potential source of performance degradation
-    const uint64_t geobft_quorum_size = (kOwnConfiguration.kOtherNetworkSize - 1)/replication_factor + 1; // TODO: Move this
+    const uint64_t geobft_quorum_size =
+        (kOwnConfiguration.kOtherNetworkSize - 1) / replication_factor + 1; // TODO: Move this
     while (geobft_quorum_counter < geobft_quorum_size && not is_test_over())
     {
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
@@ -816,9 +845,9 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
 
 // Sends message to a quorum of nodes in a remote RSM
 void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messageData,
-                                     std::chrono::steady_clock::time_point curTime)
+                                              std::chrono::steady_clock::time_point curTime)
 {
-    //SPDLOG_CRITICAL("Beginning of Fil GeoBFT function");
+    // SPDLOG_CRITICAL("Beginning of Fil GeoBFT function");
     auto batchCreationTime = &mForeignMessageBatches.front().creationTime;
     auto batch = &mForeignMessageBatches.front().data;
     auto batchSize = &mForeignMessageBatches.front().batchSizeEstimate;
@@ -837,11 +866,12 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
     numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
     numSizeHits += *batchSize >= kMinimumBatchSize;
 
-    //SPDLOG_CRITICAL("Batch setup complete in File GeoBFT");
+    // SPDLOG_CRITICAL("Batch setup complete in File GeoBFT");
     auto foreignAliveNodes = mAliveNodesForeign;
     nng_msg *batchData = serializeFileProtobuf(*batch);
     uint64_t geobft_quorum_counter = 0; // TODO: Potential source of performance degradation
-    const uint64_t geobft_quorum_size = (kOwnConfiguration.kOtherNetworkSize - 1)/replication_factor + 1; // TODO: Move this
+    const uint64_t geobft_quorum_size =
+        (kOwnConfiguration.kOtherNetworkSize - 1) / replication_factor + 1; // TODO: Move this
     while (geobft_quorum_counter < geobft_quorum_size && not is_test_over())
     {
         geobft_quorum_counter += 1;
@@ -849,7 +879,7 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
         foreignAliveNodes.reset(curDestination);
         const auto &curBuffer = mForeignSendBufs.at(curDestination);
         nng_msg *curMessage = batchData;
-        //SPDLOG_CRITICAL("First checks of the foreignAliveNodes variable");
+        // SPDLOG_CRITICAL("First checks of the foreignAliveNodes variable");
         if (geobft_quorum_counter < geobft_quorum_size)
         {
             nng_msg_dup(&curMessage, batchData);
@@ -858,8 +888,8 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
         {
             curMessage = batchData;
         }
-        
-        //SPDLOG_CRITICAL("Checkpoint 1 in while loop");
+
+        // SPDLOG_CRITICAL("Checkpoint 1 in while loop");
         while (not curBuffer->try_enqueue(curMessage))
         {
             if (is_test_over())
@@ -874,9 +904,9 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
                 break;
             }
         }
-        //SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
+        // SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
     }
-    //nng_msg_free(batchData);
+    // nng_msg_free(batchData);
     batch->Clear();
     *batchSize = 0;
     *batchCreationTime = curTime;
@@ -908,7 +938,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
 
     auto foreignAliveNodes = mAliveNodesForeign;
     nng_msg *batchData = serializeProtobuf(*batch);
-    
+
     while (foreignAliveNodes.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
@@ -1035,12 +1065,12 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
         }
         else if (remainingDestinations.any() || failedSends.any())
         {
-            //SPDLOG_CRITICAL("REBROADCAST: NNG MSG DUP");
+            // SPDLOG_CRITICAL("REBROADCAST: NNG MSG DUP");
             nng_msg_dup(&curMessage, message);
         }
         else
         {
-            //SPDLOG_CRITICAL("REBROADCAST: SET CURR_MSG to MSG");
+            // SPDLOG_CRITICAL("REBROADCAST: SET CURR_MSG to MSG");
             curMessage = message;
         }
 
@@ -1051,7 +1081,7 @@ bool Pipeline::rebroadcastToOwnRsm(nng_msg *message)
         else
         {
             failedSends.set(curDestination);
-            //SPDLOG_CRITICAL("Bitset: {}", failedSends.to_string());
+            // SPDLOG_CRITICAL("Bitset: {}", failedSends.to_string());
             // curMessage <- message that should be used next time
         }
     }
