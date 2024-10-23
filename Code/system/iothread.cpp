@@ -174,19 +174,9 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
 #if WRITE_DR
         while (receivedMessageQueue->try_dequeue(receivedMessage))
         {
-            for (auto& msg : receivedMessage.data())
-            {
-                scrooge::KeyValue receivedKeyValue;
-                const auto isparseSuccessful = receivedKeyValue.ParseFromString(msg.message_content());
-                if (not isparseSuccessful)
-                {
-                    SPDLOG_CRITICAL("Could not parse DR received KeyValue, received data '{}'", msg.message_content());
-                    continue;
-                }
-                *drTransfer.mutable_key_value_update() = std::move(receivedKeyValue);
-                const auto serializedDrTransfer = drTransfer.SerializeAsString();
-                writeMessage(pipe, serializedDrTransfer);
-            }
+            *drTransfer.mutable_unvalidated_cross_chain_message() = std::move(receivedMessage);
+            const auto serializedDrTransfer = drTransfer.SerializeAsString();
+            writeMessage(pipe, serializedDrTransfer);
         }
 #elif WRITE_CCF
         while (receivedMessageQueue->try_dequeue(receivedMessage))
