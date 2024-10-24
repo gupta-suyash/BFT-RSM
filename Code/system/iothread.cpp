@@ -172,6 +172,10 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
         }
 
 #if WRITE_DR
+        if (get_rsm_id() == 0)
+        {
+            continue;
+        }
         while (receivedMessageQueue->try_dequeue(receivedMessage))
         {
             *drTransfer.mutable_unvalidated_cross_chain_message() = std::move(receivedMessage);

@@ -32,9 +32,9 @@ FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 all: scrooge
 
 scrooge : $(SOURCES_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(SANITIZERS) $(LIBS)
 %.o : %.cpp
-	$(CC) -c ${CFLAGS} -o $@ $<
+	$(CC) -c ${CFLAGS} $(SANITIZERS) -o $@ $<
 
 proto: $(PROTO_SOURCES)
 	protoc -I./protobuf --cpp_out=./system ./protobuf/*

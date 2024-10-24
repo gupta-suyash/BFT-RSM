@@ -66,7 +66,7 @@ file_rsm="false"
 # receiving RSM, then receive_rsm="resdb"
 send_rsm="raft"
 receive_rsm="raft"
-run_dr="false"
+run_dr="true"
 run_ccf="false"
 echo "Send rsm: "
 echo $send_rsm
@@ -206,7 +206,7 @@ echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
 GP_NAME="test"
-TEMPLATE="kafka-unified-5-spot" # "kafka-unified-5-spot"
+TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
 RSM2_ZONE="us-west4-a"
@@ -438,6 +438,7 @@ if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
 fi
 
+raft_counter=0
 for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# First, we create the configuration file "network0urls.txt" through echoing and redirection.
 	rm -f network0urls.txt
@@ -475,7 +476,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	joinedvar1=""
 	joinedvar2=""
 	raft_count=1
-	
+
 	function start_raft() {
 		echo "Raft RSM is being used!"
 		# Take in arguments
@@ -490,13 +491,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
     		# Run setup build script
            	#Client node
 		echo ${client_ip}
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  git fetch && git switch debug && git pull && '"${etcd_path}"'scripts/build.sh' 1>/dev/null 2>&1 &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  git fetch && git switch raf/dr-ccf-raft && git pull && '"${etcd_path}"'scripts/build.sh' 1>/dev/null 2>&1 &
 		raft_pids+=($!)
 		echo "Sent build information!"
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; git fetch; git switch raf/dr-ccf-raft; git pull; echo \$(pwd); ./scripts/build.sh; exit" & 1>/dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; git fetch; git switch raf/dr-ccf-raft; git pull; echo \$(pwd); ./scripts/build.sh; exit"  > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 
@@ -534,10 +535,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			this_url=${urls[$i]}
 			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
 			if [ "${single_replica_rsm}" = "false" ]; then
-				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export dr_sender=${send_dr_txns}; export ccf_sender=${send_ccf_txns}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd \${dr_sender} \${ccf_sender} --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") & 1>/dev/null 2>&1 &
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") > /dev/null 2>&1 &
 			else
-				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export dr_sender=${send_dr_txns}; export ccf_sender=${send_ccf_txns}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --data-dir=data.etcd \${dr_sender} \${ccf_sender} --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log) &>background_raf_\${THIS_IP}.log") & 1>/dev/null 2>&1 &
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") > /dev/null 2>&1 &
 			fi
+			raft_counter=$((raft_counter + 1))
+
 		done
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
 		echo "RSM w ports: ${joined%,}"
@@ -855,9 +858,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 							# cat config.h
 							cp config.h system/
 
-							make clean
-							make proto
-							make -j scrooge
+							# make clean
+							# make proto
+							# make -j scrooge
 
 							if [ "$send_rsm" = "raft" ]; then
 								echo "Running Send_RSM Benchmark Raft"
@@ -887,8 +890,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 echo "taking down experiment"
 
-
-echo "** Trapped CTRL-C"
 if [ "$keep_machines" != "Y" ]; then
 	echo "deleting experiment"
 	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
