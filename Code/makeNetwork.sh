@@ -39,7 +39,7 @@ raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
 kafka_dir="${workdir}/kafka_2.13-3.7.0/"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
-message_buffer_size=256
+message_buffer_size=32768
 
 # Set rarely changing experiment application parameters
 starting_algos=10000000000000000
