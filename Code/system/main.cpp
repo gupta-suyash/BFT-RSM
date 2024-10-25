@@ -163,8 +163,6 @@ int main(int argc, char *argv[])
 
         sendThread.join();
         receiveThread.join();
-        // relayRequestThread.join();
-        // relayTransactionThread.join();
 
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
@@ -187,7 +185,11 @@ int main(int argc, char *argv[])
         addMetric("local_stake", kNodeConfiguration.kOwnNetworkStakes.at(kNodeId));
         addMetric("kList_size", kListSize);
         path = kLogPath;
+
+        printMetrics(path);
+
+        relayRequestThread.join();
+        relayTransactionThread.join();
     }
-    printMetrics(path);
     return 0;
 }
