@@ -66,7 +66,7 @@ file_rsm="false"
 # receiving RSM, then receive_rsm="resdb"
 send_rsm="raft"
 receive_rsm="raft"
-run_dr="true"
+run_dr="false"
 run_ccf="false"
 echo "Send rsm: "
 echo $send_rsm
