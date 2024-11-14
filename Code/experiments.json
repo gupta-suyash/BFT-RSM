@@ -11,22 +11,28 @@
     "local_compile_script": "/home/scrooge/BFT-RSM/Code/build.sh",
     "replication_protocol": "scrooge",
     "clusterZeroIps": [
-      "10.128.7.13",
-      "10.128.7.14",
-      "10.128.7.15",
-      "10.128.7.16"
+      "10.138.8.119",
+      "10.138.8.114",
+      "10.138.8.125",
+      "10.138.8.106",
+      "10.138.8.126",
+      "10.138.8.122",
+      "10.138.8.112"
     ],
     "clusterOneIps": [
-      "10.128.7.17",
-      "10.128.7.18",
-      "10.128.7.19",
-      "10.128.7.20"
+      "10.138.8.113",
+      "10.138.8.95",
+      "10.138.8.96",
+      "10.138.8.109",
+      "10.138.8.90",
+      "10.138.8.103",
+      "10.138.8.97"
     ],
     "client_regions": [
       "US"
     ]
   },
-  "raft-algo-testingggg": {
+  "raft-testing-just-merge": {
     "experiment_name": "increase_packet_size",
     "nb_rounds": 1,
     "simulate_latency": 0,
@@ -39,42 +45,42 @@
       },
       "cluster_0": {
         "local_num_nodes": [
-          4
+          7
         ],
         "foreign_num_nodes": [
-          4
+          7
         ],
         "local_max_nodes_fail": [
-          0
+          2
         ],
         "foreign_max_nodes_fail": [
-          0
+          2
         ],
         "num_packets": [
           10000
         ],
         "packet_size": [
-          100
+          1000000
         ]
       },
       "cluster_1": {
         "local_num_nodes": [
-          4
+          7
         ],
         "foreign_num_nodes": [
-          4
+          7
         ],
         "local_max_nodes_fail": [
-          0
+          2
         ],
         "foreign_max_nodes_fail": [
-          0
+          2
         ],
         "num_packets": [
           10000
         ],
         "packet_size": [
-          100
+          1000000
         ]
       }
     }
