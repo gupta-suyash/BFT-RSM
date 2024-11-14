@@ -127,21 +127,21 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(7 13 16 19)
-rsm2_size=(7 13 16 19)
-rsm1_fail=(2 4 5 6)
-rsm2_fail=(2 4 5 6)
-RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(0 64)
-packet_size=(1000000)
-batch_size=(200000)
-batch_creation_time=(1ms)
-pipeline_buffer_size=(8)
-noop_delays=(.8ms 1ms 12ms 100ms)
-max_message_delays=(.8ms 1ms 12ms 100ms)
-quack_windows=(100 500 1000 2000)
-ack_windows=(10 30 100 500 1000)
+#rsm1_size=(7 13 16 19)
+#rsm2_size=(7 13 16 19)
+#rsm1_fail=(2 4 5 6)
+#rsm2_fail=(2 4 5 6)
+#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+#klist_size=(0 64)
+#packet_size=(1000000)
+#batch_size=(200000)
+#batch_creation_time=(1ms)
+#pipeline_buffer_size=(8)
+#noop_delays=(.8ms 1ms 12ms 100ms)
+#max_message_delays=(.8ms 1ms 12ms 100ms)
+#quack_windows=(100 500 1000 2000)
+#ack_windows=(10 30 100 500 1000)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -167,17 +167,17 @@ ack_windows=(10 30 100 500 1000)
 #packet_size=(100)
 
 ## Exp: Equal stake RSMs of size 4; message size 100, 1000
-#rsm1_size=(4)
-#rsm2_size=(4)
-#rsm1_fail=(1)
-#rsm2_fail=(1)
-#RSM1_Stake=(1 1 1 1)
-#RSM2_Stake=(1 1 1 1)
-#klist_size=(64)
-#packet_size=(100 1000 10000 50000 100000)
-#batch_size=(26214)
-#batch_creation_time=(1ms)
-#pipeline_buffer_size=(8)
+rsm1_size=(4)
+rsm2_size=(4)
+rsm1_fail=(1)
+rsm2_fail=(1)
+RSM1_Stake=(1 1 1 1)
+RSM2_Stake=(1 1 1 1)
+klist_size=(64)
+packet_size=(100)
+batch_size=(26214)
+batch_creation_time=(1ms)
+pipeline_buffer_size=(8)
 
 ### Exp: Equal stake RSMs of size 7; message size 1000.
 #rsm1_size=(7)
@@ -808,20 +808,21 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                         	#echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
                         	#echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
                         	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
-			#exit 1	
-				./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window}
+			#exit 1
+				# TODO: uncomment from 812 to 825 	
+				#./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window}
 
-				cat config.h
-				cp config.h system/
+				#cat config.h
+				#cp config.h system/
 
-				make clean
-				make proto
-				make -j scrooge
+				#make clean
+				#make proto
+				#make -j scrooge
 
 				# Next, we make the experiment.json for backward compatibility.
-				makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
-				parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-				parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+				#makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
+				#parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+				#parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 				# Next, we run the script.
 				./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
