@@ -211,8 +211,7 @@ def run(configJson, experimentName, expDir):
                 if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
                     cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 else: #run kafka consumer & producer
-                    time.sleep(60)
-                    cmd = "source ~/.profile && cd ~/scrooge-kafka && (nohup /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Producer\" 2>curProdErrLog 1>curProdOutputLog < /dev/null &) && /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Consumer\""
+                    cmd = "source ~/.profile; killall java; killall etcd; cd ~/scrooge-kafka && (nohup /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Producer\" 2>curProdErrLog 1>curProdOutputLog < /dev/null &) && /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Consumer\""
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
@@ -243,7 +242,6 @@ def run(configJson, experimentName, expDir):
             if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":    
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
             else: # run kafka specific function
-                time.sleep(60)
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 
             executeCommand(f'mv node* {expDir}')
