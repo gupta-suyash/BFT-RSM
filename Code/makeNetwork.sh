@@ -136,7 +136,7 @@ rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
-packet_size=(1000000)
+packet_size=(100)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -222,7 +222,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="reggie"
+GP_NAME="raf"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
@@ -249,7 +249,7 @@ if [ "$create_machines" = "Y" ]; then
 	  yes | gcloud beta compute instance-groups managed create "${GP_NAME}-kafka" --project=scrooge-398722 --base-instance-name="${GP_NAME}-kafka" --size="$((num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${KAFKA_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
 	fi
 	wait
-	echo -n "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
+	echo "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
 	exit
 fi
 
@@ -259,7 +259,7 @@ if output=$(git status --porcelain) && [ -z "$output" ]; then
   echo "Working Directory is clean!"
   WORKING_DIR_CLEAN="TRUE"
 else
-  echo -n "WARNING: directory not clean."
+  echo "WARNING: directory not clean."
   echo -n "Do you want to back up the working directory for this run? type Y if yes: "
   read backup_run
   if [ "$backup_run" = "Y" ]; then
@@ -271,7 +271,7 @@ else
 	git commit -m "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
 	git push -u origin HEAD
   else
-    echo "Not backing up run ....."
+	WORKING_DIR_CLEAN="TRUE"
   fi
 fi
 
@@ -856,12 +856,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		one_to_one="true"
     fi
 
-	for kl_size in "${klist_size[@]}"; do            # Looping over all the klist_sizes.
-	for pk_size in "${packet_size[@]}"; do   # Looping over all the packet sizes.
-	for bt_size in "${batch_size[@]}"; do     # Looping over all the batch sizes.
-	for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
-	for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-	for noop_delay in "${noop_delays[@]}"; do
+	for kl_size in "${klist_size[@]}"; do                    # Looping over all the klist_sizes.
+	for pk_size in "${packet_size[@]}"; do                   # Looping over all the packet sizes.
+	for bt_size in "${batch_size[@]}"; do                    # Looping over all the batch sizes.
+	for bt_create_tm in "${batch_creation_time[@]}"; do      # Looping over all batch creation times.
+	for pl_buf_size in "${pipeline_buffer_size[@]}"; do      # Looping over all pipeline buffer sizes.
+	for noop_delay in "${noop_delays[@]}"; do                # etc...
 	for max_message_delay in "${max_message_delays[@]}"; do
 	for quack_window in "${quack_windows[@]}"; do
 	for ack_window in "${ack_windows[@]}"; do
@@ -995,10 +995,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		# Next, we run the script.
 		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
+		experiment_pid=$!
+
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
 			benchmark_raft "${joinedvar1}" 1
-			# tail -f <file_name>
 		fi
 		if [ "$receive_rsm" = "raft" ]; then
 			if [ "$run_dr" = "false" ]; then
@@ -1033,3 +1034,5 @@ if [ "$keep_machines" != "Y" ]; then
 	exit 0
 fi
 echo "keeping machines for future experiments"
+
+wait $experiment_pid

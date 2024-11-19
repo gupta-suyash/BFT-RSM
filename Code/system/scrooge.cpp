@@ -350,7 +350,6 @@ static void runScroogeSendThread(
 
     while (not is_test_over())
     {
-        std::this_thread::sleep_for(1us);
         // update window information
         const auto curAck = acknowledgment->getAckIterator();
         const auto curQuack = quorumAck->getCurrentQuack();
