@@ -222,7 +222,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="test"
+GP_NAME="reggie"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
@@ -258,14 +258,21 @@ WORKING_DIR_CLEAN="TRUE"
 if output=$(git status --porcelain) && [ -z "$output" ]; then
   echo "Working Directory is clean!"
   WORKING_DIR_CLEAN="TRUE"
-else 
-  WORKING_DIR_CLEAN="FALSE"
-  git stash --include-untracked
-  git stash apply
-  git switch -c "AUTOMATED_BRANCH/$(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
-  git add .
-  git commit -m "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
-  git push -u origin HEAD
+else
+  echo -n "WARNING: directory not clean."
+  echo -n "Do you want to back up the working directory for this run? type Y if yes: "
+  read backup_run
+  if [ "$backup_run" = "Y" ]; then
+	WORKING_DIR_CLEAN="FALSE"
+	git stash --include-untracked
+	git stash apply
+	git switch -c "AUTOMATED_BRANCH/$(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
+	git add .
+	git commit -m "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
+	git push -u origin HEAD
+  else
+    echo "Not backing up run ....."
+  fi
 fi
 
 echo -n "Do you want to keep you machines after this exp? type Y if yes: "
