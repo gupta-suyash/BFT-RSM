@@ -37,6 +37,15 @@ Code/experiments/*.png
 Code/experiments/*.csv
 Code/experiments/experiment_scripts/*.png
 Code/experiments/experiment_scripts/*.csv
+
+## IGNORE KAFKA BUILD FILES ##
+Code/config.json
+Code/curOutputLogConsumer
+Code/currErrLog
+Code/experiments.json
+Code/experiments/experiment_json/experiments.json
+Code/server.properties
+
 ## IGNORE VSCODE ##
 .vscode/
 !.vscode/settings.json

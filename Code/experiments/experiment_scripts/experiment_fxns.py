@@ -179,24 +179,19 @@ def run(configJson, experimentName, expDir):
     cloudlab.experiment_name = experimentName
     # Experiment results dir on the machine
     cloudlab.project_dir = config['experiment_independent_vars']['project_dir']
+    # print("project_dir: " , config['experiment_independent_vars']['project_dir'])
+    # import pdb
+    # pdb.set_trace()
     # Source directory on the local machine (for compilation)
     cloudlab.src_dir = config['experiment_independent_vars']['src_dir']
     # The nbclients field is a list that contains a list of client counts.
     # Ex, if this is listed: [1,2,4,8], the framework will run the experiment
     # 4 times: one with 1 clients, then with two, then four, then 8. The
     # format for collecting the data will be remoteExpDir/clientcount.
-    # If true, simulate latency with tc
-    simulateLatency = 0
-    try:
-        simulateLatency = int(config[experimentName]['simulate_latency'])
-    except:
-        simulateLatency = 0
-
-    # Setup latency on appropriate hosts if simulated
-    if (simulateLatency):
-        print("Simulating a " + str(simulateLatency) + " ms")
 
     increase_packet_size = Scaling_Client_Exp()
+    #import pdb
+    #pdb.set_trace()
     increase_packet_size.nb_rounds = int(config[experimentName]['nb_rounds'])
     # Run for each round, nbRepetitions time.
     
@@ -213,7 +208,11 @@ def run(configJson, experimentName, expDir):
             groupId = 0
             nodeId = 0
             for j in range(0, clusterZerosz + clusterOnesz):
-                cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
+                if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
+                    cmd = scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
+                else: #run kafka consumer & producer
+                    time.sleep(60)
+                    cmd = "source ~/.profile && cd ~/scrooge-kafka && (nohup /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Producer\" 2>curProdErrLog 1>curProdOutputLog < /dev/null &) && /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Consumer\""
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
@@ -225,9 +224,12 @@ def run(configJson, experimentName, expDir):
             ssh_key = config['experiment_independent_vars']['ssh_key']
             username = config['experiment_independent_vars']['username']
             count = 0
-            executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
-
-            executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
+            
+            if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
+                executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
+                executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
+            else: # run kafka specific function
+                executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
             file_names = []
             ips = []
             for node_id, ip in enumerate(cluster_zero):
@@ -238,8 +240,12 @@ def run(configJson, experimentName, expDir):
                 cluster_id = 1
                 file_names.append(f'log_{cluster_id}_{node_id}')
                 ips.append(ip)
+            if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":    
+                executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
+            else: # run kafka specific function
+                time.sleep(60)
+                executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 
-            executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
             executeCommand(f'mv node* {expDir}')
             executeCommand(f'cp config.h {expDir}')
         except Exception as e:

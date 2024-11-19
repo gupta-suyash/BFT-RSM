@@ -15,13 +15,6 @@ read experiment_name
 
 echo "Running Experiment: ${experiment_name}"
 
-
-echo -n "Are you using static machines? (T or F) "
-
-read static_machines
-
-echo "You have said ${static_machines} to using static machines."
-echo "NOTE: STATIC MACHINES ONLY WORK WITH 4 NODE CLUSTERS!!!"
 # If this experiment uses external applications, set the following values
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
@@ -54,7 +47,7 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=20s
+warmup_time=30s
 total_time=120s
 num_packets=10000
 exec_dir="$HOME/"
@@ -67,9 +60,10 @@ raft_app_dir="${workdir}/BFT-RSM/Code/experiments/applications/raft-application/
 algorand_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/algorand/"
 resdb_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/"
 raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
+kafka_dir="${workdir}/kafka_2.13-3.7.0/"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
-message_buffer_size=256
+message_buffer_size=32768
 
 # Set rarely changing experiment application parameters
 starting_algos=10000000000000000
@@ -87,17 +81,25 @@ all_to_all="false"
 one_to_one="false"
 geobft="false" # "true"
 leader="false"
-#If this experiment is for File_RSM (not algo or resdb)
-# If this experiment uses external applications, set the following values
-# Valid inputs: "algo", "resdb", "raft", "file"
-# e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
-# receiving RSM, then receive_rsm="resdb"
-#send_rsm="raft"
-#receive_rsm="raft"
-echo "Send rsm: "
-echo $send_rsm
-echo "Receive rsm: "
-echo $receive_rsm
+kafka="false"
+
+run_dr="false"
+run_ccf="false"
+
+if [ "$run_dr" = "true" ]; then
+	if [ "$run_ccf" = "true" ]; then
+		echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
+		exit 1
+	fi
+fi
+
+if [ "$run_dr" = "true" ]; then
+	echo "RUNNING DR"
+fi
+
+if [ "$run_ccf" = "true" ]; then
+	echo "RUNNING CCF"
+fi
 
 if [ "$file_rsm" = "false" ]; then
 	echo "WARNING: FILE RSM NOT BEING USED"
@@ -166,19 +168,6 @@ ack_windows=(10 30 100 500 1000)
 #RSM2_Stake=(1 1 1 1)
 #packet_size=(100)
 
-## Exp: Equal stake RSMs of size 4; message size 100, 1000
-#rsm1_size=(4)
-#rsm2_size=(4)
-#rsm1_fail=(1)
-#rsm2_fail=(1)
-#RSM1_Stake=(1 1 1 1)
-#RSM2_Stake=(1 1 1 1)
-#klist_size=(64)
-#packet_size=(100 1000 10000 50000 100000)
-#batch_size=(26214)
-#batch_creation_time=(1ms)
-#pipeline_buffer_size=(8)
-
 ### Exp: Equal stake RSMs of size 7; message size 1000.
 #rsm1_size=(7)
 #rsm2_size=(7)
@@ -219,21 +208,51 @@ ack_windows=(10 30 100 500 1000)
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
 client=2
+num_nodes_kafka=0
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
 done
 for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
+if [ $kafka="true" ]; then num_nodes_kafka=4; fi;
+
 
 echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="$experiment_name"
-echo "$GP_NAME"
-ZONE="us-west1-b"
-TEMPLATE="updated-app-template" # NOTE: Look at the algo-timing template, might be necessary to run applications
+GP_NAME="test"
+TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
+
+RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
+RSM2_ZONE="us-west4-a"
+KAFKA_ZONE="us-west4-a"
+
+echo "Create group name"
+echo "Group Name: ${GP_NAME}"
+echo "num_nodes_total: $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
+echo "RSM1 Zone: ${RSM1_ZONE}"
+echo "RSM2 Zone: ${RSM1_ZONE}"
+if [ $kafka="true" ];then
+ echo "KAFKA Zone: ${RSM1_ZONE}"
+fi
+echo "Template: ${TEMPLATE}"
+
+echo -n "Do you need machines created? type Y if yes: "
+read create_machines
+
+if [ "$create_machines" = "Y" ]; then
+	yes | gcloud beta compute instance-groups managed create "${GP_NAME}-rsm-1" --project=scrooge-398722 --base-instance-name="${GP_NAME}-rsm-1" --size="$((num_nodes_rsm_1+(client+1)/2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${RSM1_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
+	yes | gcloud beta compute instance-groups managed create "${GP_NAME}-rsm-2" --project=scrooge-398722 --base-instance-name="${GP_NAME}-rsm-2" --size="$((num_nodes_rsm_2+client/2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${RSM2_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
+	if [ "$kafka" = "true" ]; then
+	  yes | gcloud beta compute instance-groups managed create "${GP_NAME}-kafka" --project=scrooge-398722 --base-instance-name="${GP_NAME}-kafka" --size="$((num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${KAFKA_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
+	fi
+	wait
+	echo -n "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
+	exit
+fi
+
 
 WORKING_DIR_CLEAN="TRUE"
 if output=$(git status --porcelain) && [ -z "$output" ]; then
@@ -249,59 +268,43 @@ else
   git push -u origin HEAD
 fi
 
-function exit_handler() {
-	echo "** Trapped CTRL-C, deleting experiment"
-	if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
-	  git reset --hard HEAD
-	  git switch -
-	  git stash pop
-	fi
-	yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-	exit 1
-}
+echo -n "Do you want to keep you machines after this exp? type Y if yes: "
+read keep_machines
 
 trap exit_handler INT
-echo "Create group name"
-echo "${GP_NAME}"
-echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
-echo "${ZONE}"
-echo "${TEMPLATE}"
-RSM1=()
-RSM2=()
-CLIENT=()
-if [ $static_machines = "F" ]; then
-    echo "No static machines, creating cluster!"
-    yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair
-    #> /dev/null 2>&1
-    sleep 50
-    rm /tmp/all_ips.txt
-    num_ips_read=0
-    while ((${num_ips_read} < $((num_nodes_rsm_1+num_nodes_rsm_2+client)))); do
-	    gcloud compute instances list --filter="name~^${GP_NAME}" --format='value(networkInterfaces[0].networkIP)' > /tmp/all_ips.txt
-	    output=$(cat /tmp/all_ips.txt)
-	    ar=($output)
-	    num_ips_read="${#ar[@]}"
-    done
-    # TODO: Change this back or it'll be confusing (also change in algo function and in scrooge for loop)
-    # && sudo wondershaper ens4 2000000 2000000'
-    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:0:19}";
-    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo wondershaper clean ens4' ::: "${ar[@]:19:19}";
-    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:0:19}";
-    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo apt remove wondershaper -y' ::: "${ar[@]:19:19}";
-    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:1:18}";
-    #parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'sudo tc qdisc add dev ens4 root tbf rate 1gbit burst 1mbit latency .5ms' ::: "${ar[@]:20:18}";
-    #sudo tc qdisc add dev eth0 root tbf rate 1mbit burst 64kbit latency 400ms0
-    RSM1=(${ar[@]::${num_nodes_rsm_1}})
-    RSM2=(${ar[@]:${num_nodes_rsm_2}:${num_nodes_rsm_2}})
-    CLIENT=(${ar[@]:${num_nodes_rsm_1}+${num_nodes_rsm_2}:${client}})
-    echo "About to parallel!"
-    #parallel --dryrun -v --jobs=0 echo {1} ::: "${RSM1[@]:0:$((num_nodes_rsm_1-1))}";
-else 
-    echo "Have static IPs!"
-    RSM1=(10.128.7.13 10.128.7.14 10.128.7.15 10.128.7.16)
-    RSM2=(10.128.7.18 10.128.7.19 10.128.7.20 10.128.7.21)
-    CLIENT=(10.128.7.17 10.128.7.22) # Machines: 5 and 10
-fi
+function exit_handler() {
+	echo "** Trapped CTRL-C"
+	if [ "$keep_machines" != "Y" ]; then
+		echo "deleting experiment"
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $ZONE &
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
+		wait
+		exit 0
+	fi
+	echo "keeping machines for future experiments"
+	exit 0
+}
+
+
+
+gcloud compute instances list --filter="name~^${GP_NAME}-rsm-1" --format='value(networkInterfaces[0].networkIP)' > /tmp/RSM1_ips.txt &
+gcloud compute instances list --filter="name~^${GP_NAME}-rsm-2" --format='value(networkInterfaces[0].networkIP)' > /tmp/RSM2_ips.txt &
+gcloud compute instances list --filter="name~^${GP_NAME}-kafka" --format='value(networkInterfaces[0].networkIP)' > /tmp/KAFKA_ips.txt &
+wait
+
+ar=($(cat /tmp/RSM1_ips.txt))
+RSM1=(${ar[@]::${num_nodes_rsm_1}})
+CLIENT=(${ar[@]:${num_nodes_rsm_1}}) # First client node is in RSM1
+
+ar=($(cat /tmp/RSM2_ips.txt))
+RSM2=(${ar[@]::${num_nodes_rsm_2}})
+CLIENT+=(${ar[@]:${num_nodes_rsm_2}}) # Second client node would be in RSM2
+
+ar=($(cat /tmp/KAFKA_ips.txt))
+ZOOKEEPER=(${ar[@]::1})
+KAFKA=(${ar[@]:1})
+
 count=0
 while ((${count} < ${num_nodes_rsm_1})); do
 	echo "RSM1: ${RSM1[$count]}"
@@ -330,13 +333,14 @@ done
 #sleep 300
 echo "Starting Experiment"
 
-makeExperimentJson() {
+function makeExperimentJson() {
 	r1size=$1
 	r2size=$2
 	r1fail=$3
 	r2fail=$4
 	pktsize=$5
 	expName=$6
+	isKafka=$7
 
 	echo -e "{" >experiments.json
 	echo -e "  \"experiment_independent_vars\": {" >>experiments.json
@@ -349,8 +353,11 @@ makeExperimentJson() {
 	echo -e "    \"local_setup_script\": \"${workdir}/BFT-RSM/Code/setup-seq.sh\"," >>experiments.json
 	echo -e "    \"remote_setup_script\": \"${workdir}/BFT-RSM/Code/setup_remote.sh\"," >>experiments.json
 	echo -e "    \"local_compile_script\": \"${workdir}/BFT-RSM/Code/build.sh\"," >>experiments.json
-	echo -e "    \"replication_protocol\": \"scrooge\"," >>experiments.json
-
+	if [ ${isKafka} = "false" ]; then
+		echo -e "    \"replication_protocol\": \"scrooge\"," >>experiments.json
+	else
+		echo -e "    \"replication_protocol\": \"kafka\"," >>experiments.json
+	fi
 	echo -e "    \"clusterZeroIps\": [" >>experiments.json
 	lcount=0
 	while ((lcount < r1size)); do
@@ -461,7 +468,11 @@ fi
 if [ "${leader}" = "true" ]; then
     protocols+=("leader")
 fi
+if [ "${kafka}" = "true" ]; then
+	protocols+=("kafka")
+fi
 
+raft_counter=0
 for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	# First, we create the configuration file "network0urls.txt" through echoing and redirection.
 	rm -f network0urls.txt
@@ -491,8 +502,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
     # scp network files to expected directory on other machines
 	count=0
 	r2size=${rsm2_size[$rcount]}
-	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-	parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 	############# Setup all necessary external applications #############
 	joinedvar1=""
@@ -504,19 +515,29 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ip=$1
 		local size=$2
 		local RSM=("${!3}")
+		local raft_pids=()
+		local send_dr_txns=$4
+		local send_ccf_txns=$5
+		local single_replica_rsm=$6
 		etcd_path="${raft_app_dir}etcd-main/"
     		# Run setup build script
            	#Client node
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh'
-           	echo "Sent build information!"
-           	#Server nodes
-           	#parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} 'pwd && cd '"${etcd_path}"' && pwd && export PATH=$PATH:/usr/local/go/bin && '"${etcd_path}"'scripts/build.sh' ::: "${RSM[@]:0:$((size))}";
+		echo ${client_ip}
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard HEAD; git switch old-code && git pull && chmod +x '"${etcd_path}"'scripts/build.sh && '"${etcd_path}"'scripts/build.sh' > /dev/null 2>&1 
+		raft_pids+=($!)
+		echo "Sent build information!"
+
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; echo \$(pwd); ./scripts/build.sh; exit"
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch; git reset --hard HEAD; git switch old-code; git pull; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 
+			raft_pids+=($!)
 		done
+
+		for pid in ${raft_pids[*]}; do
+			wait $pid
+		done
+
 		# Set constants
-		
 		etcd_bin_path="${etcd_path}bin"
 		benchmark_bin_path="${raft_app_dir}bin"
 		echo "etcd bin path: ${etcd_bin_path}"
@@ -545,8 +566,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			this_ip=${RSM[$i]}
 			this_url=${urls[$i]}
 			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
+			if [ "${single_replica_rsm}" = "false" ]; then
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") > /dev/null 2>&1 &
+			else
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") > /dev/null 2>&1 &
+			fi
+			raft_counter=$((raft_counter + 1))
 
-			(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; echo \"before kilall\"; killall -9 benchmark; echo \"after kilall\"; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") &
 		done
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
 		echo "RSM w ports: ${joined%,}"
@@ -569,7 +595,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		echo "" > benchmark_${raft_count}.log
 		for i in {1..3}; do
-			benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=100 &>> benchmark_${raft_count}.log
+			/home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256  1>/dev/null 2>&1 &
 		done		
 	}
 	
@@ -629,7 +655,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			count=$((count + 1))
 		done
 		# Copy final wallet address files onto all machines
-		parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
+		parallel -v --jobs=0  -o StrictHostKeyChecking=no -i "${kescpy_file}" ${algorand_scripts_dir}/addresses/{1}_node.json ${username}@{1}:${algorand_app_dir}/wallet_app/node.json ::: "${RSM[@]:0:$((size))}";
 
 		### Finish running Algorand
 		echo "###########################################FINISH RUNNING ALGORAND"
@@ -722,13 +748,92 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         echo "Resdb is started!!"
         #exit 1
 	}
-    
+	function start_kafka() {
+		echo "Kafka is being used"!
+		local size=$1 #number of brokers
+		local zookeeper_ip=$2
+        local num_partitions=$3
+		local broker_ips=("${@:4}")
+		echo "KAFKA LOG: ZOOKEEPER_IP=${zookeeper_ip}"
+		echo "KAFKA LOG: BROKER_IPS=${broker_ips[@]}"
+		
+		#set up zookeeper node
+        echo "KAFKA LOG: Starting Zookeeper!"
+        scp -o StrictHostKeyChecking=no ${kafka_dir}/config/zookeeper.properties "${zookeeper_ip}":${kafka_dir}/config
+		ssh -f -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && cd '"${kafka_dir}"' && nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties >correct.log 2>error.log < /dev/null &'
+        echo "KAFKA LOG: Zookeeper node successfully started!"
+		
+		#iterate and start each broker node
+		count=0
+		while ((count < size)); do
+				#create server.properties files
+				echo "broker.id=${count}" > server.properties
+				echo "listeners=PLAINTEXT://${broker_ips[$count]}:9092" >> server.properties
+				echo "log.dirs=/tmp/kafka-logs-0" >> server.properties
+				echo "zookeeper.connect=${zookeeper_ip}:2181" >> server.properties
+                echo "num.partitions=${num_partitions}" >> server.properties				
+				#scp server.properties to broker node
+				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka'
+
+				echo "KAFKA LOG: Starting Broker Node (${broker_ips[$count]})"
+				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &'
+				#ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka ./bin/kafka-server-start.sh ./config/server.properties 1>/home/scrooge/kafka-broker-log 2>&1 &'
+				count=$((count + 1))
+		done
+        echo "KAFKA LOG: All Broker Nodes successfully started!"
+        broker_ips_string=$(printf "%s:9092," "${broker_ips[@]}")
+		broker_ips_string="${broker_ips_string%,}" # removes trailing ,
+		#start kafka from script node instead?
+		sleep 20
+		echo "KAFKA LOG: Creating Topic w/ Bootstrap Server ($broker_ips_string)"
+		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-1 --partitions $num_partitions
+		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-2 --partitions $num_partitions
+		echo "KAFKA LOG: Topics successfully created!"
+		#ssh -f -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '(exec -a topic-1 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-1 1>/home/scrooge/kafka-topic-log-1 2>&1 &) && (exec -a topic-2 '"${kafka_dir}"'/bin/kafka-topics.sh --create --bootstrap-server '"$broker_ips_string"' --replication-factor '"$size"' --topic topic-2 1>/home/scrooge/kafka-topic-log-2 2>&1 &)'
+        echo "KAFKA LOG: All kafka nodes started successfully!"
+	}
+
+    function print_kafka_json() {
+		OUTPUT_FILENAME=$1
+		topic1=$2
+		topic2=$3
+		rsm_id=$4
+		node_id=$5
+		rsm_size=$6
+		read_from_pipe=$7
+		message=$8
+		benchmark_duration=${9}
+		warmup_duration=${10}
+		cooldown_duration=${11}
+		input_path=${12}
+		output_path=${13}
+		broker_ips=${14}
+		rm "$OUTPUT_FILENAME"
+		echo "{" >> "$OUTPUT_FILENAME"
+		echo "    \"topic1\": \"${topic1}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"topic2\": \"${topic2}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"rsm_id\": ${rsm_id}," >> "$OUTPUT_FILENAME"
+		echo "    \"node_id\": ${node_id}," >> "$OUTPUT_FILENAME"
+		echo "    \"broker_ips\": \"${broker_ips}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"rsm_size\": ${rsm_size}," >> "$OUTPUT_FILENAME"
+		echo "    \"read_from_pipe\": ${read_from_pipe}," >> "$OUTPUT_FILENAME"
+		echo "    \"message\": \"${message}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"benchmark_duration\": ${benchmark_duration}," >> "$OUTPUT_FILENAME"
+		echo "    \"warmup_duration\": ${warmup_duration}," >> "$OUTPUT_FILENAME"
+		echo "    \"cooldown_duration\": ${cooldown_duration}," >> "$OUTPUT_FILENAME"
+		echo "    \"input_path\": \"${input_path}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"output_path\": \"${output_path}\"" >> "$OUTPUT_FILENAME"
+		echo "}" >> "$OUTPUT_FILENAME"
+	}
+
   for algo in "${protocols[@]}"; do # Looping over all the protocols.
     scrooge="false"
     all_to_all="false"
     one_to_one="false"
     geobft="false"
     leader="false"
+	kafka="false"
 
     if [ "${algo}" = "scrooge" ]; then
       scrooge="true"
@@ -737,116 +842,168 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
     elif [ "${algo}" = "geobft" ]; then
        geobft="true"
     elif [ "${algo}" = "leader" ]; then
-
        leader="true"
+	elif [ "${algo}" = "kafka" ]; then
+		kafka="true"
     else
-        one_to_one="true"
+		one_to_one="true"
     fi
+
 	for kl_size in "${klist_size[@]}"; do            # Looping over all the klist_sizes.
-		for pk_size in "${packet_size[@]}"; do   # Looping over all the packet sizes.
-			for bt_size in "${batch_size[@]}"; do     # Looping over all the batch sizes.
-				for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
-					for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-            for noop_delay in "${noop_delays[@]}"; do
-								for max_message_delay in "${max_message_delays[@]}"; do
-									for quack_window in "${quack_windows[@]}"; do
-										for ack_window in "${ack_windows[@]}"; do
-				            # Next, we call the script that makes the config.h. We need to pass all the arguments.
-				            # First, get payload file name
-                            pk_file=""
-                            if [ "$pk_size" -eq 100 ]; then # TODO
-                                pk_file="100_byte_payload.txt"
-                            elif [ "$pk_size" -eq 1000 ]; then
-                                pk_file="1K_byte_payload.txt"
-                            elif [ "$pk_size" -eq 10000 ]; then
-                                pk_file="10K_byte_payload.txt"
-                            elif [ "$pk_size" -eq 100000 ]; then
-                                pk_file="100K_byte_payload.txt"
-                            else
-                                pk_file="1M_byte_payload.txt"
-                            fi
-                            # Start sending RSM
-                        	if [ "$send_rsm" = "algo" ]; then
-                        		if [ "$rerun_bool" = "T" ]; then
-                                    rerun_algorand "${CLIENT[0]}" "$r1_size" "$pk_file" "RSM1[@]"
-                                else
-                                    start_algorand "${CLIENT[0]}" "$r1_size" "$pk_file" "RSM1[@]"
-                                fi
-                        	elif [ "$send_rsm" = "resdb" ]; then
-                        		echo "ResDB RSM is being used for sending."
-                        		cluster_idx=1
-                        		start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[0]}" "RSM1[@]"
-                        	elif [ "$send_rsm" = "raft" ]; then
-                        		echo "Raft RSM is being used for sending."
-                        		start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
-                        	elif [ "$send_rsm" = "file" ]; then
-                        		echo "File RSM is being used for sending. No extra setup necessary."
-                        	else
-                        		echo "INVALID RECEIVING RSM."
-                        	fi
-                            	
-				            # Receiving RSM 
-                            if [ "$receive_rsm" = "algo" ]; then
-                        		echo "Algo RSM is being used for receiving."
-                                if [ "$rerun_bool" = "T" ]; then
-                                    rerun_algorand "${CLIENT[1]}" "$r1_size" "$pk_file" "RSM2[@]"
-                                else
-                                    start_algorand "${CLIENT[1]}" "$r1_size" "$pk_file" "RSM2[@]"
-                                fi
-                        	elif [ "$receive_rsm" = "resdb" ]; then
-                        		echo "ResDB RSM is being used for receiving."
-                        		cluster_idx=2
-                        		start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[1]}" "RSM2[@]"
-                        	elif [ "$receive_rsm" = "raft" ]; then
-                        		echo "Raft RSM is being used for receiving."
-                        		start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
-                        	elif [ "$receive_rsm" = "file" ]; then
-                        		echo "File RSM is being used for receiving. No extra setup necessary."
-                        	else
-                        		echo "INVALID RECEIVING RSM."
-                        	fi
-                        	#echo "THIS SCRIPT IS EXITING FOR NOW INSTEAD OF RUNNING SCROOGE"
-                        	#echo "FEEL FREE TO CHANGE BUT CHECK WHO ELSE IS RUNNING SCROOGE CONCURRENTLY PLEASE!!!!"
-                        	echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
-			#exit 1	
-				./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window}
+	for pk_size in "${packet_size[@]}"; do   # Looping over all the packet sizes.
+	for bt_size in "${batch_size[@]}"; do     # Looping over all the batch sizes.
+	for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
+	for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
+	for noop_delay in "${noop_delays[@]}"; do
+	for max_message_delay in "${max_message_delays[@]}"; do
+	for quack_window in "${quack_windows[@]}"; do
+	for ack_window in "${ack_windows[@]}"; do
+		# Next, we call the script that makes the config.h. We need to pass all the arguments.
+		# First, get payload file name
+		pk_file=""
+		if [ "$pk_size" -eq 100 ]; then # TODO
+			pk_file="100_byte_payload.txt"
+		elif [ "$pk_size" -eq 1000 ]; then
+			pk_file="1K_byte_payload.txt"
+		elif [ "$pk_size" -eq 10000 ]; then
+			pk_file="10K_byte_payload.txt"
+		elif [ "$pk_size" -eq 100000 ]; then
+			pk_file="100K_byte_payload.txt"
+		else
+			pk_file="1M_byte_payload.txt"
+		fi
+		# Start sending RSM
+		if [ "$send_rsm" = "algo" ]; then
+			if [ "$rerun_bool" = "T" ]; then
+				rerun_algorand "${CLIENT[0]}" "$r1_size" "$pk_file" "RSM1[@]"
+			else
+				start_algorand "${CLIENT[0]}" "$r1_size" "$pk_file" "RSM1[@]"
+			fi
+		elif [ "$send_rsm" = "resdb" ]; then
+			echo "ResDB RSM is being used for sending."
+			cluster_idx=1
+			start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[0]}" "RSM1[@]"
+		elif [ "$send_rsm" = "raft" ]; then
+			echo "Raft RSM is being used for sending."
+			start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+		elif [ "$send_rsm" = "file" ]; then
+			echo "File RSM is being used for sending. No extra setup necessary."
+		else
+			echo "INVALID RECEIVING RSM."
+		fi
+		
+		
+		
+		#if [kafka = true] then
+			#compile executable
+			#temporary clone in the executable, will change after adding kafka to this repository
+			# git clone https://github.com/chawinphat/scrooge-kafka.git
+			# cd scrooge-kafka
+			# sbt package --> not working so we will clone repo into each node instead of scp'ing executable
 
-				cat config.h
-				cp config.h system/
+		# Receiving RSM 
+		if [ "$receive_rsm" = "algo" ]; then
+			echo "Algo RSM is being used for receiving."
+			if [ "$rerun_bool" = "T" ]; then
+				rerun_algorand "${CLIENT[1]}" "$r1_size" "$pk_file" "RSM2[@]"
+			else
+				start_algorand "${CLIENT[1]}" "$r1_size" "$pk_file" "RSM2[@]"
+			fi
+		elif [ "$receive_rsm" = "resdb" ]; then
+			echo "ResDB RSM is being used for receiving."
+			cluster_idx=2
+			start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[1]}" "RSM2[@]"
+		elif [ "$receive_rsm" = "raft" ]; then
+			echo "Raft RSM is being used for receiving."
+			start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+		elif [ "$receive_rsm" = "file" ]; then
+			echo "File RSM is being used for receiving. No extra setup necessary."
+		else
+			echo "INVALID RECEIVING RSM."
+		fi
+		makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name} ${kafka}
+		if [ $kafka = "true" ]; then
+			sleep 60 # sleep 60 seconds before setting up Kafka
+			echo "KAFKA LOG: Running Kafka Cluster - TODO ASSUMES RSM 2 size!"
+			start_kafka 3 "${ZOOKEEPER[0]}" $rsm2_size "${KAFKA[@]}"
+			broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
+			broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 
-				make clean
-				make proto
-				make -j scrooge
+			# These files are created by running:
+			# 1) `fallocate -l 1000 1kb_file.txt`
+			# 2) `printf 'A%.0s' {1..1000} > 1kb_file.txt`
+			file_100=$(<100b_file.txt)
+			file_1000=$(<1000b_file.txt)
+			file_10000=$(<10000b_file.txt)
+			file_100000=$(<100000b_file.txt)
+			file_1000000=$(<1000000b_file.txt)
 
-				# Next, we make the experiment.json for backward compatibility.
-				makeExperimentJson "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" "${pk_size}" ${experiment_name}
-				parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
-				parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+			read_from_pipe="false"
+			#if file_rsm is True, we don't want to read_from_pipe in our kafka config
+			if [ "$file_rsm" = "false" ]; then
+				read_from_pipe="true"
+			fi
+			
+			echo "KAFKA LOG: Running RSM 1"
+			for node in $(seq 0 $((rsm1_size - 1))); do
+				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "${read_from_pipe}" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
+				scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
+			done
 
-				# Next, we run the script.
-				./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
-				if [ "$send_rsm" = "raft" ]; then
-					sleep 32
-					benchmark_raft "${joinedvar1}" 1
-				fi
-				if [ "$receive_rsm" = "raft" ]; then
-					sleep 32
+			echo "KAFKA LOG: Running RSM 2"
+			for node in $(seq 0 $((rsm2_size - 1))); do
+				#same thing
+				print_kafka_json "config.json" "topic-2" "topic-1" "2" "${node}" "3" "${read_from_pipe}" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
+				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
+			done
+
+			echo "KAFKA LOG: Running experiment"
+			./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
+			if [ "$send_rsm" = "raft" ]; then
+				echo "Running Send_RSM Benchmark Raft"
+				benchmark_raft "${joinedvar1}" 1
+				# tail -f <file_name>
+			fi
+			if [ "$receive_rsm" = "raft" ]; then
+				if [ "$run_dr" = "false" ]; then
+					echo "Running Receive_RSM Benchmark Raft"
 					benchmark_raft "${joinedvar2}" 2
 				fi
+			fi
+			continue
+		fi
 
-										done
-									done
-								done
-							done
-						done
-					done
-				done
-			done
-		done
-	done
+		echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
+		#exit 1	
+		./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf}
+
+		cp config.h system/
+
+		make clean
+		make proto
+		make -j scrooge
+
+		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
+		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+
+		# Next, we run the script.
+		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
+		if [ "$send_rsm" = "raft" ]; then
+			echo "Running Send_RSM Benchmark Raft"
+			benchmark_raft "${joinedvar1}" 1
+			# tail -f <file_name>
+		fi
+		if [ "$receive_rsm" = "raft" ]; then
+			if [ "$run_dr" = "false" ]; then
+				echo "Running Receive_RSM Benchmark Raft"
+				benchmark_raft "${joinedvar2}" 2
+			fi
+		fi
+
+		done;done;done;done;done;done;done;done;done;done
+
 	rcount=$((rcount + 1))
 done
-
 echo "taking down experiment"
 
 ###### UNDO
@@ -860,3 +1017,12 @@ if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
 	git stash pop
 fi
 
+if [ "$keep_machines" != "Y" ]; then
+	echo "deleting experiment"
+	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
+	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $ZONE &
+	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
+	wait
+	exit 0
+fi
+echo "keeping machines for future experiments"

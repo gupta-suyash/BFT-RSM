@@ -32,6 +32,8 @@ noop_delay=${24}
 max_message_delay=${25}
 quack_window=${26}
 ack_window=${27}
+write_dr_txns=${28}
+write_ccf_txns=${29}
 
 
 echo -e "#ifndef _CONFIG_H_" > config.h
@@ -66,6 +68,8 @@ echo -e "#define NOOP_DELAY ${noop_delay}" >> config.h
 echo -e "#define MAX_MESSAGE_DELAY ${max_message_delay}" >> config.h
 echo -e "#define QUACK_WINDOW ${quack_window}" >> config.h
 echo -e "#define ACK_WINDOW ${ack_window}" >> config.h
+echo -e "#define WRITE_DR ${write_dr_txns}" >> config.h
+echo -e "#define WRITE_CCF ${write_ccf_txns}" >> config.h
 
 echo -e "#endif" >> config.h
 echo -e "" >> config.h

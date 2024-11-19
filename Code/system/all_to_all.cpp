@@ -5,7 +5,8 @@
 void runAllToAllReceiveThread(
     const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration,
+    std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue)
 {
     SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
     uint64_t timedMessages{};
@@ -38,6 +39,9 @@ void runAllToAllReceiveThread(
             acknowledgment->addToAckList(messageData.sequence_number());
             timedMessages += is_test_recording();
         }
+#if WRITE_DR || WRITE_CCF
+        while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+#endif
     }
 
     addMetric("local_messages_received", 0);

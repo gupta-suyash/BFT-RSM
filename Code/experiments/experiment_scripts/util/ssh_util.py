@@ -183,6 +183,35 @@ def executeParallelBlockingDifferentRemoteCommands(hosts, commands, key=None):
     for t in thread_list:
         t.join()
 
+# Executes, in parallel, with different commands for each host
+# on each of the hosts in the list
+# If returns an error throws an exception
+def executeParallelBlockingDifferentRemoteCommandsKafka(hosts, commands, key=None):
+    thread_list = list()
+    for i in range(0, len(hosts)):
+        print("Host: ", hosts[i])
+        print("Command: ", commands[i])
+        hostname=socket.gethostname()
+        IPAddr=socket.gethostbyname(hostname)
+        if hosts[i] == IPAddr:
+            print("Host is: ", IPAddr)
+            cmd = commands[i]
+        elif not key:
+            cmd = "ssh -f -o StrictHostKeyChecking=no -t " + hosts[i] + " '" + commands[i] + "'"
+        else:
+            cmd = "ssh -f -o StrictHostKeyChecking=no -t -i " + \
+                  key + " " + hosts[i] + " '" + commands[i] + "'"
+        if i == 0 or True:
+            cmd += f' 1>node{i} 2>&1'
+        else:
+            cmd += f' 1>/dev/null 2>&1'
+        t = threading.Thread(target=executeCommand, args=(cmd,))
+        thread_list.append(t)
+    for t in thread_list:
+        t.start()
+    for t in thread_list:
+        t.join()
+
 
 # Executes a remote command in a new thread
 # Does not check the error code returned
