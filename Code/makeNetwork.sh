@@ -227,8 +227,14 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="raf"
+GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
+
+if [ "$create_machines" = "Y" ]; then
+  echo "Your gcp group name, GP_NAME, is default. Go to makeNetwork.sh to change this to something unique (your name), then rerun the script"
+  echo "REMINDER, DO NOT COMMIT YOUR NAME AS THE GROUP NAME."
+  exit
+fi
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
 RSM2_ZONE="us-west4-a"
@@ -794,7 +800,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 echo "num.partitions=${num_partitions}" >> server.properties				
 				#scp server.properties to broker node
 				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka'
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; killall java'
 
 				echo "KAFKA LOG: Starting Broker Node (${broker_ips[$count]})"
 				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &'
