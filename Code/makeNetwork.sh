@@ -27,9 +27,14 @@ echo -n "Enter the name of the receiving application (4 options: algo, resdb, ra
 read receive_rsm
 echo "Receiving Application: ${receive_rsm}"
 
-echo -n "Are you rerunning an application? Only applies to algo-algo. (T of F): "
-read rerun_bool
-echo "You have chosen ${rerun_bool} for rerunning algo-algo experiment."
+if [[ "$send_rsm" == "algorand" || "$receive_rsm" == "algorand" ]]; then
+    echo -n "Are you rerunning an application? Only applies to algo-algo. (T of F): "
+	read rerun_bool
+	echo "You have chosen ${rerun_bool} for rerunning algo-algo experiment."
+else
+	rerun_bool="F"
+fi
+
 
 #If this experiment is for File_RSM (not algo or resdb)
 file_rsm="true"
@@ -129,21 +134,21 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(7 13 16 19)
-rsm2_size=(7 13 16 19)
-rsm1_fail=(2 4 5 6)
-rsm2_fail=(2 4 5 6)
+rsm1_size=(3)
+rsm2_size=(3)
+rsm1_fail=(1)
+rsm2_fail=(1)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(0 64)
-packet_size=(1000000)
+klist_size=(64)
+packet_size=(100)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
-noop_delays=(.8ms 1ms 12ms 100ms)
-max_message_delays=(.8ms 1ms 12ms 100ms)
-quack_windows=(100 500 1000 2000)
-ack_windows=(10 30 100 500 1000)
+noop_delays=(5ms)
+max_message_delays=(1ms)
+quack_windows=(1048576)
+ack_windows=(1048576)
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -222,7 +227,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="test"
+GP_NAME="raf"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
@@ -249,7 +254,7 @@ if [ "$create_machines" = "Y" ]; then
 	  yes | gcloud beta compute instance-groups managed create "${GP_NAME}-kafka" --project=scrooge-398722 --base-instance-name="${GP_NAME}-kafka" --size="$((num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${KAFKA_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
 	fi
 	wait
-	echo -n "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
+	echo "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
 	exit
 fi
 
@@ -258,14 +263,21 @@ WORKING_DIR_CLEAN="TRUE"
 if output=$(git status --porcelain) && [ -z "$output" ]; then
   echo "Working Directory is clean!"
   WORKING_DIR_CLEAN="TRUE"
-else 
-  WORKING_DIR_CLEAN="FALSE"
-  git stash --include-untracked
-  git stash apply
-  git switch -c "AUTOMATED_BRANCH/$(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
-  git add .
-  git commit -m "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
-  git push -u origin HEAD
+else
+  echo "WARNING: directory not clean."
+  echo -n "Do you want to back up the working directory for this run? type Y if yes: "
+  read backup_run
+  if [ "$backup_run" = "Y" ]; then
+	WORKING_DIR_CLEAN="FALSE"
+	git stash --include-untracked
+	git stash apply
+	git switch -c "AUTOMATED_BRANCH/$(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
+	git add .
+	git commit -m "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
+	git push -u origin HEAD
+  else
+	WORKING_DIR_CLEAN="TRUE"
+  fi
 fi
 
 echo -n "Do you want to keep you machines after this exp? type Y if yes: "
@@ -273,7 +285,15 @@ read keep_machines
 
 trap exit_handler INT
 function exit_handler() {
-	echo "** Trapped CTRL-C"
+	echo "** Trapped CTRL-C -- killing all ssh and python"
+	killall ssh
+	killall python
+	if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
+		echo "Restoring working directory..."
+		git reset --hard HEAD
+		git switch -
+		git stash pop
+	fi
 	if [ "$keep_machines" != "Y" ]; then
 		echo "deleting experiment"
 		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
@@ -523,13 +543,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
     		# Run setup build script
            	#Client node
 		echo ${client_ip}
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard HEAD; git switch old-code && git pull && chmod +x '"${etcd_path}"'scripts/build.sh && '"${etcd_path}"'scripts/build.sh' > /dev/null 2>&1 
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard HEAD; git switch raf/dr-ccf-raft && git pull && chmod +x '"${etcd_path}"'scripts/build.sh && '"${etcd_path}"'scripts/build.sh' > /dev/null 2>&1 &
 		raft_pids+=($!)
 		echo "Sent build information!"
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch; git reset --hard HEAD; git switch old-code; git pull; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch; git reset --hard HEAD; git switch raf/dr-ccf-raft; git pull; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 
@@ -849,12 +869,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		one_to_one="true"
     fi
 
-	for kl_size in "${klist_size[@]}"; do            # Looping over all the klist_sizes.
-	for pk_size in "${packet_size[@]}"; do   # Looping over all the packet sizes.
-	for bt_size in "${batch_size[@]}"; do     # Looping over all the batch sizes.
-	for bt_create_tm in "${batch_creation_time[@]}"; do  # Looping over all batch creation times.
-	for pl_buf_size in "${pipeline_buffer_size[@]}"; do # Looping over all pipeline buffer sizes.
-	for noop_delay in "${noop_delays[@]}"; do
+	for kl_size in "${klist_size[@]}"; do                    # Looping over all the klist_sizes.
+	for pk_size in "${packet_size[@]}"; do                   # Looping over all the packet sizes.
+	for bt_size in "${batch_size[@]}"; do                    # Looping over all the batch sizes.
+	for bt_create_tm in "${batch_creation_time[@]}"; do      # Looping over all batch creation times.
+	for pl_buf_size in "${pipeline_buffer_size[@]}"; do      # Looping over all pipeline buffer sizes.
+	for noop_delay in "${noop_delays[@]}"; do                # etc...
 	for max_message_delay in "${max_message_delays[@]}"; do
 	for quack_window in "${quack_windows[@]}"; do
 	for ack_window in "${ack_windows[@]}"; do
@@ -988,10 +1008,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		# Next, we run the script.
 		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
+		experiment_pid=$!
+
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
 			benchmark_raft "${joinedvar1}" 1
-			# tail -f <file_name>
 		fi
 		if [ "$receive_rsm" = "raft" ]; then
 			if [ "$run_dr" = "false" ]; then
@@ -1026,3 +1047,5 @@ if [ "$keep_machines" != "Y" ]; then
 	exit 0
 fi
 echo "keeping machines for future experiments"
+
+wait $experiment_pid

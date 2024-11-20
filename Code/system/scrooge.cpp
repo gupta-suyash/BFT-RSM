@@ -717,6 +717,7 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
 
     while (not is_test_over())
     {
+        std::this_thread::sleep_for(1us);
         util::JankAckView curView{};
         while (not viewQueue->try_dequeue(curView) && not is_test_over())
             ;
