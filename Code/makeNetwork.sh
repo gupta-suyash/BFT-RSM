@@ -227,7 +227,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
+GP_NAME="$experiment_name"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$create_machines" = "Y" ]; then
@@ -261,7 +261,7 @@ if [ "$create_machines" = "Y" ]; then
 	fi
 	wait
 	echo "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
-	exit
+	#exit
 fi
 
 
