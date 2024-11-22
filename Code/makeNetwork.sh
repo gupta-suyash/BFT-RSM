@@ -19,13 +19,26 @@ echo "Running Experiment: ${experiment_name}"
 # Valid inputs: "algo", "resdb", "raft"
 # e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
 # receiving RSM, then receive_rsm="resdb"
+valid_applications=("algo" "resdb" "raft" "file")
 echo -n "Enter the name of the sending application (4 options: algo, resdb, raft, file): "
 read send_rsm
-echo "Sending Application: ${send_rsm}"
+
+if [[ ! " ${valid_applications[*]} " =~ " $send_rsm " ]]; then
+  echo "$send_rsm is an invalid option, exiting..."
+else
+	echo "Sending Application: ${send_rsm}"
+fi
 
 echo -n "Enter the name of the receiving application (4 options: algo, resdb, raft, file): "
 read receive_rsm
 echo "Receiving Application: ${receive_rsm}"
+
+if [[ ! " ${valid_applications[*]} " =~ " $receive_rsm " ]]; then
+  echo "$receive_rsm is an invalid option, exiting..."
+  exit 1
+else
+	echo "Receiving Application: ${receive_rsm}"
+fi
 
 if [[ "$send_rsm" == "algorand" || "$receive_rsm" == "algorand" ]]; then
     echo -n "Are you rerunning an application? Only applies to algo-algo. (T of F): "
@@ -52,8 +65,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=30s
-total_time=120s
+warmup_time=20s
+total_time=60s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -89,11 +102,16 @@ leader="false"
 kafka="false"
 
 run_dr="false"
-run_ccf="false"
+run_ccf="true"
 
-if [ "$run_dr" = "true" ]; then
-	if [ "$run_ccf" = "true" ]; then
-		echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
+if [ "$run_dr" = "true" ] && [ "$run_ccf" = "true" ]; then
+    echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
+    exit 1
+fi
+
+if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then
+	if [ "$send_rsm" = "file" ] || [ "$receive_rsm" = "file" ]; then
+		echo "Incorrect configuration. Cannot use file alongside Disaster Recovery or CCF. Exiting."
 		exit 1
 	fi
 fi
@@ -220,7 +238,8 @@ done
 for v in ${rsm2_size[@]}; do
     if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
 done
-if [ $kafka="true" ]; then num_nodes_kafka=4; fi;
+
+if [ "$kafka" = "true" ]; then num_nodes_kafka=4; fi;
 
 
 echo "SET RSM SIZES"
@@ -246,7 +265,7 @@ echo "num_nodes_total: $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka
 echo "RSM1 Zone: ${RSM1_ZONE}"
 echo "RSM2 Zone: ${RSM1_ZONE}"
 if [ $kafka="true" ];then
- echo "KAFKA Zone: ${RSM1_ZONE}"
+  echo "KAFKA Zone: ${RSM1_ZONE}"
 fi
 echo "Template: ${TEMPLATE}"
 
@@ -549,13 +568,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
     		# Run setup build script
            	#Client node
 		echo ${client_ip}
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard HEAD; git switch raf/dr-ccf-raft && git pull && chmod +x '"${etcd_path}"'scripts/build.sh && '"${etcd_path}"'scripts/build.sh' > /dev/null 2>&1 &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git switch raf/dev && git reset --hard origin/raf/dev && chmod +x '"${etcd_path}"'scripts/build.sh && '"${etcd_path}"'scripts/build.sh' > /dev/null 2>&1 &
 		raft_pids+=($!)
 		echo "Sent build information!"
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch; git reset --hard HEAD; git switch raf/dr-ccf-raft; git pull; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git switch raf/dev && git reset --hard origin/raf/dev; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 
@@ -622,7 +641,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "" > benchmark_${raft_count}.log
 		for i in {1..3}; do
 			/home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256  1>/dev/null 2>&1 &
-		done		
+		done
 	}
 	
 	function start_algorand() {
@@ -911,7 +930,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[0]}" "RSM1[@]"
 		elif [ "$send_rsm" = "raft" ]; then
 			echo "Raft RSM is being used for sending."
-			start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]"
+			start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]" "${run_dr}" "${run_ccf}" "false"
 		elif [ "$send_rsm" = "file" ]; then
 			echo "File RSM is being used for sending. No extra setup necessary."
 		else
@@ -941,7 +960,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[1]}" "RSM2[@]"
 		elif [ "$receive_rsm" = "raft" ]; then
 			echo "Raft RSM is being used for receiving."
-			start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]"
+			start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]" "false" "${run_ccf}" "${run_dr}"
 		elif [ "$receive_rsm" = "file" ]; then
 			echo "File RSM is being used for receiving. No extra setup necessary."
 		else
@@ -1031,6 +1050,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 	rcount=$((rcount + 1))
 done
+
+wait $experiment_pid
+killall benchmark
+
 echo "taking down experiment"
 
 ###### UNDO
@@ -1053,5 +1076,3 @@ if [ "$keep_machines" != "Y" ]; then
 	exit 0
 fi
 echo "keeping machines for future experiments"
-
-wait $experiment_pid
