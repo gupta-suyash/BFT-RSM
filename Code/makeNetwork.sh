@@ -227,7 +227,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
+GP_NAME="$experiment_name"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$create_machines" = "Y" ]; then
@@ -261,7 +261,7 @@ if [ "$create_machines" = "Y" ]; then
 	fi
 	wait
 	echo "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
-	exit
+	#exit
 fi
 
 
@@ -621,7 +621,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		echo "" > benchmark_${raft_count}.log
 		for i in {1..3}; do
-			/home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256  1>/dev/null 2>&1 &
+			/home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256  1>benchmark_${raft_count}.log 2>&1 &
 		done		
 	}
 	
