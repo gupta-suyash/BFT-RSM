@@ -249,7 +249,7 @@ echo "$num_nodes_rsm_2"
 GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
-if [ "$create_machines" = "Y" ]; then
+if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
   echo "Your gcp group name, GP_NAME, is default. Go to makeNetwork.sh to change this to something unique (your name), then rerun the script"
   echo "REMINDER, DO NOT COMMIT YOUR NAME AS THE GROUP NAME."
   exit
