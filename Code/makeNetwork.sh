@@ -801,6 +801,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local broker_ips=("${@:4}")
 		echo "KAFKA LOG: ZOOKEEPER_IP=${zookeeper_ip}"
 		echo "KAFKA LOG: BROKER_IPS=${broker_ips[@]}"
+
+        # clean zookeeper log
+        echo "KAFKA LOG: Cleaning Zookeeper logs!"
+        ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'rm -rf /tmp/kafka-logs-0/'
+        echo "KAFKA LOG: Zookeeper logs cleaned!"
 		
 		#set up zookeeper node
         echo "KAFKA LOG: Starting Zookeeper!"
@@ -811,6 +816,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		#iterate and start each broker node
 		count=0
 		while ((count < size)); do
+                # clean broker log
+                echo "KAFKA LOG: Cleaning logs on Broker Node (${broker_ips[$count]})"
+                ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'rm -rf /tmp/kafka-logs-0/'
+                echo "KAFKA LOG: Logs cleaned for Broker Node (${broker_ips[$count]})"
+
 				#create server.properties files
 				echo "broker.id=${count}" > server.properties
 				echo "listeners=PLAINTEXT://${broker_ips[$count]}:9092" >> server.properties
