@@ -804,7 +804,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
         # clean zookeeper log
         echo "KAFKA LOG: Cleaning Zookeeper logs!"
-        ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'rm -rf /tmp/kafka-logs-0/'
+        ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '
+            '"${kafka_dir}"'/bin/zookeeper-server-stop.sh;
+            rm -rf /tmp/zookeeper;
+            nohup '"${kafka_dir}"'/bin/zookeeper-shell.sh localhost:2181 <<< "
+                deleteall /brokers
+                deleteall /admin
+                deleteall /config
+                quit" &'
         echo "KAFKA LOG: Zookeeper logs cleaned!"
 		
 		#set up zookeeper node
@@ -818,12 +825,15 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		while ((count < size)); do
                 # clean broker log
                 echo "KAFKA LOG: Cleaning logs on Broker Node (${broker_ips[$count]})"
-                ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'rm -rf /tmp/kafka-logs-0/'
+                ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" '
+                    '"${kafka_dir}"'/bin/kafka-server-stop.sh;
+                    rm -rf /tmp/kafka-logs-0/'
                 echo "KAFKA LOG: Logs cleaned for Broker Node (${broker_ips[$count]})"
 
 				#create server.properties files
 				echo "broker.id=${count}" > server.properties
-				echo "listeners=PLAINTEXT://${broker_ips[$count]}:9092" >> server.properties
+				echo "listeners=PLAINTEXT://0.0.0.0:9092" >> server.properties
+                echo "advertised.listeners=PLAINTEXT://${broker_ips[$count]}:9092" >> server.properties
 				echo "log.dirs=/tmp/kafka-logs-0" >> server.properties
 				echo "zookeeper.connect=${zookeeper_ip}:2181" >> server.properties
                 echo "num.partitions=${num_partitions}" >> server.properties				
@@ -980,7 +990,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		if [ $kafka = "true" ]; then
 			sleep 60 # sleep 60 seconds before setting up Kafka
 			echo "KAFKA LOG: Running Kafka Cluster - TODO ASSUMES RSM 2 size!"
-			start_kafka 3 "${ZOOKEEPER[0]}" $rsm2_size "${KAFKA[@]}"
+			start_kafka 3 "${ZOOKEEPER[0]}" "${rsm2_size[0]}" "${KAFKA[@]}"
 			broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
 			broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 
