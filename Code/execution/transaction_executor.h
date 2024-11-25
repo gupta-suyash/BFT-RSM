@@ -110,8 +110,8 @@ class TransactionExecutor {
   PostValidateFunc post_valid_func_ = nullptr;
   std::thread scrooge_snd_thread_, scrooge_rcv_thread_;
   boost::lockfree::spsc_queue<std::shared_ptr<BatchClientResponse>> scrooge_snd_queue_; 
-  //boost::lockfree::spsc_queue<uint64_t> scrooge_snd_queue_;
-  std::string read_pipe_path_, write_pipe_path_, data_str;
+  std::string read_pipe_path_, write_pipe_path_, data_str, ccf_file_;
+  bool ccf_on = false;
   //******
 
   std::atomic<bool> stop_;

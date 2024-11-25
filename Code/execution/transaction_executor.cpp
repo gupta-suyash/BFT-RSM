@@ -64,6 +64,8 @@ TransactionExecutor::TransactionExecutor(
   tot_txn = 0;
   read_pipe_path_ = "/tmp/scrooge-output";
   write_pipe_path_ = "/tmp/scrooge-input";
+  ccf_file_ = "/tmp/CCF.csv";
+  ccf_on = true;
   
   constexpr auto kFullPermissions = 0777;
   
@@ -350,17 +352,34 @@ void TransactionExecutor::ScroogeSendMessage() {
     scrooge::ScroogeRequest scroogeRequest;
     scrooge::SendMessageRequest sendMessageRequest;
     scrooge::CrossChainMessageData messageData;
+    scrooge::KeyValueHash kvHash;
+
+    // If we are running the code for CCF, then ccf_on is set to true and the code should enter the following if condition.
+    if(ccf_on) {
+        // Set up the key value hash object
+        kvHash.set_key("key");
+        kvHash.set_value_md5_hash("value");
+
+        // set the sequence number of this message for scrooge
+        sendMessageRequest.mutable_content()->set_sequence_number(response->seq()-1);
+
+        // set the content of the message to be the serialized key value object
+        *(sendMessageRequest.mutable_content()->mutable_message_content()) = kvHash.SerializeAsString();
+
+        *scroogeRequest.mutable_send_message_request() = std::move(sendMessageRequest);
+    }
+    else { // If ccf_on = false, we follow the traditional path.
+        messageData.set_message_content(data_str);
+        messageData.set_sequence_number(response->seq()-1);
+        //messageData.set_sequence_number(response-1);
+        //LOG(INFO) << "WRITE SEQ: " << messageData.sequence_number();
     
-    messageData.set_message_content(data_str);
-    messageData.set_sequence_number(response->seq()-1);
-    //messageData.set_sequence_number(response-1);
-    //LOG(INFO) << "WRITE SEQ: " << messageData.sequence_number();
+        std::string validityProof = "bytes of a proof";
+        sendMessageRequest.set_validity_proof(validityProof);
+        *sendMessageRequest.mutable_content() = std::move(messageData);
     
-    std::string validityProof = "bytes of a proof";
-    sendMessageRequest.set_validity_proof(validityProof);
-    *sendMessageRequest.mutable_content() = std::move(messageData);
-    
-    *scroogeRequest.mutable_send_message_request() = std::move(sendMessageRequest);
+        *scroogeRequest.mutable_send_message_request() = std::move(sendMessageRequest);
+    }
     //delete response;
     
     const std::string scroogeRequestBytes = scroogeRequest.SerializeAsString();
@@ -458,26 +477,30 @@ void TransactionExecutor::ScroogeRecvMessage() {
     switch (newRequest.transfer_case())
     {
       using request = scrooge::ScroogeTransfer::TransferCase;
-      case request::kCommitAcknowledgment: {
-	// Extracting commit_acknowledgment message.
-	const auto commit_ack_msg = newRequest.commit_acknowledgment();
-	uint64_t seq_no = commit_ack_msg.sequence_number()+1;
-	//LOG(INFO) << "GOT: " << seq_no;
-
-	// Time to validate and reply to client.
-	while(last_seq < seq_no) {
-	  //auto timeNow = std::chrono::system_clock::now();
-  	  //auto passed = timeNow.time_since_epoch();
-	  //LOG(INFO) << "Acked: " << last_seq << "At: " << passed.count();
-
-	  post_valid_func_(last_seq);
-	  last_seq++;
-	}
-
-	break;
+      case request::kKeyValueHash: {
+        const auto newKeyValueHash = newRequest.key_value_hash();
+        LOG(INFO) << newKeyValueHash.key() << " " << newKeyValueHash.value_md5_hash();
+        break;
       }
-      case request::kUnvalidatedCrossChainMessage: {
-      	LOG(INFO) << "Message received by other RSM";
+      case request::kCommitAcknowledgment: {
+	    // Extracting commit_acknowledgment message.
+	    const auto commit_ack_msg = newRequest.commit_acknowledgment();
+	    uint64_t seq_no = commit_ack_msg.sequence_number()+1;
+	    //LOG(INFO) << "GOT: " << seq_no;
+
+	    // Time to validate and reply to client.
+	    while(last_seq < seq_no) {
+	      //auto timeNow = std::chrono::system_clock::now();
+  	      //auto passed = timeNow.time_since_epoch();
+	      //LOG(INFO) << "Acked: " << last_seq << "At: " << passed.count();
+
+	      post_valid_func_(last_seq);
+	      last_seq++;
+	    }
+	    break;
+      }
+      case request::kKeyValueUpdate: {
+        LOG(INFO) << "Should not come here";
       	break;
       }																					 
       default: {
