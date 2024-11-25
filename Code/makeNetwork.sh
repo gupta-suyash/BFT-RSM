@@ -25,6 +25,7 @@ read send_rsm
 
 if [[ ! " ${valid_applications[*]} " =~ " $send_rsm " ]]; then
   echo "$send_rsm is an invalid option, exiting..."
+  exit 1
 else
 	echo "Sending Application: ${send_rsm}"
 fi
@@ -167,6 +168,7 @@ noop_delays=(5ms)
 max_message_delays=(1ms)
 quack_windows=(1048576)
 ack_windows=(1048576)
+pids_to_kill=()
 
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
@@ -341,10 +343,12 @@ wait
 ar=($(cat /tmp/RSM1_ips.txt))
 RSM1=(${ar[@]::${num_nodes_rsm_1}})
 CLIENT=(${ar[@]:${num_nodes_rsm_1}}) # First client node is in RSM1
+CLIENT_RSM1=(${ar[@]:${num_nodes_rsm_1}})
 
 ar=($(cat /tmp/RSM2_ips.txt))
 RSM2=(${ar[@]::${num_nodes_rsm_2}})
 CLIENT+=(${ar[@]:${num_nodes_rsm_2}}) # Second client node would be in RSM2
+CLIENT_RSM2=(${ar[@]:${num_nodes_rsm_2}})
 
 ar=($(cat /tmp/KAFKA_ips.txt))
 ZOOKEEPER=(${ar[@]::1})
@@ -643,10 +647,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	function benchmark_raft() {
 		local joinedvar=$1
 		local raft_count=$2
+		shift 2
+		local client_ips=("$@")
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
-		echo "" > benchmark_${raft_count}.log
-		for i in {1..3}; do
-			/home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints="${joinedvar}" --conns=100 --clients=1000 put --key-size=8 --sequential-keys --total=900000 --val-size=256  1>/dev/null 2>&1 &
+		for client_ip in "${client_ips[@]}"; do
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "/home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --target-leader --endpoints=\"${joinedvar}\" --conns=1000 --clients=10000 put --key-size=8 --key-space-size 1 --sequential-keys --total=100000000 --val-size=256  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			pids_to_kill+=($!)
 		done
 	}
 	
@@ -1024,7 +1030,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 			echo "KAFKA LOG: Running RSM 2"
 			for node in $(seq 0 $((rsm2_size - 1))); do
-				#same thing
 				print_kafka_json "config.json" "topic-2" "topic-1" "2" "${node}" "3" "${read_from_pipe}" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 			done
@@ -1033,20 +1038,17 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 			if [ "$send_rsm" = "raft" ]; then
 				echo "Running Send_RSM Benchmark Raft"
-				benchmark_raft "${joinedvar1}" 1
-				# tail -f <file_name>
+				benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
 			fi
 			if [ "$receive_rsm" = "raft" ]; then
 				if [ "$run_dr" = "false" ]; then
 					echo "Running Receive_RSM Benchmark Raft"
-					benchmark_raft "${joinedvar2}" 2
+					benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
 				fi
 			fi
 			continue
 		fi
 
-		echo "THIS SCRIPT IS SLEEPING FOR 1 MINUTE ON LINE 589 BEFORE RUNNING SCROOGE - FEEL FREE TO CHANGE"
-		#exit 1	
 		./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf}
 
 		cp config.h system/
@@ -1064,12 +1066,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
-			benchmark_raft "${joinedvar1}" 1
+			benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
 		fi
 		if [ "$receive_rsm" = "raft" ]; then
 			if [ "$run_dr" = "false" ]; then
 				echo "Running Receive_RSM Benchmark Raft"
-				benchmark_raft "${joinedvar2}" 2
+				benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
 			fi
 		fi
 
@@ -1079,7 +1081,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 done
 
 wait $experiment_pid
-killall benchmark
+
+for pid in "${pids_to_kill[@]}"; do
+	kill pid
+done
 
 echo "taking down experiment"
 
