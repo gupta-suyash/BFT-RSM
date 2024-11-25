@@ -232,7 +232,7 @@ pids_to_kill=()
 # Build the network from the description
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
-client=2
+client=10
 num_nodes_kafka=0
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
@@ -313,8 +313,18 @@ read keep_machines
 trap exit_handler INT
 function exit_handler() {
 	echo "** Trapped CTRL-C -- killing all ssh and python"
-	killall ssh
+	# killall ssh
 	killall python
+
+	kill $experiment_pid
+	for pid in "${pids_to_kill[@]}"; do
+		kill $pid
+	done
+
+	for client_ip in "${CLIENT[@]}"; do
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'killall benchmark' </dev/null &>/dev/null  &
+	done
+
 	if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
 		echo "Restoring working directory..."
 		git reset --hard HEAD
@@ -567,7 +577,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	function start_raft() {
 		echo "Raft RSM is being used!"
 		# Take in arguments
-		local client_ip=$1
+		local client_ips=("${!1}")
 		local size=$2
 		local RSM=("${!3}")
 		local raft_pids=()
@@ -575,18 +585,30 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local send_ccf_txns=$5
 		local single_replica_rsm=$6
 		etcd_path="${raft_app_dir}etcd-main/"
+<<<<<<< HEAD
     		# Run setup build script
            	#Client node
 		echo ${client_ip}
 		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git switch main && git reset --hard origin/main && chmod +x '"${etcd_path}"'scripts/build.sh && '"${etcd_path}"'scripts/build.sh' > /dev/null 2>&1 &
 		raft_pids+=($!)
 		echo "Sent build information!"
+=======
+		# Run setup build script
+		#Client node
+		for client_ip in "${client_ips[@]}"; do
+			echo ${client_ip}
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git switch raf/dev && git reset --hard origin/raf/dev && chmod +x '"${etcd_path}"'scripts/build.sh && '"${etcd_path}"'scripts/build.sh && chmod +x /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark' > /dev/null 2>&1 &
+			raft_pids+=($!)
+		done
+		echo "Sent client build information!"
+>>>>>>> 638a0ee8... 300K/s client txns
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
 			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git switch main && git reset --hard origin/main; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
+		echo "Sent replica build information!"
 
 		for pid in ${raft_pids[*]}; do
 			wait $pid
@@ -651,7 +673,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ips=("$@")
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "/home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --target-leader --endpoints=\"${joinedvar}\" --conns=1000 --clients=10000 put --key-size=8 --key-space-size 1 --sequential-keys --total=100000000 --val-size=256  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\"${joinedvar}\" --conns=20 --clients=7500 put --key-size=8 --key-space-size 1 --sequential-keys --total=100000000 --val-size=256  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done
 	}
@@ -963,7 +985,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[0]}" "RSM1[@]"
 		elif [ "$send_rsm" = "raft" ]; then
 			echo "Raft RSM is being used for sending."
-			start_raft "${CLIENT[0]}" "$r1_size" "RSM1[@]" "${run_dr}" "${run_ccf}" "false"
+			start_raft "CLIENT_RSM1[@]" "$r1_size" "RSM1[@]" "${run_dr}" "${run_ccf}" "false"
 		elif [ "$send_rsm" = "file" ]; then
 			echo "File RSM is being used for sending. No extra setup necessary."
 		else
@@ -993,7 +1015,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			start_resdb "${cluster_idx}" "${r1_size}" "${CLIENT[1]}" "RSM2[@]"
 		elif [ "$receive_rsm" = "raft" ]; then
 			echo "Raft RSM is being used for receiving."
-			start_raft "${CLIENT[1]}" "$r1_size" "RSM2[@]" "false" "${run_ccf}" "${run_dr}"
+			start_raft "CLIENT_RSM2[@]" "$r1_size" "RSM2[@]" "false" "${run_ccf}" "${run_dr}"
 		elif [ "$receive_rsm" = "file" ]; then
 			echo "File RSM is being used for receiving. No extra setup necessary."
 		else
@@ -1083,7 +1105,11 @@ done
 wait $experiment_pid
 
 for pid in "${pids_to_kill[@]}"; do
-	kill pid
+	kill $pid
+done
+
+for client_ip in "${CLIENT[@]}"; do
+	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'killall benchmark' </dev/null &>/dev/null  &
 done
 
 echo "taking down experiment"
