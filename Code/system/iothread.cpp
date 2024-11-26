@@ -172,14 +172,16 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
         {
             for (auto& msg : receivedMessage.data())
             {
-                scrooge::KeyValue receivedKeyValue;
+                scrooge::KeyValueHash receivedKeyValue;
                 const auto isparseSuccessful = receivedKeyValue.ParseFromString(msg.message_content());
+
+                // SPDLOG_CRITICAL("Key bytes {} value_hash bytes {}", stringToHex(receivedKeyValue.key()), receivedKeyValue.value_md5_hash());
                 if (not isparseSuccessful)
                 {
-                    SPDLOG_CRITICAL("Could not parse DR received KeyValue, received data '{}'", msg.message_content());
+                    SPDLOG_CRITICAL("Could not parse DR received KeyValueHash, received data '{}'", msg.message_content());
                     continue;
                 }
-                *ccfTransfer.mutable_key_value_update() = std::move(receivedKeyValue);
+                *ccfTransfer.mutable_key_value_hash() = std::move(receivedKeyValue);
                 const auto serializedCcfTransfer = ccfTransfer.SerializeAsString();
                 writeMessage(pipe, serializedCcfTransfer);
             }
