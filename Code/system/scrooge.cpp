@@ -350,7 +350,6 @@ static void runScroogeSendThread(
 
     while (not is_test_over())
     {
-        std::this_thread::sleep_for(1us);
         // update window information
         const auto curAck = acknowledgment->getAckIterator();
         const auto curQuack = quorumAck->getCurrentQuack();
@@ -426,6 +425,10 @@ static void runScroogeSendThread(
             noop_ack++;
 
             lastSendTime = curTime;
+        }
+        else
+        {
+            std::this_thread::sleep_for(.1ms);
         }
 
         updateResendData(resendDataQueue.get(), curQuack);
@@ -720,7 +723,7 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
         std::this_thread::sleep_for(1us);
         util::JankAckView curView{};
         while (not viewQueue->try_dequeue(curView) && not is_test_over())
-            ;
+            std::this_thread::sleep_for(100us);
 
         if (curView.isLocal)
         {
@@ -788,7 +791,6 @@ void runScroogeReceiveThread(
     uint64_t lastRebroadcastGc{};
     while (not is_test_over())
     {
-        std::this_thread::sleep_for(1us);
         if (receivedMessage.message == nullptr)
         {
             receivedMessage = pipeline->RecvFromOtherRsm();
@@ -944,6 +946,10 @@ void runScroogeReceiveThread(
 #if WRITE_DR || WRITE_CCF
                 while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
 #endif
+            }
+            else
+            {
+                std::this_thread::sleep_for(1us);
             }
         }
 
