@@ -32,6 +32,10 @@ void runRelayIPCRequestThread(
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
 
+    uint64_t startingMetric{};
+    auto lastMetric = std::chrono::steady_clock::now();
+    const auto startingTime = std::chrono::steady_clock::now();
+
     //createPipe(kScroogeInputPath);
     std::ifstream pipe{kScroogeInputPath};
     if (!pipe.is_open())
@@ -66,18 +70,29 @@ void runRelayIPCRequestThread(
             SPDLOG_CRITICAL("FAILED TO READ MESSAGE");
             continue;
         }
-        //SPDLOG_CRITICAL("WE'VE GOT MAIL");
+
+        numReceivedMessages++;
+        const auto curTime = std::chrono::steady_clock::now();
+        if (curTime - startingTime >= 5s)
+        {
+            if (startingMetric == 0)
+                startingMetric = numReceivedMessages;
+            if (curTime - lastMetric >= 1s)
+            {
+                SPDLOG_CRITICAL("CUR THROUGHPUT: {}", (numReceivedMessages - startingMetric) / std::chrono::duration<double>(curTime - startingTime - 5s).count());
+                lastMetric = curTime;
+            }
+        }
         switch (newRequest.request_case())
         {
             using request = scrooge::ScroogeRequest::RequestCase;
         case request::kSendMessageRequest: {
             auto newMessageRequest = newRequest.send_message_request();
             receivedMessages.addToAckList(newMessageRequest.content().sequence_number());
-            //SPDLOG_CRITICAL("GOING TO ADD MESSAGE WITH SEQ NO {}", newMessageRequest.content().sequence_number());
             while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) &&
-                   not is_test_over())
-                std::this_thread::sleep_for(10us);
+                not is_test_over());
             break;
+            //SPDLOG_CRITICAL("GOING TO ADD MESSAGE WITH SEQ NO {}", newMessageRequest.content().sequence_number());
         }
         default: {
             SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
