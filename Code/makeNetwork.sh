@@ -990,7 +990,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		if [ $kafka = "true" ]; then
 			sleep 60 # sleep 60 seconds before setting up Kafka
 			echo "KAFKA LOG: Running Kafka Cluster - TODO ASSUMES RSM 2 size!"
-			start_kafka 3 "${ZOOKEEPER[0]}" "${rsm2_size[0]}" "${KAFKA[@]}"
+			start_kafka 3 "${ZOOKEEPER[0]}" "${rsm2_size[$rcount]}" "${KAFKA[@]}"
 			broker_ips_string=$(printf "%s:9092," "${KAFKA[@]}")
 			broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 
