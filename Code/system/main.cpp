@@ -194,6 +194,10 @@ int main(int argc, char *argv[])
 
         sendThread.join();
         receiveThread.join();
+#if ! FILE_RSM
+        relayTransactionThread.join();
+        relayRequestThread.join();
+#endif
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
             "kMaxNumLocalFailedNodes = {}, "

@@ -11,7 +11,8 @@ fi
 
 echo -n "Enter the name of the experiment being run: "
 
-read experiment_name
+# read experiment_name
+experiment_name="raft"
 
 echo "Running Experiment: ${experiment_name}"
 
@@ -21,7 +22,8 @@ echo "Running Experiment: ${experiment_name}"
 # receiving RSM, then receive_rsm="resdb"
 valid_applications=("algo" "resdb" "raft" "file")
 echo -n "Enter the name of the sending application (4 options: algo, resdb, raft, file): "
-read send_rsm
+# read send_rsm
+send_rsm="raft"
 
 if [[ ! " ${valid_applications[*]} " =~ " $send_rsm " ]]; then
   echo "$send_rsm is an invalid option, exiting..."
@@ -31,7 +33,8 @@ else
 fi
 
 echo -n "Enter the name of the receiving application (4 options: algo, resdb, raft, file): "
-read receive_rsm
+# read receive_rsm
+receive_rsm="raft"
 echo "Receiving Application: ${receive_rsm}"
 
 if [[ ! " ${valid_applications[*]} " =~ " $receive_rsm " ]]; then
@@ -66,8 +69,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=20s
-total_time=60s
+warmup_time=15s
+total_time=30s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -98,7 +101,7 @@ starting_algos=10000000000000000
 scrooge="false"
 all_to_all="false"
 one_to_one="false"
-geobft="false" # "true"
+geobft="true"
 leader="false"
 kafka="true"
 
@@ -232,7 +235,7 @@ pids_to_kill=()
 # Build the network from the description
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
-client=10
+client=4
 num_nodes_kafka=0
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
@@ -248,7 +251,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="$experiment_name"
+GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
@@ -585,14 +588,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local send_ccf_txns=$5
 		local single_replica_rsm=$6
 		etcd_path="${raft_app_dir}etcd-main/"
-<<<<<<< HEAD
-    		# Run setup build script
-           	#Client node
-		echo ${client_ip}
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git switch main && git reset --hard origin/main && chmod +x '"${etcd_path}"'scripts/build.sh && '"${etcd_path}"'scripts/build.sh' > /dev/null 2>&1 &
-		raft_pids+=($!)
-		echo "Sent build information!"
-=======
 		# Run setup build script
 		#Client node
 		for client_ip in "${client_ips[@]}"; do
@@ -601,7 +596,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			raft_pids+=($!)
 		done
 		echo "Sent client build information!"
->>>>>>> 638a0ee8... 300K/s client txns
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
@@ -644,9 +638,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			this_url=${urls[$i]}
 			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
 			if [ "${single_replica_rsm}" = "false" ]; then
-				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") > /dev/null 2>&1 &
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd /dev/shm/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --quota-backend-bytes=17179869184 --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") > /dev/null 2>&1 &
 			else
-				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") > /dev/null 2>&1 &
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd /dev/shm/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --quota-backend-bytes=17179869184 --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> background_raft_\${THIS_IP}.log") > /dev/null 2>&1 &
 			fi
 			raft_counter=$((raft_counter + 1))
 
@@ -673,7 +667,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ips=("$@")
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\"${joinedvar}\" --conns=20 --clients=7500 put --key-size=8 --key-space-size 1 --sequential-keys --total=100000000 --val-size=256  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=20 --clients=1500 put --key-size=8 --key-space-size 1 --sequential-keys --total=100000000 --val-size=256  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			# ssh -i ${key_file} -o StrictHostKeyChecking=no -t “${client_ip}” “killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\“${joinedvar}\” --conns=12 --clients=256 put --key-size=8 --key-space-size 10 --sequential-keys --total=100000000 --val-size=131072  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done
 	}
@@ -1088,12 +1083,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
-			benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
+			benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]::1}"
 		fi
 		if [ "$receive_rsm" = "raft" ]; then
 			if [ "$run_dr" = "false" ]; then
 				echo "Running Receive_RSM Benchmark Raft"
-				benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
+				benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]::1}"
 			fi
 		fi
 

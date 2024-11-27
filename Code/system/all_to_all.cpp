@@ -64,25 +64,30 @@ static void runAllToAllSendThread(
     Acknowledgment sentMessages{};
     while (not is_test_over())
     {
-
-        while (not is_test_over())
+        scrooge::CrossChainMessageData newMessageData;
+        if constexpr (kIsUsingFile)
         {
-            scrooge::CrossChainMessageData newMessageData = util::getNextMessage();
-            const auto curSequenceNumber = newMessageData.sequence_number();
-            auto curTime = std::chrono::steady_clock::now();
-
-            if constexpr (kIsUsingFile)
-            {
-                pipeline->SendFileToAllOtherRsm(std::move(newMessageData), curTime);
-            }
-            else
-            {
-                pipeline->SendToAllOtherRsm(std::move(newMessageData), curTime);
-            }
-            sentMessages.addToAckList(curSequenceNumber);
-            quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
-            numMessagesSent++;
+            newMessageData = util::getNextMessage();
         }
+        else
+        {
+            while (messageInput->try_dequeue(newMessageData) && not is_test_over())
+                std::this_thread::sleep_for(.1ms);
+        }
+        const auto curSequenceNumber = newMessageData.sequence_number();
+        auto curTime = std::chrono::steady_clock::now();
+
+        if constexpr (kIsUsingFile)
+        {
+            pipeline->SendFileToAllOtherRsm(std::move(newMessageData), curTime);
+        }
+        else
+        {
+            pipeline->SendToAllOtherRsm(std::move(newMessageData), curTime);
+        }
+        sentMessages.addToAckList(curSequenceNumber);
+        quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
+        numMessagesSent++;
     }
 
     addMetric("transfer_strategy", "All-to-All");

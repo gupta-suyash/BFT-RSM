@@ -8,7 +8,8 @@
 void runLeaderReceiveThread(
     const std::shared_ptr<Pipeline> pipeline, const std::shared_ptr<Acknowledgment> acknowledgment,
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
+    const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration,
+    const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue)
 {
     // SPDLOG_CRITICAL("RECV THREAD TID {}", gettid());
     uint64_t timedMessages{};
@@ -38,6 +39,9 @@ void runLeaderReceiveThread(
                     acknowledgment->addToAckList(messageData.sequence_number());
                     timedMessages += is_test_recording();
                 }
+#if WRITE_DR || WRITE_CCF
+        while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+#endif
             }
         }
 
@@ -105,31 +109,37 @@ static void runLeaderSendThread(
     }
     while (not is_test_over())
     {
-        while (not is_test_over())
+        scrooge::CrossChainMessageData newMessageData;
+        if constexpr (kIsUsingFile)
         {
-            scrooge::CrossChainMessageData newMessageData = util::getNextMessage();
-            const auto curSequenceNumber = newMessageData.sequence_number();
-            auto curTime = std::chrono::steady_clock::now();
-            // SPDLOG_CRITICAL("SEND: Created new data and sequence number!");
-            if constexpr (kIsUsingFile)
-            {
-                // SPDLOG_CRITICAL("SEND: Created new data and sequence number with size {}!",
-                // newMessageData.message_content().size());
-                pipeline->SendFileToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize,
-                                             std::move(newMessageData), nullptr, curTime);
-            }
-            else
-            {
-                // SPDLOG_CRITICAL("SENDING TO WRONG PLACE");
-                pipeline->SendToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize,
-                                         std::move(newMessageData), nullptr, curTime);
-            }
-            sentMessages.addToAckList(curSequenceNumber);
-            // quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
-            numMessagesSent++;
-            // SPDLOG_CRITICAL("SEND: Done with this iteration! Quack is at: {}",
-            // sentMessages.getAckIterator().value_or(0));
+            newMessageData = util::getNextMessage();
         }
+        else
+        {
+            while (messageInput->try_dequeue(newMessageData) && not is_test_over())
+                std::this_thread::sleep_for(.1ms);
+        }
+        const auto curSequenceNumber = newMessageData.sequence_number();
+        auto curTime = std::chrono::steady_clock::now();
+        // SPDLOG_CRITICAL("SEND: Created new data and sequence number!");
+        if constexpr (kIsUsingFile)
+        {
+            // SPDLOG_CRITICAL("SEND: Created new data and sequence number with size {}!",
+            // newMessageData.message_content().size());
+            pipeline->SendFileToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize,
+                                            std::move(newMessageData), nullptr, curTime);
+        }
+        else
+        {
+            // SPDLOG_CRITICAL("SENDING TO WRONG PLACE");
+            pipeline->SendToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize,
+                                        std::move(newMessageData), nullptr, curTime);
+        }
+        sentMessages.addToAckList(curSequenceNumber);
+        // quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));
+        numMessagesSent++;
+        // SPDLOG_CRITICAL("SEND: Done with this iteration! Quack is at: {}",
+        // sentMessages.getAckIterator().value_or(0));
     }
 
     addMetric("transfer_strategy", "Leader");

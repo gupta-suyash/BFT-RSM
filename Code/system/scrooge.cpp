@@ -944,7 +944,7 @@ void runScroogeReceiveThread(
                 // const auto sizeShrink = messageSize - protoSize;
                 // nng_msg_chop(message, sizeShrink);
 #if WRITE_DR || WRITE_CCF
-                while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+                while (not receivedMessageQueue->try_enqueue(crossChainMessage) && not is_test_over());
 #endif
             }
             else

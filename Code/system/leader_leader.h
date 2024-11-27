@@ -27,4 +27,5 @@ void runFileLeaderSendThread(
 
 void runLeaderReceiveThread(std::shared_ptr<Pipeline> pipeline, std::shared_ptr<Acknowledgment> acknowledgment,
                             std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
-                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration);
+                            std::shared_ptr<QuorumAcknowledgment> quorumAck, NodeConfiguration configuration,
+                            std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue);

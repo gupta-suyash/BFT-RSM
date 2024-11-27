@@ -46,13 +46,7 @@ void runRelayIPCRequestThread(
     {
         SPDLOG_CRITICAL("###########################Reader Open Success");
     }
-/*    const auto startTime = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - startTime < 30s)
-    {
-        readMessage(pipe);
-        
-    }
-*/
+
     while (not is_test_over())
     {
         //SPDLOG_CRITICAL("BEFORE READING");
