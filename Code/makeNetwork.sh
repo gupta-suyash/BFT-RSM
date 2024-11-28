@@ -94,15 +94,15 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="true"
+scrooge="false"
 all_to_all="false"
 one_to_one="false"
 geobft="false" # "true"
 leader="false"
-kafka="false"
+kafka="true"
 
 run_dr="false"
-run_ccf="true"
+run_ccf="false"
 
 if [ "$run_dr" = "true" ] && [ "$run_ccf" = "true" ]; then
     echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
@@ -246,7 +246,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
+GP_NAME="$experiment_name"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
@@ -549,6 +549,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	r2size=${rsm2_size[$rcount]}
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+    for i in ${!RSM2[@]}; do
+        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka'
+    done
+    for i in ${!RSM1[@]}; do
+        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka'
+    done
 
 	############# Setup all necessary external applications #############
 	joinedvar1=""
@@ -804,6 +810,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
         # clean zookeeper log
         echo "KAFKA LOG: Cleaning Zookeeper logs!"
+        # Setup kafka directory on each of the machines
         ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '
             '"${kafka_dir}"'/bin/zookeeper-server-stop.sh;
             rm -rf /tmp/zookeeper;
