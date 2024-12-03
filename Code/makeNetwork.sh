@@ -69,8 +69,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=40s
-total_time=60s
+warmup_time=45s
+total_time=65s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -98,11 +98,11 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
+scrooge="true"
 all_to_all="false"
 one_to_one="false"
 geobft="false"
-leader="true"
+leader="false"
 kafka="false"
 
 run_dr="true"
