@@ -54,7 +54,7 @@ fi
 
 
 #If this experiment is for File_RSM (not algo or resdb)
-file_rsm="true"
+file_rsm="false"
 if [ "$send_rsm" != "file" ] || [ "$receive_rsm" != "file" ]; then
     file_rsm="false"
 fi
@@ -251,7 +251,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
+GP_NAME="teddy"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
