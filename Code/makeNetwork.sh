@@ -251,7 +251,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="raf"
+GP_NAME="raf-2"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
@@ -261,7 +261,7 @@ if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
 fi
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
-RSM2_ZONE="us-central1-a"
+RSM2_ZONE="us-east5-a"
 KAFKA_ZONE="us-west4-a"
 
 echo "Create group name"
