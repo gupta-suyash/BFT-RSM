@@ -18,8 +18,8 @@
 #define MESSAGE_BUFFER_SIZE 5000
 #define KLIST_SIZE 64
 #define SCROOGE false
-#define ALL_TO_ALL true
-#define ONE_TO_ONE false
+#define ALL_TO_ALL false
+#define ONE_TO_ONE true
 #define GEOBFT false
 #define LEADER false
 #define FILE_RSM false
