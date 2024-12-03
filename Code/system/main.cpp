@@ -194,10 +194,6 @@ int main(int argc, char *argv[])
 
         sendThread.join();
         receiveThread.join();
-#if ! FILE_RSM
-        relayTransactionThread.join();
-        relayRequestThread.join();
-#endif
         SPDLOG_CRITICAL(
             "SCROOGE COMPLETE. For node with config: kNumLocalNodes = {}, kNumForeignNodes = {}, "
             "kMaxNumLocalFailedNodes = {}, "
@@ -220,10 +216,14 @@ int main(int argc, char *argv[])
         addMetric("kList_size", kListSize);
         path = kLogPath;
 
-        printMetrics(path);
+        printMetrics(path); // print before attempting to deconstruct everything -- get as many results as fesible, the test is over and send/recv threads exited
 
-        relayRequestThread.join();
+
+#if ! FILE_RSM
         relayTransactionThread.join();
+        relayRequestThread.join();
+#endif
     }
+    printMetrics(path); // print full metrics after deconstructing everything
     return 0;
 }

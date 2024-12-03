@@ -39,6 +39,7 @@ void runLeaderReceiveThread(
                     acknowledgment->addToAckList(messageData.sequence_number());
                     timedMessages += is_test_recording();
                 }
+                quorumAck->updateNodeAck(0, 0ULL - 1, acknowledgment->getAckIterator().value_or(0));
 #if WRITE_DR || WRITE_CCF
         while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
 #endif
@@ -95,17 +96,24 @@ static void runLeaderSendThread(
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
     const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
+
+    constexpr uint64_t leader_id = 0;
     bindThreadToCpu(1);
     SPDLOG_CRITICAL("Leader Send Thread starting with TID = {}", gettid());
 
     uint64_t numMessagesSent{};
     Acknowledgment sentMessages{};
-    if (configuration.kNodeId != leader_id)
+    if constexpr (!kIsUsingFile)
     {
-        addMetric("transfer_strategy", "Leader");
-        addMetric("num_msgs_sent", numMessagesSent);
-        SPDLOG_CRITICAL("NOT DESIGNATED SENDER, NO MESSAGES SENT. SENDING THREAD EXITING");
-        return;
+        if (configuration.kNodeId != leader_id)
+        {
+            scrooge::CrossChainMessageData newMessageData;
+            while (not is_test_over())
+            {
+                while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
+                    std::this_thread::sleep_for(.1ms);
+            }
+        }
     }
     while (not is_test_over())
     {
@@ -116,7 +124,7 @@ static void runLeaderSendThread(
         }
         else
         {
-            while (messageInput->try_dequeue(newMessageData) && not is_test_over())
+            while (not messageInput->try_dequeue(newMessageData) && not is_test_over())
                 std::this_thread::sleep_for(.1ms);
         }
         const auto curSequenceNumber = newMessageData.sequence_number();

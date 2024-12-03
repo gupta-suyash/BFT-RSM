@@ -26,7 +26,7 @@ void runRelayIPCRequestThread(
     const std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageOutput,
     NodeConfiguration kNodeConfiguration)
 {
-    SPDLOG_CRITICAL("#############Inside run relay IPC REQUEST THREAD!");
+    SPDLOG_CRITICAL("Started runRelayIPCRequestThread with TID = {}", gettid());
     bindThreadToCpu(1);
     constexpr auto kScroogeInputPath = "/tmp/scrooge-input";
     Acknowledgment receivedMessages{};
@@ -36,36 +36,32 @@ void runRelayIPCRequestThread(
     auto lastMetric = std::chrono::steady_clock::now();
     const auto startingTime = std::chrono::steady_clock::now();
 
-    //createPipe(kScroogeInputPath);
     std::ifstream pipe{kScroogeInputPath};
     if (!pipe.is_open())
     {
-        SPDLOG_CRITICAL("########################Reader Open Failed={}, {}", std::strerror(errno), getlogin());
+        SPDLOG_CRITICAL("###########################Pipe Reader Open Failed={}, {}", std::strerror(errno), getlogin());
     }
     else
     {
-        SPDLOG_CRITICAL("###########################Reader Open Success");
+        SPDLOG_CRITICAL("Pipe Reader Open Success");
     }
 
     while (not is_test_over())
     {
-        //SPDLOG_CRITICAL("BEFORE READING");
         auto messageBytes = readMessage(pipe);
         if (messageBytes.length() == 0) {
             SPDLOG_CRITICAL("PIPE READ ERROR");
             break;
-        }   
-        //SPDLOG_CRITICAL("RIGHT AFTER READING");
+        }
         scrooge::ScroogeRequest newRequest;
-        //SPDLOG_CRITICAL("ABOUT TO PARSE THE REQUEST");
         const auto isParseSuccessful = newRequest.ParseFromString(std::move(messageBytes));
         if (not isParseSuccessful)
         {
-            SPDLOG_CRITICAL("FAILED TO READ MESSAGE");
+            SPDLOG_CRITICAL("FAILED TO PARSE IPC READ MESSAGE");
             continue;
         }
 
-        numReceivedMessages++;
+        numReceivedMessages += messageBytes.size();
         const auto curTime = std::chrono::steady_clock::now();
         if (curTime - startingTime >= 5s)
         {
@@ -73,7 +69,7 @@ void runRelayIPCRequestThread(
                 startingMetric = numReceivedMessages;
             if (curTime - lastMetric >= 1s)
             {
-                SPDLOG_CRITICAL("CUR THROUGHPUT: {}", (numReceivedMessages - startingMetric) / std::chrono::duration<double>(curTime - startingTime - 5s).count());
+                SPDLOG_CRITICAL("CUR THROUGHPUT: {}", (numReceivedMessages - startingMetric) / std::chrono::duration<double>(curTime - startingTime - 5s).count() / 1.e6);
                 lastMetric = curTime;
             }
         }
@@ -83,18 +79,19 @@ void runRelayIPCRequestThread(
         case request::kSendMessageRequest: {
             auto newMessageRequest = newRequest.send_message_request();
             receivedMessages.addToAckList(newMessageRequest.content().sequence_number());
-            while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) &&
-                not is_test_over());
+            // while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) &&
+            //     not is_test_over())
+            // {
+            //     std::this_thread::sleep_for(.1ms);
+            // }
             break;
-            //SPDLOG_CRITICAL("GOING TO ADD MESSAGE WITH SEQ NO {}", newMessageRequest.content().sequence_number());
         }
         default: {
             SPDLOG_ERROR("UNKNOWN REQUEST TYPE {}", newRequest.request_case());
-            //SPDLOG_CRITICAL("DO NOT KNOW THE REQUEST TYPE");
         }
         }
     }
-    SPDLOG_CRITICAL("END OF WHILE LOOP RELAY IPC");
+    SPDLOG_CRITICAL("END OF runRelayIPCRequestThread");
 
     addMetric("ipc_recv_messages", numReceivedMessages);
     addMetric("ipc_msg_block_size", receivedMessages.getAckIterator().value_or(0));
@@ -105,7 +102,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
                                   NodeConfiguration kNodeConfiguration,
                                   std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue)
 {
-    SPDLOG_CRITICAL("###############Inside runRelayIPCTransactionThread which write scrooge-output!");
+    SPDLOG_CRITICAL("Started runRelayIPCTransactionThread with TID = {}", gettid());
     bindThreadToCpu(1);
     std::ofstream pipe{scroogeOutputPipePath, std::ios_base::app};
     if (!pipe.is_open())
@@ -114,7 +111,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
     }
     else
     {
-        SPDLOG_CRITICAL("########################Writer Open Success");
+        SPDLOG_CRITICAL("Pipe Writer Open Success");
     }
 
     std::optional<uint64_t> lastQuorumAck{};
@@ -130,7 +127,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
 #endif
     while (not is_test_over())
     {
-        std::this_thread::sleep_for(1ms);
+        std::this_thread::sleep_for(.1ms);
         const auto curQuorumAck = quorumAck->getCurrentQuack();
         if (lastQuorumAck < curQuorumAck)
         {
@@ -145,8 +142,6 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
             lastQuorumAck = curQuorumAck;
             transfer.mutable_commit_acknowledgment()->set_sequence_number(lastQuorumAck.value());
             const auto serializedTransfer = transfer.SerializeAsString();
-            // SPDLOG_CRITICAL("Write: {} :: N:{} :: R:{}",lastQuorumAck.value(), kNodeConfiguration.kNodeId,
-            // get_rsm_id());
             writeMessage(pipe, serializedTransfer);
         }
 
@@ -157,6 +152,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
         }
         while (receivedMessageQueue->try_dequeue(receivedMessage))
         {
+            drTransfer.Clear();
             *drTransfer.mutable_unvalidated_cross_chain_message() = std::move(receivedMessage);
             const auto serializedDrTransfer = drTransfer.SerializeAsString();
             writeMessage(pipe, serializedDrTransfer);
@@ -182,8 +178,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
         }
 #endif
     }
-    SPDLOG_CRITICAL("END OF WHILE LOOP TRANSACTION IPC.");
-    pipe.close();
+    SPDLOG_CRITICAL("End of runRelayIPCTransactionThread");
     addMetric("IPC test", true);
 }
 

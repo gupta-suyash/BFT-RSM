@@ -17,7 +17,7 @@ void runAllToAllReceiveThread(
         const auto [message, senderId] = pipeline->RecvFromOtherRsm();
         if (not message)
         {
-            std::this_thread::yield();
+            std::this_thread::sleep_for(.1ms);
             continue;
         }
 
@@ -71,8 +71,10 @@ static void runAllToAllSendThread(
         }
         else
         {
-            while (messageInput->try_dequeue(newMessageData) && not is_test_over())
+            while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
+            {
                 std::this_thread::sleep_for(.1ms);
+            }
         }
         const auto curSequenceNumber = newMessageData.sequence_number();
         auto curTime = std::chrono::steady_clock::now();

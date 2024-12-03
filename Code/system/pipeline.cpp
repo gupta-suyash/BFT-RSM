@@ -309,6 +309,7 @@ Pipeline::Pipeline(const std::vector<std::string> &ownNetworkUrls, const std::ve
 
 Pipeline::~Pipeline()
 {
+    SPDLOG_CRITICAL("Deconstructing pipeline");
     addMetric("num-timeout-hits", numTimeoutHits);
     addMetric("num-size-hits", numSizeHits);
     addMetric("avg-num-msgs-in-batch", (double)totalBatchedMessages / totalBatchesSent);
@@ -419,7 +420,7 @@ void Pipeline::runSendThread(std::string sendUrl, pipeline::MessageQueue<nng_msg
                              const uint64_t destNodeId, const bool isLocal)
 {
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
-    SPDLOG_CRITICAL("Sending to [{} : {}] : URL={}", destNodeId, nodenet, sendUrl);
+    SPDLOG_CRITICAL("PID{} Sending to [{} : {}] : URL={}", gettid(), destNodeId, nodenet, sendUrl);
 
     if ((ALL_TO_ALL || ONE_TO_ONE) && isLocal)
     {
@@ -488,7 +489,7 @@ void Pipeline::runRecvThread(std::string recvUrl, pipeline::MessageQueue<nng_msg
                              const uint64_t sendNodeId, const bool isLocal)
 {
     const auto nodenet = (isLocal) ? get_rsm_id() : get_other_rsm_id();
-    SPDLOG_INFO("Recv from [{} : {}] : URL={}", sendNodeId, nodenet, recvUrl);
+    SPDLOG_INFO("PID{} Recv from [{} : {}] : URL={}", gettid(), sendNodeId, nodenet, recvUrl);
 
     if ((ALL_TO_ALL || ONE_TO_ONE) && isLocal)
     {
@@ -801,13 +802,12 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
     numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
     numSizeHits += *batchSize >= kMinimumBatchSize;
 
-    auto foreignAliveNodes = mAliveNodesForeign;
+    const uint64_t geobft_quorum_size = kOwnConfiguration.kOtherMaxNumFailedStake + 1;
+    std::bitset<64> foreignAliveNodes{};
+    foreignAliveNodes |= -1ULL ^ (-1ULL << geobft_quorum_size);
     nng_msg *batchData = serializeProtobuf(*batch);
-
-    uint64_t geobft_quorum_counter = 0; // TODO: Potential source of performance degradation
-    const uint64_t geobft_quorum_size =
-        (kOwnConfiguration.kOtherNetworkSize - 1) / replication_factor + 1; // TODO: Move this
-    while (geobft_quorum_counter < geobft_quorum_size && not is_test_over())
+    
+    while (foreignAliveNodes.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
         foreignAliveNodes.reset(curDestination);
@@ -822,12 +822,13 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
         {
             curMessage = batchData;
         }
-        geobft_quorum_counter += 1;
+
         while (not curBuffer->try_enqueue(curMessage))
         {
+            std::this_thread::sleep_for(.1ms);
             if (is_test_over())
             {
-                const bool isLastIteration = geobft_quorum_counter >= geobft_quorum_size;
+                const bool isLastIteration = foreignAliveNodes.none();
                 if (not isLastIteration)
                 {
                     nng_msg_free(batchData);
@@ -866,21 +867,19 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
     numTimeoutHits += kMaxBatchCreationTime < curTime - *batchCreationTime;
     numSizeHits += *batchSize >= kMinimumBatchSize;
 
-    // SPDLOG_CRITICAL("Batch setup complete in File GeoBFT");
-    auto foreignAliveNodes = mAliveNodesForeign;
+    const uint64_t geobft_quorum_size = kOwnConfiguration.kOtherMaxNumFailedStake + 1;
+    std::bitset<64> foreignAliveNodes{};
+    foreignAliveNodes |= -1ULL ^ (-1ULL << geobft_quorum_size);
     nng_msg *batchData = serializeFileProtobuf(*batch);
-    uint64_t geobft_quorum_counter = 0; // TODO: Potential source of performance degradation
-    const uint64_t geobft_quorum_size =
-        (kOwnConfiguration.kOtherNetworkSize - 1) / replication_factor + 1; // TODO: Move this
-    while (geobft_quorum_counter < geobft_quorum_size && not is_test_over())
+
+    while (foreignAliveNodes.any() && not is_test_over())
     {
-        geobft_quorum_counter += 1;
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
         foreignAliveNodes.reset(curDestination);
         const auto &curBuffer = mForeignSendBufs.at(curDestination);
-        nng_msg *curMessage = batchData;
-        // SPDLOG_CRITICAL("First checks of the foreignAliveNodes variable");
-        if (geobft_quorum_counter < geobft_quorum_size)
+        nng_msg *curMessage;
+
+        if (foreignAliveNodes.any())
         {
             nng_msg_dup(&curMessage, batchData);
         }
@@ -889,24 +888,22 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
             curMessage = batchData;
         }
 
-        // SPDLOG_CRITICAL("Checkpoint 1 in while loop");
         while (not curBuffer->try_enqueue(curMessage))
         {
+            std::this_thread::sleep_for(.1ms);
             if (is_test_over())
             {
-                const bool isLastIteration = geobft_quorum_counter >= geobft_quorum_size;
+                const bool isLastIteration = foreignAliveNodes.none();
                 if (not isLastIteration)
                 {
                     nng_msg_free(batchData);
                 }
                 nng_msg_free(curMessage);
-                SPDLOG_CRITICAL("Breaking out of the loop!");
+
                 break;
             }
         }
-        // SPDLOG_CRITICAL("Onto next iteration: {}", geobft_quorum_counter);
     }
-    // nng_msg_free(batchData);
     batch->Clear();
     *batchSize = 0;
     *batchCreationTime = curTime;
@@ -957,6 +954,7 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
 
         while (not curBuffer->try_enqueue(curMessage))
         {
+            std::this_thread::sleep_for(.1ms);
             if (is_test_over())
             {
                 const bool isLastIteration = foreignAliveNodes.none();
@@ -1020,6 +1018,7 @@ void Pipeline::SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&messageDat
 
         while (not curBuffer->try_enqueue(curMessage))
         {
+            std::this_thread::sleep_for(.1ms);
             if (is_test_over())
             {
                 const bool isLastIteration = foreignAliveNodes.none();

@@ -9,7 +9,7 @@ static void runOneToOneSendThread(
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
     const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    bindThreadToCpu(2);
+    bindThreadToCpu(1);
     SPDLOG_CRITICAL("Send Thread starting with TID = {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
@@ -25,8 +25,8 @@ static void runOneToOneSendThread(
         }
         else
         {
-            while (messageInput->try_dequeue(newMessageData) && not is_test_over())
-                ;
+            while (not messageInput->try_dequeue(newMessageData) && not is_test_over())
+                std::this_thread::sleep_for(.1ms);
         }
 
         const auto curSequenceNumber = newMessageData.sequence_number();
@@ -79,7 +79,7 @@ static void runUnfairOneToOneSendThread(
     const std::shared_ptr<iothread::MessageQueue<acknowledgment_tracker::ResendData>> resendDataQueue,
     const std::shared_ptr<QuorumAcknowledgment> quorumAck, const NodeConfiguration configuration)
 {
-    bindThreadToCpu(2);
+    bindThreadToCpu(1);
     SPDLOG_CRITICAL("Unfair One to One Send Thread starting with TID = {}", gettid());
     const auto &[kOwnNetworkSize, kOtherNetworkSize, kOwnNetworkStakes, kOtherNetworkStakes, kOwnMaxNumFailedStake,
                  kOtherMaxNumFailedStake, kNodeId, kLogPath, kWorkingDir] = configuration;
@@ -95,8 +95,8 @@ static void runUnfairOneToOneSendThread(
         }
         else
         {
-            while (messageInput->try_dequeue(newMessageData) && not is_test_over())
-                ;
+            while (not messageInput->try_dequeue(newMessageData) && not is_test_over())
+                std::this_thread::sleep_for(.1ms);
         }
         const auto curSequenceNumber = newMessageData.sequence_number();
         // SPDLOG_CRITICAL("Sequence number in unfair: {} ", curSequenceNumber);
@@ -161,7 +161,7 @@ void runOneToOneReceiveThread(
         const auto [message, senderId] = pipeline->RecvFromOtherRsm();
         if (not message)
         {
-            std::this_thread::yield();
+            std::this_thread::sleep_for(.1ms);
             continue;
         }
 

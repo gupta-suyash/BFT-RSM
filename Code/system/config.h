@@ -10,7 +10,7 @@
 #define LOG_DIR "/home/scrooge/BFT-RSM/Code/experiments/results/"
 #define USE_DEBUG_LOGS_BOOL false
 #define WARMUP_TIME 15s
-#define TOTAL_TIME 30s
+#define TOTAL_TIME 100s
 #define BATCH_SIZE 200000
 #define BATCH_CREATION_TIME 1ms
 #define MAX_NNG_BLOCKING_TIME 500ms
@@ -19,15 +19,15 @@
 #define KLIST_SIZE 64
 #define SCROOGE false
 #define ALL_TO_ALL false
-#define ONE_TO_ONE false
-#define GEOBFT true
+#define ONE_TO_ONE true
+#define GEOBFT false
 #define LEADER false
 #define FILE_RSM false
 #define NOOP_DELAY 5ms
 #define MAX_MESSAGE_DELAY 1ms
 #define QUACK_WINDOW 1048576
 #define ACK_WINDOW 1048576
-#define WRITE_DR true
+#define WRITE_DR false
 #define WRITE_CCF false
 #endif
 
