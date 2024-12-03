@@ -17,11 +17,11 @@
 #define PIPELINE_BUFFER_SIZE 8
 #define MESSAGE_BUFFER_SIZE 5000
 #define KLIST_SIZE 64
-#define SCROOGE false
+#define SCROOGE true
 #define ALL_TO_ALL false
 #define ONE_TO_ONE false
 #define GEOBFT false
-#define LEADER true
+#define LEADER false
 #define FILE_RSM false
 #define NOOP_DELAY 5ms
 #define MAX_MESSAGE_DELAY 1ms
