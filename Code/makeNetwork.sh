@@ -959,7 +959,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		make clean
 		make proto
-		make -j scrooge &
+		make -j scrooge </dev/null 1>/dev/null &
 		make_scrooge_pid=$!
 		# Next, we call the script that makes the config.h. We need to pass all the arguments.
 		# First, get payload file name
