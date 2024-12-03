@@ -99,10 +99,10 @@ starting_algos=10000000000000000
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
 scrooge="true"
-all_to_all="true"
-one_to_one="true"
-geobft="true"
-leader="true"
+all_to_all="false"
+one_to_one="false"
+geobft="false"
+leader="false"
 kafka="false"
 
 run_dr="true"
