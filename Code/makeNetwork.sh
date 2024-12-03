@@ -235,7 +235,7 @@ pids_to_kill=()
 # Build the network from the description
 num_nodes_rsm_1=0
 num_nodes_rsm_2=0
-client=4
+client=2
 num_nodes_kafka=0
 for v in ${rsm1_size[@]}; do
     if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
@@ -1080,12 +1080,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
-			benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]::1}"
+			benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
 		fi
 		if [ "$receive_rsm" = "raft" ]; then
 			if [ "$run_dr" = "false" ]; then
 				echo "Running Receive_RSM Benchmark Raft"
-				benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]::1}"
+				benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
 			fi
 		fi
 
