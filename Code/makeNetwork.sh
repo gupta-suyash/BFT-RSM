@@ -85,7 +85,7 @@ raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
 kafka_dir="${workdir}/kafka_2.13-3.7.0/"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
-message_buffer_size=131072
+message_buffer_size=2500
 
 # Set rarely changing experiment application parameters
 starting_algos=10000000000000000
@@ -589,14 +589,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		#Client node
 		for client_ip in "${client_ips[@]}"; do
 			echo ${client_ip}
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard d54d85d441ff65993b5592306d990c4fb6dfa169 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard c3ca16cea18e6e79e1e1d0cdeaa276ee0b749594 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent client build information!"
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard d54d85d441ff65993b5592306d990c4fb6dfa169; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard c3ca16cea18e6e79e1e1d0cdeaa276ee0b749594; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent replica build information!"
