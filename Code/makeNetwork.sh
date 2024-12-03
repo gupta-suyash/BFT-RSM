@@ -98,11 +98,11 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
-all_to_all="false"
-one_to_one="false"
+scrooge="true"
+all_to_all="true"
+one_to_one="true"
 geobft="true"
-leader="false"
+leader="true"
 kafka="false"
 
 run_dr="true"
@@ -156,10 +156,10 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(3)
-rsm2_size=(3)
-rsm1_fail=(1)
-rsm2_fail=(1)
+rsm1_size=(5)
+rsm2_size=(5)
+rsm1_fail=(3)
+rsm2_fail=(3)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
@@ -667,7 +667,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ips=("$@")
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=20 --clients=20 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=28609  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=20 --clients=20 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=256  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			# ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\“${joinedvar}\” --conns=12 --clients=256 put --key-size=8 --key-space-size 10 --sequential-keys --total=100000000 --val-size=131072  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done

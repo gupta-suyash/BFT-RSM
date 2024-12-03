@@ -1,9 +1,9 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
-#define OWN_RSM_SIZE 3
-#define OTHER_RSM_SIZE 3
-#define OWN_RSM_MAX_NODES_FAIL 1
-#define OTHER_RSM_MAX_NODES_FAIL 1
+#define OWN_RSM_SIZE 5
+#define OTHER_RSM_SIZE 5
+#define OWN_RSM_MAX_NODES_FAIL 3
+#define OTHER_RSM_MAX_NODES_FAIL 3
 #define NUMBER_PACKETS 10000
 #define PACKET_SIZE 100
 #define NETWORK_DIR "/home/scrooge/BFT-RSM/Code/configuration/"
@@ -19,8 +19,8 @@
 #define KLIST_SIZE 64
 #define SCROOGE false
 #define ALL_TO_ALL false
-#define ONE_TO_ONE true
-#define GEOBFT false
+#define ONE_TO_ONE false
+#define GEOBFT true
 #define LEADER false
 #define FILE_RSM false
 #define NOOP_DELAY 5ms
