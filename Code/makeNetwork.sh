@@ -1070,9 +1070,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		cp config.h system/
 
-		make clean
-		make proto
-		make -j scrooge
+		# make clean
+		# make proto
+		# make -j scrooge
 
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
