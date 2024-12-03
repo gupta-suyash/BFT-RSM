@@ -15,13 +15,13 @@
 #define BATCH_CREATION_TIME 1ms
 #define MAX_NNG_BLOCKING_TIME 500ms
 #define PIPELINE_BUFFER_SIZE 8
-#define MESSAGE_BUFFER_SIZE 131072
+#define MESSAGE_BUFFER_SIZE 2500
 #define KLIST_SIZE 64
 #define SCROOGE false
 #define ALL_TO_ALL false
 #define ONE_TO_ONE false
-#define GEOBFT true
-#define LEADER false
+#define GEOBFT false
+#define LEADER true
 #define FILE_RSM false
 #define NOOP_DELAY 5ms
 #define MAX_MESSAGE_DELAY 1ms
