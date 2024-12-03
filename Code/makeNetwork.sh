@@ -887,20 +887,22 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	}
 
     function print_kafka_json() {
-		OUTPUT_FILENAME=$1
-		topic1=$2
-		topic2=$3
-		rsm_id=$4
-		node_id=$5
-		rsm_size=$6
-		read_from_pipe=$7
-		message=$8
-		benchmark_duration=${9}
-		warmup_duration=${10}
-		cooldown_duration=${11}
-		input_path=${12}
-		output_path=${13}
-		broker_ips=${14}
+		local OUTPUT_FILENAME=$1
+		local topic1=$2
+		local topic2=$3
+		local rsm_id=$4
+		local node_id=$5
+		local rsm_size=$6
+		local read_from_pipe=$7
+		local message=$8
+		local benchmark_duration=${9}
+		local warmup_duration=${10}
+		local cooldown_duration=${11}
+		local input_path=${12}
+		local output_path=${13}
+		local broker_ips=${14}
+		local write_dr=${15}
+		local write_ccf=${16}
 		rm "$OUTPUT_FILENAME"
 		echo "{" >> "$OUTPUT_FILENAME"
 		echo "    \"topic1\": \"${topic1}\"," >> "$OUTPUT_FILENAME"
@@ -916,6 +918,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "    \"cooldown_duration\": ${cooldown_duration}," >> "$OUTPUT_FILENAME"
 		echo "    \"input_path\": \"${input_path}\"," >> "$OUTPUT_FILENAME"
 		echo "    \"output_path\": \"${output_path}\"" >> "$OUTPUT_FILENAME"
+		echo "    \"write_dr\": \"${write_dr}\"" >> "$OUTPUT_FILENAME"
+		echo "    \"write_ccf\": \"${write_ccf}\"" >> "$OUTPUT_FILENAME"
 		echo "}" >> "$OUTPUT_FILENAME"
 	}
 
@@ -1038,13 +1042,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			
 			echo "KAFKA LOG: Running RSM 1"
 			for node in $(seq 0 $((rsm1_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "${read_from_pipe}" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "${read_from_pipe}" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running RSM 2"
 			for node in $(seq 0 $((rsm2_size - 1))); do
-				print_kafka_json "config.json" "topic-2" "topic-1" "2" "${node}" "3" "${read_from_pipe}" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}"
+				print_kafka_json "config.json" "topic-2" "topic-1" "2" "${node}" "3" "${read_from_pipe}" "${file_100}" "60" "20" "3" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
