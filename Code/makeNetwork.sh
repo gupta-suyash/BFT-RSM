@@ -101,8 +101,8 @@ starting_algos=10000000000000000
 scrooge="false"
 all_to_all="false"
 one_to_one="false"
-geobft="true"
-leader="false"
+geobft="false"
+leader="true"
 kafka="false"
 
 run_dr="true"
