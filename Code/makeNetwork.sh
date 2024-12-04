@@ -564,10 +564,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
     for i in ${!RSM2[@]}; do
-        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka'
+        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka && cd scrooge-kafka && git checkout 36b804c5e259f95bec1e322088b0ff79c90297f8'
     done
     for i in ${!RSM1[@]}; do
-        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka'
+        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka && cd scrooge-kafka && git checkout 36b804c5e259f95bec1e322088b0ff79c90297f8'
     done
 
 	############# Setup all necessary external applications #############
