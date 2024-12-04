@@ -1085,8 +1085,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		experiment_pid=$!
 
-		sleep 5
-
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
 			benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
