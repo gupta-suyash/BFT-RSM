@@ -79,11 +79,11 @@ void runRelayIPCRequestThread(
         case request::kSendMessageRequest: {
             auto newMessageRequest = newRequest.send_message_request();
             receivedMessages.addToAckList(newMessageRequest.content().sequence_number());
-            while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) &&
-                not is_test_over())
-            {
-                std::this_thread::sleep_for(.1ms);
-            }
+            // while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) &&
+            //     not is_test_over())
+            // {
+            //     std::this_thread::sleep_for(.1ms);
+            // }
             break;
         }
         default: {
