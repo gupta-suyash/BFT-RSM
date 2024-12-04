@@ -69,8 +69,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=15s
-total_time=30s
+warmup_time=40s
+total_time=60s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
