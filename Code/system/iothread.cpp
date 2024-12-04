@@ -32,9 +32,8 @@ void runRelayIPCRequestThread(
     Acknowledgment receivedMessages{};
     uint64_t numReceivedMessages{};
 
-    uint64_t startingMetric{};
-    auto lastMetric = std::chrono::steady_clock::now();
-    const auto startingTime = std::chrono::steady_clock::now();
+    uint64_t lastMetric{};
+    auto lastMetricTime = std::chrono::steady_clock::now();
 
     std::ifstream pipe{kScroogeInputPath};
     if (!pipe.is_open())
@@ -63,15 +62,11 @@ void runRelayIPCRequestThread(
 
         numReceivedMessages += messageBytes.size();
         const auto curTime = std::chrono::steady_clock::now();
-        if (curTime - startingTime >= 5s)
+        if (curTime - lastMetricTime >= 1s)
         {
-            if (startingMetric == 0)
-                startingMetric = numReceivedMessages;
-            if (curTime - lastMetric >= 1s)
-            {
-                SPDLOG_CRITICAL("CUR THROUGHPUT: {}", (numReceivedMessages - startingMetric) / std::chrono::duration<double>(curTime - startingTime - 5s).count() / 1.e6);
-                lastMetric = curTime;
-            }
+            SPDLOG_CRITICAL("CUR THROUGHPUT: {}", (numReceivedMessages - lastMetric) / std::chrono::duration<double>(curTime - lastMetricTime).count() / 1.e6);
+            lastMetric = numReceivedMessages;
+            lastMetricTime = curTime;
         }
         switch (newRequest.request_case())
         {

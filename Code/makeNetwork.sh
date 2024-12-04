@@ -69,8 +69,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=45s
-total_time=65s
+warmup_time=15s
+total_time=30s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -530,6 +530,12 @@ if [ "${leader}" = "true" ]; then
 fi
 if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
+	for i in ${!RSM2[@]}; do
+        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka'
+    done
+    for i in ${!RSM1[@]}; do
+        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka'
+    done
 fi
 
 raft_counter=0
@@ -564,13 +570,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	r2size=${rsm2_size[$rcount]}
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
-    for i in ${!RSM2[@]}; do
-        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka'
-    done
-    for i in ${!RSM1[@]}; do
-        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka'
-    done
-
 	############# Setup all necessary external applications #############
 	joinedvar1=""
 	joinedvar2=""
@@ -590,14 +589,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		#Client node
 		for client_ip in "${client_ips[@]}"; do
 			echo ${client_ip}
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard 127b8bf9dd474f35e8f66ce01f2a71d370df78a4 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard 4758c5862e9b1056bf31ad45be4124a857afc268 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent client build information!"
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard 127b8bf9dd474f35e8f66ce01f2a71d370df78a4; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard 4758c5862e9b1056bf31ad45be4124a857afc268; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent replica build information!"
@@ -1084,6 +1083,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# Next, we run the script.
 		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		experiment_pid=$!
+
+		sleep 1
 
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"

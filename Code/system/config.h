@@ -1,16 +1,16 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
-#define OWN_RSM_SIZE 3
-#define OTHER_RSM_SIZE 3
-#define OWN_RSM_MAX_NODES_FAIL 1
-#define OTHER_RSM_MAX_NODES_FAIL 1
+#define OWN_RSM_SIZE 7
+#define OTHER_RSM_SIZE 7
+#define OWN_RSM_MAX_NODES_FAIL 3
+#define OTHER_RSM_MAX_NODES_FAIL 3
 #define NUMBER_PACKETS 10000
 #define PACKET_SIZE 100
 #define NETWORK_DIR "/home/scrooge/BFT-RSM/Code/configuration/"
 #define LOG_DIR "/home/scrooge/BFT-RSM/Code/experiments/results/"
 #define USE_DEBUG_LOGS_BOOL false
-#define WARMUP_TIME 45s
-#define TOTAL_TIME 65s
+#define WARMUP_TIME 15s
+#define TOTAL_TIME 30s
 #define BATCH_SIZE 200000
 #define BATCH_CREATION_TIME 1ms
 #define MAX_NNG_BLOCKING_TIME 500ms
