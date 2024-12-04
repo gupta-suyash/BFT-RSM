@@ -99,10 +99,10 @@ starting_algos=10000000000000000
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
 scrooge="true"
-all_to_all="true"
-one_to_one="true"
-geobft="true"
-leader="true"
+all_to_all="false"
+one_to_one="false"
+geobft="false"
+leader="false"
 kafka="false"
 
 run_dr="true"
@@ -320,6 +320,7 @@ function exit_handler() {
 	killall python
 
 	kill $experiment_pid
+	kill $make_scrooge_pid
 	for pid in "${pids_to_kill[@]}"; do
 		kill $pid
 	done
@@ -589,14 +590,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		#Client node
 		for client_ip in "${client_ips[@]}"; do
 			echo ${client_ip}
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard 2864c5ca25c7ac661020f68159420e5c4e7bd8c1 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard 127b8bf9dd474f35e8f66ce01f2a71d370df78a4 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent client build information!"
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard 2864c5ca25c7ac661020f68159420e5c4e7bd8c1; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard 127b8bf9dd474f35e8f66ce01f2a71d370df78a4; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent replica build information!"
@@ -667,7 +668,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ips=("$@")
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=20 --clients=20 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=8192  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=20 --clients=1500 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=256  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			# ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\“${joinedvar}\” --conns=12 --clients=256 put --key-size=8 --key-space-size 10 --sequential-keys --total=100000000 --val-size=131072  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done
@@ -1083,6 +1084,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		# Next, we run the script.
 		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		experiment_pid=$!
+
+		sleep 5
 
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
