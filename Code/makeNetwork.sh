@@ -917,8 +917,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "    \"warmup_duration\": ${warmup_duration}," >> "$OUTPUT_FILENAME"
 		echo "    \"cooldown_duration\": ${cooldown_duration}," >> "$OUTPUT_FILENAME"
 		echo "    \"input_path\": \"${input_path}\"," >> "$OUTPUT_FILENAME"
-		echo "    \"output_path\": \"${output_path}\"" >> "$OUTPUT_FILENAME"
-		echo "    \"write_dr\": \"${write_dr}\"" >> "$OUTPUT_FILENAME"
+		echo "    \"output_path\": \"${output_path}\"," >> "$OUTPUT_FILENAME"
+		echo "    \"write_dr\": \"${write_dr}\"," >> "$OUTPUT_FILENAME"
 		echo "    \"write_ccf\": \"${write_ccf}\"" >> "$OUTPUT_FILENAME"
 		echo "}" >> "$OUTPUT_FILENAME"
 	}
