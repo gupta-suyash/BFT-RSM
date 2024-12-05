@@ -563,11 +563,19 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	r2size=${rsm2_size[$rcount]}
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
+    
+    git_pids=()
     for i in ${!RSM2[@]}; do
-        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka && cd scrooge-kafka && git checkout 36b804c5e259f95bec1e322088b0ff79c90297f8'
+        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 960893112dcbf13db82021a2d4c9c65bd84a0fbf' 1>/dev/null </dev/null &
+        git_pids+=($!)
     done
     for i in ${!RSM1[@]}; do
-        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'cd $HOME && rm -rf scrooge-kafka/ && git clone https://github.com/chawinphat/scrooge-kafka && cd scrooge-kafka && git checkout 36b804c5e259f95bec1e322088b0ff79c90297f8'
+        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 960893112dcbf13db82021a2d4c9c65bd84a0fbf' 1>/dev/null </dev/null &
+        git_pids+=($!)
+    done
+
+    for pid in ${git_pids[*]}; do
+        wait $pid
     done
 
 	############# Setup all necessary external applications #############
@@ -918,8 +926,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "    \"cooldown_duration\": ${cooldown_duration}," >> "$OUTPUT_FILENAME"
 		echo "    \"input_path\": \"${input_path}\"," >> "$OUTPUT_FILENAME"
 		echo "    \"output_path\": \"${output_path}\"," >> "$OUTPUT_FILENAME"
-		echo "    \"write_dr\": \"${write_dr}\"," >> "$OUTPUT_FILENAME"
-		echo "    \"write_ccf\": \"${write_ccf}\"" >> "$OUTPUT_FILENAME"
+		echo "    \"write_dr\": ${write_dr}," >> "$OUTPUT_FILENAME"
+		echo "    \"write_ccf\": ${write_ccf}" >> "$OUTPUT_FILENAME"
 		echo "}" >> "$OUTPUT_FILENAME"
 	}
 
@@ -1042,18 +1050,20 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			
 			echo "KAFKA LOG: Running RSM 1"
 			for node in $(seq 0 $((rsm1_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "${read_from_pipe}" "${file_100}" "$((total_time-warmup_time))" "${warmup_time}" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "${read_from_pipe}" "${file_1000}" "40" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running RSM 2"
 			for node in $(seq 0 $((rsm2_size - 1))); do
-				print_kafka_json "config.json" "topic-2" "topic-1" "2" "${node}" "3" "${read_from_pipe}" "${file_100}" "$((total_time-warmup_time))" "${warmup_time}" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
+				print_kafka_json "config.json" "topic-2" "topic-1" "2" "${node}" "3" "${read_from_pipe}" "${file_1000}" "40" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running experiment"
+            sleep 15
 			./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
+		    experiment_pid=$!
 			if [ "$send_rsm" = "raft" ]; then
 				echo "Running Send_RSM Benchmark Raft"
 				benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
@@ -1064,6 +1074,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
 				fi
 			fi
+            
+            wait $experiment_pid
 			continue
 		fi
 

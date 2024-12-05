@@ -211,8 +211,7 @@ def run(configJson, experimentName, expDir):
                 if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
                     cmd = "killall scrooge; " + scrooge_exec + configJson + " " + experimentName + " " + str(groupId) + " " + str(nodeId) + " " + str(i)
                 else: #run kafka consumer & producer
-                    time.sleep(60)
-                    cmd = "source ~/.profile; killall java; killall etcd && cd scrooge-kafka && (nohup /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Producer\" 2>curProdErrLog 1>curProdOutputLog < /dev/null &) && /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Consumer\""
+                    cmd = "source ~/.profile; killall java; killall etcd; cd scrooge-kafka && (nohup /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Producer\" 2>curProdErrLog 1>curProdOutputLog < /dev/null &) && /home/scrooge/.local/share/coursier/bin/sbt --batch -Dsbt.server.forcestart=true \"runMain main.Consumer\""
                 nodeId += 1
                 if nodeId == clusterZerosz:
                     nodeId = 0
