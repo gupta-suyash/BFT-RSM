@@ -530,11 +530,11 @@ if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
 	local git_pids=()
 	for i in ${!RSM2[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 960893112dcbf13db82021a2d4c9c65bd84a0fbf' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard d3144b143edbe1187071e76d6498c43c253a13e9' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 	for i in ${!RSM1[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 960893112dcbf13db82021a2d4c9c65bd84a0fbf' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard d3144b143edbe1187071e76d6498c43c253a13e9' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 
