@@ -11,8 +11,7 @@ fi
 
 echo -n "Enter the name of the experiment being run: "
 
-# read experiment_name
-experiment_name="raft"
+read experiment_name
 
 echo "Running Experiment: ${experiment_name}"
 
@@ -22,8 +21,7 @@ echo "Running Experiment: ${experiment_name}"
 # receiving RSM, then receive_rsm="resdb"
 valid_applications=("algo" "resdb" "raft" "file")
 echo -n "Enter the name of the sending application (4 options: algo, resdb, raft, file): "
-# read send_rsm
-send_rsm="raft"
+read send_rsm
 
 if [[ ! " ${valid_applications[*]} " =~ " $send_rsm " ]]; then
   echo "$send_rsm is an invalid option, exiting..."
@@ -33,8 +31,7 @@ else
 fi
 
 echo -n "Enter the name of the receiving application (4 options: algo, resdb, raft, file): "
-# read receive_rsm
-receive_rsm="raft"
+read receive_rsm
 echo "Receiving Application: ${receive_rsm}"
 
 if [[ ! " ${valid_applications[*]} " =~ " $receive_rsm " ]]; then
