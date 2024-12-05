@@ -575,20 +575,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	r2size=${rsm2_size[$rcount]}
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 	parallel -v --jobs=0 scp -o StrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
-    
-    git_pids=()
-    for i in ${!RSM2[@]}; do
-        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard d3144b143edbe1187071e76d6498c43c253a13e9' 1>/dev/null </dev/null &
-        git_pids+=($!)
-    done
-    for i in ${!RSM1[@]}; do
-        ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard d3144b143edbe1187071e76d6498c43c253a13e9' 1>/dev/null </dev/null &
-        git_pids+=($!)
-    done
 
-    for pid in ${git_pids[*]}; do
-        wait $pid
-    done
 
 	############# Setup all necessary external applications #############
 	joinedvar1=""
