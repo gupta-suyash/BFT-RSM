@@ -11,7 +11,8 @@ fi
 
 echo -n "Enter the name of the experiment being run: "
 
-read experiment_name
+# read experiment_name
+experiment_name="disaster_recovery"
 
 echo "Running Experiment: ${experiment_name}"
 
@@ -21,7 +22,8 @@ echo "Running Experiment: ${experiment_name}"
 # receiving RSM, then receive_rsm="resdb"
 valid_applications=("algo" "resdb" "raft" "file")
 echo -n "Enter the name of the sending application (4 options: algo, resdb, raft, file): "
-read send_rsm
+# read send_rsm
+send_rsm="raft"
 
 if [[ ! " ${valid_applications[*]} " =~ " $send_rsm " ]]; then
   echo "$send_rsm is an invalid option, exiting..."
@@ -31,7 +33,8 @@ else
 fi
 
 echo -n "Enter the name of the receiving application (4 options: algo, resdb, raft, file): "
-read receive_rsm
+# read receive_rsm
+receive_rsm="raft"
 echo "Receiving Application: ${receive_rsm}"
 
 if [[ ! " ${valid_applications[*]} " =~ " $receive_rsm " ]]; then
@@ -66,8 +69,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=15s
-total_time=30s
+warmup_time=40s
+total_time=60s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -95,14 +98,14 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
-all_to_all="false"
-one_to_one="false"
-geobft="false"
-leader="false"
-kafka="true"
+scrooge="true"
+all_to_all="true"
+one_to_one="true"
+geobft="true"
+leader="true"
+kafka="false"
 
-run_dr="false"
+run_dr="true"
 run_ccf="false"
 
 if [ "$run_dr" = "true" ] && [ "$run_ccf" = "true" ]; then
@@ -153,10 +156,10 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(3)
-rsm2_size=(3)
-rsm1_fail=(1)
-rsm2_fail=(1)
+rsm1_size=(3 5 7)
+rsm2_size=(3 5 7)
+rsm1_fail=(1 2 3)
+rsm2_fail=(1 2 3)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
@@ -248,7 +251,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
+GP_NAME="raf-2"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
@@ -258,7 +261,7 @@ if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
 fi
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
-RSM2_ZONE="us-west4-a"
+RSM2_ZONE="us-east5-a"
 KAFKA_ZONE="us-west4-a"
 
 echo "Create group name"
@@ -1095,9 +1098,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
+
 		# Next, we run the script.
 		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		experiment_pid=$!
+
+		sleep 1
 
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
