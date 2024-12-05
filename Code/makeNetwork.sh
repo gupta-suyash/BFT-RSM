@@ -11,8 +11,7 @@ fi
 
 echo -n "Enter the name of the experiment being run: "
 
-# read experiment_name
-experiment_name="raft"
+read experiment_name
 
 echo "Running Experiment: ${experiment_name}"
 
@@ -22,8 +21,7 @@ echo "Running Experiment: ${experiment_name}"
 # receiving RSM, then receive_rsm="resdb"
 valid_applications=("algo" "resdb" "raft" "file")
 echo -n "Enter the name of the sending application (4 options: algo, resdb, raft, file): "
-# read send_rsm
-send_rsm="raft"
+read send_rsm
 
 if [[ ! " ${valid_applications[*]} " =~ " $send_rsm " ]]; then
   echo "$send_rsm is an invalid option, exiting..."
@@ -33,8 +31,7 @@ else
 fi
 
 echo -n "Enter the name of the receiving application (4 options: algo, resdb, raft, file): "
-# read receive_rsm
-receive_rsm="raft"
+read receive_rsm
 echo "Receiving Application: ${receive_rsm}"
 
 if [[ ! " ${valid_applications[*]} " =~ " $receive_rsm " ]]; then
@@ -85,7 +82,7 @@ raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
 kafka_dir="${workdir}/kafka_2.13-3.7.0/"
 use_debug_logs_bool="false"
 max_nng_blocking_time=500ms
-message_buffer_size=131072
+message_buffer_size=5000
 
 # Set rarely changing experiment application parameters
 starting_algos=10000000000000000
@@ -316,13 +313,6 @@ read keep_machines
 trap exit_handler INT
 function exit_handler() {
 	echo "** Trapped CTRL-C -- killing all ssh and python"
-	# killall ssh
-	killall python
-
-	kill $experiment_pid
-	for pid in "${pids_to_kill[@]}"; do
-		kill $pid
-	done
 
 	for client_ip in "${CLIENT[@]}"; do
 		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'killall benchmark' </dev/null &>/dev/null  &
@@ -336,12 +326,21 @@ function exit_handler() {
 	fi
 	if [ "$keep_machines" != "Y" ]; then
 		echo "deleting experiment"
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $ZONE &
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
-		wait
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $RSM1_ZONE &
+		pids_to_kill+=($!)
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $RSM2_ZONE &
+		pids_to_kill+=($!)
+		yes | gcloud compute instance-groups managed delete "${GP_NAME}-kafka" --zone $KAFKA_ZONE &
+		pids_to_kill+=($!)
 		exit 0
 	fi
+
+	kill $experiment_pid
+	kill $make_scrooge_pid
+	for pid in "${pids_to_kill[@]}"; do
+		kill $pid
+	done
+
 	echo "keeping machines for future experiments"
 	exit 0
 }
@@ -529,6 +528,19 @@ if [ "${leader}" = "true" ]; then
 fi
 if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
+	local git_pids=()
+	for i in ${!RSM2[@]}; do
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 960893112dcbf13db82021a2d4c9c65bd84a0fbf' 1>/dev/null </dev/null &
+		git_pids+=($!)
+	done
+	for i in ${!RSM1[@]}; do
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 960893112dcbf13db82021a2d4c9c65bd84a0fbf' 1>/dev/null </dev/null &
+		git_pids+=($!)
+	done
+
+	for pid in ${git_pids[*]}; do
+		wait $pid
+	done
 fi
 
 raft_counter=0
@@ -597,14 +609,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		#Client node
 		for client_ip in "${client_ips[@]}"; do
 			echo ${client_ip}
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard d54d85d441ff65993b5592306d990c4fb6dfa169 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard 4758c5862e9b1056bf31ad45be4124a857afc268 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent client build information!"
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard d54d85d441ff65993b5592306d990c4fb6dfa169; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard 4758c5862e9b1056bf31ad45be4124a857afc268; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent replica build information!"
@@ -643,11 +655,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			this_url=${urls[$i]}
 			#scp -o StrictHostKeyChecking=no $HOME/.bashrc ${username}@${this_ip}:$HOME/
 			if [ "${single_replica_rsm}" = "false" ]; then
-				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --quota-backend-bytes=17179869184 --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> /dev/null") > /dev/null 2>&1 &
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --quota-backend-bytes=17179869184 --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster \${CLUSTER} --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} --heartbeat-interval=100 --election-timeout=50000 &> etcd-log") > /dev/null 2>&1 &
 			else
-				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --quota-backend-bytes=17179869184 --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} &> /dev/null") > /dev/null 2>&1 &
+				(ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export THIS_NAME=${this_name}; export THIS_IP=${this_ip}; export TOKEN=${TOKEN}; export CLUSTER_STATE=${CLUSTER_STATE}; export CLUSTER="${cluster_list%,}"; cd \$HOME; echo PWD: \$(pwd)  THIS_NAME:\${THIS_NAME} THIS_IP:\${THIS_IP} TOKEN:\${TOKEN} CLUSTER:\${CLUSTER}; killall -9 benchmark; sudo fuser -n tcp -k 2379 2380; sudo rm -rf \$HOME/data.etcd; echo \$HOME/.bashrc; ${etcd_bin_path}/etcd ${send_dr_txns} ${send_ccf_txns} --quota-backend-bytes=17179869184 --log-level error --data-dir=data.etcd --name \${THIS_NAME} --initial-advertise-peer-urls http://\${THIS_IP}:2380 --listen-peer-urls http://\${THIS_IP}:2380 --advertise-client-urls http://\${THIS_IP}:2379 --listen-client-urls http://\${THIS_IP}:2379 --initial-cluster-state \${CLUSTER_STATE} --initial-cluster-token \${TOKEN} --heartbeat-interval=100 --election-timeout=50000 &> etcd-log") > /dev/null 2>&1 &
 			fi
 			raft_counter=$((raft_counter + 1))
+			if [ "${i}" -eq 0 ]; then
+				sleep 5 # ensure node 0 gets elected
+			fi
 
 		done
 		printf -v joined '%s,' "${rsm_w_ports[@]}"
@@ -962,6 +977,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	for max_message_delay in "${max_message_delays[@]}"; do
 	for quack_window in "${quack_windows[@]}"; do
 	for ack_window in "${ack_windows[@]}"; do
+		./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf}
+
+		cp config.h system/
+
+		make clean
+		make proto
+		make -j scrooge </dev/null 1>/dev/null &
+		make_scrooge_pid=$!
 		# Next, we call the script that makes the config.h. We need to pass all the arguments.
 		# First, get payload file name
 		pk_file=""
@@ -1078,13 +1101,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			continue
 		fi
 
-		./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf}
-
-		cp config.h system/
-
-		make clean
-		make proto
-		make -j scrooge
+		wait $make_scrooge_pid
 
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
