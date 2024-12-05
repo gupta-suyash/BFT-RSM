@@ -977,13 +977,15 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	for max_message_delay in "${max_message_delays[@]}"; do
 	for quack_window in "${quack_windows[@]}"; do
 	for ack_window in "${ack_windows[@]}"; do
-		./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf}
+ 		if [ $kafka !=  "true" ]; then
+			./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf}
 
-		cp config.h system/
+			cp config.h system/
 
-		make clean
-		make proto
-		make -j scrooge </dev/null 1>/dev/null &
+			make clean
+			make proto
+			make -j scrooge </dev/null 1>/dev/null &
+   		fi
 		make_scrooge_pid=$!
 		# Next, we call the script that makes the config.h. We need to pass all the arguments.
 		# First, get payload file name
