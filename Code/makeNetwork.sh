@@ -12,7 +12,7 @@ fi
 echo -n "Enter the name of the experiment being run: "
 
 # read experiment_name
-experiment_name="disaster_recovery"
+experiment_name="disaster_recovery_friday"
 
 echo "Running Experiment: ${experiment_name}"
 
@@ -163,7 +163,7 @@ rsm2_fail=(1 2 3)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
-packet_size=(100)
+packet_size=(28609)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
