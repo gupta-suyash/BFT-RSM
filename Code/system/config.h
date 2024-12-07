@@ -5,7 +5,7 @@
 #define OWN_RSM_MAX_NODES_FAIL 3
 #define OTHER_RSM_MAX_NODES_FAIL 3
 #define NUMBER_PACKETS 10000
-#define PACKET_SIZE 28609
+#define PACKET_SIZE 57218
 #define NETWORK_DIR "/home/scrooge/BFT-RSM/Code/configuration/"
 #define LOG_DIR "/home/scrooge/BFT-RSM/Code/experiments/results/"
 #define USE_DEBUG_LOGS_BOOL false
