@@ -25,8 +25,7 @@ static void runOneToOneSendThread(
         }
         else
         {
-            while (not messageInput->try_dequeue(newMessageData) && not is_test_over())
-                std::this_thread::sleep_for(.1ms);
+            while (not messageInput->try_dequeue(newMessageData) && not is_test_over());
         }
 
         const auto curSequenceNumber = newMessageData.sequence_number();
@@ -95,8 +94,7 @@ static void runUnfairOneToOneSendThread(
         }
         else
         {
-            while (not messageInput->try_dequeue(newMessageData) && not is_test_over())
-                std::this_thread::sleep_for(.1ms);
+            while (not messageInput->try_dequeue(newMessageData) && not is_test_over());
         }
         const auto curSequenceNumber = newMessageData.sequence_number();
         // SPDLOG_CRITICAL("Sequence number in unfair: {} ", curSequenceNumber);
@@ -161,7 +159,6 @@ void runOneToOneReceiveThread(
         const auto [message, senderId] = pipeline->RecvFromOtherRsm();
         if (not message)
         {
-            std::this_thread::sleep_for(.1ms);
             continue;
         }
 

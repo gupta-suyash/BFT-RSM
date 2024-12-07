@@ -110,8 +110,7 @@ static void runLeaderSendThread(
             scrooge::CrossChainMessageData newMessageData;
             while (not is_test_over())
             {
-                while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
-                    std::this_thread::sleep_for(.1ms);
+                while (! messageInput->try_dequeue(newMessageData) && not is_test_over());
             }
         }
     }
@@ -124,8 +123,7 @@ static void runLeaderSendThread(
         }
         else
         {
-            while (not messageInput->try_dequeue(newMessageData) && not is_test_over())
-                std::this_thread::sleep_for(.1ms);
+            while (not messageInput->try_dequeue(newMessageData) && not is_test_over());
         }
         const auto curSequenceNumber = newMessageData.sequence_number();
         auto curTime = std::chrono::steady_clock::now();

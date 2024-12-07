@@ -20,12 +20,10 @@ void runGeoBFTReceiveThread(
 
     while (not is_test_over())
     {
-        bool isIterationUseful{};
         // 1. If node has nothing to re-broadcast, try to receive from other RSM
         if (receivedMessage.message == nullptr)
         {
             receivedMessage = pipeline->RecvFromOtherRsm();
-            isIterationUseful = receivedMessage.message != nullptr;
         }
 
         // 2. If node has a message to re-broadcast, try to rebroadcast
@@ -36,7 +34,6 @@ void runGeoBFTReceiveThread(
             {
                 // forget message now that its rebroadcast is successful
                 receivedMessage.message = nullptr;
-                isIterationUseful = true;
                 numrb++;
             }
         }
@@ -45,7 +42,6 @@ void runGeoBFTReceiveThread(
         const auto [broadcast_msg, broadcast_senderId] = pipeline->RecvFromOwnRsm();
         if (broadcast_msg)
         {
-            isIterationUseful = true;
             localMsgsReceived++;
             const auto messageData = nng_msg_body(broadcast_msg);
             const auto messageSize = nng_msg_len(broadcast_msg);
@@ -66,11 +62,6 @@ void runGeoBFTReceiveThread(
 #if WRITE_DR || WRITE_CCF
         while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
 #endif
-        }
-
-        if (not isIterationUseful)
-        {
-            std::this_thread::sleep_for(.1ms);
         }
     }
     
@@ -107,8 +98,7 @@ static void runGeoBFTSendThread(
             scrooge::CrossChainMessageData newMessageData;
             while (not is_test_over())
             {
-                while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
-                    std::this_thread::sleep_for(.1ms);
+                while (! messageInput->try_dequeue(newMessageData) && not is_test_over());
             }
         }
     }
@@ -122,8 +112,7 @@ static void runGeoBFTSendThread(
         }
         else
         {
-            while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
-                std::this_thread::sleep_for(.1ms);
+            while (! messageInput->try_dequeue(newMessageData) && not is_test_over());
         }
         const auto curSequenceNumber = newMessageData.sequence_number();
         auto curTime = std::chrono::steady_clock::now();

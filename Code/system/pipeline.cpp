@@ -825,7 +825,6 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
 
         while (not curBuffer->try_enqueue(curMessage))
         {
-            std::this_thread::sleep_for(.1ms);
             if (is_test_over())
             {
                 const bool isLastIteration = foreignAliveNodes.none();
@@ -890,7 +889,6 @@ void Pipeline::SendFileToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&m
 
         while (not curBuffer->try_enqueue(curMessage))
         {
-            std::this_thread::sleep_for(.1ms);
             if (is_test_over())
             {
                 const bool isLastIteration = foreignAliveNodes.none();
@@ -954,7 +952,6 @@ void Pipeline::SendToAllOtherRsm(scrooge::CrossChainMessageData &&messageData,
 
         while (not curBuffer->try_enqueue(curMessage))
         {
-            std::this_thread::sleep_for(.1ms);
             if (is_test_over())
             {
                 const bool isLastIteration = foreignAliveNodes.none();
@@ -1018,7 +1015,6 @@ void Pipeline::SendFileToAllOtherRsm(scrooge::CrossChainMessageData &&messageDat
 
         while (not curBuffer->try_enqueue(curMessage))
         {
-            std::this_thread::sleep_for(.1ms);
             if (is_test_over())
             {
                 const bool isLastIteration = foreignAliveNodes.none();
