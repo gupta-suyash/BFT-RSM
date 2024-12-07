@@ -91,15 +91,22 @@ static void runGeoBFTSendThread(
 
     constexpr auto sender_id = 0;
 
-    if constexpr (!kIsUsingFile)
+   
+    if (configuration.kNodeId != sender_id)
     {
-        if (configuration.kNodeId != sender_id)
+        if constexpr (!kIsUsingFile)
         {
+            // dequeue all messages to free up the application
             scrooge::CrossChainMessageData newMessageData;
             while (not is_test_over())
             {
                 while (! messageInput->try_dequeue(newMessageData) && not is_test_over());
             }
+        }
+        else
+        {
+            // not the sender and no messages are real because we're running file
+            return;
         }
     }
 
