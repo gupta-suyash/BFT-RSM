@@ -251,7 +251,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="raf-2"
+GP_NAME="raf"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
