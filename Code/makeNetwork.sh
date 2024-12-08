@@ -163,7 +163,7 @@ rsm2_fail=(1 2 3)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
-packet_size=(1980)
+packet_size=(863)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -677,7 +677,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ips=("$@")
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=4 --clients=275 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=1980  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=4 --clients=550 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=863  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			# ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\“${joinedvar}\” --conns=12 --clients=256 put --key-size=8 --key-space-size 10 --sequential-keys --total=100000000 --val-size=131072  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done
