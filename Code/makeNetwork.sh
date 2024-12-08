@@ -105,8 +105,8 @@ geobft="true"
 leader="true"
 kafka="false"
 
-run_dr="true"
-run_ccf="false"
+run_dr="false"
+run_ccf="true"
 
 if [ "$run_dr" = "true" ] && [ "$run_ccf" = "true" ]; then
     echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
