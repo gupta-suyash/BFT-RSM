@@ -69,8 +69,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=40s
-total_time=60s
+warmup_time=25s
+total_time=45s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -163,7 +163,7 @@ rsm2_fail=(1 2 3)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
-packet_size=(863)
+packet_size=(245 498 863 1980 4020 8052 14304)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -673,12 +673,38 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	function benchmark_raft() {
 		local joinedvar=$1
 		local raft_count=$2
-		shift 2
+		local msg_size=$3
+		local clients=0
+		local connections=0
+		shift 3
 		local client_ips=("$@")
+
+		if [ "${msg_size}" == "245" ]; then
+			local clients=1000
+			local connections=3
+		elif [ "${msg_size}" == "498" ]; then
+			local clients=600
+			local connections=3
+		elif [ "${msg_size}" == "863" ]; then
+			local clients=550
+			local connections=4
+		elif [ "${msg_size}" == "1980" ]; then
+			local clients=275
+			local connections=4
+		elif [ "${msg_size}" == "4020" ]; then
+			local clients=120
+			local connections=4
+		elif [ "${msg_size}" == "8052" ]; then
+			local clients=49
+			local connections=4
+		elif [ "${msg_size}" == "14304" ]; then
+			local clients=37
+			local connections=4
+		fi
+
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=4 --clients=550 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=863  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
-			# ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\“${joinedvar}\” --conns=12 --clients=256 put --key-size=8 --key-space-size 10 --sequential-keys --total=100000000 --val-size=131072  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=\"${connections}\" --clients=\"${clients}\" put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=\"${msg_size}\"  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done
 	}
@@ -1080,12 +1106,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		    experiment_pid=$!
 			if [ "$send_rsm" = "raft" ]; then
 				echo "Running Send_RSM Benchmark Raft"
-				benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
+				benchmark_raft "${joinedvar1}" 1 "${pk_size}" "${CLIENT_RSM1[@]}"
 			fi
 			if [ "$receive_rsm" = "raft" ]; then
 				if [ "$run_dr" = "false" ]; then
 					echo "Running Receive_RSM Benchmark Raft"
-					benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
+					benchmark_raft "${joinedvar2}" 2 "${pk_size}" "${CLIENT_RSM2[@]}"
 				fi
 			fi
             
@@ -1107,12 +1133,12 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
-			benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
+			benchmark_raft "${joinedvar1}" 1 "${pk_size}" "${CLIENT_RSM1[@]}"
 		fi
 		if [ "$receive_rsm" = "raft" ]; then
 			if [ "$run_dr" = "false" ]; then
 				echo "Running Receive_RSM Benchmark Raft"
-				benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
+				benchmark_raft "${joinedvar2}" 2 "${pk_size}" "${CLIENT_RSM2[@]}"
 			fi
 		fi
 
