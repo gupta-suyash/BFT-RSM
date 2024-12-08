@@ -163,7 +163,7 @@ rsm2_fail=(1 2 3)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
-packet_size=(498)
+packet_size=(245)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -268,9 +268,9 @@ echo "Create group name"
 echo "Group Name: ${GP_NAME}"
 echo "num_nodes_total: $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
 echo "RSM1 Zone: ${RSM1_ZONE}"
-echo "RSM2 Zone: ${RSM1_ZONE}"
+echo "RSM2 Zone: ${RSM2_ZONE}"
 if [ $kafka="true" ];then
-  echo "KAFKA Zone: ${RSM1_ZONE}"
+  echo "KAFKA Zone: ${KAFKA_ZONE}"
 fi
 echo "Template: ${TEMPLATE}"
 
@@ -677,7 +677,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ips=("$@")
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=3 --clients=600 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=498  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=3 --clients=1000 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=245  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			# ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\“${joinedvar}\” --conns=12 --clients=256 put --key-size=8 --key-space-size 10 --sequential-keys --total=100000000 --val-size=131072  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done
