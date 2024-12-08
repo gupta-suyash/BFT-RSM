@@ -58,69 +58,109 @@ def make_dataframe(file_names: List[str]) -> pd.DataFrame:
     basic_df = pd.DataFrame.from_dict(rows)
     return basic_df.replace("[+-]?[Nn][Aa][Nn]", np.NaN, regex=True)
 
-# modifies dataframe in place
 def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     # Place Ack count in QAck count for One to One (quack wasn't recorded)
     one_to_one_rows = dataframe.transfer_strategy == "NSendNRecv Thread One-to-One"
     missing_max_qack = (dataframe.max_quorum_acknowledgment == np.NaN) | (dataframe.max_quorum_acknowledgment == 0)
-    missing_starting_qack = (dataframe.starting_quack == np.NaN) | (dataframe.max_quorum_acknowledgment == 0)
+    missing_starting_qack = (dataframe.starting_quack == np.NaN) | (dataframe.starting_quack == 0)
     dataframe.loc[one_to_one_rows & missing_max_qack, 'max_quorum_acknowledgment'] = dataframe.loc[one_to_one_rows].max_acknowledgment[missing_max_qack]
     dataframe.loc[one_to_one_rows & missing_starting_qack, 'starting_quack'] = dataframe.loc[one_to_one_rows].starting_ack[missing_max_qack]
+    
+    # For DR ONLY!! -- delete the geobft restults which have no throughput
+    not_geobft_or_not_missing_tp = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0)) | (dataframe.transfer_strategy != "GeoBFT")
+    dataframe = dataframe[not_geobft_or_not_missing_tp]
 
-def get_max_throughputs_vs_axis(title: str, x_axis_name: str, dataframe: pd.DataFrame) -> List[Graph]:
-    tuning_params = ['Ack Window', 'Batch Size', 'Batch Timeout', 'Max message delay', 'Noop Delay', 'Pipeline Buffer Size',
-                      'Quack Window', 'message_size', 'socket-buffer-size-receive', 'socket-buffer-size-send', 'kList_size']
-    strategy_names = ['Scrooge', 'All-to-All', 'One-to-One']
-    print(f'Tuning parameters: {tuning_params}')
+    # For DR ONLY!! -- delete the one to one results whihch have no throughput
+    not_one_to_one_or_not_missing_tp = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0)) | (dataframe.transfer_strategy != "OneToOne")
+    dataframe = dataframe[not_one_to_one_or_not_missing_tp]
+
+    # For DR ONLY!! -- delete the one to one results whihch have no throughput
+    not_leader_or_not_missing_tp = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0)) | (dataframe.transfer_strategy != "Leader")
+    dataframe = dataframe[not_leader_or_not_missing_tp]
+
+    # For DR ONLY!! -- delete the one to one results whihch have no throughput
+    not_scrooge_or_not_missing_tp = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0)) | (dataframe.transfer_strategy != "Scrooge double-klist k=64 noop[5.000000ms] MMDelay[1.000000ms] quackWindow[1048576] ackWindow[1048576]")
+    dataframe = dataframe[not_scrooge_or_not_missing_tp]
+
+    dataframe.reset_index(inplace=True, drop=True)
+
+    return dataframe
+
+def get_throughput_latency(title: str, dataframe: pd.DataFrame) -> List[Graph]:
+    # latency_lines = []
     throughput_lines = []
-    for strategy_name in strategy_names:
-        strategy_results = dataframe[dataframe['transfer_strategy'].str.contains(strategy_name)]
-        x_axis_values = strategy_results[x_axis_name].unique()
-        not_enough_points_to_graph = len(x_axis_values) < 2
-        if not_enough_points_to_graph:
-            continue
-        x_axis_values.sort()
+    for transfer_strategy, group in dataframe.groupby('transfer_strategy'):
+        message_sizes = group.message_size.unique()
+        message_sizes.sort()
+        average_latencies = []
         overall_throughputs = []
-        for x_value in x_axis_values:
-            max_throughput = None
-            best_params = None
-            for parameters, tuned_results in strategy_results.query(f'{x_axis_name} == @x_value').groupby(tuning_params):
-                quack_delta = tuned_results.max_quorum_acknowledgment - tuned_results.starting_quack
-                throughput = quack_delta / tuned_results.duration_seconds
-                cur_throughput = throughput.median()
-                if max_throughput is None or max_throughput < cur_throughput:
-                    max_throughput = cur_throughput
-                    best_params = parameters
-            overall_throughputs.append(max_throughput)
-            print(f'Best parameters for {strategy_name} @{x_value} {x_axis_name} are'.ljust(65), best_params)
+        for message_size in message_sizes:
+            size_group = group.query('message_size == @message_size')
+            quack_delta = size_group.max_quorum_acknowledgment - size_group.starting_quack
+            throughput = quack_delta / size_group.duration_seconds
+            # latency = size_group.Latency
+            # average_latencies.append(latency.median())
+            overall_throughputs.append(throughput.median())
+        # latency_lines.append(Line(
+        #     x_values = message_sizes / 1000,
+        #     y_values = average_latencies,
+        #     name = transfer_strategy
+        # ))
         throughput_lines.append(Line(
-            x_values = x_axis_values,
+            x_values = message_sizes / 1000,
             y_values = overall_throughputs,
-            name = strategy_name
+            name = transfer_strategy
         ))
 
-    if throughput_lines:
-        return [
-            Graph(
-                title = f'{title}',
-                x_axis_name = x_axis_name,
-                y_axis_name = 'Message Throughput (messages/seconds)',
-                lines = throughput_lines
+    return [
+        # Graph(
+        #     title = f'{title} Confirmation Latency',
+        #     x_axis_name = 'message size (kilobytes)',
+        #     y_axis_name = 'Message Latency (seconds)',
+        #     lines = latency_lines
+        # ),
+        Graph(
+            title = f'{title} Confirmation Throughput',
+            x_axis_name = 'message size (kilobytes)',
+            y_axis_name = 'Message Throughput (messages/seconds)',
+            lines = throughput_lines
+        )
+    ]
+
+def get_throughput_network_sz(title: str, dataframe: pd.DataFrame) -> List[Graph]:
+    graphs = []
+    for message_size, msg_size_group in dataframe.groupby('message_size'):
+        line_name_to_points = {}
+        for key, group in msg_size_group.groupby(['local_network_size', 'foreign_network_size', 'transfer_strategy']):
+            local_network_size, foreign_network_size, transfer_strategy = key
+            if local_network_size != foreign_network_size:
+                print(f'Found weird network size pairing: {local_network_size} and {foreign_network_size}')
+                continue
+            throughput = (group.max_quorum_acknowledgment - group.starting_quack) / group.duration_seconds
+            line_name_to_points.setdefault(transfer_strategy, []).append((local_network_size, throughput.median()))
+
+            # if 'scrooge' in transfer_strategy.lower():
+            #     throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
+            #     line_name_to_points.setdefault(transfer_strategy + ' Acks', []).append((local_network_size, throughput.median()))
+        lines = []
+        for line_name, points in line_name_to_points.items():
+            points.sort()
+            x_values, y_values = zip(*points)
+            lines.append(
+                Line(
+                    x_values=list(x_values),
+                    y_values=list(y_values),
+                    name=line_name
+                )
             )
-        ]
-    return []
-
-def get_max_throughput_vs_network_size(dataframe: pd.DataFrame) -> List[Graph]:
-    graphs = []
-    for message_size, results in dataframe.groupby(['message_size']):
-        graphs += get_max_throughputs_vs_axis(f'Local Network Size vs Throughput For Msg Size {message_size[0]} Bytes', 'local_network_size', results)
-    return graphs
-
-def get_max_throughput_vs_msg_size(dataframe: pd.DataFrame) -> List[Graph]:
-    graphs = []
-    for network_sizes, results in dataframe.groupby(['local_network_size', 'foreign_network_size']):
-        local_network_size, foreign_network_size = network_sizes
-        graphs += get_max_throughputs_vs_axis(f'Msg Size vs Throughput for Local-Foreign network sizes {local_network_size}-{foreign_network_size} ', 'message_size', results)
+        graphs.append(
+            Graph(
+                title=f'throughput_vs_network_size@msg={message_size / 1000}KB',
+                x_axis_name='Nodes Per Network (N)',
+                y_axis_name=f'Throughput (msgs/s)',
+                lines=lines
+            )
+        )
     return graphs
 
 def get_throughput_bandwidth(dataframe: pd.DataFrame) -> List[Graph]:
@@ -166,10 +206,8 @@ def get_throughput_bandwidth(dataframe: pd.DataFrame) -> List[Graph]:
 
 def get_graphs(name: str, dataframe: pd.DataFrame) -> List[Graph]:
     graphs = []
-    # graphs.extend(get_throughput_latency(name, dataframe))
-    graphs.extend(get_max_throughput_vs_msg_size(dataframe))
-    graphs.extend(get_max_throughput_vs_network_size(dataframe))
-    # graphs.extend(get_throughput_network_sz(name, dataframe))
+    graphs.extend(get_throughput_latency(name, dataframe))
+    graphs.extend(get_throughput_network_sz(name, dataframe))
     # graphs.extend(get_throughput_bandwidth(dataframe))
     return graphs
 
@@ -213,36 +251,6 @@ def save_graphs(graphs: List[Graph]):
         fig = make_fig(graph)
         fig.write_image(f'{graph.title}.png')
 
-def get_max_throughput_df(dataframe: pd.DataFrame) -> pd.DataFrame:
-    strategy_names = ['Scrooge', 'All-to-All', 'One-to-One']
-    tuning_params = ['Ack Window', 'Batch Size', 'Batch Timeout', 'Max message delay', 'Noop Delay', 'Pipeline Buffer Size',
-                      'Quack Window', 'message_size', 'socket-buffer-size-receive', 'socket-buffer-size-send', 'kList_size']
-    print(f'Tuning parameters: {tuning_params}')
-    rows = []
-    for strategy_name in strategy_names:
-        strategy_results = dataframe[dataframe['transfer_strategy'].str.contains(strategy_name)]
-        for key, experiment_group in strategy_results.groupby(['message_size', 'local_network_size', 'foreign_network_size']):
-            message_size, local_network_size, foreign_network_size = key
-            best_result = None
-            best_tuning_parameters = None
-            for tuning_parameters, tuned_experiment_group in experiment_group.groupby(tuning_params):
-                
-                cur_throughputs = (tuned_experiment_group.max_quorum_acknowledgment - tuned_experiment_group.starting_quack) / tuned_experiment_group.duration_seconds
-                cur_throughput = cur_throughputs.median()
-                if best_result is None or cur_throughput > best_result['throughput']:
-                    best_result = {
-                        'message_size': message_size,
-                        'throughput': cur_throughput,
-                        'strategy': strategy_name,
-                        'local_network_size': local_network_size,
-                        'foreign_network_size': foreign_network_size
-                    }
-                    best_tuning_parameters = tuning_parameters
-            rows.append(best_result)
-            print(f'Best Tuning Parameters for {strategy_name}@ {message_size} Bytes, {local_network_size} nodes:'.ljust(65), best_tuning_parameters)
-
-    return pd.DataFrame.from_dict(rows)
-
 def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for key, group in dataframe.groupby(['transfer_strategy', 'message_size', 'local_network_size', 'foreign_network_size']):
@@ -250,22 +258,20 @@ def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
         throughput = (group.max_quorum_acknowledgment - group.starting_quack) / group.duration_seconds
         rows.append({
             'message_size': message_size,
-            'latency':0,
             'throughput': throughput.median(),
             'strategy': transfer_strategy,
-            'local_network_size': local_network_size,
-            'foreign_network_size': foreign_network_size
+            'local_network_size': local_network_size
         })
-        if 'scrooge' in transfer_strategy.lower():
-            throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
-            rows.append({
-                'message_size': message_size,
-                'latency':0,
-                'throughput': throughput.median(),
-                'strategy': transfer_strategy + " Acks",
-                'local_network_size': local_network_size,
-                'foreign_network_size': foreign_network_size
-            })
+        # if 'scrooge' in transfer_strategy.lower():
+        #     throughput = (group.max_acknowledgment - group.starting_ack) / group.duration_seconds
+        #     rows.append({
+        #         'message_size': message_size,
+        #         'latency':0,
+        #         'throughput': throughput.median(),
+        #         'strategy': transfer_strategy + " Acks",
+        #         'local_network_size': local_network_size,
+        #         'foreign_network_size': foreign_network_size
+        #     })
 
     return pd.DataFrame.from_dict(rows)
 
@@ -279,9 +285,9 @@ def main():
     graphs = get_graphs_by_group(dataframe)
     save_graphs(graphs)
 
-    csv = get_max_throughput_df(dataframe)
+    csv = get_throughput_latency_csv(dataframe)
 
-    csv.sort_values(by=['strategy', 'message_size', 'local_network_size'], inplace=True)
+    csv.sort_values(by=['strategy', 'local_network_size', 'message_size'], inplace=True)
     print('Cur Results:')
     print(csv)
     csv.to_csv('cur_results.csv', index=False)
