@@ -69,8 +69,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=25s
-total_time=45s
+warmup_time=45s
+total_time=60s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -680,7 +680,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ips=("$@")
 
 		if [ "${msg_size}" == "245" ]; then
-			local clients=1000
+			local clients=700
 			local connections=3
 		elif [ "${msg_size}" == "498" ]; then
 			local clients=600
