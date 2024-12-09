@@ -704,7 +704,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=\"${connections}\" --clients=\"${clients}\" put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=\"${msg_size}\"  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=\"${connections}\" --clients=\"${clients}\" put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=\"${msg_size}\"  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done
 	}
