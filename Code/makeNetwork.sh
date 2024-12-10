@@ -258,8 +258,8 @@ if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
 fi
 
 RSM1_ZONE="us-west4-a"
-RSM2_ZONE="us-east5-a"
-KAFKA_ZONE="us-east5-a"
+RSM2_ZONE="us-west4-a"
+KAFKA_ZONE="us-west4-a"
 
 echo "Create group name"
 echo "Group Name: ${GP_NAME}"
@@ -530,11 +530,11 @@ if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
 	local git_pids=()
 	for i in ${!RSM2[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; rm /tmp/scrooge-*; cd $HOME/scrooge-kafka && git fetch && git reset --hard b1862e11d230cd7bd4afe76787057e95401edd37' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; rm /tmp/scrooge-*; cd $HOME/scrooge-kafka && git fetch && git reset --hard 88dae4bf52b5cb74f004b6eacbaa4e02b609bfc1' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 	for i in ${!RSM1[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; rm /tmp/scrooge-*; cd $HOME/scrooge-kafka && git fetch && git reset --hard b1862e11d230cd7bd4afe76787057e95401edd37' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; rm /tmp/scrooge-*; cd $HOME/scrooge-kafka && git fetch && git reset --hard 88dae4bf52b5cb74f004b6eacbaa4e02b609bfc1' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 
@@ -876,10 +876,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 echo "num.partitions=${num_partitions}" >> server.properties				
 				#scp server.properties to broker node
 				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; killall java'
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; pkill -9 .*java.*'
 
 				echo "KAFKA LOG: Starting Broker Node (${broker_ips[$count]})"
-				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &'
+				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &' &>/dev/null </dev/null &
 				#ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka ./bin/kafka-server-start.sh ./config/server.properties 1>/home/scrooge/kafka-broker-log 2>&1 &'
 				count=$((count + 1))
 		done
@@ -1096,6 +1096,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
 		# Next, we run the script.
+		exit
 		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		experiment_pid=$!
 
