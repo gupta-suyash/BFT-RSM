@@ -54,7 +54,7 @@ fi
 
 
 #If this experiment is for File_RSM (not algo or resdb)
-file_rsm="true"
+file_rsm="false"
 if [ "$send_rsm" != "file" ] || [ "$receive_rsm" != "file" ]; then
     file_rsm="false"
 fi
@@ -98,15 +98,15 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="true"
-all_to_all="true"
-one_to_one="true"
-geobft="true"
-leader="true"
-kafka="false"
+scrooge="false"
+all_to_all="false"
+one_to_one="false"
+geobft="false"
+leader="false"
+kafka="true"
 
-run_dr="false"
-run_ccf="true"
+run_dr="true"
+run_ccf="false"
 
 if [ "$run_dr" = "true" ] && [ "$run_ccf" = "true" ]; then
     echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
@@ -163,7 +163,7 @@ rsm2_fail=(2)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
-packet_size=(245 498 863 1980 4020 8052 14304)
+packet_size=(245)
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -262,7 +262,7 @@ fi
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
 RSM2_ZONE="us-east5-a"
-KAFKA_ZONE="us-west4-a"
+KAFKA_ZONE="us-east5-a"
 
 echo "Create group name"
 echo "Group Name: ${GP_NAME}"
@@ -533,11 +533,11 @@ if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
 	local git_pids=()
 	for i in ${!RSM2[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard d3144b143edbe1187071e76d6498c43c253a13e9' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 26498389852e4170d4d052fb5fa09866110dada2' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 	for i in ${!RSM1[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard d3144b143edbe1187071e76d6498c43c253a13e9' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 26498389852e4170d4d052fb5fa09866110dada2' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 
@@ -905,10 +905,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 echo "num.partitions=${num_partitions}" >> server.properties				
 				#scp server.properties to broker node
 				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; killall java'
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; killall -9 .*java.*'
 
 				echo "KAFKA LOG: Starting Broker Node (${broker_ips[$count]})"
-				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &'
+				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &' &>/dev/null </dev/null &
 				#ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka ./bin/kafka-server-start.sh ./config/server.properties 1>/home/scrooge/kafka-broker-log 2>&1 &'
 				count=$((count + 1))
 		done
