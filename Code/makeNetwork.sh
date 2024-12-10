@@ -153,14 +153,16 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(3)
-rsm2_size=(3)
-rsm1_fail=(1)
-rsm2_fail=(1)
+#rsm1_size=(4 7 10 13 16 19)
+#rsm2_size=(4 7 10 13 16 19)
+rsm1_size=(4)
+rsm2_size=(4)
+rsm1_fail=(1 2 3 4 5 6)
+rsm2_fail=(1 2 3 4 5 6)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
-packet_size=(100)
+packet_size=(100) # 100b_file.txt 1000b_file.txt 10K_byte_payload.txt 100000b_file.txt 1M_byte_payload.txt
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -530,11 +532,11 @@ if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
 	local git_pids=()
 	for i in ${!RSM2[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; rm /tmp/scrooge-*; cd $HOME/scrooge-kafka && git fetch && git reset --hard 88dae4bf52b5cb74f004b6eacbaa4e02b609bfc1' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; rm /tmp/scrooge-*; cd $HOME/scrooge-kafka && git fetch && git reset --hard 26498389852e4170d4d052fb5fa09866110dada2' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 	for i in ${!RSM1[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; rm /tmp/scrooge-*; cd $HOME/scrooge-kafka && git fetch && git reset --hard 88dae4bf52b5cb74f004b6eacbaa4e02b609bfc1' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; rm /tmp/scrooge-*; cd $HOME/scrooge-kafka && git fetch && git reset --hard 26498389852e4170d4d052fb5fa09866110dada2' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 
@@ -1052,6 +1054,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			file_10000=$(<10000b_file.txt)
 			file_100000=$(<100000b_file.txt)
 			file_1000000=$(<1000000b_file.txt)
+            kafka_file=$(<${pk_file})
 
 			read_from_pipe="false"
 			#if file_rsm is True, we don't want to read_from_pipe in our kafka config
@@ -1061,13 +1064,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			
 			echo "KAFKA LOG: Running RSM 1"
 			for node in $(seq 0 $((rsm1_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "${read_from_pipe}" "${file_10000}" "40" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "${read_from_pipe}" "${kafka_file}" "40" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running RSM 2"
 			for node in $(seq 0 $((rsm2_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "${read_from_pipe}" "${file_10000}" "40" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "${read_from_pipe}" "${kafka_file}" "40" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
