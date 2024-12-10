@@ -67,20 +67,8 @@ def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     dataframe.loc[one_to_one_rows & missing_starting_qack, 'starting_quack'] = dataframe.loc[one_to_one_rows].starting_ack[missing_max_qack]
     
     # For DR ONLY!! -- delete the geobft restults which have no throughput
-    not_geobft_or_not_missing_tp = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0)) | (dataframe.transfer_strategy != "GeoBFT")
-    dataframe = dataframe[not_geobft_or_not_missing_tp]
-
-    # For DR ONLY!! -- delete the one to one results whihch have no throughput
-    not_one_to_one_or_not_missing_tp = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0)) | (dataframe.transfer_strategy != "OneToOne")
-    dataframe = dataframe[not_one_to_one_or_not_missing_tp]
-
-    # For DR ONLY!! -- delete the one to one results whihch have no throughput
-    not_leader_or_not_missing_tp = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0)) | (dataframe.transfer_strategy != "Leader")
-    dataframe = dataframe[not_leader_or_not_missing_tp]
-
-    # For DR ONLY!! -- delete the one to one results whihch have no throughput
-    not_scrooge_or_not_missing_tp = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0)) | (dataframe.transfer_strategy != "Scrooge double-klist k=64 noop[5.000000ms] MMDelay[1.000000ms] quackWindow[1048576] ackWindow[1048576]")
-    dataframe = dataframe[not_scrooge_or_not_missing_tp]
+    missing_throughput = ((dataframe.max_quorum_acknowledgment != np.NaN) & (dataframe.max_quorum_acknowledgment != 0.))
+    dataframe = dataframe[missing_throughput]
 
     dataframe.reset_index(inplace=True, drop=True)
 
@@ -258,8 +246,9 @@ def get_throughput_latency_csv(dataframe: pd.DataFrame) -> pd.DataFrame:
         throughput = (group.max_quorum_acknowledgment - group.starting_quack) / group.duration_seconds
         rows.append({
             'message_size': message_size,
-            'throughput': throughput.median(),
-            'strategy': transfer_strategy,
+            'msg_throughput': round(throughput.median(), 2),
+            'MBps_throughput': round(throughput.median()*message_size/1024/1024, 2),
+            'strategy': 'Scrooge',
             'local_network_size': local_network_size
         })
         # if 'scrooge' in transfer_strategy.lower():
@@ -281,13 +270,13 @@ def main():
         usage('You must input at least one directory')
     file_names = get_log_file_names(dirs)
     dataframe = make_dataframe(file_names)
-    clean_dataframe(dataframe)
+    dataframe = clean_dataframe(dataframe)
     graphs = get_graphs_by_group(dataframe)
     save_graphs(graphs)
 
     csv = get_throughput_latency_csv(dataframe)
 
-    csv.sort_values(by=['strategy', 'local_network_size', 'message_size'], inplace=True)
+    csv.sort_values(by=['message_size', 'local_network_size', 'strategy'], inplace=True)
     print('Cur Results:')
     print(csv)
     csv.to_csv('cur_results.csv', index=False)

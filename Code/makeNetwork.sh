@@ -156,10 +156,10 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(3 5 7)
-rsm2_size=(3 5 7)
-rsm1_fail=(1 2 3)
-rsm2_fail=(1 2 3)
+rsm1_size=(5)
+rsm2_size=(5)
+rsm1_fail=(2)
+rsm2_fail=(2)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
@@ -680,26 +680,26 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local client_ips=("$@")
 
 		if [ "${msg_size}" == "245" ]; then
-			local clients=700
+			local clients=1200
 			local connections=3
 		elif [ "${msg_size}" == "498" ]; then
-			local clients=600
+			local clients=1100
 			local connections=3
 		elif [ "${msg_size}" == "863" ]; then
-			local clients=550
-			local connections=4
+			local clients=1100
+			local connections=3
 		elif [ "${msg_size}" == "1980" ]; then
-			local clients=275
-			local connections=4
+			local clients=375
+			local connections=3
 		elif [ "${msg_size}" == "4020" ]; then
-			local clients=120
-			local connections=4
+			local clients=140
+			local connections=3
 		elif [ "${msg_size}" == "8052" ]; then
-			local clients=49
-			local connections=4
+			local clients=70
+			local connections=3
 		elif [ "${msg_size}" == "14304" ]; then
-			local clients=37
-			local connections=4
+			local clients=40
+			local connections=3
 		fi
 
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
