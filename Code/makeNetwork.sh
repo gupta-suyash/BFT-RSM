@@ -237,9 +237,9 @@ echo "${GP_NAME}"
 echo "$((num_nodes_rsm_1+num_nodes_rsm_2+client))"
 echo "${ZONE}"
 echo "${TEMPLATE}"
-# yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=on-permanent-instance-deletion --no-force-update-on-repair --standby-policy-mode=manual --default-action-on-vm-failure=repair
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}" --project=scrooge-398722 --base-instance-name="${GP_NAME}" --size="$((num_nodes_rsm_1+num_nodes_rsm_2+client))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=on-permanent-instance-deletion --no-force-update-on-repair --standby-policy-mode=manual --default-action-on-vm-failure=repair
 #> /dev/null 2>&1
-# exit
+exit
 
 stake_splits=(1 2 4 8 16 32 64 128)
 for stake_split in "${stake_splits[@]}"; do
