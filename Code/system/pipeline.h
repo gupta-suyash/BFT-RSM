@@ -93,8 +93,8 @@ class Pipeline
     static constexpr uint64_t kProtobufDefaultSize = kListSize / 8;
     static constexpr uint64_t kMinimumBatchSize = BATCH_SIZE; // bytes
     // batches can be larger than kMinimumBatchSize, but the total excess will be <= kMaxBudgetDeficit
-    static constexpr uint64_t kMaxBudgetDeficit = 26214 * 8 * 4; // bytes
-    static constexpr auto kMaxBatchCreationTime = 1ms;
+    static constexpr uint64_t kMaxBudgetDeficit = 26214; // bytes
+    static constexpr auto kMaxBatchCreationTime = .5ms;
     static constexpr auto kMaxNngBlockingTime = MAX_NNG_BLOCKING_TIME;
     static constexpr uint64_t kBufferSize = PIPELINE_BUFFER_SIZE;
 

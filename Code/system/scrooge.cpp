@@ -49,6 +49,8 @@ uint64_t maxResendRequest{};
 uint64_t numMessagesResent{};
 static uint64_t counter = 0;
 
+uint64_t latencyTracker{};
+
 template <bool kIsUsingFile>
 bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const MessageScheduler &messageScheduler,
                       std::optional<uint64_t> curQuack, Pipeline *const pipeline,
@@ -95,10 +97,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 lastSendTime = curTime;
                 numMsgsSentWithLastAck++;
-                if ((sequenceNumber & ((1 << 10) - 1)) == 0)
-                {
-                    startTimer(sequenceNumber, std::chrono::steady_clock::now());
-                }
+                startTimer(sequenceNumber, std::chrono::steady_clock::now());
             }
         }
         else
@@ -119,6 +118,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 lastSendTime = curTime;
                 numMsgsSentWithLastAck++;
+                startTimer(sequenceNumber, std::chrono::steady_clock::now());
             }
         }
     } else {
@@ -886,6 +886,7 @@ void runScroogeReceiveThread(
                     if (newQuack != maxQuackedMsg)
                     {
                         recordLatency(newQuack.value(), std::chrono::steady_clock::now());
+                        maxQuackedMsg = newQuack;
                     }
                 }
                 while (not viewQueue.try_enqueue(
