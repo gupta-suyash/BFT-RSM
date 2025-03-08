@@ -7,6 +7,7 @@
 #include "scrooge_message.pb.h"
 #include "scrooge_request.pb.h"
 #include "scrooge_transfer.pb.h"
+#include "statisticstracker.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -94,6 +95,10 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 lastSendTime = curTime;
                 numMsgsSentWithLastAck++;
+                if ((sequenceNumber & ((1 << 10) - 1)) == 0)
+                {
+                    startTimer(sequenceNumber, std::chrono::steady_clock::now());
+                }
             }
         }
         else
@@ -789,6 +794,8 @@ void runScroogeReceiveThread(
                            &rebroadcastDataQueue, &viewQueue, configuration);
 
     uint64_t lastRebroadcastGc{};
+
+    std::optional<uint64_t> maxQuackedMsg{};
     while (not is_test_over())
     {
         if (receivedMessage.message == nullptr)
@@ -875,7 +882,11 @@ void runScroogeReceiveThread(
                 const auto senderStake = configuration.kOtherNetworkStakes.at(senderId);
                 if (curForeignAck.has_value())
                 {
-                    quorumAck->updateNodeAck(senderId, senderStake, *curForeignAck);
+                    const auto newQuack = quorumAck->updateNodeAck(senderId, senderStake, *curForeignAck);
+                    if (newQuack != maxQuackedMsg)
+                    {
+                        recordLatency(newQuack.value(), std::chrono::steady_clock::now());
+                    }
                 }
                 while (not viewQueue.try_enqueue(
                            util::JankAckView{.isLocal = false,
