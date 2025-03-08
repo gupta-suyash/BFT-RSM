@@ -98,8 +98,8 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(7)
-rsm2_size=(7)
+rsm1_size=(4)
+rsm2_size=(4)
 rsm1_fail=(1 2 3 4 5 6)
 rsm2_fail=(1 2 3 4 5 6)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
