@@ -1089,4 +1089,5 @@ void runScroogeReceiveThread(
     addMetric("max_acknowledgment", acknowledgment->getAckIterator().value_or(0));
     addMetric("max_quorum_acknowledgment", quorumAck->getCurrentQuack().value_or(0));
     addMetric("num_needless_rebroadcasts", needlessRebroadcasts);
+    addMetric("average_latency", averageLat());
 }
