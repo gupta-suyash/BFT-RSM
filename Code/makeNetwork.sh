@@ -95,12 +95,12 @@ starting_algos=10000000000000000
 # Uncomment experiment you want to run.
 
 # If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
+scrooge="true"
 all_to_all="false"
 one_to_one="false"
 geobft="false"
 leader="false"
-kafka="true"
+kafka="false"
 
 run_dr="false"
 run_ccf="false"
@@ -248,7 +248,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
+GP_NAME="raf-latency"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
