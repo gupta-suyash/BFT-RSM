@@ -11,7 +11,8 @@ fi
 
 echo -n "Enter the name of the experiment being run: "
 
-read experiment_name
+# read experiment_name
+experiment_name="kafka_dr_results"
 
 echo "Running Experiment: ${experiment_name}"
 
@@ -21,7 +22,8 @@ echo "Running Experiment: ${experiment_name}"
 # receiving RSM, then receive_rsm="resdb"
 valid_applications=("algo" "resdb" "raft" "file")
 echo -n "Enter the name of the sending application (4 options: algo, resdb, raft, file): "
-read send_rsm
+# read send_rsm
+send_rsm="raft"
 
 if [[ ! " ${valid_applications[*]} " =~ " $send_rsm " ]]; then
   echo "$send_rsm is an invalid option, exiting..."
@@ -31,7 +33,8 @@ else
 fi
 
 echo -n "Enter the name of the receiving application (4 options: algo, resdb, raft, file): "
-read receive_rsm
+# read receive_rsm
+receive_rsm="raft"
 echo "Receiving Application: ${receive_rsm}"
 
 if [[ ! " ${valid_applications[*]} " =~ " $receive_rsm " ]]; then
@@ -51,7 +54,7 @@ fi
 
 
 #If this experiment is for File_RSM (not algo or resdb)
-file_rsm="true"
+file_rsm="false"
 if [ "$send_rsm" != "file" ] || [ "$receive_rsm" != "file" ]; then
     file_rsm="false"
 fi
@@ -66,8 +69,8 @@ username="scrooge"               # TODO: Replace with your username
 workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
-warmup_time=15s
-total_time=30s
+warmup_time=45s
+total_time=60s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
@@ -102,7 +105,7 @@ geobft="false"
 leader="false"
 kafka="true"
 
-run_dr="false"
+run_dr="true"
 run_ccf="false"
 
 if [ "$run_dr" = "true" ] && [ "$run_ccf" = "true" ]; then
@@ -153,14 +156,14 @@ echo "The applications you are running are $send_rsm and $receive_rsm."
 #batch_creation_time=(1ms)
 #pipeline_buffer_size=(8)
 
-rsm1_size=(3)
-rsm2_size=(3)
-rsm1_fail=(1)
-rsm2_fail=(1)
+rsm1_size=(5)
+rsm2_size=(5)
+rsm1_fail=(2)
+rsm2_fail=(2)
 RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
 klist_size=(64)
-packet_size=(100)
+packet_size=(863) # 863 1980 4020 8052 14304
 batch_size=(200000)
 batch_creation_time=(1ms)
 pipeline_buffer_size=(8)
@@ -248,7 +251,7 @@ echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="DEFAULT_GROUP_NAME_MUST_CHANGE"
+GP_NAME="raf-1"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
@@ -258,8 +261,8 @@ if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
 fi
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
-RSM2_ZONE="us-west4-a"
-KAFKA_ZONE="us-west4-a"
+RSM2_ZONE="us-east5-a"
+KAFKA_ZONE="us-east5-a"
 
 echo "Create group name"
 echo "Group Name: ${GP_NAME}"
@@ -530,11 +533,11 @@ if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
 	local git_pids=()
 	for i in ${!RSM2[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 1381fee98c17d18e58fd6203c8266b4fbe7bcfdc' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard ced9649b79d4fe3e4f4dc461f7b6c365f9b5233a; sbt compile' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 	for i in ${!RSM1[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 1381fee98c17d18e58fd6203c8266b4fbe7bcfdc' 1>/dev/null </dev/null &
+		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard ced9649b79d4fe3e4f4dc461f7b6c365f9b5233a; sbt compile' 1>/dev/null </dev/null &
 		git_pids+=($!)
 	done
 
@@ -596,14 +599,14 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		#Client node
 		for client_ip in "${client_ips[@]}"; do
 			echo ${client_ip}
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard 4758c5862e9b1056bf31ad45be4124a857afc268 && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'cd '"${etcd_path}"' && export PATH=$PATH:/usr/local/go/bin &&  killall etcd; killall benchmark; git fetch && git reset --hard 047cfa5fa5d3d62cb200701224434979611bc3ab && chmod +x '"${etcd_path}"'scripts/build.sh && cd '"${etcd_path}"'; go install -v ./tools/benchmark' > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent client build information!"
 
 		for i in ${!RSM[@]}; do
 			echo "building etcd on RSM: ${RSM[$i]}"
-			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard 4758c5862e9b1056bf31ad45be4124a857afc268; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no ${RSM[$i]} "export PATH=\$PATH:/usr/local/go/bin; cd ${etcd_path}; killall etcd; killall benchmark; git fetch && git reset --hard 047cfa5fa5d3d62cb200701224434979611bc3ab; echo \$(pwd); chmod +x ./scripts/build.sh; ./scripts/build.sh" > /dev/null 2>&1 &
 			raft_pids+=($!)
 		done
 		echo "Sent replica build information!"
@@ -670,12 +673,38 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	function benchmark_raft() {
 		local joinedvar=$1
 		local raft_count=$2
-		shift 2
+		local msg_size=$3
+		local clients=0
+		local connections=0
+		shift 3
 		local client_ips=("$@")
+
+		if [ "${msg_size}" == "245" ]; then
+			local clients=1200
+			local connections=3
+		elif [ "${msg_size}" == "498" ]; then
+			local clients=1100
+			local connections=3
+		elif [ "${msg_size}" == "863" ]; then
+			local clients=1100
+			local connections=3
+		elif [ "${msg_size}" == "1980" ]; then
+			local clients=375
+			local connections=3
+		elif [ "${msg_size}" == "4020" ]; then
+			local clients=140
+			local connections=3
+		elif [ "${msg_size}" == "8052" ]; then
+			local clients=70
+			local connections=3
+		elif [ "${msg_size}" == "14304" ]; then
+			local clients=40
+			local connections=3
+		fi
+
 		echo "IN BENCHMARK_RAFT ${joinedvar}"
 		for client_ip in "${client_ips[@]}"; do
-			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=20 --clients=20 put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=28609  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
-			# ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "killall benchmark; /home/scrooge/BFT-RSM/Code/experiments/applications/raft-application/bin/benchmark --endpoints=\“${joinedvar}\” --conns=12 --clients=256 put --key-size=8 --key-space-size 10 --sequential-keys --total=100000000 --val-size=131072  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
+			ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" "source /home/scrooge/.bashrc; killall benchmark; /home/scrooge/go/bin/benchmark --dial-timeout=10000s --endpoints=\"${joinedvar}\" --conns=\"${connections}\" --clients=\"${clients}\" put --key-size=8 --key-space-size 1 --total=1000000000 --val-size=\"${msg_size}\"  1>benchmark_raft.log 2>&1" </dev/null &>/dev/null &
 			pids_to_kill+=($!)
 		done
 	}
@@ -865,6 +894,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" '
                     '"${kafka_dir}"'/bin/kafka-server-stop.sh;
                     rm -rf /tmp/kafka-logs-0/'
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'rm /home/scrooge/kafka_2.13-3.7.0/logs/*'
                 echo "KAFKA LOG: Logs cleaned for Broker Node (${broker_ips[$count]})"
 
 				#create server.properties files
@@ -873,13 +903,18 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 echo "advertised.listeners=PLAINTEXT://${broker_ips[$count]}:9092" >> server.properties
 				echo "log.dirs=/tmp/kafka-logs-0" >> server.properties
 				echo "zookeeper.connect=${zookeeper_ip}:2181" >> server.properties
-                echo "num.partitions=${num_partitions}" >> server.properties				
+                echo "num.partitions=${num_partitions}" >> server.properties
+				# echo "fetch.max.wait.ms=3000" >> server.properties            # Broker waits 3 seconds before sending data
+				# echo "remote.fetch.max.wait.ms=3000" >> server.properties            # Broker waits 3 seconds before sending data
+				# echo "replica.lag.time.max.ms=1000000" >> server.properties     # Tolerate lagging consumers up to 10 seconds
+				# echo "replica.fetch.max.bytes=50000000" >>	server.properties
+				# echo "replica.fetch.response.max.bytes=50000000" >> server.properties
 				#scp server.properties to broker node
 				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; killall java'
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; killall -9 .*java.*'
 
 				echo "KAFKA LOG: Starting Broker Node (${broker_ips[$count]})"
-				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &'
+				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &' &>/dev/null </dev/null &
 				#ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && (cd '"${kafka_dir}"' || exit) && exec -a scrooge-kafka ./bin/kafka-server-start.sh ./config/server.properties 1>/home/scrooge/kafka-broker-log 2>&1 &'
 				count=$((count + 1))
 		done
@@ -887,7 +922,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         broker_ips_string=$(printf "%s:9092," "${broker_ips[@]}")
 		broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 		#start kafka from script node instead?
-		sleep 20
 		echo "KAFKA LOG: Creating Topic w/ Bootstrap Server ($broker_ips_string)"
 		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-1 --partitions $num_partitions
 		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-2 --partitions $num_partitions
@@ -1061,28 +1095,28 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			
 			echo "KAFKA LOG: Running RSM 1"
 			for node in $(seq 0 $((rsm1_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "3" "${read_from_pipe}" "${file_10000}" "40" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "5" "${read_from_pipe}" "${file_100}" "120" "60" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running RSM 2"
 			for node in $(seq 0 $((rsm2_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "3" "${read_from_pipe}" "${file_10000}" "40" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "5" "${read_from_pipe}" "${file_100}" "120" "60" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running experiment"
-            sleep 15
 			./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		    experiment_pid=$!
+			sleep 30
 			if [ "$send_rsm" = "raft" ]; then
 				echo "Running Send_RSM Benchmark Raft"
-				benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
+				benchmark_raft "${joinedvar1}" 1 "${pk_size}" "${CLIENT_RSM1[@]}"
 			fi
 			if [ "$receive_rsm" = "raft" ]; then
 				if [ "$run_dr" = "false" ]; then
 					echo "Running Receive_RSM Benchmark Raft"
-					benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
+					benchmark_raft "${joinedvar2}" 2 "${pk_size}" "${CLIENT_RSM2[@]}"
 				fi
 			fi
             
@@ -1095,18 +1129,21 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
+
 		# Next, we run the script.
 		./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		experiment_pid=$!
 
+		sleep 1
+
 		if [ "$send_rsm" = "raft" ]; then
 			echo "Running Send_RSM Benchmark Raft"
-			benchmark_raft "${joinedvar1}" 1 "${CLIENT_RSM1[@]}"
+			benchmark_raft "${joinedvar1}" 1 "${pk_size}" "${CLIENT_RSM1[@]}"
 		fi
 		if [ "$receive_rsm" = "raft" ]; then
 			if [ "$run_dr" = "false" ]; then
 				echo "Running Receive_RSM Benchmark Raft"
-				benchmark_raft "${joinedvar2}" 2 "${CLIENT_RSM2[@]}"
+				benchmark_raft "${joinedvar2}" 2 "${pk_size}" "${CLIENT_RSM2[@]}"
 			fi
 		fi
 
