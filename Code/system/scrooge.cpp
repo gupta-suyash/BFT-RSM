@@ -48,6 +48,9 @@ uint64_t maxResendRequest{};
 uint64_t numMessagesResent{};
 static uint64_t counter = 0;
 
+const double throttled_max_txns_per_second = 1'000'000.0;
+const auto test_start_time = std::chrono::steady_clock::now();
+
 template <bool kIsUsingFile>
 bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const MessageScheduler &messageScheduler,
                       std::optional<uint64_t> curQuack, Pipeline *const pipeline,
@@ -384,7 +387,19 @@ static void runScroogeSendThread(
         bool shouldHandleNewMessage;
         if constexpr (kIsUsingFile)
         {
-            shouldHandleNewMessage = not resendDatas.full() && shouldDequeue;
+            if constexpr (THROTTLE_FILE)
+            {
+                const auto cur_time = std::chrono::steady_clock::now();
+                const auto test_duration_seconds = std::chrono::duration<double>(cur_time - test_start_time);
+                const auto cur_throughput = ((int64_t)pendingSequenceNum - 5000) / test_duration_seconds.count();
+                const auto is_max_tp_exceeded =  cur_throughput > throttled_max_txns_per_second;
+
+                shouldHandleNewMessage = not resendDatas.full() && shouldDequeue && not is_max_tp_exceeded;
+            }
+            else
+            {
+                shouldHandleNewMessage = not resendDatas.full() && shouldDequeue;
+            }
             numResendBufFullChecks += resendDatas.full();
         }
         else
