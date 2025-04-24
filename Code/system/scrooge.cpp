@@ -65,7 +65,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
     const auto isMessageNeverSent = not resendNumber.has_value();
     if (isMessageNeverSent)
     {
-        //SPDLOG_CRITICAL("MESSAGE {} NEVER SENT", sequenceNumber);
+        // SPDLOG_CRITICAL("MESSAGE {} NEVER SENT", sequenceNumber);
         return true;
     }
 
@@ -91,7 +91,8 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(messageDataCopy), acknowledgment, curTime);
-                  //  SPDLOG_CRITICAL("POSSIBLY LATE Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
+                //  SPDLOG_CRITICAL("POSSIBLY LATE Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode,
+                //  sequenceNumber, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -111,7 +112,8 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
             {
                 isMessageSent =
                     pipeline->SendToOtherRsm(receiverNode, std::move(newMessageData), acknowledgment, curTime);
-                //SPDLOG_CRITICAL("FIRST TIME Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode, sequenceNumber, acknowledgment->getAckIterator().value_or(0));
+                // SPDLOG_CRITICAL("FIRST TIME Sending to OTHER RSM: RECV NODE {} SN {} ACK {}", receiverNode,
+                // sequenceNumber, acknowledgment->getAckIterator().value_or(0));
             }
             if (isMessageSent)
             {
@@ -119,8 +121,10 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
                 numMsgsSentWithLastAck++;
             }
         }
-    } else {
-        //SPDLOG_CRITICAL("NOT FIRST SEND: {} isSentLater {}", resendNumber.value_or(0), isPossiblySentLater);
+    }
+    else
+    {
+        // SPDLOG_CRITICAL("NOT FIRST SEND: {} isSentLater {}", resendNumber.value_or(0), isPossiblySentLater);
     }
 
     if (isPossiblySentLater)
@@ -134,7 +138,7 @@ bool handleNewMessage(std::chrono::steady_clock::time_point curTime, const Messa
                                                          .destinations = destinations});
         isResendDataUpdated |= sequenceNumber <= maxResendRequest;
     }
-    //SPDLOG_CRITICAL("HANDLING: MESSAGE #{} with: SEQNO {} CURQUACK {}", counter, sequenceNumber, lastQuack);
+    // SPDLOG_CRITICAL("HANDLING: MESSAGE #{} with: SEQNO {} CURQUACK {}", counter, sequenceNumber, lastQuack);
     counter += 1;
     return false;
 }
@@ -392,7 +396,7 @@ static void runScroogeSendThread(
                 const auto cur_time = std::chrono::steady_clock::now();
                 const auto test_duration_seconds = std::chrono::duration<double>(cur_time - test_start_time);
                 const auto cur_throughput = ((int64_t)pendingSequenceNum - 5000) / test_duration_seconds.count();
-                const auto is_max_tp_exceeded =  cur_throughput > throttled_max_txns_per_second;
+                const auto is_max_tp_exceeded = cur_throughput > throttled_max_txns_per_second;
 
                 shouldHandleNewMessage = not resendDatas.full() && shouldDequeue && not is_max_tp_exceeded;
             }
@@ -431,7 +435,7 @@ static void runScroogeSendThread(
             }
             else
             {
-                //SPDLOG_CRITICAL("Are we force sending to other rsm?");
+                // SPDLOG_CRITICAL("Are we force sending to other rsm?");
                 pipeline->forceSendToOtherRsm(receiver % kOtherNetworkSize, acknowledgment.get(), curTime);
             }
 
@@ -777,7 +781,8 @@ void lameAckThread(Acknowledgment *const acknowledgment, QuorumAcknowledgment *c
     addMetric("Avg Klist size local", (double)kListSizeLocal / numRecvLocal);
 }
 
-static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment, const uint64_t nodeId)
+static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment,
+                        const uint64_t nodeId)
 {
     const auto curAckView = acknowledgment.getAckView<(kListSize)>();
     const auto ackIterator = acknowledgment::getAckIterator(curAckView);
@@ -788,7 +793,7 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
         if (ackIterator.has_value())
         {
             message->mutable_ack_count()->set_value(ackIterator.value());
-            //SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
+            // SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
         }
         *message->mutable_ack_set() = {curAckView.view.begin(),
                                        std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
@@ -817,13 +822,14 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
             std::abort();
         }
     }
-    
+
     if (ackIterator.has_value())
     {
         message->mutable_ack_count()->set_value(ackIterator.value());
-        //SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
+        // SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
     }
-    *message->mutable_ack_set() = {curAckView.view.begin(), std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+    *message->mutable_ack_set() = {curAckView.view.begin(),
+                                   std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
     return;
 }
 
@@ -993,7 +999,8 @@ void runScroogeReceiveThread(
                 // const auto sizeShrink = messageSize - protoSize;
                 // nng_msg_chop(message, sizeShrink);
 #if WRITE_DR || WRITE_CCF
-                while (not receivedMessageQueue->try_enqueue(crossChainMessage) && not is_test_over());
+                while (not receivedMessageQueue->try_enqueue(crossChainMessage) && not is_test_over())
+                    ;
 #endif
             }
             else
@@ -1070,7 +1077,7 @@ void runScroogeReceiveThread(
                     continue;
                 }
                 acknowledgment->addToAckList(messageData.sequence_number());
-                //SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 840: {}", messageData.sequence_number()); 
+                // SPDLOG_CRITICAL("SEQUENCE NUMBER ADDED TO ACK LIST 840: {}", messageData.sequence_number());
                 timedMessages += is_test_recording();
                 numMsgsFromOwnRsm++;
             }
@@ -1105,7 +1112,8 @@ void runScroogeReceiveThread(
                 lastRebroadcastGc = curQuack.value_or(0);
             }
 #if WRITE_DR || WRITE_CCF
-            while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+            while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over())
+                ;
 #endif
         }
     }

@@ -41,7 +41,8 @@ void runLeaderReceiveThread(
                 }
                 quorumAck->updateNodeAck(0, 0ULL - 1, acknowledgment->getAckIterator().value_or(0));
 #if WRITE_DR || WRITE_CCF
-        while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+                while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over())
+                    ;
 #endif
             }
         }
@@ -110,7 +111,7 @@ static void runLeaderSendThread(
             scrooge::CrossChainMessageData newMessageData;
             while (not is_test_over())
             {
-                while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
+                while (!messageInput->try_dequeue(newMessageData) && not is_test_over())
                     std::this_thread::sleep_for(.1ms);
             }
         }
@@ -135,13 +136,13 @@ static void runLeaderSendThread(
             // SPDLOG_CRITICAL("SEND: Created new data and sequence number with size {}!",
             // newMessageData.message_content().size());
             pipeline->SendFileToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize,
-                                            std::move(newMessageData), nullptr, curTime);
+                                         std::move(newMessageData), nullptr, curTime);
         }
         else
         {
             // SPDLOG_CRITICAL("SENDING TO WRONG PLACE");
-            pipeline->SendToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize,
-                                        std::move(newMessageData), nullptr, curTime);
+            pipeline->SendToOtherRsm(configuration.kNodeId % configuration.kOtherNetworkSize, std::move(newMessageData),
+                                     nullptr, curTime);
         }
         sentMessages.addToAckList(curSequenceNumber);
         // quorumAck->updateNodeAck(0, 0ULL - 1, sentMessages.getAckIterator().value_or(0));

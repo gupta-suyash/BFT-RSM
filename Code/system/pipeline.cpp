@@ -30,7 +30,8 @@ static void generateMessageMac(scrooge::CrossChainMessage *const message)
     // std::cout << "Mac: " << encoded << std::endl;
 }
 
-static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment, const uint64_t nodeId)
+static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment,
+                        const uint64_t nodeId)
 {
     const auto curAckView = acknowledgment.getAckView<(kListSize)>();
     const auto ackIterator = acknowledgment::getAckIterator(curAckView);
@@ -41,7 +42,7 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
         if (ackIterator.has_value())
         {
             message->mutable_ack_count()->set_value(ackIterator.value());
-            //SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
+            // SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
         }
         *message->mutable_ack_set() = {curAckView.view.begin(),
                                        std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
@@ -70,13 +71,14 @@ static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowl
             std::abort();
         }
     }
-    
+
     if (ackIterator.has_value())
     {
         message->mutable_ack_count()->set_value(ackIterator.value());
-        //SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
+        // SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
     }
-    *message->mutable_ack_set() = {curAckView.view.begin(), std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+    *message->mutable_ack_set() = {curAckView.view.begin(),
+                                   std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
     return;
 }
 
@@ -596,11 +598,11 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
                                     std::chrono::steady_clock::time_point curTime)
 {
     std::string msgsInBatch{};
-    for (const auto& msg : batch->data.data())
+    for (const auto &msg : batch->data.data())
     {
         msgsInBatch += std::to_string(msg.sequence_number()) + " ";
     }
-    //SPDLOG_CRITICAL("Flushing batch with messages [{}]", msgsInBatch);
+    // SPDLOG_CRITICAL("Flushing batch with messages [{}]", msgsInBatch);
     const bool isBatchOversized = batch->batchSizeEstimate > kMinimumBatchSize;
     if (isBatchOversized)
     {
@@ -697,7 +699,8 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
     if (not shouldSend)
     {
-        //SPDLOG_CRITICAL("NOT SENDING BATCH BECAUSE isOldEnough {} isBatchLargeEnough {}", isBatchOldEnough, isBatchLargeEnough);
+        // SPDLOG_CRITICAL("NOT SENDING BATCH BECAUSE isOldEnough {} isBatchLargeEnough {}", isBatchOldEnough,
+        // isBatchLargeEnough);
         return false;
     }
 
@@ -757,7 +760,7 @@ void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgmen
 {
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
-    //SPDLOG_CRITICAL("Forcing send to node {}", receivingNodeId);
+    // SPDLOG_CRITICAL("Forcing send to node {}", receivingNodeId);
     flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
 }
 void Pipeline::forceSendFileToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
@@ -835,7 +838,7 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
     std::bitset<64> foreignAliveNodes{};
     foreignAliveNodes |= -1ULL ^ (-1ULL << geobft_quorum_size);
     nng_msg *batchData = serializeProtobuf(*batch);
-    
+
     while (foreignAliveNodes.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());
