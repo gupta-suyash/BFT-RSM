@@ -68,6 +68,26 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
+        if constexpr (SIMULATE_CRASH)
+        {
+            SPDLOG_CRITICAL("Running with crashes simulated");
+            const bool kIsCrashed = (kNodeId % 3) == 2;
+            if (kIsCrashed)
+            {
+                SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
+                auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
+
+                std::this_thread::sleep_until(testEndTime);
+                end_test();
+
+                receiveThread.join();
+                SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
+                remove(kLogPath.c_str());
+                return 0;
+            }
+        }
+
+
         // if (get_rsm_id() == 1 && kNodeId < std::min(6, BATCH_CREATION_TIME))
         // {
         //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
@@ -84,16 +104,7 @@ int main(int argc, char *argv[])
 
         // if (get_rsm_id() == 0 && kNodeId >= 6 && kNodeId < BATCH_CREATION_TIME)
         // {
-        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
-        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
-
-        //     std::this_thread::sleep_until(testEndTime);
-        //     end_test();
-
-        //     receiveThread.join();
-        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
-        //     remove(kLogPath.c_str());
-        //     return 0;
+            
         // }
 
         /*auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
