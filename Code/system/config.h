@@ -29,5 +29,8 @@
 #define ACK_WINDOW 1048576
 #define WRITE_DR true
 #define WRITE_CCF false
+#define BYZ_MODE "NO"s
+#define SIMULATE_CRASH false
+#define THROTTLE_FILE false
 #endif
 

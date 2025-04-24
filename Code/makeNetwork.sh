@@ -173,6 +173,16 @@ quack_windows=(1048576)
 ack_windows=(1048576)
 pids_to_kill=()
 
+# Valid options :  "INF" "ZERO" "DELAY" "NO"
+byz_mode="NO"
+
+# Valid options : "true" "false"
+simulate_crash="false"
+
+# Valid options : "true" "false"
+throttle_file="false"
+
+
 
 ### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
 # rsm1_size=(4 13 25 46)
@@ -999,7 +1009,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	for quack_window in "${quack_windows[@]}"; do
 	for ack_window in "${ack_windows[@]}"; do
  		if [ $kafka !=  "true" ]; then
-			./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf}
+			./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf} ${byz_mode} ${simulate_crash} ${throttle_file}
 
 			cp config.h system/
 

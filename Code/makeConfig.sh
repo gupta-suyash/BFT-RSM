@@ -34,6 +34,9 @@ quack_window=${26}
 ack_window=${27}
 write_dr_txns=${28}
 write_ccf_txns=${29}
+byz_mode=${30}
+simulate_crash=${31}
+throttle_file=${32}
 
 
 echo -e "#ifndef _CONFIG_H_" > config.h
@@ -70,6 +73,9 @@ echo -e "#define QUACK_WINDOW ${quack_window}" >> config.h
 echo -e "#define ACK_WINDOW ${ack_window}" >> config.h
 echo -e "#define WRITE_DR ${write_dr_txns}" >> config.h
 echo -e "#define WRITE_CCF ${write_ccf_txns}" >> config.h
+echo -e "#define BYZ_MODE \"${byz_mode}\"s" >> config.h
+echo -e "#define SIMULATE_CRASH ${simulate_crash}" >> config.h
+echo -e "#define THROTTLE_FILE ${throttle_file}" >> config.h
 
 echo -e "#endif" >> config.h
 echo -e "" >> config.h
