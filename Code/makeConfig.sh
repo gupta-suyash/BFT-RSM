@@ -73,7 +73,7 @@ echo -e "#define QUACK_WINDOW ${quack_window}" >> config.h
 echo -e "#define ACK_WINDOW ${ack_window}" >> config.h
 echo -e "#define WRITE_DR ${write_dr_txns}" >> config.h
 echo -e "#define WRITE_CCF ${write_ccf_txns}" >> config.h
-echo -e "#define BYZ_MODE \"${byz_mode}\"s" >> config.h
+echo -e "#define BYZ_MODE \"${byz_mode}\"" >> config.h
 echo -e "#define SIMULATE_CRASH ${simulate_crash}" >> config.h
 echo -e "#define THROTTLE_FILE ${throttle_file}" >> config.h
 

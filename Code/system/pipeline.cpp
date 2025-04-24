@@ -7,6 +7,7 @@
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 #include <sched.h>
+#include <string_view>
 
 int64_t numTimeoutHits{}, numSizeHits{}, totalBatchedMessages{}, totalBatchesSent{};
 
@@ -29,17 +30,54 @@ static void generateMessageMac(scrooge::CrossChainMessage *const message)
     // std::cout << "Mac: " << encoded << std::endl;
 }
 
-static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
+static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment, const uint64_t nodeId)
 {
     const auto curAckView = acknowledgment.getAckView<(kListSize)>();
     const auto ackIterator = acknowledgment::getAckIterator(curAckView);
+    constexpr uint64_t kMaxAckValue = 1'000'000'000ULL;
+
+    if constexpr (std::string_view(BYZ_MODE) == "NO")
+    {
+        if (ackIterator.has_value())
+        {
+            message->mutable_ack_count()->set_value(ackIterator.value());
+            //SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
+        }
+        *message->mutable_ack_set() = {curAckView.view.begin(),
+                                       std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+        return;
+    }
+
+    const auto isThisNodeByz = (nodeId % 3 == 2);
+    std::optional<uint64_t> ackValue = ackIterator;
+    if (isThisNodeByz)
+    {
+        if constexpr (std::string_view(BYZ_MODE) == "INF")
+        {
+            ackValue = kMaxAckValue;
+        }
+        else if constexpr (std::string_view(BYZ_MODE) == "ZERO")
+        {
+            ackValue = 0;
+        }
+        else if constexpr (std::string_view(BYZ_MODE) == "DELAY")
+        {
+            ackValue = (uint64_t)std::max<int64_t>((int64_t)ackIterator.value_or(0) - 1'000'000, 0);
+        }
+        else
+        {
+            SPDLOG_CRITICAL("Unknown byzantine mode {}", std::string(BYZ_MODE));
+            std::abort();
+        }
+    }
+    
     if (ackIterator.has_value())
     {
         message->mutable_ack_count()->set_value(ackIterator.value());
         //SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
     }
-    *message->mutable_ack_set() = {curAckView.view.begin(),
-                                   std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+    *message->mutable_ack_set() = {curAckView.view.begin(), std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+    return;
 }
 
 static void setIncorrectAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
@@ -571,7 +609,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 
     if (acknowledgment)
     {
-        setAckValue(&batch->data, *acknowledgment);
+        setAckValue(&batch->data, *acknowledgment, kOwnConfiguration.kNodeId);
         generateMessageMac(&batch->data);
     }
 
@@ -608,16 +646,7 @@ void Pipeline::flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const 
 
     if (acknowledgment)
     {
-        // if (kOwnConfiguration.kNodeId % 3 == 1)
-        // {
-        //     setIncorrectAckValue(&batch->data, *acknowledgment);
-        // }
-        // else
-        // {
-        //     setAckValue(&batch->data, *acknowledgment);
-        // }
-
-        setAckValue(&batch->data, *acknowledgment);
+        setAckValue(&batch->data, *acknowledgment, kOwnConfiguration.kNodeId);
         generateMessageMac(&batch->data);
     }
 
