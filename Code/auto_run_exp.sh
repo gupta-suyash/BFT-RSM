@@ -3,12 +3,6 @@
 ## Has the most updated algorand, resdb functions (useExistingIP, this branch) and raft (commit 68bb9b0 on application-testing branch)
 ## This script helps to create the files that specify URLs for RSM1 and RSM2. Additionally, it calls the script that helps to create "config.h". We need to specify the URLs and stakes for each node in both the RSMs. This script takes in argument the size of both the RSMs and other necessary parameters.
 
-if [ -z ${TMUX+x} ]; then
-	echo "Run script in tmux to guarantee progress"
-	echo "exiting..."
-	exit 1
-fi
-
 if [ "$#" -lt 13 ]; then
     echo "Usage: $0 experiment_name protocol send_rsm receive_rsm RSM_Stake rsm_size klist_size packet_size simulate_crash byz_mode throttle_file run_dr run_ccf"
     exit 1
@@ -177,7 +171,7 @@ if [ "$kafka" = "true" ]; then num_nodes_kafka=4; fi;
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="exp_group"
+GP_NAME="exp-group"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4

@@ -8,6 +8,7 @@ from termcolor import colored
 from dataclasses import dataclass, astuple
 from itertools import chain
 import _io
+from typing import List
 
 def is_running_in_tmux():
     """
@@ -71,6 +72,7 @@ def execute_command_helper(
             "======================================================================================"
         )
         print()
+        os._exit(1)
 
 
 def execute_command(
@@ -114,12 +116,12 @@ class LineSpec:
     name: str
     x_axis_id: str # string (usually in each exp_param representing x axis)
     y_axis_id: str # string (usually throughput in each result file representing y axis)
-    param_seq: list[ExperimentParameters]
+    param_seq: List[ExperimentParameters]
 
 @dataclass
 class GraphSpec:
     name: str
-    line_specs: list[LineSpec]
+    line_specs: List[LineSpec]
 
 def get_exp_string(params: ExperimentParameters) -> str:
     return '-'.join(
@@ -177,18 +179,20 @@ def setup_network(dr_or_ccf_exp: bool, dry_run=False, verbose=True) -> None:
     execute_command(f"./auto_make_nodes.sh {dr_or_ccf_exp}", dry_run=dry_run, verbose=verbose)
     
 def shutdown_network(dr_or_ccf_exp: bool, dry_run=False, verbose=True) -> None:
+    print("actually won't shut down -- run auto_delete_nodes.sh")
+    return
     execute_command(f"./auto_delete_nodes.sh {dr_or_ccf_exp}", dry_run=dry_run, verbose=verbose)
     
-def run_experiment(exp_params: ExperimentParameters) -> None:
+def run_experiment(exp_params: ExperimentParameters, dry_run=False, verbose=True) -> None:
     exp_args = (
         " ".join([f"'{x}'" for x in astuple(exp_params)])
         .replace("True", "true")
         .replace("False", "false")
     )
     experiment_name = get_exp_string(exp_params)
-    print(f"./auto_make_network.sh '{experiment_name}' {exp_args}")
+    execute_command(f"./auto_run_exp.sh '{experiment_name}' {exp_args}", dry_run=dry_run, verbose=verbose)
 
-def get_unique_experiment_parameters(graphs: list[GraphSpec]) -> list[ExperimentParameters]:
+def get_unique_experiment_parameters(graphs: List[GraphSpec]) -> List[ExperimentParameters]:
     """
     Returns a list of unique ExperimentParameters from the given graphs.
     """
@@ -196,13 +200,13 @@ def get_unique_experiment_parameters(graphs: list[GraphSpec]) -> list[Experiment
         set(
             chain.from_iterable(
                 chain.from_iterable(
-                    [[line.param_seq for line in g.line_specs] for g in testing_graph_specs]
+                    [[line.param_seq for line in g.line_specs] for g in graphs]
                 )
             )
         )
     )
 
-def get_no_failure_file_graphs() -> list[GraphSpec]:
+def get_no_failure_file_graphs() -> List[GraphSpec]:
     """
     Returns a list of GraphSpec objects for experiments without failures.
     """
@@ -265,24 +269,34 @@ def main():
     local_experiments = [local_experiments[0]]
     
     # First run the local experiments
+    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Deploying Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     setup_network(dr_or_ccf_exp=False)
+    
+    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Running Local Experiments ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     for exp_params in local_experiments:
         run_experiment(exp_params)
+        
+    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     shutdown_network(dr_or_ccf_exp=False)
     
     return
     
     # Then run the geo experiments
+    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Deploying dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     setup_network(dr_or_ccf_exp=True)
+    
+    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Running dr+ccf Experiments ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     for exp_params in geo_experiments:
         run_experiment(exp_params)
+        
+    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     shutdown_network(dr_or_ccf_exp=True)
         
         
 if __name__ == "__main__":
     # Check if running in tmux
-    if not is_running_in_tmux():
-        print("This script should be run inside a tmux session.")
-        sys.exit(1)
+    # if not is_running_in_tmux():
+    #     print("This script should be run inside a tmux session.")
+    #     sys.exit(1)
 
     main()
