@@ -9,172 +9,11 @@ from dataclasses import dataclass, astuple
 from itertools import chain
 import _io
 from typing import List
+from concurrent.futures import ThreadPoolExecutor, wait
 
-def is_running_in_tmux():
-    """
-    Checks if the current process is running inside a tmux session.
+from util_bash import *
+from util_graph import *
 
-    Returns:
-      True if running in tmux, False otherwise.
-    """
-    return "TMUX" in os.environ
-
-
-# make command helper have a lock and print out the invocation number
-# Then if there is a
-def execute_command_helper(
-    command: str,
-    *,
-    dry_run: bool = False,
-    verbose: bool = True,
-    cmd_out: Optional[_io.TextIOWrapper] = None,
-    cmd_err: Optional[_io.TextIOWrapper] = None,
-):
-    if cmd_out is None:
-        output = sys.stdout
-    if cmd_err is None:
-        cmd_err = sys.stderr
-
-    if dry_run:
-        print("Dry Run, normally would execute: ", colored(command, "dark_grey"))
-        return
-    if verbose:
-        print(
-            "==================================== Executing command ===================================="
-        )
-        print(colored(command, "dark_grey"))
-        print(
-            "------------------------------------------------------------------------"
-        )
-        print(
-            f"Command output going to: cmd_out: {colored(cmd_out.name, 'dark_grey')} cmd_err: {colored(cmd_err.name, 'dark_grey')}"
-        )
-        print(
-            "------------------------------------------------------------------------"
-        )
-
-    try:
-        subprocess.check_call(command, shell=True, stdout=cmd_out, stderr=cmd_err)
-        if verbose:
-            print(
-                f'Exited command successfully ✅ -- reference:\n {colored(command, "dark_grey")}'
-            )
-            print(
-                "======================================================================================"
-            )
-            print()
-    except Exception as e:
-        print(
-            f"❌❌❌❌❌❌❌❌❌❌❌❌❌Terminated with error❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ err_log @ {colored(cmd_err.name, 'dark_grey')}"
-        )
-        print(colored(str(e), "red"))
-        print(
-            "======================================================================================"
-        )
-        print()
-        os._exit(1)
-
-
-def execute_command(
-    command: str,
-    *,
-    dry_run: bool = False,
-    verbose: bool = True,
-    cmd_out: Optional[str] = None,
-    cmd_err: Optional[str] = None,
-):
-    cmd_out = sys.stdout if cmd_out is None else open(cmd_out, "a")
-    cmd_err = sys.stderr if cmd_err is None else open(cmd_err, "a")
-
-    execute_command_helper(
-        command, dry_run=dry_run, verbose=verbose, cmd_out=cmd_out, cmd_err=cmd_err
-    )
-
-    if cmd_out is not sys.stdout:
-        cmd_out.close()
-    if cmd_err is not sys.stderr:
-        cmd_err.close()
-        
-
-@dataclass(frozen=True, eq=True)
-class ExperimentParameters:
-    strategy_name: str
-    system_1: str
-    system_2: str
-    stake_split: int
-    num_nodes: int
-    phi_size: int
-    num_bytes: int
-    simulate_crash: bool
-    byz_mode: "NO"
-    simulate_throttle: bool
-    run_dr: bool
-    run_ccf: bool
-
-@dataclass
-class LineSpec:
-    name: str
-    x_axis_id: str # string (usually in each exp_param representing x axis)
-    y_axis_id: str # string (usually throughput in each result file representing y axis)
-    param_seq: List[ExperimentParameters]
-
-@dataclass
-class GraphSpec:
-    name: str
-    line_specs: List[LineSpec]
-
-def get_exp_string(params: ExperimentParameters) -> str:
-    return '-'.join(
-        [
-            f'{params.strategy_name}',
-            f'{params.system_1}_{params.system_2}',
-            f'{params.stake_split}_STAKE_SPLIT',
-            f'{params.num_nodes}_NUM_NODES',
-            f'{params.phi_size}_PHI',
-            f'{params.num_bytes}_BYTES',
-            f'{"YES" if params.simulate_crash else "NO"}_CRASH',
-            f'{"YES" if params.byz_mode else "NO"}_BYZ',
-            f'{"YES" if params.simulate_throttle else "NO"}_THROTTLE',
-            f'{"YES" if params.run_dr else "NO"}_DR',
-            f'{"YES" if params.run_ccf else "NO"}_CCF',
-        ]
-    )
-
-def parse_exp_string(exp_str: str) -> ExperimentParameters:
-    parts = exp_str.split('-')
-    
-    strategy_name = parts[0]
-    system_1, system_2 = parts[1].split('_')
-    stake_split = int(parts[2].replace('_STAKE_SPLIT', ''))
-    num_nodes = int(parts[3].replace('_NUM_NODES', ''))
-    phi_size = int(parts[4].replace('_PHI', ''))
-    num_bytes = int(parts[5].replace('_BYTES', ''))
-
-    def parse_bool(part: str, suffix: str) -> bool:
-        value = part.replace(f'_{suffix}', '')
-        return value == 'YES'
-
-    simulate_crash = parse_bool(parts[6], 'CRASH')
-    byz_mode = parse_bool(parts[7], 'BYZ')
-    simulate_throttle = parse_bool(parts[8], 'THROTTLE')
-    run_dr = parse_bool(parts[9], 'DR')
-    run_ccf = parse_bool(parts[10], 'CCF')
-
-    return ExperimentParameters(
-        strategy_name=strategy_name,
-        system_1=system_1,
-        system_2=system_2,
-        stake_split=stake_split,
-        num_nodes=num_nodes,
-        phi_size=phi_size,
-        num_bytes=num_bytes,
-        simulate_crash=simulate_crash,
-        byz_mode=byz_mode,
-        simulate_throttle=simulate_throttle,
-        run_dr=run_dr,
-        run_ccf=run_ccf
-    )
-    
 def setup_network(dr_or_ccf_exp: bool, dry_run=False, verbose=True) -> None:
     execute_command(f"./auto_make_nodes.sh {dr_or_ccf_exp}", dry_run=dry_run, verbose=verbose)
     
@@ -183,6 +22,19 @@ def shutdown_network(dr_or_ccf_exp: bool, dry_run=False, verbose=True) -> None:
     return
     execute_command(f"./auto_delete_nodes.sh {dr_or_ccf_exp}", dry_run=dry_run, verbose=verbose)
     
+def shutdown_current_machine(dry_run=False, verbose=True) -> None:
+    execute_command(f"gcloud compute instances stop scrooge-worker-2 --zone us-central1-a", dry_run=dry_run, verbose=verbose)
+    
+def build_experiment(exp_params: ExperimentParameters, dry_run=False, verbose=True) -> None:
+    exp_args = (
+        " ".join([f"'{x}'" for x in astuple(exp_params)])
+        .replace("True", "true")
+        .replace("False", "false")
+    )
+    experiment_name = get_exp_string(exp_params)
+    execute_command(f"./auto_build_scrooge.sh '{experiment_name}' {exp_args} 2>&1 | tee /tmp/BUILD-{experiment_name}.log", dry_run=dry_run, verbose=verbose)
+    
+    
 def run_experiment(exp_params: ExperimentParameters, dry_run=False, verbose=True) -> None:
     exp_args = (
         " ".join([f"'{x}'" for x in astuple(exp_params)])
@@ -190,95 +42,92 @@ def run_experiment(exp_params: ExperimentParameters, dry_run=False, verbose=True
         .replace("False", "false")
     )
     experiment_name = get_exp_string(exp_params)
-    execute_command(f"./auto_run_exp.sh '{experiment_name}' {exp_args}", dry_run=dry_run, verbose=verbose)
+    execute_command(f"./auto_run_exp.sh '{experiment_name}' {exp_args} 2>&1 | tee /tmp/{experiment_name}.log", dry_run=dry_run, verbose=verbose)
 
-def get_unique_experiment_parameters(graphs: List[GraphSpec]) -> List[ExperimentParameters]:
-    """
-    Returns a list of unique ExperimentParameters from the given graphs.
-    """
-    return list(
-        set(
-            chain.from_iterable(
-                chain.from_iterable(
-                    [[line.param_seq for line in g.line_specs] for g in graphs]
-                )
-            )
-        )
-    )
+def get_folders_in_dir(directory_path: str) -> List[str]:
+  """
+    Gets a list of all files in the specified directory.
 
-def get_no_failure_file_graphs() -> List[GraphSpec]:
-    """
-    Returns a list of GraphSpec objects for experiments without failures.
-    """
-    # Define the baseline transfer strategies and parameters
-    # These are the same as in the original code
-    baseline_transfer_strategies = ['SCROOGE', 'ATA', 'OST', 'OTU', 'LL', 'KAFKA']
-    baseline_num_nodes = [4, 10, 19]
-    baseline_num_bytes = [100, 10000, 1000000]
+    Args:
+        directory_path (str, optional): The path to the directory. Defaults to the current directory.
 
-    # All strategies, 100B, vary network size
-    baseline_i = GraphSpec(
-        name="Throughput vs Network Size @ 100B-messages",
-        line_specs=[
-            LineSpec(
-                name=f"{strategy_name}",
-                x_axis_id="num_nodes",
-                y_axis_id="throughput",
-                param_seq=[
-                    ExperimentParameters(
-                        strategy_name=strategy_name,
-                        system_1="FILE",
-                        system_2="FILE",
-                        stake_split=1,
-                        num_nodes=num_nodes,
-                        phi_size=256,
-                        num_bytes=100,
-                        simulate_crash=False,
-                        byz_mode="NO",
-                        simulate_throttle=False,
-                        run_dr=False,
-                        run_ccf=False,
-                    )
-                    for num_nodes in baseline_num_nodes
-                ],
-            )
-            for strategy_name in baseline_transfer_strategies
-        ],
-    )
-    
-    return [baseline_i]
+    Returns:
+        list: A list of strings, where each string is the name of a file in the directory.
+              Returns an empty list if the directory does not exist.
+  """
+  if not os.path.exists(directory_path):
+    return []
+  return [f for f in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, f))]
+
+def get_files_in_dir(directory_path: str) -> List[str]:
+  """
+    Gets a list of all files in the specified directory.
+
+    Args:
+        directory_path (str, optional): The path to the directory. Defaults to the current directory.
+
+    Returns:
+        list: A list of strings, where each string is the name of a file in the directory.
+              Returns an empty list if the directory does not exist.
+  """
+  if not os.path.exists(directory_path):
+    return []
+  return [f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))]
+
+def run_experiments(exp_params: ExperimentParameters) -> None:
+    # Strategy: Build next experiment while running the previous one
+    with ThreadPoolExecutor() as executor:
+        last_params = None
+        for exp_params in exp_params:
+            futures = []
+            # Move pre-compiled scrooge-next to scrooge
+            if "scrooge-next" in get_files_in_dir("."):
+                execute_command(f"mv scrooge-next scrooge", verbose=False)
+            
+            # If we have already compiled a scrooge run the experiment
+            if last_params is not None:
+                futures.append(executor.submit(run_experiment, last_params))
+            futures.append(executor.submit(build_experiment, exp_params))
+            
+            wait(futures)
+            last_params = exp_params
+    if "scrooge-next" in get_files_in_dir("."):
+            execute_command(f"mv scrooge-next scrooge", verbose=False)
+    if last_params is not None:
+        run_experiment(last_params)
 
 
 def main():
-    all_graphs = get_no_failure_file_graphs()
+    all_graphs = get_no_failure_file_graphs() + get_stake_graphs() + get_crash_graphs() + get_dr_ccf_graphs()
+    # all_graphs = [get_no_failure_file_graphs()[0], get_stake_graphs()[0], get_crash_graphs()[0], get_dr_ccf_graphs()[0]]
     all_experiment_parameters = get_unique_experiment_parameters(all_graphs)
+    
+    already_ran_experiments = []# set(get_folders_in_dir("/home/scrooge/BFT-RSM/Code/experiments/results/"))
+    experiments_to_run = [x for x in all_experiment_parameters if get_exp_string(x) not in already_ran_experiments]
     
     local_experiments = [
         exp_params
-        for exp_params in all_experiment_parameters
-        if not (exp_params.run_dr or exp_params.run_ccf)
+        for exp_params in experiments_to_run
+        if not (exp_params.run_dr or exp_params.run_ccf or exp_params.strategy_name == "KAFKA")
     ]
+    print ("not running with kafka right now -- diagnose errors on monday")
     
     geo_experiments = [
         exp_params
-        for exp_params in all_experiment_parameters
+        for exp_params in experiments_to_run
         if exp_params.run_dr or exp_params.run_ccf
     ]
-    
-    # FOR TESTING
-    local_experiments = [local_experiments[0]]
     
     # First run the local experiments
     print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Deploying Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     setup_network(dr_or_ccf_exp=False)
     
     print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Running Local Experiments ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    for exp_params in local_experiments:
-        run_experiment(exp_params)
+    run_experiments(local_experiments)
         
     print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     shutdown_network(dr_or_ccf_exp=False)
-    
+    # shutdown_current_machine()
     return
     
     # Then run the geo experiments
@@ -286,8 +135,7 @@ def main():
     setup_network(dr_or_ccf_exp=True)
     
     print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Running dr+ccf Experiments ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    for exp_params in geo_experiments:
-        run_experiment(exp_params)
+    run_experiments(geo_experiments)
         
     print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     shutdown_network(dr_or_ccf_exp=True)

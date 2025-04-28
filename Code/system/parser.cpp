@@ -32,8 +32,6 @@ parser::CommandLineArguments parseCommandLineArguments(int argc, char *argv[])
     }
 
     const auto kPathToConfig = argv[1];
-    const auto expName = argv[2];
-    addMetric("", expName);
     const auto kConfigId = argv[3];
     const auto kPersonalId = argv[4];
 
