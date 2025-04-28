@@ -241,9 +241,11 @@ def run(configJson, experimentName, expDir):
                 ips.append(ip)
             if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":    
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
+                executeCommand(f'echo "exp_param_key: {experimentName}" | tee -a {expDir}*.yaml > /dev/null')
             else: # run kafka specific function
                 executeCommand(f'sleep 60; parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/home/scrooge/scrooge-kafka/curProdOutputLog {expDir}{{2}}_{i} ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
+                executeCommand(f'echo "exp_param_key: {experimentName}" | tee -a {expDir}*.yaml > /dev/null')
                 
             executeCommand(f'mv node* {expDir}')
             executeCommand(f'cp config.h {expDir}')
