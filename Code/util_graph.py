@@ -511,3 +511,44 @@ def get_all_graphspecs() -> List[GraphSpec]:
         + get_crash_graphs()
         + get_dr_ccf_graphs()
     )
+    
+def spaced_elements(lst, n):
+    # Returns a list of n elements
+    # Includes the first and last elements
+    # then fills the middle with elements between first and last
+    if not lst or n <= 0:
+        return []
+    
+    if n == 1:
+        return [lst[0]]
+
+    n = n - 2
+
+    length = len(lst)
+    if length == 1:
+        return [lst[0]]
+
+    # Determine how many elements to sample (not counting first and last)
+    max_middle = max(0, length - 2)
+    num_middle = min(n, max_middle)
+
+    result = [lst[0]]
+
+    if num_middle > 0:
+        # Get equally spaced indices between 1 and len(lst)-2
+        step = (length - 2) / (num_middle + 1)
+        middle_indices = sorted(set(round(1 + i * step) for i in range(num_middle)))
+        result.extend(lst[i] for i in middle_indices)
+
+    # Only add the last element if it's not the same as the first
+    if lst[-1] != lst[0]:
+        result.append(lst[-1])
+
+    return result
+    
+def get_condensed_graphspecs(max_exps_per_line: int) -> List[GraphSpec]:
+    all_graph_specs = get_all_graphspecs()
+    for graph_spec in all_graph_specs:
+        for line_spec in graph_spec.line_specs:
+            line_spec.param_seq = spaced_elements(line_spec.param_seq, max_exps_per_line)
+    return all_graph_specs

@@ -98,7 +98,7 @@ def run_experiments(exp_params: ExperimentParameters) -> None:
 
 
 def main():
-    all_graphs = get_all_graphspecs()
+    all_graphs = get_condensed_graphspecs(4)
     all_experiment_parameters = get_unique_experiment_parameters(all_graphs)
     
     already_ran_experiments = []# set(get_folders_in_dir("/home/scrooge/BFT-RSM/Code/experiments/results/"))
