@@ -178,6 +178,7 @@ def main():
         sys.exit(1)
     
     graph_specs = get_all_graphspecs()
+    graph_specs = get_stake_graphs()
     
     file_names = []
     for experiment_folder in get_folders_in_dir(str(results_dir)):

@@ -255,7 +255,7 @@ def get_stake_graphs() -> List[GraphSpec]:
                     strategy_name="SCROOGE",
                     system_1="FILE",
                     system_2="FILE",
-                    stake_split=1,
+                    stake_split=stake_split,
                     num_nodes=num_nodes,
                     phi_size=256,
                     num_bytes=100,
@@ -281,7 +281,7 @@ def get_stake_graphs() -> List[GraphSpec]:
                     strategy_name="SCROOGE",
                     system_1="FILE",
                     system_2="FILE",
-                    stake_split=1,
+                    stake_split=stake_split,
                     num_nodes=num_nodes,
                     phi_size=256,
                     num_bytes=100,
@@ -437,7 +437,7 @@ def get_dr_ccf_graphs() -> List[GraphSpec]:
             LineSpec(
                 name=f"{strategy_name}",
                 x_axis_id="num_bytes",
-                y_axis_id="throughput",
+                y_axis_id="MBps",
                 param_seq=[
                     ExperimentParameters(
                         strategy_name=strategy_name,
@@ -466,7 +466,7 @@ def get_dr_ccf_graphs() -> List[GraphSpec]:
             LineSpec(
                 name=f"{strategy_name}",
                 x_axis_id="num_bytes",
-                y_axis_id="throughput",
+                y_axis_id="MBps",
                 param_seq=[
                     ExperimentParameters(
                         strategy_name=strategy_name,
@@ -494,7 +494,8 @@ def get_dr_ccf_graphs() -> List[GraphSpec]:
         figure_9_ii_ccf,
     ]
     
-def get_all_graphs() -> List[GraphSpec]:
+    
+def get_all_graphspecs() -> List[GraphSpec]:
     return (
         get_no_failure_file_graphs()
         + get_stake_graphs()

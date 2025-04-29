@@ -98,8 +98,7 @@ def run_experiments(exp_params: ExperimentParameters) -> None:
 
 
 def main():
-    all_graphs = get_no_failure_file_graphs() + get_stake_graphs() + get_crash_graphs() + get_dr_ccf_graphs()
-    # all_graphs = [get_no_failure_file_graphs()[0], get_stake_graphs()[0], get_crash_graphs()[0], get_dr_ccf_graphs()[0]]
+    all_graphs = get_all_graphspecs()
     all_experiment_parameters = get_unique_experiment_parameters(all_graphs)
     
     already_ran_experiments = []# set(get_folders_in_dir("/home/scrooge/BFT-RSM/Code/experiments/results/"))
