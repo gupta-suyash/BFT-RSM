@@ -3,7 +3,7 @@ Code/client/main
 Code/client/scrooge
 Code/*.o
 Code/system/*.pb.*
-Code/*/*.o
+Code/*/*.o*
 Code/nng-1.5.2/*
 Code/protobuf-*
 Code/scrooge
