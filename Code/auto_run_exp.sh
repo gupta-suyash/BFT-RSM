@@ -26,6 +26,15 @@ byz_mode="${10}"
 throttle_file="${11}"
 run_dr="${12}"
 run_ccf="${13}"
+batch_size=("${14}")
+batch_creation_time=("${15}")
+pipeline_buffer_size=("${16}")
+noop_delays=("${17}")
+max_message_delays=("${18}")
+quack_windows=("${19}")
+ack_windows=("${20}")
+max_nng_blocking_time="${21}"
+message_buffer_size="${22}"
 
 
 rsm1_fail=("$(((rsm1_size[0] - 1) / 3))")
@@ -35,19 +44,6 @@ if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then
 	rsm1_fail=("$(((rsm1_size[0] - 1) / 2))")
 	rsm2_fail=("$(((rsm1_size[0] - 1) / 2))")
 fi
-
-batch_size=(200000)
-batch_creation_time=(1ms)
-pipeline_buffer_size=(8)
-# Valid options :  "INF" "ZERO" "DELAY" "NO"
-
-
-noop_delays=(5ms)
-max_message_delays=(1ms)
-quack_windows=(1048576)
-ack_windows=(1048576)
-max_nng_blocking_time=500ms
-message_buffer_size=5000
 
 ####
 # Setting protocol var
@@ -148,9 +144,6 @@ starting_algos=10000000000000000
 
 
 pids_to_kill=()
-
-
-
 
 
 # Build the network from the description

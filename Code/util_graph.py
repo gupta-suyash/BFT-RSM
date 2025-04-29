@@ -24,6 +24,15 @@ class ExperimentParameters:
     simulate_throttle: bool
     run_dr: bool
     run_ccf: bool
+    batch_size: int = 200000
+    batch_creation_time: str = "1ms"
+    pipeline_buffer_size: int = 8
+    noop_delays: str = "5ms"
+    max_message_delays: str = "1ms"
+    quack_windows: int = 1048576
+    ack_windows: int = 1048576
+    max_nng_blocking_time: str = "500ms"
+    message_buffer_size: int = 5000
 
 @dataclass
 class LineSpec:
