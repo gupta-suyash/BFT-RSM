@@ -5,7 +5,7 @@ import sys
 import subprocess
 from typing import Optional
 from termcolor import colored
-from dataclasses import dataclass, astuple
+from dataclasses import dataclass, astuple, replace
 from itertools import chain
 import _io
 from typing import List
@@ -45,6 +45,41 @@ class LineSpec:
 class GraphSpec:
     name: str
     line_specs: List[LineSpec]
+
+def fill_local_perf_params(exp_params: ExperimentParameters) -> ExperimentParameters:
+    if exp_params.num_bytes == 100000:
+        return replace(exp_params,
+            quack_windows=4000, # Maybe not a good idea -- used to be 1000
+            ack_windows=1000, # Maybe not a good idea -- used to be 16
+            max_message_delays="10ms", # Maybe not a good idea -- used to be "500ms"
+            noop_delays="1ms" # Maybe not a good idea -- used to be "5ms"
+        )
+
+    if exp_params.num_bytes == 1000000:
+        return replace(exp_params,
+            quack_windows=2500,
+            ack_windows=20,
+            max_message_delays="75ms",
+            noop_delays="4ms"
+        )
+    return exp_params
+
+    
+def fill_geo_perf_params(exp_params: ExperimentParameters) -> ExperimentParameters:
+    return replace(
+        exp_params,
+        phi_size = 64,
+    )
+    
+    
+    
+def fill_perf_params(exp_params: ExperimentParameters) -> ExperimentParameters:
+    if exp_params.run_dr or exp_params.run_ccf:
+        fill_geo_perf_params(exp_params)
+    else:
+        fill_local_perf_params(exp_params)
+    return exp_params
+    
 
 def get_exp_string(params: ExperimentParameters) -> str:
     return '-'.join(
@@ -454,7 +489,7 @@ def get_dr_ccf_graphs() -> List[GraphSpec]:
                         system_2="RAFT",
                         stake_split=1,
                         num_nodes=5,
-                        phi_size=256,
+                        phi_size=64,
                         num_bytes=num_bytes,
                         simulate_crash=False,
                         byz_mode="NO",
@@ -483,7 +518,7 @@ def get_dr_ccf_graphs() -> List[GraphSpec]:
                         system_2="RAFT",
                         stake_split=1,
                         num_nodes=5,
-                        phi_size=256,
+                        phi_size=64,
                         num_bytes=num_bytes,
                         simulate_crash=False,
                         byz_mode="NO",
@@ -505,12 +540,19 @@ def get_dr_ccf_graphs() -> List[GraphSpec]:
     
     
 def get_all_graphspecs() -> List[GraphSpec]:
-    return (
+    all_results = (
         get_no_failure_file_graphs()
         + get_stake_graphs()
         + get_crash_graphs()
         + get_dr_ccf_graphs()
     )
+    for graph_spec in all_results:
+        for line_spec in graph_spec.line_specs:
+            # Fill in the parameters for each experiment
+            line_spec.param_seq = [
+                fill_perf_params(exp_params) for exp_params in line_spec.param_seq
+            ]
+    return all_results
     
 def spaced_elements(lst, n):
     # Returns a list of n elements
