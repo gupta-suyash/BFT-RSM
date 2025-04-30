@@ -13,7 +13,7 @@ For all questions about the artifact please e-mail Reginald Frank [reginaldfrank
 4. [Validating the Claims](#validating)
 5. [Step by Step Guide](#guide)
 
-# General Information <a name="General"></a>
+# General Information <a name="general"></a>
 
 This artifact contains, and allows to reproduce, experiments for (almost*) all figures included in the paper "Picsou: Enabling Replicated State Machines to Communicate Efficiently". 
 
@@ -44,7 +44,7 @@ For more information read the current paper draft section 6 evaluation.
 * Example artifact output: [https://drive.google.com/file/d/1lXxlT_wlib-EFfCos_lPbRLkvaWvwtHG/view?usp=sharing](https://drive.google.com/file/d/1lXxlT_wlib-EFfCos_lPbRLkvaWvwtHG/view?usp=sharing)
 
 
-# Artifact Organization <a name="orginaization"></a>
+# Artifact Organization <a name="organization"></a>
 
 The artifact spans across the following 3 GitHub repositories. Please checkout the corresponding branch when validating claims for a given system.
 1. [BFT-RSM](https://github.com/gupta-suyash/BFT-RSM/tree/main): Contains testing infrastructure and implementation of Picsou and our Baselines 1-4 (all but Kafka)
