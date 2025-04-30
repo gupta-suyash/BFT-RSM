@@ -126,8 +126,6 @@ def main():
         
     print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     shutdown_network(dr_or_ccf_exp=False)
-    # shutdown_current_machine()
-    return
     
     # Then run the geo experiments
     print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Deploying dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
@@ -138,6 +136,9 @@ def main():
         
     print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
     shutdown_network(dr_or_ccf_exp=True)
+    
+    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down Current Machine ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
+    shutdown_current_machine()
         
         
 if __name__ == "__main__":
