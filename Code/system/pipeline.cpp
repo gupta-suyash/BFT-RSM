@@ -7,6 +7,7 @@
 #include <boost/container/small_vector.hpp>
 #include <nng/protocol/pair1/pair.h>
 #include <sched.h>
+#include <string_view>
 
 int64_t numTimeoutHits{}, numSizeHits{}, totalBatchedMessages{}, totalBatchesSent{};
 
@@ -29,17 +30,56 @@ static void generateMessageMac(scrooge::CrossChainMessage *const message)
     // std::cout << "Mac: " << encoded << std::endl;
 }
 
-static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
+static void setAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment,
+                        const uint64_t nodeId)
 {
     const auto curAckView = acknowledgment.getAckView<(kListSize)>();
     const auto ackIterator = acknowledgment::getAckIterator(curAckView);
+    constexpr uint64_t kMaxAckValue = 1'000'000'000ULL;
+
+    if constexpr (std::string_view(BYZ_MODE) == "NO")
+    {
+        if (ackIterator.has_value())
+        {
+            message->mutable_ack_count()->set_value(ackIterator.value());
+            // SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
+        }
+        *message->mutable_ack_set() = {curAckView.view.begin(),
+                                       std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+        return;
+    }
+
+    const auto isThisNodeByz = (nodeId % 3 == 2);
+    std::optional<uint64_t> ackValue = ackIterator;
+    if (isThisNodeByz)
+    {
+        if constexpr (std::string_view(BYZ_MODE) == "INF")
+        {
+            ackValue = kMaxAckValue;
+        }
+        else if constexpr (std::string_view(BYZ_MODE) == "ZERO")
+        {
+            ackValue = 0;
+        }
+        else if constexpr (std::string_view(BYZ_MODE) == "DELAY")
+        {
+            ackValue = (uint64_t)std::max<int64_t>((int64_t)ackIterator.value_or(0) - 1'000'000, 0);
+        }
+        else
+        {
+            SPDLOG_CRITICAL("Unknown byzantine mode {}", std::string(BYZ_MODE));
+            std::abort();
+        }
+    }
+
     if (ackIterator.has_value())
     {
         message->mutable_ack_count()->set_value(ackIterator.value());
-        //SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
+        // SPDLOG_CRITICAL("NEW ACK VALUE SET TO {}", ackIterator.value());
     }
     *message->mutable_ack_set() = {curAckView.view.begin(),
                                    std::find(curAckView.view.begin(), curAckView.view.end(), 0)};
+    return;
 }
 
 static void setIncorrectAckValue(scrooge::CrossChainMessage *const message, const Acknowledgment &acknowledgment)
@@ -558,11 +598,11 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
                                     std::chrono::steady_clock::time_point curTime)
 {
     std::string msgsInBatch{};
-    for (const auto& msg : batch->data.data())
+    for (const auto &msg : batch->data.data())
     {
         msgsInBatch += std::to_string(msg.sequence_number()) + " ";
     }
-    //SPDLOG_CRITICAL("Flushing batch with messages [{}]", msgsInBatch);
+    // SPDLOG_CRITICAL("Flushing batch with messages [{}]", msgsInBatch);
     const bool isBatchOversized = batch->batchSizeEstimate > kMinimumBatchSize;
     if (isBatchOversized)
     {
@@ -571,7 +611,7 @@ void Pipeline::flushBufferedMessage(pipeline::CrossChainMessageBatch *const batc
 
     if (acknowledgment)
     {
-        setAckValue(&batch->data, *acknowledgment);
+        setAckValue(&batch->data, *acknowledgment, kOwnConfiguration.kNodeId);
         generateMessageMac(&batch->data);
     }
 
@@ -608,16 +648,7 @@ void Pipeline::flushBufferedFileMessage(pipeline::CrossChainMessageBatch *const 
 
     if (acknowledgment)
     {
-        // if (kOwnConfiguration.kNodeId % 3 == 1)
-        // {
-        //     setIncorrectAckValue(&batch->data, *acknowledgment);
-        // }
-        // else
-        // {
-        //     setAckValue(&batch->data, *acknowledgment);
-        // }
-
-        setAckValue(&batch->data, *acknowledgment);
+        setAckValue(&batch->data, *acknowledgment, kOwnConfiguration.kNodeId);
         generateMessageMac(&batch->data);
     }
 
@@ -668,7 +699,8 @@ bool Pipeline::bufferedMessageSend(scrooge::CrossChainMessageData &&message,
     numSizeHits += batch->batchSizeEstimate >= kMinimumBatchSize;
     if (not shouldSend)
     {
-        //SPDLOG_CRITICAL("NOT SENDING BATCH BECAUSE isOldEnough {} isBatchLargeEnough {}", isBatchOldEnough, isBatchLargeEnough);
+        // SPDLOG_CRITICAL("NOT SENDING BATCH BECAUSE isOldEnough {} isBatchLargeEnough {}", isBatchOldEnough,
+        // isBatchLargeEnough);
         return false;
     }
 
@@ -728,7 +760,7 @@ void Pipeline::forceSendToOtherRsm(uint64_t receivingNodeId, const Acknowledgmen
 {
     const auto &destinationBuffer = mForeignSendBufs.at(receivingNodeId);
     const auto destinationBatch = mForeignMessageBatches.data() + receivingNodeId;
-    //SPDLOG_CRITICAL("Forcing send to node {}", receivingNodeId);
+    // SPDLOG_CRITICAL("Forcing send to node {}", receivingNodeId);
     flushBufferedMessage(destinationBatch, acknowledgment, destinationBuffer.get(), curTime);
 }
 void Pipeline::forceSendFileToOtherRsm(uint64_t receivingNodeId, const Acknowledgment *const acknowledgment,
@@ -806,7 +838,7 @@ void Pipeline::SendToGeoBFTQuorumOtherRsm(scrooge::CrossChainMessageData &&messa
     std::bitset<64> foreignAliveNodes{};
     foreignAliveNodes |= -1ULL ^ (-1ULL << geobft_quorum_size);
     nng_msg *batchData = serializeProtobuf(*batch);
-    
+
     while (foreignAliveNodes.any() && not is_test_over())
     {
         const auto curDestination = std::countr_zero(foreignAliveNodes.to_ulong());

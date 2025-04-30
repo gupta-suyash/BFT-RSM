@@ -3,63 +3,117 @@
 ## Has the most updated algorand, resdb functions (useExistingIP, this branch) and raft (commit 68bb9b0 on application-testing branch)
 ## This script helps to create the files that specify URLs for RSM1 and RSM2. Additionally, it calls the script that helps to create "config.h". We need to specify the URLs and stakes for each node in both the RSMs. This script takes in argument the size of both the RSMs and other necessary parameters.
 
-if [ -z ${TMUX+x} ]; then
-	echo "Run script in tmux to guarantee progress"
-	echo "exiting..."
-	exit 1
+if [ "$#" -lt 13 ]; then
+    echo "Usage: $0 experiment_name protocol send_rsm receive_rsm RSM_Stake rsm_size klist_size packet_size simulate_crash byz_mode throttle_file run_dr run_ccf"
+    exit 1
 fi
 
-echo -n "Enter the name of the experiment being run: "
 
-# read experiment_name
-experiment_name="kafka_dr_results"
+experiment_name="$1"
+protocol="$2"
+send_rsm="$3"
+send_rsm=${send_rsm,,}
+receive_rsm="$4"
+receive_rsm=${receive_rsm,,}
+RSM1_Stake=("$5" 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+RSM2_Stake=("$5" 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
+rsm1_size=("$6")
+rsm2_size=("$6")
+klist_size=("$7")
+packet_size=("$8")
+simulate_crash="$9"
+byz_mode="${10}"
+throttle_file="${11}"
+run_dr="${12}"
+run_ccf="${13}"
+batch_size=("${14}")
+batch_creation_time=("${15}")
+pipeline_buffer_size=("${16}")
+noop_delays=("${17}")
+max_message_delays=("${18}")
+quack_windows=("${19}")
+ack_windows=("${20}")
+max_nng_blocking_time="${21}"
+message_buffer_size="${22}"
 
-echo "Running Experiment: ${experiment_name}"
 
-# If this experiment uses external applications, set the following values
-# Valid inputs: "algo", "resdb", "raft"
-# e.x. if algorand is the sending RSM then send_rsm="algo", if resdb is
-# receiving RSM, then receive_rsm="resdb"
+rsm1_fail=("$(((rsm1_size[0] - 1) / 3))")
+rsm2_fail=("$(((rsm1_size[0] - 1) / 3))")
+
+if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then    
+	rsm1_fail=("$(((rsm1_size[0] - 1) / 2))")
+	rsm2_fail=("$(((rsm1_size[0] - 1) / 2))")
+fi
+
+####
+# Setting protocol var
+scrooge="false"
+all_to_all="false"
+one_to_one="false"
+geobft="false"
+leader="false"
+kafka="false"
+
+if [ "$protocol" = "SCROOGE" ]; then
+	scrooge="true"
+fi
+if [ "$protocol" = "ATA" ]; then
+	all_to_all="true"
+fi
+if [ "$protocol" = "OST" ]; then
+	one_to_one="true"
+fi
+if [ "$protocol" = "OTU" ]; then
+	geobft="true"
+fi
+if [ "$protocol" = "LL" ]; then
+	leader="true"
+fi
+if [ "$protocol" = "KAFKA" ]; then
+	kafka="true"
+fi
+
+###
+
+
+if [ "$run_dr" = "true" ] && [ "$run_ccf" = "true" ]; then
+    echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
+    exit 1
+fi
+
+if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then
+	if [ "$send_rsm" = "file" ] || [ "$receive_rsm" = "file" ]; then
+		echo "Incorrect configuration. Cannot use file alongside Disaster Recovery or CCF. Exiting."
+		exit 1
+	fi
+fi
+
+
 valid_applications=("algo" "resdb" "raft" "file")
-echo -n "Enter the name of the sending application (4 options: algo, resdb, raft, file): "
-# read send_rsm
-send_rsm="raft"
-
 if [[ ! " ${valid_applications[*]} " =~ " $send_rsm " ]]; then
   echo "$send_rsm is an invalid option, exiting..."
   exit 1
-else
-	echo "Sending Application: ${send_rsm}"
 fi
-
-echo -n "Enter the name of the receiving application (4 options: algo, resdb, raft, file): "
-# read receive_rsm
-receive_rsm="raft"
-echo "Receiving Application: ${receive_rsm}"
-
 if [[ ! " ${valid_applications[*]} " =~ " $receive_rsm " ]]; then
   echo "$receive_rsm is an invalid option, exiting..."
   exit 1
-else
-	echo "Receiving Application: ${receive_rsm}"
 fi
 
-if [[ "$send_rsm" == "algorand" || "$receive_rsm" == "algorand" ]]; then
-    echo -n "Are you rerunning an application? Only applies to algo-algo. (T of F): "
-	read rerun_bool
-	echo "You have chosen ${rerun_bool} for rerunning algo-algo experiment."
-else
-	rerun_bool="F"
-fi
-
-
-#If this experiment is for File_RSM (not algo or resdb)
-file_rsm="false"
+file_rsm="true"
 if [ "$send_rsm" != "file" ] || [ "$receive_rsm" != "file" ]; then
     file_rsm="false"
 fi
-#file_rsm="true" # TODO TODO TAKE THIS OUT!!!
-#echo "ALWAYS RUNNING FILE RSM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+
+# Not automating atm
+# if [[ "$send_rsm" == "algorand" || "$receive_rsm" == "algorand" ]]; then
+#     echo -n "Are you rerunning an application? Only applies to algo-algo. (T of F): "
+# 	read rerun_bool
+# 	echo "You have chosen ${rerun_bool} for rerunning algo-algo experiment."
+# else
+# 	rerun_bool="F"
+# fi
+
+
 
 # Name of profile we are running out of
 key_file="$HOME/.ssh/id_ed25519" # TODO: Replace with your ssh key
@@ -84,163 +138,13 @@ resdb_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/resdb/
 raft_scripts_dir="${workdir}/BFT-RSM/Code/experiments/experiment_scripts/raft/"
 kafka_dir="${workdir}/kafka_2.13-3.7.0/"
 use_debug_logs_bool="false"
-max_nng_blocking_time=500ms
-message_buffer_size=5000
 
 # Set rarely changing experiment application parameters
 starting_algos=10000000000000000
 
-#
-# EXPERIMENT LIST
-#
-# State all experiments you want to run below.
-# State the stake of RSM1 and RSM2.
-# Uncomment experiment you want to run.
 
-# If you want to run all the three protocols, set them all to true. Otherwise, set only one of them to true.
-scrooge="false"
-all_to_all="false"
-one_to_one="false"
-geobft="false"
-leader="false"
-kafka="true"
-
-run_dr="true"
-run_ccf="false"
-
-if [ "$run_dr" = "true" ] && [ "$run_ccf" = "true" ]; then
-    echo "Incorrect configuration. DR and CCF are both set to run which is unsupported. Exiting."
-    exit 1
-fi
-
-if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then
-	if [ "$send_rsm" = "file" ] || [ "$receive_rsm" = "file" ]; then
-		echo "Incorrect configuration. Cannot use file alongside Disaster Recovery or CCF. Exiting."
-		exit 1
-	fi
-fi
-
-if [ "$run_dr" = "true" ]; then
-	echo "RUNNING DR"
-fi
-
-if [ "$run_ccf" = "true" ]; then
-	echo "RUNNING CCF"
-fi
-
-if [ "$file_rsm" = "false" ]; then
-	echo "WARNING: FILE RSM NOT BEING USED"
-fi
-
-echo "The applications you are running are $send_rsm and $receive_rsm." 
-# echo -n "Please acknolwedge and accept/reject. Type Y or N: "
-
-# read application_acknowledgement
-
-# if [ $application_acknowledgement != "Y" ]; then
-# 	echo "Please check the application you are running."
-# 	echo "Otherwise you will be sad :') Exiting now..."
-# 	exit 1
-# fi
-
-### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-#rsm1_size=(19)
-#rsm2_size=(19)
-#rsm1_fail=(6 7)
-#rsm2_fail=(6 7)
-#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-#klist_size=(64)
-#packet_size=(1000000)
-#batch_size=(200000)
-#batch_creation_time=(1ms)
-#pipeline_buffer_size=(8)
-
-rsm1_size=(5)
-rsm2_size=(5)
-rsm1_fail=(2)
-rsm2_fail=(2)
-RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-klist_size=(64)
-packet_size=(863) # 863 1980 4020 8052 14304
-batch_size=(200000)
-batch_creation_time=(1ms)
-pipeline_buffer_size=(8)
-noop_delays=(5ms)
-max_message_delays=(1ms)
-quack_windows=(1048576)
-ack_windows=(1048576)
 pids_to_kill=()
 
-# Valid options :  "INF" "ZERO" "DELAY" "NO"
-byz_mode="NO"
-
-# Valid options : "true" "false"
-simulate_crash="false"
-
-# Valid options : "true" "false"
-throttle_file="false"
-
-
-
-### DUMMY Exp: Equal stake RSMs of size 4; message size 100.
-# rsm1_size=(4 13 25 46)
-# rsm2_size=(4 13 25 46)
-# rsm1_fail=(0 0 0 0)
-# rsm2_fail=(0 0 0 0)
-# RSM1_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-# RSM2_Stake=(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1)
-# klist_size=(64)
-# packet_size=(100 1000000)
-# batch_size=(200000)
-# batch_creation_time=(1ms)
-# pipeline_buffer_size=(8)
-
-### Exp: Equal stake RSMs of size 4; message size 100.
-#rsm1_size=(4)
-#rsm2_size=(4)
-#rsm1_fail=(1)
-#rsm2_fail=(1)
-#RSM1_Stake=(1 1 1 1)
-#RSM2_Stake=(1 1 1 1)
-#packet_size=(100)
-
-### Exp: Equal stake RSMs of size 7; message size 1000.
-#rsm1_size=(7)
-#rsm2_size=(7)
-#rsm1_fail=(2)
-#rsm2_fail=(2)
-#RSM1_Stake=(1 1 1 1 1 1 1)
-#RSM2_Stake=(1 1 1 1 1 1 1)
-#packet_size=(1000)
-
-### Exp: Equal stake RSMs of various sizes; message size 100.
-#rsm1_size=(4 7 10)
-#rsm2_size=(4 7 10)
-#rsm1_fail=(1 2 3)
-#rsm2_fail=(1 2 3)
-#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1)
-#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1)
-#packet_size=(100)
-
-### Exp: Equal stake RSMs of various sizes; varying message sizes.
-#rsm1_size=(4 7 10)
-#rsm2_size=(4 7 10)
-#rsm1_fail=(1 2 3)
-#rsm2_fail=(1 2 3)
-#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1)
-#RSM2_Stake=(1 1 1 1 1 1 1 1 1 1)
-#packet_size=(100 1000 10000 100000 1000000)
-
-### Exp: Raft and ResilientDB; message size 100.
-#rsm1_size=(4 7 10)
-#rsm2_size=(3 5 7)
-#rsm1_fail=(1 2 3)
-#rsm2_fail=(1 2 3)
-#RSM1_Stake=(1 1 1 1 1 1 1 1 1 1)
-#RSM2_Stake=(1 1 1 1 1 1 1)
-#packet_size=(100)
 
 # Build the network from the description
 num_nodes_rsm_1=0
@@ -257,71 +161,21 @@ done
 if [ "$kafka" = "true" ]; then num_nodes_kafka=4; fi;
 
 
-echo "SET RSM SIZES"
 echo "$num_nodes_rsm_1"
 echo "$num_nodes_rsm_2"
 # TODO Change to inputs!!
-GP_NAME="raf-1"
+GP_NAME="exp-group"
 TEMPLATE="kafka-unified-5-spot" # "kafka-unified-3-spot"
 
-if [ "$GP_NAME" = "DEFAULT_GROUP_NAME_MUST_CHANGE" ]; then
-  echo "Your gcp group name, GP_NAME, is default. Go to makeNetwork.sh to change this to something unique (your name), then rerun the script"
-  echo "REMINDER, DO NOT COMMIT YOUR NAME AS THE GROUP NAME."
-  exit
-fi
-
 RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
-RSM2_ZONE="us-east5-a"
-KAFKA_ZONE="us-east5-a"
+RSM2_ZONE="us-west4-a"
+KAFKA_ZONE="us-west4-a"
 
-echo "Create group name"
-echo "Group Name: ${GP_NAME}"
-echo "num_nodes_total: $((num_nodes_rsm_1+num_nodes_rsm_2+client+num_nodes_kafka))"
-echo "RSM1 Zone: ${RSM1_ZONE}"
-echo "RSM2 Zone: ${RSM1_ZONE}"
-if [ $kafka="true" ];then
-  echo "KAFKA Zone: ${RSM1_ZONE}"
+if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then
+    RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
+	RSM2_ZONE="us-east5-a"
+	KAFKA_ZONE="us-east5-a"
 fi
-echo "Template: ${TEMPLATE}"
-
-echo -n "Do you need machines created? type Y if yes: "
-read create_machines
-
-if [ "$create_machines" = "Y" ]; then
-	yes | gcloud beta compute instance-groups managed create "${GP_NAME}-rsm-1" --project=scrooge-398722 --base-instance-name="${GP_NAME}-rsm-1" --size="$((num_nodes_rsm_1+(client+1)/2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${RSM1_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
-	yes | gcloud beta compute instance-groups managed create "${GP_NAME}-rsm-2" --project=scrooge-398722 --base-instance-name="${GP_NAME}-rsm-2" --size="$((num_nodes_rsm_2+client/2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${RSM2_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
-	if [ "$kafka" = "true" ]; then
-	  yes | gcloud beta compute instance-groups managed create "${GP_NAME}-kafka" --project=scrooge-398722 --base-instance-name="${GP_NAME}-kafka" --size="$((num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${KAFKA_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
-	fi
-	wait
-	echo "Your machines are getting created. Check google compute to see when they're done, then rerun this script without creating machines"
-	exit
-fi
-
-
-WORKING_DIR_CLEAN="TRUE"
-if output=$(git status --porcelain) && [ -z "$output" ]; then
-  echo "Working Directory is clean!"
-  WORKING_DIR_CLEAN="TRUE"
-else
-  echo "WARNING: directory not clean."
-  echo -n "Do you want to back up the working directory for this run? type Y if yes: "
-  read backup_run
-  if [ "$backup_run" = "Y" ]; then
-	WORKING_DIR_CLEAN="FALSE"
-	git stash --include-untracked
-	git stash apply
-	git switch -c "AUTOMATED_BRANCH/$(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
-	git add .
-	git commit -m "Experiment Generated Commit $(date +"%Y-%m-%d_%H-%M-%S")/${GP_NAME}/${experiment_name}"
-	git push -u origin HEAD
-  else
-	WORKING_DIR_CLEAN="TRUE"
-  fi
-fi
-
-echo -n "Do you want to keep you machines after this exp? type Y if yes: "
-read keep_machines
 
 trap exit_handler INT
 function exit_handler() {
@@ -330,15 +184,7 @@ function exit_handler() {
 	for client_ip in "${CLIENT[@]}"; do
 		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'killall benchmark' </dev/null &>/dev/null  &
 	done
-
-	if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
-		echo "Restoring working directory..."
-		git reset --hard HEAD
-		git switch -
-		git stash pop
-	fi
-	if [ "$keep_machines" != "Y" ]; then
-		echo "deleting experiment"
+	echo "deleting experiment"
 		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $RSM1_ZONE &
 		pids_to_kill+=($!)
 		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $RSM2_ZONE &
@@ -346,10 +192,8 @@ function exit_handler() {
 		yes | gcloud compute instance-groups managed delete "${GP_NAME}-kafka" --zone $KAFKA_ZONE &
 		pids_to_kill+=($!)
 		exit 0
-	fi
 
 	kill $experiment_pid
-	kill $make_scrooge_pid
 	for pid in "${pids_to_kill[@]}"; do
 		kill $pid
 	done
@@ -541,19 +385,6 @@ if [ "${leader}" = "true" ]; then
 fi
 if [ "${kafka}" = "true" ]; then
 	protocols+=("kafka")
-	local git_pids=()
-	for i in ${!RSM2[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard ced9649b79d4fe3e4f4dc461f7b6c365f9b5233a; sbt compile' 1>/dev/null </dev/null &
-		git_pids+=($!)
-	done
-	for i in ${!RSM1[@]}; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard ced9649b79d4fe3e4f4dc461f7b6c365f9b5233a; sbt compile' 1>/dev/null </dev/null &
-		git_pids+=($!)
-	done
-
-	for pid in ${git_pids[*]}; do
-		wait $pid
-	done
 fi
 
 raft_counter=0
@@ -1008,16 +839,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 	for max_message_delay in "${max_message_delays[@]}"; do
 	for quack_window in "${quack_windows[@]}"; do
 	for ack_window in "${ack_windows[@]}"; do
- 		if [ $kafka !=  "true" ]; then
-			./makeConfig.sh "${r1_size}" "${rsm2_size[$rcount]}" "${rsm1_fail[$rcount]}" "${rsm2_fail[$rcount]}" ${num_packets} "${pk_size}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${bt_size}" "${bt_create_tm}" ${max_nng_blocking_time} "${pl_buf_size}" ${message_buffer_size} "${kl_size}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delay} ${max_message_delay} ${quack_window} ${ack_window} ${run_dr} ${run_ccf} ${byz_mode} ${simulate_crash} ${throttle_file}
-
-			cp config.h system/
-
-			make clean
-			make proto
-			make -j scrooge </dev/null 1>/dev/null &
-   		fi
-		make_scrooge_pid=$!
 		# Next, we call the script that makes the config.h. We need to pass all the arguments.
 		# First, get payload file name
 		pk_file=""
@@ -1134,8 +955,6 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			continue
 		fi
 
-		wait $make_scrooge_pid
-
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM1[@]:0:$r1_size}"
 		parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i "${key_file}" ${network_dir}{1} ${username}@{2}:"${exec_dir}" ::: network0urls.txt network1urls.txt ::: "${RSM2[@]:0:$r2size}"
 
@@ -1173,26 +992,3 @@ done
 for client_ip in "${CLIENT[@]}"; do
 	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'killall benchmark' </dev/null &>/dev/null  &
 done
-
-echo "taking down experiment"
-
-###### UNDO
-#yes | gcloud compute instance-groups managed delete $GP_NAME --zone $ZONE
-
-############# DID YOU DELETE THE MACHINES?????????????????
-
-if [ "${WORKING_DIR_CLEAN}" = "FALSE" ]; then
-	git reset --hard HEAD
-	git switch -
-	git stash pop
-fi
-
-if [ "$keep_machines" != "Y" ]; then
-	echo "deleting experiment"
-	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
-	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $ZONE &
-	yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $ZONE &
-	wait
-	exit 0
-fi
-echo "keeping machines for future experiments"

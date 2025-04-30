@@ -184,7 +184,8 @@ void runOneToOneReceiveThread(
             timedMessages += is_test_recording();
         }
 #if WRITE_DR || WRITE_CCF
-        while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+        while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over())
+            ;
 #endif
     }
 

@@ -3,7 +3,7 @@
     "topic2": "topic-2",
     "rsm_id": 2,
     "node_id": 4,
-    "broker_ips": ":9092",
+    "broker_ips": "10.182.12.247:9092,10.182.12.250:9092,10.182.12.249:9092,10.202.2.15:9092,10.202.2.14:9092,10.202.2.12:9092,10.202.2.13:9092",
     "rsm_size": 5,
     "read_from_pipe": true,
     "message": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",

@@ -20,9 +20,10 @@ template <typename T> using MessageQueue = moodycamel::ReaderWriterQueue<T>;
 void runRelayIPCRequestThread(std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessageData>> messageOutput,
                               NodeConfiguration kNodeConfiguration);
 
-void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
-                                  NodeConfiguration kNodeConfiguration,
-                                  std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue);
+void runRelayIPCTransactionThread(
+    std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
+    NodeConfiguration kNodeConfiguration,
+    std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue);
 
 void runGenerateMessageThreadWithIpc();
 

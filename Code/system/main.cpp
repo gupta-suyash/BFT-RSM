@@ -19,7 +19,7 @@
 int main(int argc, char *argv[])
 {
     std::thread relayRequestThread;
-    std::thread relayTransactionThread;    
+    std::thread relayTransactionThread;
     std::string path;
     {
         const auto kCommandLineArguments = parseCommandLineArguments(argc, argv);
@@ -54,7 +54,8 @@ int main(int argc, char *argv[])
         const auto messageBuffer =
             std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessageData>>(kMessageBufferSize);
         const auto quorumAck = std::make_shared<QuorumAcknowledgment>(kQuorumSize);
-        const auto resendDataQueue = std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(32768 * 2);
+        const auto resendDataQueue =
+            std::make_shared<iothread::MessageQueue<acknowledgment_tracker::ResendData>>(32768 * 2);
         const auto receivedMessageQueue = std::make_shared<iothread::MessageQueue<scrooge::CrossChainMessage>>(1 << 15);
 
         pipeline->startPipeline();
@@ -68,39 +69,25 @@ int main(int argc, char *argv[])
 
         set_priv_key();
 
-        // if (get_rsm_id() == 1 && kNodeId < std::min(6, BATCH_CREATION_TIME))
-        // {
-        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
-        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
+        if constexpr (SIMULATE_CRASH)
+        {
+            SPDLOG_CRITICAL("Running with crashes simulated");
+            const bool kIsCrashed = (kNodeId % 3) == 2;
+            if (kIsCrashed)
+            {
+                SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
+                auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
 
-        //     std::this_thread::sleep_until(testEndTime);
-        //     end_test();
+                std::this_thread::sleep_until(testEndTime);
+                end_test();
 
-        //     receiveThread.join();
-        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
-        //     remove(kLogPath.c_str());
-        //     return 0;
-        // }
+                receiveThread.join();
+                SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
+                remove(kLogPath.c_str());
+                return 0;
+            }
+        }
 
-        // if (get_rsm_id() == 0 && kNodeId >= 6 && kNodeId < BATCH_CREATION_TIME)
-        // {
-        //     SPDLOG_CRITICAL("Node {} in RSM {} Is Crashed", kNodeId, get_rsm_id());
-        //     auto receiveThread = std::thread(runCrashedNodeReceiveThread, pipeline);
-
-        //     std::this_thread::sleep_until(testEndTime);
-        //     end_test();
-
-        //     receiveThread.join();
-        //     SPDLOG_CRITICAL("Crashed Node {} in RSM {} Finished Test", kNodeId, get_rsm_id());
-        //     remove(kLogPath.c_str());
-        //     return 0;
-        // }
-
-        /*auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
-        SPDLOG_INFO("Created Generate message relay thread");
-*/
 #if SCROOGE
 #if FILE_RSM
         auto sendThread = std::thread(runFileScroogeSendThread, messageBuffer, pipeline, acknowledgment,
@@ -109,8 +96,8 @@ int main(int argc, char *argv[])
         auto sendThread = std::thread(runScroogeSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
         auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
+        auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck,
+                                                  kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("Created Generate message relay thread");
 
 #endif
@@ -125,8 +112,8 @@ int main(int argc, char *argv[])
         auto sendThread = std::thread(runAllToAllSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
         auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
+        auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck,
+                                                  kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("Created Generate message relay thread");
 
 #endif
@@ -141,8 +128,8 @@ int main(int argc, char *argv[])
         auto sendThread = std::thread(runGeoBFTSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
         relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
+        relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck,
+                                             kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("GeoBFT: Created Generate message relay thread");
 #endif
         auto receiveThread = std::thread(runGeoBFTReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
@@ -155,8 +142,8 @@ int main(int argc, char *argv[])
         auto sendThread = std::thread(runLeaderSendThread, messageBuffer, pipeline, acknowledgment, resendDataQueue,
                                       quorumAck, kNodeConfiguration);
         relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
+        relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck,
+                                             kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("Leader: Created Generate message relay thread");
 #endif
         auto receiveThread = std::thread(runLeaderReceiveThread, pipeline, acknowledgment, resendDataQueue, quorumAck,
@@ -170,8 +157,8 @@ int main(int argc, char *argv[])
         auto sendThread = std::thread(runUnfairOneToOneSendThread, messageBuffer, pipeline, acknowledgment,
                                       resendDataQueue, quorumAck, kNodeConfiguration);
         auto relayRequestThread = std::thread(runRelayIPCRequestThread, messageBuffer, kNodeConfiguration);
-        auto relayTransactionThread =
-             std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck, kNodeConfiguration, receivedMessageQueue);
+        auto relayTransactionThread = std::thread(runRelayIPCTransactionThread, "/tmp/scrooge-output", quorumAck,
+                                                  kNodeConfiguration, receivedMessageQueue);
         SPDLOG_INFO("Created Generate message relay thread");
 
 #endif
@@ -216,10 +203,10 @@ int main(int argc, char *argv[])
         addMetric("kList_size", kListSize);
         path = kLogPath;
 
-        printMetrics(path); // print before attempting to deconstruct everything -- get as many results as fesible, the test is over and send/recv threads exited
+        printMetrics(path); // print before attempting to deconstruct everything -- get as many results as fesible, the
+                            // test is over and send/recv threads exited
 
-
-#if ! FILE_RSM
+#if !FILE_RSM
         relayTransactionThread.join();
         relayRequestThread.join();
 #endif

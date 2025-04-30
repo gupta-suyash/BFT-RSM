@@ -10,6 +10,9 @@ import yaml
 import sys
 import plotly.graph_objects as go
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
+import time
+
 
 @dataclass
 class Line:
@@ -37,26 +40,28 @@ def get_log_file_names(paths: List[str]) -> List[str]:
         file_names += [os.path.join(path, file) for file in os.listdir(path) if file.startswith("log_") and file.endswith(".yaml")]
     return file_names
 
+
 def process_file(file_name: str):
     try:
-        file_text = Path(file_name).read_text()
-        if file_text:
-            log_data = yaml.safe_load(file_text)
-            if len(log_data):
+        with open(file_name, 'r') as f:
+            log_data = yaml.safe_load(f)
+            if log_data and len(log_data) > 1:
                 return log_data
     except Exception as e:
         print(f'Unable to parse {file_name} -- is it correct yaml format? Error: {e}')
     return None
 
 def make_dataframe(file_names: List[str]) -> pd.DataFrame:
-    with ThreadPoolExecutor() as executor:
+    print(f"Loading {len(file_names)} files")
+    start_time = time.perf_counter()
+    with ProcessPoolExecutor() as executor:
         results = list(executor.map(process_file, file_names))
+    end_time = time.perf_counter()
+    print(f'Finished loading {len(file_names)} files in {end_time - start_time:.2f} seconds')
+    
+    rows = [r for r in results if r]
 
-    # Filter out any None values from failed processing
-    rows = [result for result in results if result is not None]
-
-    basic_df = pd.DataFrame.from_dict(rows)
-    return basic_df.replace("[+-]?[Nn][Aa][Nn]", np.NaN, regex=True)
+    return pd.DataFrame.from_dict(rows).replace(r"[+-]?[Nn][Aa][Nn]", np.NaN, regex=True)
 
 def clean_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
     # Place Ack count in QAck count for One to One (quack wasn't recorded)
@@ -272,14 +277,14 @@ def main():
     dataframe = make_dataframe(file_names)
     dataframe = clean_dataframe(dataframe)
     graphs = get_graphs_by_group(dataframe)
-    save_graphs(graphs)
+    # save_graphs(graphs)
 
     csv = get_throughput_latency_csv(dataframe)
 
     csv.sort_values(by=['message_size', 'local_network_size', 'strategy'], inplace=True)
     print('Cur Results:')
     print(csv)
-    csv.to_csv('cur_results.csv', index=False)
+    # csv.to_csv('cur_results.csv', index=False)
 
 if __name__ == '__main__':
     main()

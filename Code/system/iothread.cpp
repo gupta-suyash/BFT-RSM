@@ -48,7 +48,8 @@ void runRelayIPCRequestThread(
     while (not is_test_over())
     {
         auto messageBytes = readMessage(pipe);
-        if (messageBytes.length() == 0) {
+        if (messageBytes.length() == 0)
+        {
             SPDLOG_CRITICAL("PIPE READ ERROR");
             break;
         }
@@ -64,7 +65,9 @@ void runRelayIPCRequestThread(
         const auto curTime = std::chrono::steady_clock::now();
         if (curTime - lastMetricTime >= 1s)
         {
-            SPDLOG_CRITICAL("CUR THROUGHPUT: {}", (numReceivedMessages - lastMetric) / std::chrono::duration<double>(curTime - lastMetricTime).count() / 1.e6);
+            SPDLOG_CRITICAL("CUR THROUGHPUT: {}", (numReceivedMessages - lastMetric) /
+                                                      std::chrono::duration<double>(curTime - lastMetricTime).count() /
+                                                      1.e6);
             lastMetric = numReceivedMessages;
             lastMetricTime = curTime;
         }
@@ -75,7 +78,7 @@ void runRelayIPCRequestThread(
             auto newMessageRequest = newRequest.send_message_request();
             receivedMessages.addToAckList(newMessageRequest.content().sequence_number());
             while (not messageOutput->try_enqueue(std::move(*(newMessageRequest.mutable_content()))) &&
-                not is_test_over())
+                   not is_test_over())
             {
                 std::this_thread::sleep_for(.1ms);
             }
@@ -93,9 +96,10 @@ void runRelayIPCRequestThread(
     SPDLOG_INFO("Relay IPC Message Thread Exiting");
 }
 
-void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
-                                  NodeConfiguration kNodeConfiguration,
-                                  std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue)
+void runRelayIPCTransactionThread(
+    std::string scroogeOutputPipePath, std::shared_ptr<QuorumAcknowledgment> quorumAck,
+    NodeConfiguration kNodeConfiguration,
+    std::shared_ptr<iothread::MessageQueue<scrooge::CrossChainMessage>> receivedMessageQueue)
 {
     SPDLOG_CRITICAL("Started runRelayIPCTransactionThread with TID = {}", gettid());
     bindThreadToCpu(1);
@@ -128,7 +132,7 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
         {
             while (lastQuorumAck < curQuorumAck)
             {
-                //SPDLOG_CRITICAL("QUACK ACTUALLY SENT! CurQuack: {}", curQuorumAck.value());
+                // SPDLOG_CRITICAL("QUACK ACTUALLY SENT! CurQuack: {}", curQuorumAck.value());
                 lastQuorumAck = lastQuorumAck.value_or(-1ULL) + 1;
                 transfer.mutable_commit_acknowledgment()->set_sequence_number(lastQuorumAck.value());
                 const auto serializedTransfer = transfer.SerializeAsString();
@@ -155,15 +159,17 @@ void runRelayIPCTransactionThread(std::string scroogeOutputPipePath, std::shared
 #elif WRITE_CCF
         while (receivedMessageQueue->try_dequeue(receivedMessage))
         {
-            for (auto& msg : receivedMessage.data())
+            for (auto &msg : receivedMessage.data())
             {
                 scrooge::KeyValueHash receivedKeyValue;
                 const auto isparseSuccessful = receivedKeyValue.ParseFromString(msg.message_content());
 
-                // SPDLOG_CRITICAL("Key bytes {} value_hash bytes {}", stringToHex(receivedKeyValue.key()), receivedKeyValue.value_md5_hash());
+                // SPDLOG_CRITICAL("Key bytes {} value_hash bytes {}", stringToHex(receivedKeyValue.key()),
+                // receivedKeyValue.value_md5_hash());
                 if (not isparseSuccessful)
                 {
-                    SPDLOG_CRITICAL("Could not parse DR received KeyValueHash, received data '{}'", msg.message_content());
+                    SPDLOG_CRITICAL("Could not parse DR received KeyValueHash, received data '{}'",
+                                    msg.message_content());
                     continue;
                 }
                 *ccfTransfer.mutable_key_value_hash() = std::move(receivedKeyValue);

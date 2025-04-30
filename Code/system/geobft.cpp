@@ -61,10 +61,11 @@ void runGeoBFTReceiveThread(
                 acknowledgment->addToAckList(messageData.sequence_number());
                 timedMessages += is_test_recording();
             }
-            
+
             quorumAck->updateNodeAck(0, 0ULL - 1, acknowledgment->getAckIterator().value_or(0));
 #if WRITE_DR || WRITE_CCF
-        while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+            while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over())
+                ;
 #endif
         }
 
@@ -73,7 +74,7 @@ void runGeoBFTReceiveThread(
             std::this_thread::sleep_for(.1ms);
         }
     }
-    
+
     if (receivedMessage.message)
     {
         nng_msg_free(receivedMessage.message);
@@ -107,7 +108,7 @@ static void runGeoBFTSendThread(
             scrooge::CrossChainMessageData newMessageData;
             while (not is_test_over())
             {
-                while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
+                while (!messageInput->try_dequeue(newMessageData) && not is_test_over())
                     std::this_thread::sleep_for(.1ms);
             }
         }
@@ -122,7 +123,7 @@ static void runGeoBFTSendThread(
         }
         else
         {
-            while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
+            while (!messageInput->try_dequeue(newMessageData) && not is_test_over())
                 std::this_thread::sleep_for(.1ms);
         }
         const auto curSequenceNumber = newMessageData.sequence_number();

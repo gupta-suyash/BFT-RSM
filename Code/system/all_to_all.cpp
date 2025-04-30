@@ -40,7 +40,8 @@ void runAllToAllReceiveThread(
             timedMessages += is_test_recording();
         }
 #if WRITE_DR || WRITE_CCF
-        while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over());
+        while (not receivedMessageQueue->try_enqueue(std::move(crossChainMessage)) && not is_test_over())
+            ;
 #endif
     }
 
@@ -71,7 +72,7 @@ static void runAllToAllSendThread(
         }
         else
         {
-            while (! messageInput->try_dequeue(newMessageData) && not is_test_over())
+            while (!messageInput->try_dequeue(newMessageData) && not is_test_over())
             {
                 std::this_thread::sleep_for(.1ms);
             }
