@@ -199,6 +199,9 @@ def main():
     
     print("Graphs images saved -- textual representation below:")
     
+    with open('graphs.txt', 'w') as f:
+        for graph in graphs:
+            f.write("⭐️"*40 + "\n" + graph_to_text(graph) + "\n")
     for graph in graphs:
         print("⭐️"*40)
         print(graph_to_text(graph))
