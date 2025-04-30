@@ -21,7 +21,7 @@ This artifact contains, and allows to reproduce, experiments for (almost*) all f
 
 It contains a prototype implementation of Picsou, a  Crash and Byzantine Fault Tolerant Cross-Cluster Consistent Broadcast protocol. The prototype is intended to connect two separate consensus instances, and currently there is support for RAFT (Etcd's Raft implementation) as well as FILE (an "infinitely fast" simulated consensus protocol). The prototype can simulate both crash and byzantine failures and it remains resilient to both. While the Picsou protocol can tolerate arbitrary failure patterns, the prototype does not attempt to simulate all possible behaviors. For example, while the protocol can handle crash failures, if a machine is shutdown during a test the prototype will abort after detecting the unresponsive machine (to avoid collecting results with an unexpected crash).
 
-> **[NOTE]** The Basil prototype codebase is henceforth called "*Scrooge*". Throughout this document you will find references to Scrooge, and many configuration files are named accordingly. All these occurrences refer to the Picsou prototype.
+> **[NOTE]** The Picsou prototype codebase is henceforth called "*Scrooge*". Throughout this document you will find references to Scrooge, and many configuration files are named accordingly. All these occurrences refer to the Picsou prototype.
 
 Picsou's current codebase (BFT-RSM) was modified in order to improve ease of collecting results for artifact evaluation. While takeaways remain consistent, individual performance results may differ slightly across the benchmarks (better performance in some cases) as other minor modifications to the codebase were necessary to support the changes.
 
