@@ -7,12 +7,13 @@ For all questions about the artifact please e-mail Reginald Frank [reginaldfrank
 
 
 # Table of Contents
-1. [General Information](#General Information)
-2. [High Level Claims](#High Level Claims)
-3. [Artifact Organization](#Artifact Organization)
-4. [Validating the Claims](#Validating the Claims)
+1. [General Information](#general)
+2. [High Level Claims](#claims)
+3. [Artifact Organization](#organization)
+4. [Validating the Claims](#validating)
+5. [Step by Step Guide](#guide)
 
-# General Information
+# General Information <a name="General"></a>
 
 This artifact contains, and allows to reproduce, experiments for (almost*) all figures included in the paper "Picsou: Enabling Replicated State Machines to Communicate Efficiently". 
 
@@ -34,7 +35,7 @@ In addition to Picsou, this artifact contains prototype implementations for 5 ba
 
 For more information read the current paper draft section 6 evaluation.
 
-# High Level Claims
+# High Level Claims <a name="claims"></a>
 
 * **Main claim 1**: For all local baseline tests (`Throughput vs Message Size @ 19-node-network`, `Throughput vs Message Size @ 4-node-network`, `Throughput vs Network Size @ 100B-messages`, `Throughput vs Network Size @ 1MB-messages`) Picsou's Throughput lies between All-To-All (ATA) and One-Shot (OST). Expected performance is between 2.5-15x higher performance than A2A depending on network size
 * **Main claim 2**: For all failure tests (`Byzantine Failures: Throughput vs Network Size`, `Crash Failures: Throughput vs Network Size`) Picsou has higher performance than its BFT (A2A) and CFT (A2A, LL, OTU) comparative baselines. Expected performance is between 2.5x and 7x higher than A2A where LL and OTU performance is comparatively similar to A2A
@@ -43,7 +44,7 @@ For more information read the current paper draft section 6 evaluation.
 * Example artifact output: [https://drive.google.com/file/d/1lXxlT_wlib-EFfCos_lPbRLkvaWvwtHG/view?usp=sharing](https://drive.google.com/file/d/1lXxlT_wlib-EFfCos_lPbRLkvaWvwtHG/view?usp=sharing)
 
 
-# Artifact Organization
+# Artifact Organization <a name="orginaization"></a>
 
 The artifact spans across the following 3 GitHub repositories. Please checkout the corresponding branch when validating claims for a given system.
 1. [BFT-RSM](https://github.com/gupta-suyash/BFT-RSM/tree/main): Contains testing infrastructure and implementation of Picsou and our Baselines 1-4 (all but Kafka)
@@ -72,13 +73,13 @@ The artifact spans across the following 3 GitHub repositories. Please checkout t
 5. [resdb-application](https://github.com/mmurray22/resdb-application/tree/cbd92c10d44b23d7a208b62d8be1df20a748f049): Contains the edited version of ResDB  which sends all blocks to Scrooge to communicate with other Consensus Clusters. 
 
 
-# Validating the Claims
+# Validating the Claims <a name="validating"></a>
 
 All our experiments were run using Google Cloud. To reproduce our results and validate our claims with our testing infrastructure, you will need to 1) get access to our google cloud repo 2) Create a vm using our provided worker image, and 3) Run the `Code/auto_run_all_experiments.py` script to collect results and 4) Run `Code/experiments/experiment_scripts/eval_all_graphs.py` to visualize all trends. If you wish to use our code outside of GCP (e.g. cloud lab) that is ok, but our protocol parameters may need to change for the new machines/network and running cross-region experiments may also not be possible. Let us know if this is your desired method and we can provide additional instructions.
 
 
 
-### Step by step guide:
+### Step by Step Guide: <a name="guide"></a>
 
 1. Email [reginaldfrank77@berkeley.edu](mailto:reginaldfrank77@berkeley.edu) to get access to our Google Cloud project
 2. Create a new VM with the osdi-artifact-eval.img
