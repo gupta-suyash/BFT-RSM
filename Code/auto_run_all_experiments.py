@@ -18,8 +18,6 @@ def setup_network(dr_or_ccf_exp: bool, dry_run=False, verbose=True) -> None:
     execute_command(f"./auto_make_nodes.sh {dr_or_ccf_exp}", dry_run=dry_run, verbose=verbose)
     
 def shutdown_network(dr_or_ccf_exp: bool, dry_run=False, verbose=True) -> None:
-    print("actually won't shut down -- run auto_delete_nodes.sh")
-    return
     execute_command(f"./auto_delete_nodes.sh {dr_or_ccf_exp}", dry_run=dry_run, verbose=verbose)
     
 def shutdown_current_machine(dry_run=False, verbose=True) -> None:
