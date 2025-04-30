@@ -47,6 +47,13 @@ class GraphSpec:
     line_specs: List[LineSpec]
 
 def fill_local_perf_params(exp_params: ExperimentParameters) -> ExperimentParameters:
+    if exp_params.num_bytes == 10000 and exp_params.num_nodes == 19:
+        return replace(exp_params,
+            quack_windows=40000, # Maybe not a good idea -- used to be 1000
+            ack_windows=1000, # Maybe not a good idea -- used to be 16
+            max_message_delays="10ms", # Maybe not a good idea -- used to be "500ms"
+            noop_delays="1ms" # Maybe not a good idea -- used to be "5ms"
+        )
     if exp_params.num_bytes == 100000:
         return replace(exp_params,
             quack_windows=4000, # Maybe not a good idea -- used to be 1000
@@ -71,14 +78,10 @@ def fill_geo_perf_params(exp_params: ExperimentParameters) -> ExperimentParamete
         phi_size = 64,
     )
     
-    
-    
 def fill_perf_params(exp_params: ExperimentParameters) -> ExperimentParameters:
     if exp_params.run_dr or exp_params.run_ccf:
-        fill_geo_perf_params(exp_params)
-    else:
-        fill_local_perf_params(exp_params)
-    return exp_params
+        return fill_geo_perf_params(exp_params)
+    return fill_local_perf_params(exp_params)
     
 
 def get_exp_string(params: ExperimentParameters) -> str:
@@ -360,7 +363,7 @@ def get_crash_graphs() -> List[GraphSpec]:
         line_specs=[
             LineSpec(
                 name=f"{strategy_name}",
-                x_axis_id="num_bytes",
+                x_axis_id="num_nodes",
                 y_axis_id="throughput",
                 param_seq=[
                     ExperimentParameters(
@@ -389,7 +392,7 @@ def get_crash_graphs() -> List[GraphSpec]:
         line_specs=[
             LineSpec(
                 name=f"Scrooge phi={phi_size}",
-                x_axis_id="num_bytes",
+                x_axis_id="num_nodes",
                 y_axis_id="throughput",
                 param_seq=[
                     ExperimentParameters(
@@ -415,7 +418,7 @@ def get_crash_graphs() -> List[GraphSpec]:
 
     ata_byz_sim_line = LineSpec(
         name="ATA",
-        x_axis_id="num_bytes",
+        x_axis_id="num_nodes",
         y_axis_id="throughput",
         param_seq=[
             ExperimentParameters(
@@ -441,7 +444,7 @@ def get_crash_graphs() -> List[GraphSpec]:
         line_specs=[
             LineSpec(
                 name=f"Scrooge Byzantine_MODE={byz_mode}",
-                x_axis_id="num_bytes",
+                x_axis_id="num_nodes",
                 y_axis_id="throughput",
                 param_seq=[
                     ExperimentParameters(

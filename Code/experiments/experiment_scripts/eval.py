@@ -45,7 +45,7 @@ def process_file(file_name: str):
     try:
         with open(file_name, 'r') as f:
             log_data = yaml.safe_load(f)
-            if log_data:
+            if log_data and len(log_data) > 1:
                 return log_data
     except Exception as e:
         print(f'Unable to parse {file_name} -- is it correct yaml format? Error: {e}')
@@ -277,14 +277,14 @@ def main():
     dataframe = make_dataframe(file_names)
     dataframe = clean_dataframe(dataframe)
     graphs = get_graphs_by_group(dataframe)
-    save_graphs(graphs)
+    # save_graphs(graphs)
 
     csv = get_throughput_latency_csv(dataframe)
 
     csv.sort_values(by=['message_size', 'local_network_size', 'strategy'], inplace=True)
     print('Cur Results:')
     print(csv)
-    csv.to_csv('cur_results.csv', index=False)
+    # csv.to_csv('cur_results.csv', index=False)
 
 if __name__ == '__main__':
     main()
