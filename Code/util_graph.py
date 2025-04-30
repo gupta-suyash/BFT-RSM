@@ -440,7 +440,7 @@ def get_crash_graphs() -> List[GraphSpec]:
     )
 
     figure_8_byz_actions = GraphSpec(
-        name="Byzantine Failures -- Phi Scaling: Throughput vs Network Size",
+        name="Byzantine Failures: Throughput vs Network Size",
         line_specs=[
             LineSpec(
                 name=f"Scrooge Byzantine_MODE={byz_mode}",
