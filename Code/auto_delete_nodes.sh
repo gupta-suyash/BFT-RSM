@@ -16,11 +16,11 @@ if [ "$run_dr_or_ccf" = "True" ]; then
 	KAFKA_ZONE="us-east5-a"
 fi
 
-yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $RSM1_ZONE &
-yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $RSM2_ZONE &
-yes | gcloud compute instance-groups managed delete "${GP_NAME}-kafka" --zone $KAFKA_ZONE &
+yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone "${RSM1_ZONE}" &
+yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone "${RSM2_ZONE}" &
+yes | gcloud compute instance-groups managed delete "${GP_NAME}-kafka" --zone "${KAFKA_ZONE}" &
 
-sleep 5
+
 echo "This might take a while, please wait..."
 
 wait

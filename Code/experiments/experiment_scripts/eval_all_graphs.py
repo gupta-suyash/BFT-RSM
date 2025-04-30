@@ -77,6 +77,7 @@ def generate_line(line_spec: LineSpec, dataframe: pd.DataFrame) -> Line:
     Returns:
         Line: The generated line.
     """
+    import pdb; pdb.set_trace()
     experiment_identifiers = list(map(get_exp_string, line_spec.param_seq))
     results = dataframe.query("exp_param_key in @experiment_identifiers")
     
@@ -177,12 +178,11 @@ def main():
         sys.stderr.write(f'Error: {results_dir} does not exist\n')
         sys.exit(1)
     
-    graph_specs = get_all_graphspecs()
-    graph_specs = get_stake_graphs()
+    graph_specs = get_all_graphspecs()[-2:]
     
     file_names = []
     for experiment_folder in get_folders_in_dir(str(results_dir)):
-        if 'THROTTLE' not in experiment_folder:
+        if 'RAFT' not in experiment_folder:
             # Hacky check with new file naming scheme
             continue
         for run_folder in get_folders_in_dir(str(results_dir / experiment_folder)):

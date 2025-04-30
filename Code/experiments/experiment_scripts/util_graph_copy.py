@@ -325,7 +325,7 @@ def get_crash_graphs() -> List[GraphSpec]:
         line_specs=[
             LineSpec(
                 name=f"{strategy_name}",
-                x_axis_id="num_bytes",
+                x_axis_id="num_nodes",
                 y_axis_id="throughput",
                 param_seq=[
                     ExperimentParameters(
@@ -354,7 +354,7 @@ def get_crash_graphs() -> List[GraphSpec]:
         line_specs=[
             LineSpec(
                 name=f"Scrooge phi={phi_size}",
-                x_axis_id="num_bytes",
+                x_axis_id="num_nodes",
                 y_axis_id="throughput",
                 param_seq=[
                     ExperimentParameters(
@@ -380,7 +380,7 @@ def get_crash_graphs() -> List[GraphSpec]:
 
     ata_byz_sim_line = LineSpec(
         name="ATA",
-        x_axis_id="num_bytes",
+        x_axis_id="num_nodes",
         y_axis_id="throughput",
         param_seq=[
             ExperimentParameters(
@@ -406,7 +406,7 @@ def get_crash_graphs() -> List[GraphSpec]:
         line_specs=[
             LineSpec(
                 name=f"Scrooge Byzantine_MODE={byz_mode}",
-                x_axis_id="num_bytes",
+                x_axis_id="num_nodes",
                 y_axis_id="throughput",
                 param_seq=[
                     ExperimentParameters(

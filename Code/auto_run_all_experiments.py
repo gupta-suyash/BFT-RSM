@@ -101,7 +101,7 @@ def main():
     all_graphs = get_condensed_graphspecs(4)
     all_experiment_parameters = get_unique_experiment_parameters(all_graphs)
     
-    already_ran_experiments = []# set(get_folders_in_dir("/home/scrooge/BFT-RSM/Code/experiments/results/"))
+    already_ran_experiments = set(get_folders_in_dir("/home/scrooge/BFT-RSM/Code/experiments/results/"))
     experiments_to_run = [x for x in all_experiment_parameters if get_exp_string(x) not in already_ran_experiments]
     
     local_experiments = [
@@ -114,31 +114,35 @@ def main():
     geo_experiments = [
         exp_params
         for exp_params in experiments_to_run
-        if exp_params.run_dr or exp_params.run_ccf
+        if (exp_params.run_dr or exp_params.run_ccf) and exp_params.strategy_name != "KAFKA"
     ]
     
-    # First run the local experiments
-    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Deploying Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    setup_network(dr_or_ccf_exp=False)
+    print(f"Running {len(local_experiments)} local experiments and {len(geo_experiments)} geo experiments")
     
-    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Running Local Experiments ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    run_experiments(local_experiments)
+    if local_experiments:
+        # First run the local experiments
+        print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Deploying Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
+        setup_network(dr_or_ccf_exp=False)
         
-    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    shutdown_network(dr_or_ccf_exp=False)
+        print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Running Local Experiments ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
+        run_experiments(local_experiments)
+            
+        print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down Local Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
+        shutdown_network(dr_or_ccf_exp=False)
     
-    # Then run the geo experiments
-    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Deploying dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    setup_network(dr_or_ccf_exp=True)
-    
-    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Running dr+ccf Experiments ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    run_experiments(geo_experiments)
+    if geo_experiments:
+        # Then run the geo experiments
+        print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Deploying dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
+        setup_network(dr_or_ccf_exp=True)
         
-    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    shutdown_network(dr_or_ccf_exp=True)
-    
-    print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down Current Machine ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
-    shutdown_current_machine()
+        print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Running dr+ccf Experiments ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
+        run_experiments(geo_experiments)
+            
+        print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down dr+ccf Machines ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
+        shutdown_network(dr_or_ccf_exp=True)
+        
+        print("⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ Shutting Down Current Machine ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️")
+        shutdown_current_machine()
         
         
 if __name__ == "__main__":
