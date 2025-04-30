@@ -110,7 +110,7 @@ workdir="/home/scrooge"
 
 # Set rarely changing Scrooge parameters.
 warmup_time=45s
-total_time=60s
+total_time=75s
 num_packets=10000
 exec_dir="$HOME/"
 network_dir="${workdir}/BFT-RSM/Code/configuration/"
