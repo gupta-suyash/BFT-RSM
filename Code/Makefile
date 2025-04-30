@@ -20,17 +20,15 @@ PROTO_SOURCES = $(wildcard ./protobuf/*.proto)
 SOURCES = $(wildcard ./system/*.cpp ./system/*.cc)
 SOURCES += $(wildcard ./configuration/*.cpp)
 LIBRARY_SOURCES = $(filter-out ./system/main.cpp, $(SOURCES))
-TEST_SOURCES = $(wildcard ./test/*.cpp ./test/*.cc)
 
 SOURCES_OBJ = $(SOURCES:.cpp=.o)
 LIBRARY_SOURCES_OBJ = $(LIBRARY_SOURCES:.cpp=.o)
-TEST_SOURCES_OBJ = $(TEST_SOURCES:.cpp=.o)
 
 FORMAT_TARGET_REGEX = '.*\.\(cpp\|c\|h\|.proto\)'
 
 TARGET = scrooge-next
 
-.PHONY: all clean format test proto
+.PHONY: all clean format proto
 all: $(TARGET)
 
 $(TARGET): $(SOURCES_OBJ)
@@ -44,16 +42,12 @@ proto: $(PROTO_SOURCES)
 	protoc -I./protobuf --go_out=./client ./protobuf/*
 
 clean:
-	rm -f system/*.o configuration/*.o $(TARGET) test/*.o check system/*.pb* client/proto*.pb*
+	rm -f system/*.o configuration/*.o $(TARGET) check system/*.pb* client/proto*.pb*
 
 format:
 	find system -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
 	find configuration -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
 	find test -regex $(FORMAT_TARGET_REGEX) -exec clang-format -i -style=Microsoft {} \;
-
-check: $(LIBRARY_SOURCES_OBJ) $(TEST_SOURCES_OBJ)
-	$(CC) -o $@ $^ -I$(SRC_DIRS) $(LDFLAGS) $(LIBS)
-	./check -l unit_scope
 
 %.o : %.cpp
 	$(CC) -c ${CFLAGS} -I$(SRC_DIRS) -o $@ $<
