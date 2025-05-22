@@ -33,6 +33,7 @@ import time
 import random
 import multiprocessing
 import subprocess
+import yaml
 
 # Include all utility scripts
 setup_dir = os.path.realpath(os.path.dirname(__file__))
@@ -245,7 +246,27 @@ def run(configJson, experimentName, expDir):
             else: # run kafka specific function
                 executeCommand(f'sleep 60; parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/home/scrooge/scrooge-kafka/curProdOutputLog {expDir}{{2}}_{i} ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
-                executeCommand(f'echo "exp_param_key: {experimentName}" | tee -a {expDir}*.yaml > /dev/null')
+                yaml_files = [
+                    os.path.join(expDir, file)
+                    for file in os.listdir(expDir)
+                    if file.endswith('.yaml') and os.path.isfile(os.path.join(expDir, file))
+                ]
+
+                for file_path in yaml_files:
+                    try:
+                        with open(file_path, 'r') as f:
+                            data = yaml.safe_load(f) or {}
+
+                        if isinstance(data, dict):
+                            data['exp_param_key'] = experimentName
+                        else:
+                            print(f"Skipping non-dictionary YAML content in {file_path}")
+                            continue
+
+                        with open(file_path, 'w') as f:
+                            yaml.dump(data, f, default_flow_style=False)
+                    except Exception as e:
+                        print(f"Error processing {file_path}: {e}")
                 
             executeCommand(f'mv node* {expDir}')
             executeCommand(f'cp config.h {expDir}')
