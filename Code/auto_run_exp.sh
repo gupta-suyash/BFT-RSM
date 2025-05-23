@@ -40,7 +40,7 @@ message_buffer_size="${22}"
 rsm1_fail=("$(((rsm1_size[0] - 1) / 3))")
 rsm2_fail=("$(((rsm1_size[0] - 1) / 3))")
 
-if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then    
+if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then
 	rsm1_fail=("$(((rsm1_size[0] - 1) / 2))")
 	rsm2_fail=("$(((rsm1_size[0] - 1) / 2))")
 fi
@@ -152,10 +152,10 @@ num_nodes_rsm_2=0
 client=2
 num_nodes_kafka=0
 for v in ${rsm1_size[@]}; do
-    if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi; 
+    if (( $v > $num_nodes_rsm_1 )); then num_nodes_rsm_1=$v; fi;
 done
 for v in ${rsm2_size[@]}; do
-    if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi; 
+    if (( $v > $num_nodes_rsm_2 )); then num_nodes_rsm_2=$v; fi;
 done
 
 if [ "$kafka" = "true" ]; then num_nodes_kafka=4; fi;
@@ -176,31 +176,6 @@ if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then
 	RSM2_ZONE="us-east5-a"
 	KAFKA_ZONE="us-east5-a"
 fi
-
-trap exit_handler INT
-function exit_handler() {
-	echo "** Trapped CTRL-C -- killing all ssh and python"
-
-	for client_ip in "${CLIENT[@]}"; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'killall benchmark' </dev/null &>/dev/null  &
-	done
-	echo "deleting experiment"
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $RSM1_ZONE &
-		pids_to_kill+=($!)
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $RSM2_ZONE &
-		pids_to_kill+=($!)
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-kafka" --zone $KAFKA_ZONE &
-		pids_to_kill+=($!)
-		exit 0
-
-	kill $experiment_pid
-	for pid in "${pids_to_kill[@]}"; do
-		kill $pid
-	done
-
-	echo "keeping machines for future experiments"
-	exit 0
-}
 
 gcloud compute instances list --filter="name~^${GP_NAME}-rsm-1" --format='value(networkInterfaces[0].networkIP)' > /tmp/RSM1_ips.txt &
 gcloud compute instances list --filter="name~^${GP_NAME}-rsm-2" --format='value(networkInterfaces[0].networkIP)' > /tmp/RSM2_ips.txt &
@@ -500,7 +475,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "RSM w ports: ${joined%,}"
 		# Start benchmark
     		export PATH=$PATH:${benchmark_bin_path}
-		
+
 		if [ "${raft_count}" -eq 1 ]; then
 			joinedvar1="${joined%,}"
 			echo "RSM1: ${joinedvar1}"
@@ -549,7 +524,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			pids_to_kill+=($!)
 		done
 	}
-	
+
 	function start_algorand() {
 		echo "######################################################Algorand RSM is being used!"
 		# Take in arguments
@@ -646,10 +621,10 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         ssh -o StrictHostKeyChecking=no -t "${client_ip}" '/home/scrooge/rerun.sh '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"':4161 default '"${relay}"''
         relay="false"
         parallel -v --jobs=0 ssh -o StrictHostKeyChecking=no -t {1} '/home/scrooge/rerun.sh '"${algorand_app_dir}"' '"${algorand_scripts_dir}"' '"${client_ip}"':4161 default '"${relay}"''' &' ::: "${RSM[@]:0:$((size))}";
-        echo "Done with the parallel jobs!"        
+        echo "Done with the parallel jobs!"
         echo "###########################################Algorand started and running!"
 	}
-    
+
     # Algorand Startup Verion #3: Does not rerun anything, directly starts another experiment on the same algorand instance
     function start_no_rerun_algorand() {
         echo "######################################################Algorand RSM is being used!"
@@ -693,8 +668,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         printf "%s\n" "${client_ip}" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		printf "%s\n\n" ")" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		echo "server=//kv_server:kv_server_performance" >> ${resdb_app_dir}/deploy/config/kv_performance_server.conf
-		echo "HERE IS THE KV CONFIG:"	
-		cat ${resdb_app_dir}/deploy/config/kv_performance_server.conf		
+		echo "HERE IS THE KV CONFIG:"
+		cat ${resdb_app_dir}/deploy/config/kv_performance_server.conf
 		${resdb_scripts_dir}/scrooge-resdb.sh ${resdb_app_dir} $cluster_num ${resdb_scripts_dir}
         echo "Resdb is started!!"
         #exit 1
@@ -708,11 +683,17 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "KAFKA LOG: ZOOKEEPER_IP=${zookeeper_ip}"
 		echo "KAFKA LOG: BROKER_IPS=${broker_ips[@]}"
 
+		for ip in "${broker_ips[@]}"; do
+			ssh -o StrictHostKeyChecking=no -t "${ip}" "${kafka_dir}"/bin/kafka-server-stop.sh;
+		done
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" "${kafka_dir}"/bin/zookeeper-server-stop.sh;
+
+		sleep 10
+
         # clean zookeeper log
         echo "KAFKA LOG: Cleaning Zookeeper logs!"
         # Setup kafka directory on each of the machines
         ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '
-            '"${kafka_dir}"'/bin/zookeeper-server-stop.sh;
             rm -rf /tmp/zookeeper;
             nohup '"${kafka_dir}"'/bin/zookeeper-shell.sh localhost:2181 <<< "
                 deleteall /brokers
@@ -720,22 +701,23 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 deleteall /config
                 quit" &'
         echo "KAFKA LOG: Zookeeper logs cleaned!"
+
 		
+
 		#set up zookeeper node
         echo "KAFKA LOG: Starting Zookeeper!"
         scp -o StrictHostKeyChecking=no ${kafka_dir}/config/zookeeper.properties "${zookeeper_ip}":${kafka_dir}/config
 		ssh -f -o StrictHostKeyChecking=no -t "${zookeeper_ip}" 'source ~/.profile  && cd '"${kafka_dir}"' && nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties >correct.log 2>error.log < /dev/null &'
         echo "KAFKA LOG: Zookeeper node successfully started!"
-		
+
 		#iterate and start each broker node
 		count=0
 		while ((count < size)); do
                 # clean broker log
                 echo "KAFKA LOG: Cleaning logs on Broker Node (${broker_ips[$count]})"
-                ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" '
-                    '"${kafka_dir}"'/bin/kafka-server-stop.sh;
-                    rm -rf /tmp/kafka-logs-0/'
+                ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'rm -rf /tmp/kafka-logs-0/'
 				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'rm /home/scrooge/kafka_2.13-3.7.0/logs/*'
+
                 echo "KAFKA LOG: Logs cleaned for Broker Node (${broker_ips[$count]})"
 
 				#create server.properties files
@@ -752,7 +734,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 				# echo "replica.fetch.response.max.bytes=50000000" >> server.properties
 				#scp server.properties to broker node
 				scp -o StrictHostKeyChecking=no server.properties "${broker_ips[$count]}":${kafka_dir}/config
-				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; killall -9 .*java.*'
+				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'pkill -f scrooge-kafka; pkill -9 .*java.*'
 
 				echo "KAFKA LOG: Starting Broker Node (${broker_ips[$count]})"
 				ssh -f -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'source ~/.profile && cd '"${kafka_dir}"' &&  nohup ./bin/kafka-server-start.sh ./config/server.properties >correct.log 2>error.log < /dev/null &' &>/dev/null </dev/null &
@@ -763,6 +745,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         broker_ips_string=$(printf "%s:9092," "${broker_ips[@]}")
 		broker_ips_string="${broker_ips_string%,}" # removes trailing ,
 		#start kafka from script node instead?
+		sleep 20
 		echo "KAFKA LOG: Creating Topic w/ Bootstrap Server ($broker_ips_string)"
 		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-1 --partitions $num_partitions
 		${kafka_dir}/bin/kafka-topics.sh --create --bootstrap-server $broker_ips_string --replication-factor $size --topic topic-2 --partitions $num_partitions
@@ -788,6 +771,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		local broker_ips=${14}
 		local write_dr=${15}
 		local write_ccf=${16}
+		local message_size=${17}
 		rm "$OUTPUT_FILENAME"
 		echo "{" >> "$OUTPUT_FILENAME"
 		echo "    \"topic1\": \"${topic1}\"," >> "$OUTPUT_FILENAME"
@@ -804,7 +788,8 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "    \"input_path\": \"${input_path}\"," >> "$OUTPUT_FILENAME"
 		echo "    \"output_path\": \"${output_path}\"," >> "$OUTPUT_FILENAME"
 		echo "    \"write_dr\": ${write_dr}," >> "$OUTPUT_FILENAME"
-		echo "    \"write_ccf\": ${write_ccf}" >> "$OUTPUT_FILENAME"
+		echo "    \"write_ccf\": ${write_ccf}," >> "$OUTPUT_FILENAME"
+		echo "    \"message_size\": ${message_size}" >> "$OUTPUT_FILENAME"
 		echo "}" >> "$OUTPUT_FILENAME"
 	}
 
@@ -872,9 +857,9 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		else
 			echo "INVALID RECEIVING RSM."
 		fi
-		
-		
-		
+
+
+
 		#if [kafka = true] then
 			#compile executable
 			#temporary clone in the executable, will change after adding kafka to this repository
@@ -882,7 +867,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			# cd scrooge-kafka
 			# sbt package --> not working so we will clone repo into each node instead of scp'ing executable
 
-		# Receiving RSM 
+		# Receiving RSM
 		if [ "$receive_rsm" = "algo" ]; then
 			echo "Algo RSM is being used for receiving."
 			if [ "$rerun_bool" = "T" ]; then
@@ -912,34 +897,44 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			# These files are created by running:
 			# 1) `fallocate -l 1000 1kb_file.txt`
 			# 2) `printf 'A%.0s' {1..1000} > 1kb_file.txt`
-			file_100=$(<100b_file.txt)
-			file_1000=$(<1000b_file.txt)
-			file_10000=$(<10000b_file.txt)
-			file_100000=$(<100000b_file.txt)
-			file_1000000=$(<1000000b_file.txt)
+			file=""
+			if [ "${pk_size}" = "100" ]; then
+				file=$(<100b_file.txt)
+			fi
+			if [ "${pk_size}" = "1000" ]; then
+				file=$(<1000b_file.txt)
+			fi
+			if [ "${pk_size}" = "10000" ]; then
+				file=$(<10000b_file.txt)
+			fi
+			if [ "${pk_size}" = "100000" ]; then
+				file=$(<100000b_file.txt)
+			fi
+			if [ "${pk_size}" = "1000000" ]; then
+				file=$(<1000000b_file.txt)
+			fi
 
 			read_from_pipe="false"
 			#if file_rsm is True, we don't want to read_from_pipe in our kafka config
 			if [ "$file_rsm" = "false" ]; then
 				read_from_pipe="true"
 			fi
-			
+
 			echo "KAFKA LOG: Running RSM 1"
 			for node in $(seq 0 $((rsm1_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "5" "${read_from_pipe}" "${file_100}" "120" "60" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "${r1_size}" "${read_from_pipe}" "${file}" "30" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running RSM 2"
 			for node in $(seq 0 $((rsm2_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "5" "${read_from_pipe}" "${file_100}" "120" "60" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "${r1_size}" "${read_from_pipe}" "${file}" "30" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running experiment"
 			./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		    experiment_pid=$!
-			sleep 30
 			if [ "$send_rsm" = "raft" ]; then
 				echo "Running Send_RSM Benchmark Raft"
 				benchmark_raft "${joinedvar1}" 1 "${pk_size}" "${CLIENT_RSM1[@]}"
@@ -950,8 +945,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 					benchmark_raft "${joinedvar2}" 2 "${pk_size}" "${CLIENT_RSM2[@]}"
 				fi
 			fi
-            
+
             wait $experiment_pid
+
+			for pid in "${pids_to_kill[@]}"; do
+				kill $pid
+			done
+
 			continue
 		fi
 

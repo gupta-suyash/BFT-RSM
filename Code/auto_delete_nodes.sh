@@ -9,12 +9,13 @@ KAFKA_ZONE="us-west4-a"
 key_file="$HOME/.ssh/id_ed25519" # TODO: Replace with your ssh key
 username="scrooge"               # TODO: Replace with your username
 
+yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone "${RSM1_ZONE}" &
+yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone "${RSM2_ZONE}" &
+yes | gcloud compute instance-groups managed delete "${GP_NAME}-kafka" --zone "${KAFKA_ZONE}" &
 
-if [ "$run_dr_or_ccf" = "True" ]; then
-    RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
-	RSM2_ZONE="us-east5-a"
-	KAFKA_ZONE="us-east5-a"
-fi
+RSM1_ZONE="us-west4-a" # us-east1/2/3/4, us-south1, us-west1/2/3/4
+RSM2_ZONE="us-east5-a"
+KAFKA_ZONE="us-east5-a"
 
 yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone "${RSM1_ZONE}" &
 yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone "${RSM2_ZONE}" &

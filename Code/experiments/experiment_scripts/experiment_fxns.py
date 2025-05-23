@@ -33,6 +33,8 @@ import time
 import random
 import multiprocessing
 import subprocess
+import yaml
+import json
 
 # Include all utility scripts
 setup_dir = os.path.realpath(os.path.dirname(__file__))
@@ -152,7 +154,7 @@ def generateNetwork(networkConfigDir, cluster0sz, cluster1sz):
         hostDict[int(node_idx_arr[len(node_idx_arr) - 1])] = ip[0]
         ip_list.append(ip[0])
     print("Dictionary ", hostDict)
-    # TODO Figure out partition of hosts in the network 
+    # TODO Figure out partition of hosts in the network
     # for hosts in host
     offset = 0
     for i in range(0, 2):
@@ -194,7 +196,7 @@ def run(configJson, experimentName, expDir):
     #pdb.set_trace()
     increase_packet_size.nb_rounds = int(config[experimentName]['nb_rounds'])
     # Run for each round, nbRepetitions time.
-    
+
     for i in range(0, increase_packet_size.nb_rounds):
         try:
             # Need to collect the scrooge start commands
@@ -223,7 +225,7 @@ def run(configJson, experimentName, expDir):
             ssh_key = config['experiment_independent_vars']['ssh_key']
             username = config['experiment_independent_vars']['username']
             count = 0
-            
+
             if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
                 executeCommand(f'parallel -v --jobs=0 scp -oStrictHostKeyChecking=no -i {ssh_key} {default_dir}scrooge {username}@{{1}}:{exec_dir}/ ::: {" ".join(ip_list)}')
                 executeParallelBlockingDifferentRemoteCommands(ip_list, scrooge_commands)
@@ -239,15 +241,38 @@ def run(configJson, experimentName, expDir):
                 cluster_id = 1
                 file_names.append(f'log_{cluster_id}_{node_id}')
                 ips.append(ip)
-            if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":    
+            if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 executeCommand(f'echo "exp_param_key: {experimentName}" | tee -a {expDir}*.yaml > /dev/null')
+                executeCommand(f'cp config.h {expDir}')
             else: # run kafka specific function
-                executeCommand(f'sleep 60; parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
+                executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/home/scrooge/scrooge-kafka/curProdOutputLog {expDir}{{2}}_{i} ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
-                executeCommand(f'echo "exp_param_key: {experimentName}" | tee -a {expDir}*.yaml > /dev/null')
-                
+                yaml_files = [
+                    os.path.join(expDir, file)
+                    for file in os.listdir(expDir)
+                    if file.endswith('.yaml') and os.path.isfile(os.path.join(expDir, file))
+                ]
+
+                for file_path in yaml_files:
+                    try:
+                        with open(file_path, 'r') as f:
+                            data = json.load(f) or {}
+                            
+                        # unpack nested struct
+                        data = json.loads(data['content'])
+                        
+                        if isinstance(data, dict):
+                            data['exp_param_key'] = experimentName
+                        else:
+                            print(f"Skipping non-dictionary YAML content in {file_path}")
+                            continue
+
+                        with open(file_path, 'w') as f:
+                            yaml.dump(data, f, default_flow_style=False)
+                    except Exception as e:
+                        print(f"Error processing {file_path}: {e}")
+
             executeCommand(f'mv node* {expDir}')
-            executeCommand(f'cp config.h {expDir}')
         except Exception as e:
             print(e)

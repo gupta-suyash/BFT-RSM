@@ -25,7 +25,7 @@ fi
 # Create machines
 yes | gcloud beta compute instance-groups managed create "${GP_NAME}-rsm-1" --project=scrooge-398722 --base-instance-name="${GP_NAME}-rsm-1" --size="$((num_nodes_rsm_1+(client+1)/2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${RSM1_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
 yes | gcloud beta compute instance-groups managed create "${GP_NAME}-rsm-2" --project=scrooge-398722 --base-instance-name="${GP_NAME}-rsm-2" --size="$((num_nodes_rsm_2+client/2))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${RSM2_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
-yes | gcloud beta compute instance-groups managed create "${GP_NAME}-kafka" --project=scrooge-398722 --base-instance-name="${GP_NAME}-kafka" --size="$((num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/${TEMPLATE} --zone="${KAFKA_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
+yes | gcloud beta compute instance-groups managed create "${GP_NAME}-kafka" --project=scrooge-398722 --base-instance-name="${GP_NAME}-kafka" --size="$((num_nodes_kafka))" --template=projects/scrooge-398722/global/instanceTemplates/kafka-unified-5-spot-large-disk --zone="${KAFKA_ZONE}" --list-managed-instances-results=PAGELESS --stateful-internal-ip=interface-name=nic0,auto-delete=never --no-force-update-on-repair --default-action-on-vm-failure=repair &
 wait
 
 # Wait for the groups to all become stable
@@ -60,11 +60,11 @@ KAFKA=(${ar[@]:1})
 # Pre-Compile kafka code
 git_pids=()
 for i in ${!RSM2[@]}; do
-	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard ced9649b79d4fe3e4f4dc461f7b6c365f9b5233a; sbt compile'	1>/dev/null  2>&1 </dev/null &
+	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 4a625b192a9a03dff9ee09fe915473c087e8feee; sbt compile'	1>/dev/null  2>&1 </dev/null &
 	git_pids+=($!)
 done
 for i in ${!RSM1[@]}; do
-	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard ced9649b79d4fe3e4f4dc461f7b6c365f9b5233a; sbt compile' 1>/dev/null 2>&1 </dev/null &
+	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 4a625b192a9a03dff9ee09fe915473c087e8feee; sbt compile' 1>/dev/null 2>&1 </dev/null &
 	git_pids+=($!)
 done
 

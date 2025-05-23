@@ -40,7 +40,7 @@ def run_experiment(exp_params: ExperimentParameters, dry_run=False, verbose=True
         .replace("False", "false")
     )
     experiment_name = get_exp_string(exp_params)
-    execute_command(f"./auto_run_exp.sh '{experiment_name}' {exp_args} 2>&1 | tee /tmp/{experiment_name}.log", dry_run=dry_run, verbose=verbose)
+    execute_command(f"./auto_run_exp.sh '{experiment_name}' {exp_args} 2>&1", dry_run=dry_run, verbose=verbose)
 
 def get_folders_in_dir(directory_path: str) -> List[str]:
   """
@@ -105,14 +105,13 @@ def main():
     local_experiments = [
         exp_params
         for exp_params in experiments_to_run
-        if not (exp_params.run_dr or exp_params.run_ccf or exp_params.strategy_name == "KAFKA")
+        if not (exp_params.run_dr or exp_params.run_ccf)
     ]
-    print ("not running with kafka right now -- diagnose errors on monday")
     
     geo_experiments = [
         exp_params
         for exp_params in experiments_to_run
-        if (exp_params.run_dr or exp_params.run_ccf) and exp_params.strategy_name != "KAFKA"
+        if (exp_params.run_dr or exp_params.run_ccf)
     ]
     
     print(f"Running {len(local_experiments)} local experiments and {len(geo_experiments)} geo experiments")
