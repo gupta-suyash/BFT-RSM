@@ -9,9 +9,10 @@ def main():
         sys.stderr.write('Usage: python3 %s <config_file> <experiment name>\n' % sys.argv[0])
         sys.exit(1)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
-        expDir = setup(sys.argv[1], sys.argv[2])
-        run(sys.argv[1], sys.argv[2], expDir)
+    expDir = setup(sys.argv[1], sys.argv[2])
+    run(sys.argv[1], sys.argv[2], expDir)
+    print("Experiment completed successfully.")
+        
 
 
 if __name__ == "__main__":

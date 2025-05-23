@@ -244,6 +244,7 @@ def run(configJson, experimentName, expDir):
             if config["experiment_independent_vars"]["replication_protocol"] == "scrooge":
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/{{2}}.yaml {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 executeCommand(f'echo "exp_param_key: {experimentName}" | tee -a {expDir}*.yaml > /dev/null')
+                executeCommand(f'cp config.h {expDir}')
             else: # run kafka specific function
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/tmp/output.json {expDir}{{2}}_{i}.yaml ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
                 executeCommand(f'parallel --jobs=0 scp -oStrictHostKeyChecking=no {{1}}:/home/scrooge/scrooge-kafka/curProdOutputLog {expDir}{{2}}_{i} ::: {" ".join(ips)} :::+ {" ".join(file_names)}')
@@ -257,7 +258,10 @@ def run(configJson, experimentName, expDir):
                     try:
                         with open(file_path, 'r') as f:
                             data = json.load(f) or {}
-
+                            
+                        # unpack nested struct
+                        data = json.loads(data['content'])
+                        
                         if isinstance(data, dict):
                             data['exp_param_key'] = experimentName
                         else:
@@ -270,6 +274,5 @@ def run(configJson, experimentName, expDir):
                         print(f"Error processing {file_path}: {e}")
 
             executeCommand(f'mv node* {expDir}')
-            executeCommand(f'cp config.h {expDir}')
         except Exception as e:
             print(e)

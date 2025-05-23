@@ -712,7 +712,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
         echo "KAFKA LOG: Cleaning Zookeeper logs!"
         # Setup kafka directory on each of the machines
         ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '
-            '"${kafka_dir}"'/bin/zookeeper-server-stop.sh;
+            '"${kafka_dir}"'/bin/zookeeper-server-stop.sh; sleep 10;
             rm -rf /tmp/zookeeper;
             nohup '"${kafka_dir}"'/bin/zookeeper-shell.sh localhost:2181 <<< "
                 deleteall /brokers
@@ -720,6 +720,11 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 deleteall /config
                 quit" &'
         echo "KAFKA LOG: Zookeeper logs cleaned!"
+
+		for ip in "${broker_ips[@]}"; do
+			ssh -o StrictHostKeyChecking=no -t "${ip}" "${kafka_dir}"/bin/kafka-server-stop.sh;
+		done
+		sleep 10
 
 		#set up zookeeper node
         echo "KAFKA LOG: Starting Zookeeper!"
@@ -732,9 +737,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		while ((count < size)); do
                 # clean broker log
                 echo "KAFKA LOG: Cleaning logs on Broker Node (${broker_ips[$count]})"
-                ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" '
-                    '"${kafka_dir}"'/bin/kafka-server-stop.sh;
-                    rm -rf /tmp/kafka-logs-0/'
+                ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'rm -rf /tmp/kafka-logs-0/'
 				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'rm /home/scrooge/kafka_2.13-3.7.0/logs/*'
 
                 echo "KAFKA LOG: Logs cleaned for Broker Node (${broker_ips[$count]})"
@@ -941,20 +944,19 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 			echo "KAFKA LOG: Running RSM 1"
 			for node in $(seq 0 $((rsm1_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "5" "${read_from_pipe}" "${file}" "30" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "${r1_size}" "${read_from_pipe}" "${file}" "30" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running RSM 2"
 			for node in $(seq 0 $((rsm2_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "5" "${read_from_pipe}" "${file}" "30" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "${r1_size}" "${read_from_pipe}" "${file}" "30" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running experiment"
 			./experiments/experiment_scripts/run_experiments.py ${workdir}/BFT-RSM/Code/experiments/experiment_json/experiments.json ${experiment_name} &
 		    experiment_pid=$!
-			sleep 30
 			if [ "$send_rsm" = "raft" ]; then
 				echo "Running Send_RSM Benchmark Raft"
 				benchmark_raft "${joinedvar1}" 1 "${pk_size}" "${CLIENT_RSM1[@]}"
