@@ -736,6 +736,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                     '"${kafka_dir}"'/bin/kafka-server-stop.sh;
                     rm -rf /tmp/kafka-logs-0/'
 				ssh -o StrictHostKeyChecking=no -t "${broker_ips[$count]}" 'rm /home/scrooge/kafka_2.13-3.7.0/logs/*'
+
                 echo "KAFKA LOG: Logs cleaned for Broker Node (${broker_ips[$count]})"
 
 				#create server.properties files
@@ -915,11 +916,22 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 			# These files are created by running:
 			# 1) `fallocate -l 1000 1kb_file.txt`
 			# 2) `printf 'A%.0s' {1..1000} > 1kb_file.txt`
-			file_100=$(<100b_file.txt)
-			file_1000=$(<1000b_file.txt)
-			file_10000=$(<10000b_file.txt)
-			file_100000=$(<100000b_file.txt)
-			file_1000000=$(<1000000b_file.txt)
+			file=""
+			if [ "${pk_size}" = "100" ]; then
+				file=$(<100b_file.txt)
+			fi
+			if [ "${pk_size}" = "1000" ]; then
+				file=$(<1000b_file.txt)
+			fi
+			if [ "${pk_size}" = "10000" ]; then
+				file=$(<10000b_file.txt)
+			fi
+			if [ "${pk_size}" = "100000" ]; then
+				file=$(<100000b_file.txt)
+			fi
+			if [ "${pk_size}" = "1000000" ]; then
+				file=$(<1000000b_file.txt)
+			fi
 
 			read_from_pipe="false"
 			#if file_rsm is True, we don't want to read_from_pipe in our kafka config
@@ -929,13 +941,13 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 
 			echo "KAFKA LOG: Running RSM 1"
 			for node in $(seq 0 $((rsm1_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "5" "${read_from_pipe}" "${file_100}" "120" "60" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "1" "${node}" "5" "${read_from_pipe}" "${file}" "30" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM1[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
 			echo "KAFKA LOG: Running RSM 2"
 			for node in $(seq 0 $((rsm2_size - 1))); do
-				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "5" "${read_from_pipe}" "${file_100}" "120" "60" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
+				print_kafka_json "config.json" "topic-1" "topic-2" "2" "${node}" "5" "${read_from_pipe}" "${file}" "30" "20" "0" "/tmp/scrooge-input" "/tmp/scrooge-output" "${broker_ips_string}" "${run_dr}" "${run_ccf}" "${pk_size}"
 				scp -o StrictHostKeyChecking=no config.json "${RSM2[$node]}":~/scrooge-kafka/src/main/resources/
 			done
 
