@@ -683,11 +683,17 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
 		echo "KAFKA LOG: ZOOKEEPER_IP=${zookeeper_ip}"
 		echo "KAFKA LOG: BROKER_IPS=${broker_ips[@]}"
 
+		for ip in "${broker_ips[@]}"; do
+			ssh -o StrictHostKeyChecking=no -t "${ip}" "${kafka_dir}"/bin/kafka-server-stop.sh;
+		done
+		ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" "${kafka_dir}"/bin/zookeeper-server-stop.sh;
+
+		sleep 10
+
         # clean zookeeper log
         echo "KAFKA LOG: Cleaning Zookeeper logs!"
         # Setup kafka directory on each of the machines
         ssh -o StrictHostKeyChecking=no -t "${zookeeper_ip}" '
-            '"${kafka_dir}"'/bin/zookeeper-server-stop.sh; sleep 10;
             rm -rf /tmp/zookeeper;
             nohup '"${kafka_dir}"'/bin/zookeeper-shell.sh localhost:2181 <<< "
                 deleteall /brokers
@@ -696,10 +702,7 @@ for r1_size in "${rsm1_size[@]}"; do # Looping over all the network sizes
                 quit" &'
         echo "KAFKA LOG: Zookeeper logs cleaned!"
 
-		for ip in "${broker_ips[@]}"; do
-			ssh -o StrictHostKeyChecking=no -t "${ip}" "${kafka_dir}"/bin/kafka-server-stop.sh;
-		done
-		sleep 10
+		
 
 		#set up zookeeper node
         echo "KAFKA LOG: Starting Zookeeper!"
