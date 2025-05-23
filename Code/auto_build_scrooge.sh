@@ -129,6 +129,10 @@ use_debug_logs_bool="false"
 starting_algos=10000000000000000
 
 
+if [ "$kafka" = "true" ]; then
+	exit 0
+fi
+
 ./makeConfig.sh "${rsm1_size[0]}" "${rsm2_size[0]}" "${rsm1_fail[0]}" "${rsm2_fail[0]}" ${num_packets} "${packet_size[0]}" ${network_dir} ${log_dir} ${warmup_time} ${total_time} "${batch_size[0]}" "${batch_creation_time[0]}" ${max_nng_blocking_time} "${pipeline_buffer_size[0]}" ${message_buffer_size} "${klist_size[0]}" ${scrooge} ${all_to_all} ${one_to_one} ${geobft} ${leader} ${file_rsm} ${use_debug_logs_bool} ${noop_delays[0]} ${max_message_delays[0]} ${quack_windows[0]} ${ack_windows[0]} ${run_dr} ${run_ccf} ${byz_mode} ${simulate_crash} ${throttle_file}
 
 cp config.h system/

@@ -60,11 +60,11 @@ KAFKA=(${ar[@]:1})
 # Pre-Compile kafka code
 git_pids=()
 for i in ${!RSM2[@]}; do
-	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard ced9649b79d4fe3e4f4dc461f7b6c365f9b5233a; sbt compile'	1>/dev/null  2>&1 </dev/null &
+	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM2[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 4a625b192a9a03dff9ee09fe915473c087e8feee; sbt compile'	1>/dev/null  2>&1 </dev/null &
 	git_pids+=($!)
 done
 for i in ${!RSM1[@]}; do
-	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard ced9649b79d4fe3e4f4dc461f7b6c365f9b5233a; sbt compile' 1>/dev/null 2>&1 </dev/null &
+	ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${RSM1[$i]}" 'rm -rf tmp/output.json; cd $HOME/scrooge-kafka && git fetch && git reset --hard 4a625b192a9a03dff9ee09fe915473c087e8feee; sbt compile' 1>/dev/null 2>&1 </dev/null &
 	git_pids+=($!)
 done
 
