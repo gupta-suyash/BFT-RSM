@@ -177,31 +177,6 @@ if [ "$run_dr" = "true" ] || [ "$run_ccf" = "true" ]; then
 	KAFKA_ZONE="us-east5-a"
 fi
 
-trap exit_handler INT
-function exit_handler() {
-	echo "** Trapped CTRL-C -- killing all ssh and python"
-
-	for client_ip in "${CLIENT[@]}"; do
-		ssh -i ${key_file} -o StrictHostKeyChecking=no -t "${client_ip}" 'killall benchmark' </dev/null &>/dev/null  &
-	done
-	echo "deleting experiment"
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-1" --zone $RSM1_ZONE &
-		pids_to_kill+=($!)
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-rsm-2" --zone $RSM2_ZONE &
-		pids_to_kill+=($!)
-		yes | gcloud compute instance-groups managed delete "${GP_NAME}-kafka" --zone $KAFKA_ZONE &
-		pids_to_kill+=($!)
-		exit 0
-
-	kill $experiment_pid
-	for pid in "${pids_to_kill[@]}"; do
-		kill $pid
-	done
-
-	echo "keeping machines for future experiments"
-	exit 0
-}
-
 gcloud compute instances list --filter="name~^${GP_NAME}-rsm-1" --format='value(networkInterfaces[0].networkIP)' > /tmp/RSM1_ips.txt &
 gcloud compute instances list --filter="name~^${GP_NAME}-rsm-2" --format='value(networkInterfaces[0].networkIP)' > /tmp/RSM2_ips.txt &
 gcloud compute instances list --filter="name~^${GP_NAME}-kafka" --format='value(networkInterfaces[0].networkIP)' > /tmp/KAFKA_ips.txt &

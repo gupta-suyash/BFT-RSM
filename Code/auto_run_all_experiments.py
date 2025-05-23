@@ -105,13 +105,13 @@ def main():
     local_experiments = [
         exp_params
         for exp_params in experiments_to_run
-        if not (exp_params.run_dr or exp_params.run_ccf) and exp_params.strategy_name == "KAFKA"
+        if not (exp_params.run_dr or exp_params.run_ccf)
     ]
     
     geo_experiments = [
         exp_params
         for exp_params in experiments_to_run
-        if (exp_params.run_dr or exp_params.run_ccf) and exp_params.strategy_name != "KAFKA"
+        if (exp_params.run_dr or exp_params.run_ccf)
     ]
     
     print(f"Running {len(local_experiments)} local experiments and {len(geo_experiments)} geo experiments")
